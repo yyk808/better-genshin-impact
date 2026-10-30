@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Core.Recorder.Model;
 

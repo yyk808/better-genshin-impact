@@ -1,5 +1,4 @@
 ﻿using System;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Helpers;
 

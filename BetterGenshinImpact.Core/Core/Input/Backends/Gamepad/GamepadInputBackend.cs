@@ -1,4 +1,3 @@
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Core.Input.Backends.Gamepad;
 

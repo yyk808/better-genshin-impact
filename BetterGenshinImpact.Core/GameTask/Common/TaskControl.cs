@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using Fischless.GameCapture;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 

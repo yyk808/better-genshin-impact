@@ -1,7 +1,6 @@
 ﻿using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Helpers;
 using System;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Core.Script.Dependence.Simulator;
 
