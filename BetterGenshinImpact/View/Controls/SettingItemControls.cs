@@ -50,12 +50,9 @@ public static class SettingItemControls
                     Margin = new Thickness(0, 0, 0, 10),
                     TextWrapping = TextWrapping.Wrap
                 };
-                if (item.Default != null)
+                if (context is IDictionary<string, object?> defaults1)
                 {
-                    if (context is IDictionary<string, object?> ctx)
-                    {
-                        ctx.TryAdd(item.Name, item.Default.ToString());
-                    }
+                    SettingItemValues.ApplyDefault(item, defaults1);
                 }
 
                 BindingOperations.SetBinding(textBox, TextBox.TextProperty, binding);
@@ -76,12 +73,9 @@ public static class SettingItemControls
                     }
                 }
 
-                if (item.Default != null)
+                if (context is IDictionary<string, object?> defaults2)
                 {
-                    if (context is IDictionary<string, object?> ctx)
-                    {
-                        ctx.TryAdd(item.Name, item.Default.ToString());
-                    }
+                    SettingItemValues.ApplyDefault(item, defaults2);
                 }
 
                 BindingOperations.SetBinding(comboBox, Selector.SelectedItemProperty, binding);
@@ -94,15 +88,9 @@ public static class SettingItemControls
                     Name = item.Name,
                     Margin = new Thickness(0, 0, 0, 10)
                 };
-                if (item.Default != null)
+                if (context is IDictionary<string, object?> defaults3)
                 {
-                    if (context is IDictionary<string, object?> ctx)
-                    {
-                        if (bool.TryParse(item.Default.ToString(), out var value))
-                        {
-                            ctx.TryAdd(item.Name, value);
-                        }
-                    }
+                    SettingItemValues.ApplyDefault(item, defaults3);
                 }
 
                 BindingOperations.SetBinding(checkBox, ToggleButton.IsCheckedProperty, binding);
@@ -114,22 +102,7 @@ public static class SettingItemControls
                     var checkedValues = new List<string>();
                     if (context is IDictionary<string, object?> ctx)
                     {
-                        if (!ctx.ContainsKey(item.Name))
-                        {
-                            if (item.Default is JsonElement j)
-                            {
-                                ctx[item.Name] = j.Deserialize<List<string>>();
-                            }
-                            else
-                            {
-                                ctx[item.Name] = new List<string>();
-                            }
-                        }
-                        else if (ctx[item.Name] is List<object> listOfObjects)
-                        {
-                            ctx[item.Name] = listOfObjects.Select(i => (string)i).ToList();
-                        }
-                        checkedValues = (List<string>)ctx[item.Name]!;
+                        checkedValues = SettingItemValues.ApplyDefault(item, ctx)!;
                     }
                     var wrapPanel = new WrapPanel
                     {
@@ -147,14 +120,7 @@ public static class SettingItemControls
                             RoutedEventHandler callback = (sender, e) =>
                             {
                                 bool isChecked = ((CheckBox)sender).IsChecked ?? false;
-                                if (isChecked && !checkedValues.Contains(option))
-                                {
-                                    checkedValues.Add(option);
-                                }
-                                else if (!isChecked)
-                                {
-                                    checkedValues.Remove(option);
-                                }
+                                SettingItemValues.SetChecked(checkedValues, option, isChecked);
                             };
                             box.Checked += callback;
                             box.Unchecked += callback;
@@ -179,12 +145,9 @@ public static class SettingItemControls
                         Margin = new Thickness(0, 0, 0, 10)
                     };
 
-                    if (item.Default != null)
+                    if (context is IDictionary<string, object?> defaults4)
                     {
-                        if (context is IDictionary<string, object?> ctx)
-                        {
-                            ctx.TryAdd(item.Name, item.Default.ToString());
-                        }
+                        SettingItemValues.ApplyDefault(item, defaults4);
                     }
 
                     BindingOperations.SetBinding(cascadeSelector, CascadeSelector.SelectedValueProperty, 

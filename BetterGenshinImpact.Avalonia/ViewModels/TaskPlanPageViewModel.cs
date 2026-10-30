@@ -16,7 +16,8 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// <summary>
 /// “任务计划”页（对应 WPF PuloniaTaskPlanPage）：计划列表、任务列表（添加 / 删除 / 排序 / 启用）、运行与停止、执行记录、触发方式。
 /// 计划模型、存储（User/Pulonia，与 Windows 版共用）、执行与调度都在 Core；本页只做编辑与展示。
-/// 共享设置、路线 CD、计划引用、任务参数编辑、计划快捷键触发尚未迁移
+/// 任务设置（名称、启用、分组次数、按 Schema 生成的参数）与定时触发的新增/编辑/启停/删除也在本页，规则来自 Core
+/// （PuloniaParameterForm、PuloniaTriggerEditing）。共享设置、路线 CD、计划引用、计划快捷键触发尚未迁移
 /// </summary>
 public sealed partial class TaskPlanPageViewModel : PageViewModel
 {
@@ -36,6 +37,9 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     [ObservableProperty] private string _statusMessage = "使用“添加”把任务加入当前计划；所有修改都会自动保存。";
     [ObservableProperty] private string _schedulerStatus = "";
     [ObservableProperty] private int _selectedTab;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasNodeEditor))] private TaskNodeEditor? _nodeEditor;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasTriggerEditor))] private TaskTriggerEditor? _triggerEditor;
+    [ObservableProperty] private TaskPlanTriggerRow? _selectedTrigger;
 
     public TaskPlanPageViewModel(GameHost? host, ILogger log)
     {
@@ -78,7 +82,13 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
     public ObservableCollection<TaskPlanRunRow> Runs { get; } = [];
 
-    public ObservableCollection<string> Triggers { get; } = [];
+    public ObservableCollection<TaskPlanTriggerRow> Triggers { get; } = [];
+
+    public bool HasNoTriggers => SelectedPlan is not null && Triggers.Count == 0;
+
+    public bool HasNodeEditor => NodeEditor is not null;
+
+    public bool HasTriggerEditor => TriggerEditor is not null;
 
     public string PlanCountText => Plans.Count.ToString();
 
@@ -128,6 +138,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
     partial void OnSelectedPlanChanged(TaskPlanItem? value)
     {
+        TriggerEditor = null;
         RebuildNodes();
         RebuildTriggers();
         OnPropertyChanged(nameof(HasSelectedPlan));
@@ -185,18 +196,141 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
     private void RebuildTriggers()
     {
+        var selectedId = SelectedTrigger?.Trigger.Id;
         Triggers.Clear();
-        if (SelectedPlan is not { } item) return;
-        foreach (var t in item.Plan.Triggers)
+        if (SelectedPlan is { } item)
         {
-            var kind = t.Kind == PuloniaTaskTriggerKind.Hotkey ? "快捷键（Linux 尚未注册计划快捷键）" : "定时";
-            Triggers.Add($"{(t.Enabled ? "启用" : "停用")}　{kind}　{t.DisplayText}");
+            foreach (var t in item.Plan.Triggers)
+            {
+                Triggers.Add(new TaskPlanTriggerRow(this, t));
+            }
         }
 
-        if (Triggers.Count == 0)
+        SelectedTrigger = Triggers.FirstOrDefault(t => t.Trigger.Id == selectedId);
+        OnPropertyChanged(nameof(HasNoTriggers));
+    }
+
+    partial void OnSelectedNodeChanged(TaskPlanNodeRow? value)
+    {
+        var definition = value is null || _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), value.Task);
+        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition);
+    }
+
+    partial void OnSelectedTriggerChanged(TaskPlanTriggerRow? value)
+    {
+        if (value is not null)
         {
-            Triggers.Add("没有触发方式：只能手动运行。可在 Windows 版的“触发方式”页签添加定时触发，Linux 上照常按时执行。");
+            TriggerEditor = value.Trigger.Kind == PuloniaTaskTriggerKind.Schedule ? new TaskTriggerEditor(value.Trigger, false) : null;
         }
+    }
+
+    // —— 任务设置 ——
+
+    /// <summary>应用任务设置：名称、启用、分组执行次数（1 次不保存）、参数（合并后按 Schema 校验）。全部校验通过才写入并保存</summary>
+    [RelayCommand]
+    public async Task ApplyNodeSettingsAsync()
+    {
+        if (SelectedPlan is not { } item || NodeEditor is not { } editor) return;
+        var task = editor.Row.Task;
+        try
+        {
+            var name = editor.Name.Trim();
+            if (name.Length == 0) throw new FormatException("名称不能为空。");
+            int? repeat = task.RepeatCount;
+            if (editor.IsGroup)
+            {
+                var r = PuloniaTriggerEditing.ParseNumber(editor.RepeatText.Trim(), "执行次数", 1, PuloniaTaskValidator.MaxTreeNodes);
+                repeat = r == 1 ? null : r;
+            }
+
+            var changes = editor.CollectChanges();
+            var backup = (JObject)task.Parameters.DeepClone();
+            var (oldName, oldEnabled, oldRepeat) = (task.Name, task.IsEnabled, task.RepeatCount);
+            int written;
+            try
+            {
+                written = editor.Definition is null ? 0 : PuloniaParameterForm.Apply(editor.Definition, task, changes);
+                task.Name = name;
+                task.IsEnabled = editor.IsEnabled;
+                task.RepeatCount = repeat;
+                PuloniaTaskValidator.ValidatePlan(item.Plan);
+            }
+            catch
+            {
+                // 校验失败时恢复，界面保留输入
+                (task.Parameters, task.Name, task.IsEnabled, task.RepeatCount) = (backup, oldName, oldEnabled, oldRepeat);
+                throw;
+            }
+
+            await SaveAsync(item, $"已保存“{name}”的设置（{written} 个参数有修改）。");
+            RebuildNodes();
+            SelectedNode = Nodes.FirstOrDefault(n => n.Task.Id == task.Id);
+        }
+        catch (Exception e) when (e is FormatException or PuloniaTaskValidationException or InvalidOperationException)
+        {
+            StatusMessage = "设置无效：" + e.Message;
+        }
+    }
+
+    // —— 触发方式 ——
+
+    /// <summary>新增定时触发草稿（默认关闭、每日 4 点，与 WPF 相同）</summary>
+    [RelayCommand]
+    public void AddScheduleTrigger()
+    {
+        if (SelectedPlan is null) return;
+        SelectedTrigger = null;
+        TriggerEditor = new TaskTriggerEditor(new PuloniaTaskTrigger(), true);
+    }
+
+    /// <summary>保存定时触发：校验整个计划后写入并保存，保存成功后调度服务读取新配置</summary>
+    [RelayCommand]
+    public async Task SaveTriggerAsync()
+    {
+        if (SelectedPlan is not { } item || TriggerEditor is not { } editor) return;
+        try
+        {
+            var trigger = editor.Build();
+            trigger.ActivatedAtUtc = DateTimeOffset.UtcNow;
+            item.Plan.Triggers = PuloniaTriggerEditing.WithTrigger(item.Plan, trigger).Triggers;
+            await SaveAsync(item, trigger.Enabled ? "触发器已保存，稍后开始生效。" : "触发器已保存；使用列表中的开关启用。");
+            RebuildTriggers();
+            SelectedTrigger = Triggers.FirstOrDefault(t => t.Trigger.Id == trigger.Id);
+        }
+        catch (Exception e) when (e is FormatException or PuloniaTaskValidationException or ArgumentException or InvalidOperationException)
+        {
+            StatusMessage = "触发配置无效：" + e.Message;
+        }
+    }
+
+    internal async Task SetTriggerEnabledAsync(TaskPlanTriggerRow row, bool enabled)
+    {
+        if (SelectedPlan is not { } item || row.Trigger.Enabled == enabled) return;
+        var trigger = row.Trigger.Clone();
+        trigger.Enabled = enabled;
+        trigger.ActivatedAtUtc = DateTimeOffset.UtcNow;
+        try
+        {
+            item.Plan.Triggers = PuloniaTriggerEditing.WithTrigger(item.Plan, trigger).Triggers;
+            await SaveAsync(item, $"触发器“{trigger.DisplayText}”已{(enabled ? "启用" : "停用")}。");
+        }
+        catch (Exception e) when (e is FormatException or PuloniaTaskValidationException or ArgumentException)
+        {
+            StatusMessage = "无法切换触发器状态：" + e.Message;
+        }
+
+        RebuildTriggers();
+    }
+
+    [RelayCommand]
+    public async Task DeleteTriggerAsync(TaskPlanTriggerRow? row)
+    {
+        row ??= SelectedTrigger;
+        if (SelectedPlan is not { } item || row is null) return;
+        item.Plan.Triggers.RemoveAll(t => t.Id == row.Trigger.Id);
+        await SaveAsync(item, $"已删除触发器“{row.Text}”（执行记录保留）。");
+        if (TriggerEditor?.Id == row.Trigger.Id) TriggerEditor = null;
+        RebuildTriggers();
     }
 
     /// <summary>保存当前计划（自动保存）；失败时重新加载，避免界面与文件不一致</summary>
@@ -334,7 +468,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         (list[i], list[j]) = (list[j], list[i]);
         await SaveAsync(item, $"已移动“{row.Name}”。");
         RebuildNodes();
-        SelectedNode = Nodes.FirstOrDefault(n => n.Task == row.Task);
+        SelectedNode = Nodes.FirstOrDefault(n => n.Task.Id == row.Task.Id);
     }
 
     /// <summary>提交运行（与 WPF 相同：保存后入队，提交时固定快照，页面入口不限时）</summary>

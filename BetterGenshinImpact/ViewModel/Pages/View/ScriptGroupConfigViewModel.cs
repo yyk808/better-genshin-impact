@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Windows.System;
@@ -59,19 +60,11 @@ public partial class ScriptGroupConfigViewModel : ObservableObject, IViewModel
     [ObservableProperty]
     private bool _enableShellConfig;
     [ObservableProperty]
-    private ObservableCollection<KeyValuePair<string, string>> _onlyPickEliteDropsSource  = new()
-    {
-        new KeyValuePair<string, string>("Closed", "关闭功能"),
-        new KeyValuePair<string, string>("AllowAutoPickupForNonElite", "非精英允许自动拾取"),
-        new KeyValuePair<string, string>("DisableAutoPickupForNonElite", "非精英关闭自动拾取")
-    };    
+    private ObservableCollection<KeyValuePair<string, string>> _onlyPickEliteDropsSource = new(
+        ScriptGroupConfigFields.OnlyPickEliteDropsModes.Select(o => new KeyValuePair<string, string>((string)o.Value, o.Text)));
     [ObservableProperty]
-    private ObservableCollection<KeyValuePair<RecoverTiming, string>> _recoverTimingSource = new()
-    {
-        new KeyValuePair<RecoverTiming, string>(RecoverTiming.AnyWaypoint, "任何路径点"),
-        new KeyValuePair<RecoverTiming, string>(RecoverTiming.OnlyTeleport, "只在传送点"),
-        new KeyValuePair<RecoverTiming, string>(RecoverTiming.Never, "不回复"),
-    };
+    private ObservableCollection<KeyValuePair<RecoverTiming, string>> _recoverTimingSource = new(
+        ScriptGroupConfigFields.RecoverTimings.Select(o => new KeyValuePair<RecoverTiming, string>((RecoverTiming)o.Value, o.Text)));
     public ScriptGroupConfigViewModel(AllConfig config, ScriptGroupConfig scriptGroupConfig)
     {
         ScriptGroupConfig = scriptGroupConfig;
@@ -83,26 +76,25 @@ public partial class ScriptGroupConfigViewModel : ObservableObject, IViewModel
     }
 
     // 赶路角色为 自动 或 玛薇卡 时显示跳飞相关配置
-    public bool IsHurryOnMwkOrAuto => PathingConfig.HurryOnAvatar is "自动" or "玛薇卡";
+    public bool IsHurryOnMwkOrAuto => ScriptGroupConfigFields.IsHurryOnMwkOrAuto(PathingConfig);
 
     // 赶路角色为 自动/玛薇卡/闲云 时显示跳飞间隔配置
-    public bool IsHurryOnMwkOrAutoOrXianyun => PathingConfig.HurryOnAvatar is "自动" or "玛薇卡" or "闲云";
+    public bool IsHurryOnMwkOrAutoOrXianyun => ScriptGroupConfigFields.IsHurryOnMwkOrAutoOrXianyun(PathingConfig);
 
     // 跳飞启用距离：仅当角色为 自动/玛薇卡 且启用跳飞时显示
-    public bool IsJumpFlyDistanceVisible => IsHurryOnMwkOrAuto && PathingConfig.MwkJumpFlyEnabled;
+    public bool IsJumpFlyDistanceVisible => ScriptGroupConfigFields.IsJumpFlyDetailVisible(PathingConfig);
 
     // 跳飞前额外冲刺次数：仅当角色为 自动/玛薇卡 且启用跳飞时显示
-    public bool IsJumpFlySprintCountVisible => IsHurryOnMwkOrAuto && PathingConfig.MwkJumpFlyEnabled;
+    public bool IsJumpFlySprintCountVisible => ScriptGroupConfigFields.IsJumpFlyDetailVisible(PathingConfig);
 
     // 玛薇卡在车上禁用冲刺：仅当角色为 自动/玛薇卡 时显示
     public bool IsDisableSprintVisible => IsHurryOnMwkOrAuto;
 
     // 切人步行：仅当角色为 自动 或实际应用了该选项的角色（玛薇卡/希诺宁）时显示
-    public bool IsSwitchToWalkVisible => PathingConfig.HurryOnAvatar is "自动" or "玛薇卡" or "希诺宁";
+    public bool IsSwitchToWalkVisible => ScriptGroupConfigFields.IsSwitchToWalkVisible(PathingConfig);
 
     // 接近停车距离：仅当角色为 自动 或存在接近停车逻辑的角色（闲云/法尔伽无此逻辑）时显示
-    public bool IsApproachStopDistanceVisible => PathingConfig.HurryOnAvatar is "自动"
-        or "玛薇卡" or "希诺宁" or "桑多涅" or "恰斯卡" or "伊法" or "流浪者" or "夜兰";
+    public bool IsApproachStopDistanceVisible => ScriptGroupConfigFields.IsApproachStopDistanceVisible(PathingConfig);
 
     private void OnPathingConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

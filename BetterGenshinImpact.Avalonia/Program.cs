@@ -21,6 +21,7 @@ using Serilog;
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
 //                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask] [--mask-recognition]
 //                    [--solo-task 任务标识] [--solo-stop-after 秒] [--script-group 配置组名称] [--script-stop-after 秒] [--notify-test]
+//                    [--task-plan 计划] [--ui-test script-settings|taskplan]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -142,6 +143,11 @@ internal static class AvaloniaHostProgram
             {
                 // 无人值守：经设置页的“发送测试通知”发送一条测试通知，结果写入日志
                 await viewModel.Settings.SendTestNotificationAsync();
+            }
+
+            if (options.UiTest is { } uiTest)
+            {
+                await new UiTests(window, viewModel, log, options.ScreenshotDirectory).RunAsync(uiTest);
             }
 
             if (options.UiSelfTest)
@@ -500,6 +506,8 @@ internal static class AvaloniaHostProgram
         }
     }
 
+    internal static void SaveScreenshotPublic(Window window, string path, ILogger log) => SaveScreenshot(window, path, log);
+
     private static void SaveScreenshot(Window window, string path, ILogger log)
     {
         var scale = window.RenderScaling;
@@ -533,7 +541,8 @@ internal sealed record AvaloniaOptions(
     string? ScriptGroup = null,
     int ScriptStopAfterSeconds = 0,
     bool NotifyTest = false,
-    string? TaskPlan = null)
+    string? TaskPlan = null,
+    string? UiTest = null)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -550,6 +559,7 @@ internal sealed record AvaloniaOptions(
         var scriptStopAfter = 0;
         var notifyTest = false;
         string? taskPlan = null;
+        string? uiTest = null;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -575,11 +585,13 @@ internal sealed record AvaloniaOptions(
                 case "--notify-test": notifyTest = true; break;
                 // 无人值守运行任务计划（按名称），停止时间沿用 --script-stop-after
                 case "--task-plan": taskPlan = Next(); break;
+                // 宿主内界面自测：script-settings（脚本设置）或 taskplan（任务计划编辑），点击控件后读取磁盘文件核对
+                case "--ui-test": uiTest = Next(); break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
         return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
-            scriptStopAfter, notifyTest, taskPlan);
+            scriptStopAfter, notifyTest, taskPlan, uiTest);
     }
 }

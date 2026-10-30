@@ -57,20 +57,9 @@ public partial class PuloniaTaskTriggerEditorViewModel : ObservableObject
         ? "全局热键：支持组合键或功能键，BGI 运行时生效。普通键请搭配 Ctrl / Alt / Win；F12 为系统保留。"
         : "键鼠监听：支持键盘单键或鼠标侧键，不支持组合键。与现有快捷键一致，启动功能、开启键鼠监听且游戏在前台时生效。";
     /// <summary>原神服务器使用的固定时区选项。</summary>
-    public IReadOnlyDictionary<PuloniaTaskServerTimeZone, string> ServerTimeZones { get; }
-        = new Dictionary<PuloniaTaskServerTimeZone, string>
-        {
-            [PuloniaTaskServerTimeZone.UtcPlus8] = "UTC+8｜天空岛/世界树",
-            [PuloniaTaskServerTimeZone.Europe] = "UTC+1｜欧服",
-            [PuloniaTaskServerTimeZone.America] = "UTC-5｜美服"
-        };
+    public IReadOnlyDictionary<PuloniaTaskServerTimeZone, string> ServerTimeZones { get; } = PuloniaTriggerEditing.ServerTimeZones;
     /// <summary>忙碌策略的用户文本。</summary>
-    public IReadOnlyDictionary<PuloniaTaskBusyPolicy, string> BusyPolicies { get; } = new Dictionary<PuloniaTaskBusyPolicy, string>
-    {
-        [PuloniaTaskBusyPolicy.Skip] = "同计划已忙碌：跳过 / 合并（推荐）",
-        [PuloniaTaskBusyPolicy.QueueOnce] = "同计划运行后：再排一次",
-        [PuloniaTaskBusyPolicy.StopCurrent] = "停止当前任务，清理后优先执行"
-    };
+    public IReadOnlyDictionary<PuloniaTaskBusyPolicy, string> BusyPolicies { get; } = PuloniaTriggerEditing.BusyPolicies;
     /// <summary>完整计划或编辑树内可选子树。</summary>
     public IReadOnlyDictionary<string, string> Targets { get; }
     /// <summary>当前计划绑定的账号参数资料。</summary>
@@ -93,32 +82,19 @@ public partial class PuloniaTaskTriggerEditorViewModel : ObservableObject
         _original = trigger.Clone();
         CronEditor = new PuloniaCronEditorViewModel(trigger.Cron);
         CronEditor.PropertyChanged += OnCronEditorPropertyChanged;
-        UsesPlanAccountBinding = plan.Purpose == PuloniaTaskPlanPurpose.OneDragon;
+        UsesPlanAccountBinding = PuloniaTriggerEditing.UsesPlanAccountBinding(plan);
         Enabled = trigger.Enabled; ServerTimeZone = trigger.ServerTimeZone;
         HotkeyType = trigger.HotkeyType; Hotkey = HotKey.FromString(trigger.Hotkey);
         TargetTaskId = trigger.TargetTaskId ?? ""; AccountId = trigger.AccountId ?? "";
         WindowMinutes = trigger.WindowMinutes.ToString(CultureInfo.InvariantCulture);
         CatchUp = trigger.CatchUp; BusyPolicy = trigger.BusyPolicy;
-        var targets = new Dictionary<string, string> { [""] = "整个计划" };
-        AddTargets(plan.RootTask, targets, 0);
-        Targets = targets;
-        var accounts = new Dictionary<string, string>
-        {
-            [""] = UsesPlanAccountBinding ? "使用本配置绑定的账号" : "不指定资料（当前登录账号）"
-        };
-        foreach (var account in plan.Accounts.Where(item => item.Enabled)) accounts[account.AccountId] = account.AccountId;
-        Accounts = accounts;
+        Targets = PuloniaTriggerEditing.BuildTargets(plan);
+        Accounts = PuloniaTriggerEditing.BuildAccounts(plan);
         if (UsesPlanAccountBinding) AccountId = "";
         _initializing = false;
         RefreshPreview();
     }
 
-    /// <summary>以稳定节点 ID 建立范围选项，不把运行地址或外部引用展开节点写回计划。</summary>
-    private static void AddTargets(PuloniaTask task, Dictionary<string, string> targets, int depth)
-    {
-        if (depth > 0) targets[task.Id] = new string('　', depth - 1) + task.Name;
-        foreach (var child in task.Children) AddTargets(child, targets, depth + 1);
-    }
 
     /// <summary>字段变化后更新预览。</summary>
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -156,13 +132,6 @@ public partial class PuloniaTaskTriggerEditorViewModel : ObservableObject
         Enabled = saved.Enabled;
     }
 
-    /// <summary>解析整数输入，不允许浮点截断或静默修正。</summary>
-    private static int Number(string value, string label, int min, int max)
-    {
-        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var result) || result < min || result > max)
-            throw new FormatException($"{label}必须是 {min}—{max} 的整数。");
-        return result;
-    }
 
     /// <summary>创建已校验的提交副本，并用当前时间标记本次配置版本。</summary>
     public PuloniaTaskTrigger CreateTrigger()
@@ -180,7 +149,7 @@ public partial class PuloniaTaskTriggerEditorViewModel : ObservableObject
         result.Hotkey = Hotkey.ToString(); result.HotkeyType = HotkeyType;
         result.TargetTaskId = string.IsNullOrEmpty(TargetTaskId) ? null : TargetTaskId;
         result.AccountId = UsesPlanAccountBinding || string.IsNullOrEmpty(AccountId) ? null : AccountId;
-        result.WindowMinutes = Number(WindowMinutes, "允许延迟启动（分钟）", 1, 10080);
+        result.WindowMinutes = PuloniaTriggerEditing.ParseWindowMinutes(WindowMinutes);
         result.CatchUp = CatchUp; result.BusyPolicy = BusyPolicy;
         if (IsSchedule)
             result.Cron = CronEditor.Expression.Trim();
@@ -203,18 +172,7 @@ public partial class PuloniaTaskTriggerEditorViewModel : ObservableObject
                 IsValid = true;
                 return;
             }
-            var utcOffset = PuloniaTaskSchedule.GetUtcOffset(trigger.ServerTimeZone);
-            var cron = new PuloniaCronExpression(trigger.Cron);
-            var lines = new List<string>();
-            var after = DateTimeOffset.UtcNow;
-            for (var index = 0; index < 5; index++)
-            {
-                var next = cron.Next(after, utcOffset);
-                if (next is null) break;
-                lines.Add(next.Value.ToOffset(utcOffset).ToString("yyyy-MM-dd ddd HH:mm zzz", CultureInfo.GetCultureInfo("zh-CN")));
-                after = next.Value;
-            }
-            PreviewText = lines.Count > 0 ? "接下来执行（所选时区）：\n" + string.Join("\n", lines) : "未来八年没有可执行时间。";
+            PreviewText = PuloniaTriggerEditing.PreviewSchedule(trigger, DateTimeOffset.UtcNow);
             IsValid = true;
         }
         catch (Exception ex) { PreviewText = "配置无效：" + ex.Message; IsValid = false; }

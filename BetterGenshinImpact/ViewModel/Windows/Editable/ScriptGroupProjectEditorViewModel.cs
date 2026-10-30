@@ -21,20 +21,15 @@ public class ScriptGroupProjectEditorViewModel : ObservableObject, IDisposable
     public bool GlobalJsNotificationEnabled 
         => _globalNotificationConfig.JsNotificationEnabled;
 
-    public List<KeyValuePair<bool, string>> JsNotificationOptions { get; } = new()
-    {
-        new KeyValuePair<bool, string>(true, "启用"),
-        new KeyValuePair<bool, string>(false, "禁用")
-    };
+    public List<KeyValuePair<bool, string>> JsNotificationOptions { get; } = new(ScriptGroupProjectSettings.EnableOptions);
     
-    public bool IsJsScript => _project.Type == "Javascript";
+    public bool IsJsScript => ScriptGroupProjectSettings.IsJsScript(_project);
     public bool? AllowJsNotification
     {
         get => _project.AllowJsNotification;
         set
         {
-            if (!GlobalJsNotificationEnabled) return;
-            _project.AllowJsNotification = value;
+            if (!ScriptGroupProjectSettings.TrySetAllowJsNotification(_project, GlobalJsNotificationEnabled, value)) return;
             OnPropertyChanged();
         }
     }
@@ -49,14 +44,7 @@ public class ScriptGroupProjectEditorViewModel : ObservableObject, IDisposable
         {
             // 为了避免误用，AllowJsHTTP禁止set，通过更新Hash来控制
             // 脚本作者更新时，如果Hash变更会自动禁用http权限，避免安全风险
-            if (value == null || value == false)
-            {
-                _project.AllowJsHTTPHash = null;
-            }
-            else
-            {
-                _project.AllowJsHTTPHash = _project.GetHttpAllowedUrlsHash();
-            }
+            ScriptGroupProjectSettings.SetAllowJsHttp(_project, value);
             OnPropertyChanged();
         }
     }
@@ -66,29 +54,14 @@ public class ScriptGroupProjectEditorViewModel : ObservableObject, IDisposable
     {
         get
         {
-            if (_project.Project == null)
+            var (text, level) = ScriptGroupProjectSettings.GetHttpInfo(_project);
+            var color = level switch
             {
-                _project.BuildScriptProjectRelation();
-            }
-            if (_project.Project == null)
-            {
-                return new List<JsText>
-                {
-                    new JsText("当前脚本项目未加载", Brushes.Red)
-                };
-            }
-            var urls = _project.Project.Manifest?.HttpAllowedUrls ?? [];
-            if (urls.Length == 0)
-            {
-                return new List<JsText>
-                {
-                    new JsText("当前脚本无需使用HTTP资源", Brushes.Green)
-                };
-            }
-            return new List<JsText>
-            {
-                new JsText($"当前脚本使用 {urls.Length} 个HTTP资源", Brushes.OrangeRed)
+                ScriptHttpInfoLevel.Error => Brushes.Red,
+                ScriptHttpInfoLevel.Ok => Brushes.Green,
+                _ => Brushes.OrangeRed,
             };
+            return new List<JsText> { new JsText(text, color) };
         }
     }
 
@@ -98,11 +71,7 @@ public class ScriptGroupProjectEditorViewModel : ObservableObject, IDisposable
     {
         get
         {
-            if (_project.Project == null)
-            {
-                _project.BuildScriptProjectRelation();
-            }
-            var urls = _project.Project?.Manifest?.HttpAllowedUrls ?? [];
+            var urls = ScriptGroupProjectSettings.GetHttpAllowedUrls(_project);
             var blocks = new List<JsLine>();
             foreach (var url in urls)
             {

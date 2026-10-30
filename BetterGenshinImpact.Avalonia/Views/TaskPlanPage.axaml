@@ -76,11 +76,48 @@
                                         <Button Content="删除" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
                                     </WrapPanel>
                                     <Border DockPanel.Dock="Top" Background="#14FFFFFF" CornerRadius="4" Padding="12,6">
-                                        <Grid ColumnDefinitions="*,110,60">
+                                        <Grid ColumnDefinitions="*,90,44">
                                             <TextBlock Classes="desc" Text="名称" />
                                             <TextBlock Grid.Column="1" Classes="desc" Text="类型" />
                                             <TextBlock Grid.Column="2" Classes="desc" Text="启用" />
                                         </Grid>
+                                    </Border>
+                                    <Border DockPanel.Dock="Right" Width="290" Margin="10,0,0,0" Padding="10,8" Background="#0FFFFFFF" CornerRadius="4"
+                                            IsVisible="{Binding HasNodeEditor}">
+                                        <ScrollViewer>
+                                            <StackPanel Spacing="6" Margin="0,0,6,0">
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" x:Name="ApplyNodeButton" Classes="accent" Content="应用" Command="{Binding ApplyNodeSettingsCommand}" />
+                                                    <StackPanel>
+                                                        <TextBlock Text="任务设置" FontWeight="SemiBold" FontSize="15" />
+                                                        <TextBlock Classes="desc" Text="{Binding NodeEditor.TypeText, FallbackValue=''}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                                <TextBlock Text="名称" />
+                                                <TextBox x:Name="NodeNameBox" Text="{Binding NodeEditor.Name, FallbackValue=''}" />
+                                                <CheckBox x:Name="NodeEnabledBox" Content="启用" IsChecked="{Binding NodeEditor.IsEnabled, FallbackValue=False}" />
+                                                <StackPanel IsVisible="{Binding NodeEditor.IsGroup, FallbackValue=False}" Spacing="4">
+                                                    <TextBlock Text="执行次数（分组）" />
+                                                    <TextBox x:Name="NodeRepeatBox" Text="{Binding NodeEditor.RepeatText, FallbackValue=''}" />
+                                                </StackPanel>
+                                                <TextBlock Classes="desc" Text="{Binding NodeEditor.FieldsHint, FallbackValue=''}" TextWrapping="Wrap"
+                                                           IsVisible="{Binding NodeEditor.FieldsHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}" />
+                                                <TextBlock Text="参数" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />
+                                                <ItemsControl ItemsSource="{Binding NodeEditor.Fields, FallbackValue={x:Null}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:TaskParameterFieldEditor">
+                                                            <StackPanel Margin="0,4" Spacing="3" Tag="{Binding Name}">
+                                                                <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                                                                <TextBlock Classes="desc" Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" IsVisible="{Binding HasDescription}" />
+                                                                <ToggleSwitch IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" />
+                                                                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
+                                                                <TextBox Text="{Binding Text}" IsVisible="{Binding IsTextInput}" AcceptsReturn="{Binding IsMultiline}" TextWrapping="Wrap" MaxHeight="120" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </ScrollViewer>
                                     </Border>
                                     <Panel>
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" IsVisible="{Binding HasNoNodes}">
@@ -90,7 +127,7 @@
                                         <ListBox ItemsSource="{Binding Nodes}" SelectedItem="{Binding SelectedNode}" Background="Transparent">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:TaskPlanNodeRow">
-                                                    <Grid ColumnDefinitions="*,110,60" Opacity="{Binding RowOpacity}">
+                                                    <Grid ColumnDefinitions="*,90,44" Opacity="{Binding RowOpacity}">
                                                         <StackPanel Margin="{Binding Indent}">
                                                             <TextBlock Text="{Binding Name}" />
                                                             <TextBlock Classes="desc" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -128,16 +165,54 @@
                                 </DockPanel>
                             </TabItem>
                             <TabItem Header="触发方式">
-                                <StackPanel Margin="0,8,0,0" Spacing="6">
-                                    <ItemsControl ItemsSource="{Binding Triggers}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="x:String">
-                                                <Border Classes="row"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SchedulerStatus, StringFormat='调度：{0}'}" />
-                                </StackPanel>
+                                <DockPanel Margin="0,8,0,0">
+                                    <TextBlock DockPanel.Dock="Bottom" Classes="desc" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding SchedulerStatus, StringFormat='调度：{0}'}" />
+                                    <Border DockPanel.Dock="Right" Width="290" Margin="10,0,0,0" Padding="10,8" Background="#0FFFFFFF" CornerRadius="4"
+                                            IsVisible="{Binding HasTriggerEditor}">
+                                        <ScrollViewer>
+                                        <StackPanel Spacing="6" Margin="0,0,6,0">
+                                            <TextBlock Text="{Binding TriggerEditor.Title, FallbackValue=''}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Text="Cron 表达式（分 时 日 月 周）" />
+                                            <TextBox x:Name="TriggerCronBox" Text="{Binding TriggerEditor.Cron, FallbackValue=''}" />
+                                            <TextBlock Text="服务器时区" />
+                                            <ComboBox ItemsSource="{Binding TriggerEditor.ServerTimeZones, FallbackValue={x:Null}}" SelectedIndex="{Binding TriggerEditor.ServerTimeZoneIndex, FallbackValue=0}" HorizontalAlignment="Stretch" />
+                                            <TextBlock Text="忙碌时" />
+                                            <ComboBox ItemsSource="{Binding TriggerEditor.BusyPolicies, FallbackValue={x:Null}}" SelectedIndex="{Binding TriggerEditor.BusyPolicyIndex, FallbackValue=0}" HorizontalAlignment="Stretch" />
+                                            <TextBlock Text="允许延迟启动（分钟）" />
+                                            <TextBox Text="{Binding TriggerEditor.WindowMinutes, FallbackValue=''}" />
+                                            <CheckBox Content="错过时补跑一次" IsChecked="{Binding TriggerEditor.CatchUp, FallbackValue=False}" />
+                                            <CheckBox x:Name="TriggerEnabledBox" Content="启用" IsChecked="{Binding TriggerEditor.Enabled, FallbackValue=False}" />
+                                            <TextBlock Classes="desc" Text="{Binding TriggerEditor.PreviewText, FallbackValue=''}" TextWrapping="Wrap" />
+                                            <Button x:Name="SaveTriggerButton" Classes="accent" Content="保存触发器" HorizontalAlignment="Right"
+                                                    Command="{Binding SaveTriggerCommand}" IsEnabled="{Binding TriggerEditor.IsValid, FallbackValue=False}" />
+                                        </StackPanel>
+                                        </ScrollViewer>
+                                    </Border>
+                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
+                                        <Button x:Name="AddScheduleTriggerButton" Content="＋ 定时触发" Command="{Binding AddScheduleTriggerCommand}" />
+                                        <Button Content="删除" Command="{Binding DeleteTriggerCommand}" CommandParameter="{x:Null}" />
+                                    </StackPanel>
+                                    <Panel>
+                                        <TextBlock Classes="desc" TextWrapping="Wrap" IsVisible="{Binding HasNoTriggers}"
+                                                   Text="没有触发方式：只能手动运行。点“＋ 定时触发”添加，保存并启用后按时执行。" />
+                                        <ListBox ItemsSource="{Binding Triggers}" SelectedItem="{Binding SelectedTrigger}" Background="Transparent">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TaskPlanTriggerRow">
+                                                    <DockPanel>
+                                                        <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                                                        <StackPanel>
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <TextBlock Text="{Binding KindText}" FontWeight="SemiBold" />
+                                                                <TextBlock Text="{Binding Text}" />
+                                                            </StackPanel>
+                                                            <TextBlock Classes="desc" Text="{Binding Detail}" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Panel>
+                                </DockPanel>
                             </TabItem>
                         </TabControl>
                     </DockPanel>

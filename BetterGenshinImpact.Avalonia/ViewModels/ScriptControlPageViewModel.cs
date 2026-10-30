@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Dynamic;
 using Avalonia.Threading;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Script.Group;
+using BetterGenshinImpact.Core.Script.Project;
+using BetterGenshinImpact.Model;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using BetterGenshinImpact.Host.Common;
@@ -20,8 +23,19 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// “任务计划”页（对应 WPF 的 ScriptControlPage 的主体）：User/ScriptGroup 下的配置组列表、组内项目、
 /// “从此执行”标记、运行 / 连续执行 / 停止。配置组文件读写与调度走 Core 的 ScriptGroupStore / ScriptGroupSchedule / ScriptGroupRunner，
 /// 项目执行走 Core 的 IScriptService（与 WPF 相同），任务在 TaskRunner 中运行（任务信号量、触发器暂停、结束时释放所有按键）。
-/// 地图追踪与 JS 脚本的选择面板、项目通用设置与 JS 自定义设置、配置组设置、拖拽排序尚未迁移
+/// 项目通用设置、JS 自定义设置（settings.json 表单）与配置组设置在页面内的设置面板中编辑（字段与取值规则来自 Core），
+/// 关闭面板时保存配置组文件。地图追踪的选择面板、JS 的 HTML 设置页与拖拽排序尚未迁移
 /// </summary>
+public enum ScriptSettingsKind
+{
+    GroupConfig,
+    Project,
+    JsSettings,
+}
+
+/// <summary>当前打开的设置面板</summary>
+public sealed record ScriptSettingsEditor(ScriptSettingsKind Kind, string Title, ScriptGroup Group, ScriptGroupProject? Project, List<SettingItem>? Items);
+
 public sealed partial class ScriptControlPageViewModel : PageViewModel
 {
     private readonly GameHost? _host;
@@ -36,6 +50,8 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
     [ObservableProperty] private string _newShellCommand = string.Empty;
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private string _statusText = "空闲";
+    [ObservableProperty] private string? _selectedJsScript;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsEditorOpen))] private ScriptSettingsEditor? _editor;
 
     public ScriptControlPageViewModel(GameHost? host, ILogger log)
     {
@@ -56,6 +72,13 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
 
     /// <summary>User/KeyMouseScript 下的键鼠脚本文件名</summary>
     public ObservableCollection<string> KmScripts { get; } = [];
+
+    /// <summary>User/JsScript 下的 JS 脚本文件夹</summary>
+    public ObservableCollection<string> JsScripts { get; } = [];
+
+    public bool IsEditorOpen => Editor is not null;
+
+    public bool GlobalJsNotificationEnabled => Config.NotificationConfig.JsNotificationEnabled;
 
     public bool HasSelectedGroup => SelectedScriptGroup is not null;
 
@@ -121,6 +144,19 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
         }
 
         SelectedKmScript ??= KmScripts.FirstOrDefault();
+
+        JsScripts.Clear();
+        var jsFolder = Global.ScriptPath();
+        if (Directory.Exists(jsFolder))
+        {
+            foreach (var d in Directory.GetDirectories(jsFolder).Where(d => File.Exists(Path.Combine(d, "manifest.json")))
+                         .Select(Path.GetFileName).Order(StringComparer.Ordinal))
+            {
+                JsScripts.Add(d!);
+            }
+        }
+
+        SelectedJsScript ??= JsScripts.FirstOrDefault();
         SelectedScriptGroup = ScriptGroups.FirstOrDefault(g => g.Name == selected) ?? ScriptGroups.FirstOrDefault();
     }
 
@@ -230,6 +266,26 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
     }
 
     [RelayCommand]
+    private void AddJsScript()
+    {
+        if (SelectedScriptGroup is null || string.IsNullOrEmpty(SelectedJsScript))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "请先选择配置组与 JS 脚本（User/JsScript）");
+            return;
+        }
+
+        try
+        {
+            SelectedScriptGroup.AddProject(new ScriptGroupProject(new ScriptProject(SelectedJsScript)));
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "加载 JS 脚本 {Folder} 失败", SelectedJsScript);
+            UiHost.Dialogs.Toast(DialogKind.Error, $"加载 JS 脚本失败：{e.Message}");
+        }
+    }
+
+    [RelayCommand]
     private void AddShell()
     {
         if (SelectedScriptGroup is null || string.IsNullOrWhiteSpace(NewShellCommand))
@@ -288,6 +344,102 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
 
     [RelayCommand]
     private void ClearProjects() => SelectedScriptGroup?.Projects.Clear();
+
+    // —— 设置面板 ——
+
+    /// <summary>配置组设置（对应 WPF ScriptGroupConfigView）</summary>
+    [RelayCommand]
+    public void OpenGroupConfig()
+    {
+        if (SelectedScriptGroup is { } g)
+        {
+            Editor = new ScriptSettingsEditor(ScriptSettingsKind.GroupConfig, $"配置组设置 - {g.Name}", g, null, null);
+        }
+    }
+
+    /// <summary>项目通用设置（对应 WPF ScriptGroupProjectEditor）</summary>
+    [RelayCommand]
+    public void OpenProjectSettings(ScriptGroupProject? item)
+    {
+        if (item is not null && SelectedScriptGroup is { } g)
+        {
+            Editor = new ScriptSettingsEditor(ScriptSettingsKind.Project, $"通用设置 - {item.Name}", g, item, null);
+        }
+    }
+
+    /// <summary>JS 脚本自定义设置（settings.json 描述的表单，与 WPF 基础设置表单相同）</summary>
+    [RelayCommand]
+    public void OpenJsSettings(ScriptGroupProject? item)
+    {
+        if (item is null || SelectedScriptGroup is not { } g)
+        {
+            return;
+        }
+
+        if (item.Type != "Javascript")
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "只有JS脚本才有自定义配置");
+            return;
+        }
+
+        if (item.Project == null)
+        {
+            item.BuildScriptProjectRelation();
+        }
+
+        if (item.Project == null)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "脚本项目未加载");
+            return;
+        }
+
+        var manifest = item.Project.Manifest;
+        if (string.IsNullOrWhiteSpace(manifest.SettingsUi))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning,
+                string.IsNullOrWhiteSpace(manifest.SettingsHtml) ? "此脚本未提供自定义配置" : "此脚本只提供 HTML 设置页，Linux 版暂不支持");
+            return;
+        }
+
+        List<SettingItem> items;
+        try
+        {
+            items = manifest.LoadSettingItems(item.Project.ProjectPath);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "读取脚本 {Name} 的设置项失败", item.Name);
+            UiHost.Dialogs.Toast(DialogKind.Error, "读取脚本设置项失败：" + e.Message);
+            return;
+        }
+
+        if (items.Count == 0)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "此脚本未提供自定义配置");
+            return;
+        }
+
+        item.JsScriptSettingsObject ??= new ExpandoObject();
+        Editor = new ScriptSettingsEditor(ScriptSettingsKind.JsSettings, $"修改JS脚本自定义设置 - {item.Name}", g, item, items);
+    }
+
+    /// <summary>关闭设置面板并保存所属配置组（JS 设置对象不触发属性通知，与 WPF 相同需要手动保存）</summary>
+    [RelayCommand]
+    public void CloseEditor()
+    {
+        if (Editor is { } e)
+        {
+            Write(e.Group);
+            _log.Information("已保存配置组 {Name} 的{Kind}", e.Group.Name, e.Kind switch
+            {
+                ScriptSettingsKind.GroupConfig => "配置组设置",
+                ScriptSettingsKind.Project => "项目通用设置",
+                _ => "JS 自定义设置",
+            });
+        }
+
+        Editor = null;
+    }
 
     // —— 运行 ——
 
