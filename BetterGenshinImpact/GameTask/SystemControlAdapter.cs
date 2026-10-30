@@ -34,6 +34,12 @@ public sealed class SystemControlAdapter : IGameSystemControl
         return new PixelSize(rect.Width, rect.Height);
     }
 
+    public PixelRect GetCaptureRect(nint hWnd)
+    {
+        var rect = SystemControl.GetCaptureRect(hWnd);
+        return PixelRect.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom);
+    }
+
     public void ActivateWindow(nint hWnd) => SystemControl.ActivateWindow(hWnd);
 
     public void FocusWindow(nint hWnd) => SystemControl.FocusWindow(hWnd);

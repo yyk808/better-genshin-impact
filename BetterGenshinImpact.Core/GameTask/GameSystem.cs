@@ -34,6 +34,9 @@ public interface IGameSystemControl
     /// <summary>游戏本身的分辨率（窗口客户区大小）</summary>
     PixelSize GetGameScreenSize(nint hWnd);
 
+    /// <summary>游戏画面在屏幕上的区域（屏幕坐标）</summary>
+    PixelRect GetCaptureRect(nint hWnd);
+
     void ActivateWindow(nint hWnd);
 
     void FocusWindow(nint hWnd);
@@ -82,6 +85,8 @@ public static class GameSystem
     public static Process? GetProcessByHandle(nint hWnd) => Control.GetProcessByHandle(hWnd);
 
     public static PixelSize GetGameScreenSize(nint hWnd) => Control.GetGameScreenSize(hWnd);
+
+    public static PixelRect GetCaptureRect(nint hWnd) => Control.GetCaptureRect(hWnd);
 
     public static void ActivateWindow(nint hWnd) => Control.ActivateWindow(hWnd);
 

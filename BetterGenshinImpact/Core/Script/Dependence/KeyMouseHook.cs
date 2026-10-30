@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 public class KeyMouseHook: IDisposable
 {
     private IGlobalInputHook? _appEvents;
-    private IGlobalInputHook AppHook => _appEvents ??= MouseKeyMonitor.GlobalHook;
+    private IGlobalInputHook AppHook => _appEvents ??= SharedGlobalInputHook.Instance;
     
     private readonly List<ScriptObject> _keyDownDataCallbacks = new();
     private readonly List<ScriptObject> _keyUpDataCallbacks = new();
@@ -95,7 +95,7 @@ public class KeyMouseHook: IDisposable
             }
             
             // 获取游戏窗口捕获区域
-            var captureRect = SystemControl.GetCaptureRect(gameHandle);
+            var captureRect = GameSystem.GetCaptureRect(gameHandle);
             
             // 检查捕获区域是否有效
             if (captureRect.Width <= 0 || captureRect.Height <= 0)

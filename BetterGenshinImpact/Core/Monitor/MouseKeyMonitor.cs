@@ -55,29 +55,10 @@ public partial class MouseKeyMonitor : IDisposable
     /// </summary>
     private DateTime _firstSpaceKeyDownTime = DateTime.MaxValue;
 
-    private static IGlobalInputHook? _globalHook;
-    private static readonly object GlobalHookLock = new object();
-
     /// <summary>
-    /// 全局键鼠监听（由平台服务创建；Windows 为低级键鼠钩子，首次访问须在 UI 线程上）
+    /// 全局键鼠监听（由平台服务创建；Windows 为低级键鼠钩子，首次访问须在 UI 线程上），见 <see cref="SharedGlobalInputHook"/>
     /// </summary>
-    public static IGlobalInputHook GlobalHook
-    {
-        get
-        {
-            if (_globalHook == null)
-            {
-                lock (GlobalHookLock)
-                {
-                    if (_globalHook == null)
-                    {
-                        _globalHook = GameSystem.Platform.CreateGlobalInputHook();
-                    }
-                }
-            }
-            return _globalHook;
-        }
-    }
+    public static IGlobalInputHook GlobalHook => SharedGlobalInputHook.Instance;
     public MouseKeyMonitor()
     {
         _spaceTimer.Elapsed += OnSpaceTimerElapsed;
@@ -275,17 +256,18 @@ public partial class MouseKeyMonitor : IDisposable
             return;
         }
 
-        if (_globalHook != null && !WinePlatformAddon.IsRunningOnWine)
+        var globalHook = SharedGlobalInputHook.Current;
+        if (globalHook != null && !WinePlatformAddon.IsRunningOnWine)
         {
-            _globalHook.KeyDown -= GlobalHookKeyDown;
-            _globalHook.KeyUp -= GlobalHookKeyUp;
-            _globalHook.MouseDown -= GlobalHookMouseDownExt;
-            _globalHook.MouseUp -= GlobalHookMouseUpExt;
-            _globalHook.MouseMove -= GlobalHookMouseMoveExt;
-            _globalHook.MouseWheel -= GlobalHookMouseWheelExt;
-            //_globalHook.KeyPress -= GlobalHookKeyPress;
-            _globalHook.Dispose();
-            _globalHook = null;
+            globalHook.KeyDown -= GlobalHookKeyDown;
+            globalHook.KeyUp -= GlobalHookKeyUp;
+            globalHook.MouseDown -= GlobalHookMouseDownExt;
+            globalHook.MouseUp -= GlobalHookMouseUpExt;
+            globalHook.MouseMove -= GlobalHookMouseMoveExt;
+            globalHook.MouseWheel -= GlobalHookMouseWheelExt;
+            //globalHook.KeyPress -= GlobalHookKeyPress;
+            globalHook.Dispose();
+            SharedGlobalInputHook.Reset();
         }
         if (WinePlatformAddon.IsRunningOnWine){
           DisposeWineAddon();
