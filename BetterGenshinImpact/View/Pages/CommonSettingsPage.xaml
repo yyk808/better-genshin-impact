@@ -6,7 +6,7 @@
       xmlns:emoji="clr-namespace:Emoji.Wpf;assembly=Emoji.Wpf"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:pages="clr-namespace:BetterGenshinImpact.ViewModel.Pages"
-      xmlns:config="clr-namespace:BetterGenshinImpact.Core.Config"
+      xmlns:config="clr-namespace:BetterGenshinImpact.Core.Config;assembly=BetterGenshinImpact.Core"
       xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:i18n="clr-namespace:BetterGenshinImpact.Service.I18n"
