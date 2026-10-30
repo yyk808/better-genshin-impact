@@ -5,7 +5,7 @@ using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Common.Map;
 using BetterGenshinImpact.GameTask.Runtime;
-using Gma.System.MouseKeyHook;
+using BetterGenshinImpact.Platform;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -136,62 +136,62 @@ public class KeyMouseRecorder
         return JsonSerializer.Serialize(keyMouseScript, JsonOptions);
     }
 
-    public void KeyDown(KeyEventArgs e, DateTime time)
+    public void KeyDown(GlobalKeyEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {
             Type = MacroEventType.KeyDown,
-            KeyCode = e.KeyValue,
+            KeyCode = (int)e.Key,
             Time = (time - StartTime).TotalMilliseconds
         });
     }
 
-    public void KeyUp(KeyEventArgs e, DateTime time)
+    public void KeyUp(GlobalKeyEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {
             Type = MacroEventType.KeyUp,
-            KeyCode = e.KeyValue,
+            KeyCode = (int)e.Key,
             Time = (time - StartTime).TotalMilliseconds
         });
     }
 
-    public void MouseDown(MouseEventExtArgs e, DateTime time)
+    public void MouseDown(GlobalMouseEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {
             Type = MacroEventType.MouseDown,
-            MouseX = e.X,
-            MouseY = e.Y,
-            MouseButton = e.Button.ToString(),
+            MouseX = e.Location.X,
+            MouseY = e.Location.Y,
+            MouseButton = KeyModifierHelper.MouseButtonName(e.Button),
             Time = (time - StartTime).TotalMilliseconds
         });
     }
 
-    public void MouseUp(MouseEventExtArgs e, DateTime time)
+    public void MouseUp(GlobalMouseEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {
             Type = MacroEventType.MouseUp,
-            MouseX = e.X,
-            MouseY = e.Y,
-            MouseButton = e.Button.ToString(),
+            MouseX = e.Location.X,
+            MouseY = e.Location.Y,
+            MouseButton = KeyModifierHelper.MouseButtonName(e.Button),
             Time = (time - StartTime).TotalMilliseconds
         });
     }
 
-    public void MouseMoveTo(MouseEventExtArgs e, DateTime time)
+    public void MouseMoveTo(GlobalMouseEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {
             Type = MacroEventType.MouseMoveTo,
-            MouseX = e.X,
-            MouseY = e.Y,
+            MouseX = e.Location.X,
+            MouseY = e.Location.Y,
             Time = (time - StartTime).TotalMilliseconds
         });
     }
     
-    public void MouseWheel(MouseEventExtArgs e, DateTime time)
+    public void MouseWheel(GlobalMouseEventArgs e, DateTime time)
     {
         MacroEvents.Add(new MacroEvent
         {

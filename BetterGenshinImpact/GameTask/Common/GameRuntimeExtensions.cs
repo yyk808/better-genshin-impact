@@ -311,8 +311,8 @@ public static class GameRuntimeExtensions
     /// </summary>
     private static bool IsKeyPressed(GameKey key)
     {
-        // 检查高位是否为 1（表示按键被按下）
-        return (User32.GetAsyncKeyState((int)key) & 0x8000) != 0;
+        // 系统键状态（Win32 为 GetAsyncKeyState 高位）
+        return SystemControl.Platform.KeyState.IsKeyDown(key);
     }
 
     #endregion

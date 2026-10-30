@@ -976,9 +976,8 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
             return;
         }
 
-        const int vkLButton = 0x01;
-        const int vkRButton = 0x02;
-        if ((User32.GetAsyncKeyState(vkLButton) & 0x8000) != 0 || (User32.GetAsyncKeyState(vkRButton) & 0x8000) != 0)
+        var keyState = SystemControl.Platform.KeyState;
+        if (keyState.IsKeyDown(GameKey.VK_LBUTTON) || keyState.IsKeyDown(GameKey.VK_RBUTTON))
         {
             return;
         }

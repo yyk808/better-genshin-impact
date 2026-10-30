@@ -7,7 +7,7 @@ using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Service;
 using BetterGenshinImpact.View.Windows;
-using Gma.System.MouseKeyHook;
+using BetterGenshinImpact.Platform;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
     /// </summary>
     private volatile GameRuntime? _runtime;
 
-    private readonly Dictionary<Keys, bool> _keyDownState = [];
+    private readonly Dictionary<GameKey, bool> _keyDownState = [];
 
     private IDisposable? _relativeMouseSubscription;
 
@@ -175,15 +175,15 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
         ra.Dispose();
     }
 
-    public void GlobalHookKeyDown(KeyEventArgs e, DateTime time)
+    public void GlobalHookKeyDown(GlobalKeyEventArgs e, DateTime time)
     {
-        // 排除热键
-        if (e.KeyCode.ToString() == Config.HotKeyConfig.KeyMouseMacroRecordHotkey)
+        // 排除热键（热键配置保存的是 WinForms Keys 名称）
+        if (((Keys)(ushort)e.Key).ToString() == Config.HotKeyConfig.KeyMouseMacroRecordHotkey)
         {
             return;
         }
 
-        if (_keyDownState.TryGetValue(e.KeyCode, out var v))
+        if (_keyDownState.TryGetValue(e.Key, out var v))
         {
             if (v)
             {
@@ -191,55 +191,55 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
             }
             else
             {
-                _keyDownState[e.KeyCode] = true;
+                _keyDownState[e.Key] = true;
             }
         }
         else
         {
-            _keyDownState.Add(e.KeyCode, true);
+            _keyDownState.Add(e.Key, true);
         }
-        // Debug.WriteLine($"KeyDown: {e.KeyCode}");
+        // Debug.WriteLine($"KeyDown: {e.Key}");
         _recorder?.KeyDown(e, time);
     }
 
-    public void GlobalHookKeyUp(KeyEventArgs e, DateTime time)
+    public void GlobalHookKeyUp(GlobalKeyEventArgs e, DateTime time)
     {
-        if (e.KeyCode.ToString() == Config.HotKeyConfig.Test1Hotkey)
+        if (((Keys)(ushort)e.Key).ToString() == Config.HotKeyConfig.Test1Hotkey)
         {
             return;
         }
 
-        if (_keyDownState.TryGetValue(e.KeyCode, out bool state) && state)
+        if (_keyDownState.TryGetValue(e.Key, out bool state) && state)
         {
-            // Debug.WriteLine($"KeyUp: {e.KeyCode}");
-            _keyDownState[e.KeyCode] = false;
+            // Debug.WriteLine($"KeyUp: {e.Key}");
+            _keyDownState[e.Key] = false;
             _recorder?.KeyUp(e, time);
         }
     }
 
-    public void GlobalHookMouseDown(MouseEventExtArgs e, DateTime time)
+    public void GlobalHookMouseDown(GlobalMouseEventArgs e, DateTime time)
     {
         // Debug.WriteLine($"MouseDown: {e.Button}");
         _recorder?.MouseDown(e, time);
     }
 
-    public void GlobalHookMouseUp(MouseEventExtArgs e, DateTime time)
+    public void GlobalHookMouseUp(GlobalMouseEventArgs e, DateTime time)
     {
         // Debug.WriteLine($"MouseUp: {e.Button}");
         _recorder?.MouseUp(e, time);
     }
 
-    public void GlobalHookMouseMoveTo(MouseEventExtArgs e, DateTime time)
+    public void GlobalHookMouseMoveTo(GlobalMouseEventArgs e, DateTime time)
     {
         if (_isInMainUi)
         {
             return;
         }
-        // Debug.WriteLine($"MouseMove: {e.X}, {e.Y}");
+        // Debug.WriteLine($"MouseMove: {e.Location}");
         _recorder?.MouseMoveTo(e, time);
     }
     
-    public void GlobalHookMouseWheel(MouseEventExtArgs e, DateTime time)
+    public void GlobalHookMouseWheel(GlobalMouseEventArgs e, DateTime time)
     {
         // Debug.WriteLine($"MouseWheel: {e.Delta}");
         _recorder?.MouseWheel(e, time);

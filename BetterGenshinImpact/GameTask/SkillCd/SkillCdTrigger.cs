@@ -367,11 +367,11 @@ public class SkillCdTrigger : ITaskTrigger
         }
 
         // 监听元素战技 (E) 键物理输入
-        var elementalSkillKey = (int)_config
+        var elementalSkillKey = _config
             .KeyBindingsConfig.ElementalSkill.ToVK();
 
-        short eKeyState = User32.GetAsyncKeyState(elementalSkillKey);
-        bool isEDown = (eKeyState & 0x8000) != 0;
+        var keyState = SystemControl.Platform.KeyState;
+        bool isEDown = keyState.IsKeyDown(elementalSkillKey);
         if (isEDown && !_prevEKey) _lastEKeyPress = now;
         _prevEKey = isEDown;
 
@@ -379,8 +379,7 @@ public class SkillCdTrigger : ITaskTrigger
         int pressedIndex = -1;
         for (int i = 0; i < 4; i++)
         {
-            short keyState = User32.GetAsyncKeyState((int)(GameKey.VK_1 + (byte)i));
-            bool isDown = (keyState & 0x8000) != 0;
+            bool isDown = keyState.IsKeyDown((GameKey)((int)GameKey.VK_1 + i));
             if (isDown && !_prevKeys[i]) pressedIndex = i;
             _prevKeys[i] = isDown;
             _lastPressIndexTime = DateTime.Now;

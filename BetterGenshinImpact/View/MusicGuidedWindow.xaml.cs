@@ -949,7 +949,7 @@ public partial class MusicGuidedWindow : Window, IMusicGuidedOverlay
 
     /// <summary>异步键状态：这个键现在按着吗</summary>
     private static bool IsKeyDown(int virtualKey)
-        => (User32.GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+        => SystemControl.Platform.KeyState.IsKeyDown((GameKey)virtualKey);
 
     /// <summary>只在「刚按下」的那一帧返回 true（长按不会连续触发）</summary>
     private bool PressedOnce(int virtualKey)

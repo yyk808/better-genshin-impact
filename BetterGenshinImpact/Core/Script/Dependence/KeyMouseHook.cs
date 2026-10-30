@@ -6,7 +6,8 @@ using System.Windows.Forms;
 using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
-using Gma.System.MouseKeyHook;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using Microsoft.ClearScript;
 using Microsoft.Extensions.Logging;
 
@@ -14,8 +15,8 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 
 public class KeyMouseHook: IDisposable
 {
-    private IKeyboardMouseEvents? _appEvents;
-    private IKeyboardMouseEvents AppHook => _appEvents ??= MouseKeyMonitor.GlobalHook;
+    private IGlobalInputHook? _appEvents;
+    private IGlobalInputHook AppHook => _appEvents ??= MouseKeyMonitor.GlobalHook;
     
     private readonly List<ScriptObject> _keyDownDataCallbacks = new();
     private readonly List<ScriptObject> _keyUpDataCallbacks = new();
@@ -36,12 +37,12 @@ public class KeyMouseHook: IDisposable
     /// </summary>
     private readonly Dictionary<ScriptObject, DateTime> _lastMouseMoveCallbackTimes = new();
     
-    private KeyEventHandler? _keyDownHandler;
-    private KeyEventHandler? _keyUpHandler;
-    private EventHandler<MouseEventExtArgs>? _mouseDownExtHandler;
-    private EventHandler<MouseEventExtArgs>? _mouseUpExtHandler;
-    private EventHandler<MouseEventExtArgs>? _mouseMoveExtHandler;
-    private EventHandler<MouseEventExtArgs>? _mouseWheelExtHandler;
+    private EventHandler<GlobalKeyEventArgs>? _keyDownHandler;
+    private EventHandler<GlobalKeyEventArgs>? _keyUpHandler;
+    private EventHandler<GlobalMouseEventArgs>? _mouseDownExtHandler;
+    private EventHandler<GlobalMouseEventArgs>? _mouseUpExtHandler;
+    private EventHandler<GlobalMouseEventArgs>? _mouseMoveExtHandler;
+    private EventHandler<GlobalMouseEventArgs>? _mouseWheelExtHandler;
     
     private readonly object _mouseMoveLock = new();
     private DateTime _lastProcessMouseMoveTime = DateTime.MinValue;
@@ -175,8 +176,9 @@ public class KeyMouseHook: IDisposable
 
             var keyDownDataCallbacksCopy = new List<ScriptObject>(_keyDownDataCallbacks);
             var keyDownCodeCallbacksCopy = new List<ScriptObject>(_keyDownCodeCallbacks);
-            var keyDataStr = args.KeyData.ToString();
-            var keyCodeStr = args.KeyCode.ToString();
+            // 脚本收到的仍是 WinForms Keys 名称（KeyData 含修饰键，如 "A, Shift"）
+            var keyDataStr = Win32KeyConvert.ToKeyData(args.Key, args.Modifiers).ToString();
+            var keyCodeStr = ((Keys)(ushort)args.Key).ToString();
 
             if (!_eventChannel.Writer.TryWrite(() =>
                 {
@@ -219,8 +221,9 @@ public class KeyMouseHook: IDisposable
 
             var keyUpDataCallbacksCopy = new List<ScriptObject>(_keyUpDataCallbacks);
             var keyUpCodeCallbacksCopy = new List<ScriptObject>(_keyUpCodeCallbacks);
-            var keyDataStr = args.KeyData.ToString();
-            var keyCodeStr = args.KeyCode.ToString();
+            // 脚本收到的仍是 WinForms Keys 名称（KeyData 含修饰键，如 "A, Shift"）
+            var keyDataStr = Win32KeyConvert.ToKeyData(args.Key, args.Modifiers).ToString();
+            var keyCodeStr = ((Keys)(ushort)args.Key).ToString();
             if (!_eventChannel.Writer.TryWrite(() =>
                 {
                     // 调用KeyData回调
@@ -261,8 +264,8 @@ public class KeyMouseHook: IDisposable
             if (_mouseDownCallbacks.Count == 0) return;
 
             var mouseDownCallbacksCopy = new List<ScriptObject>(_mouseDownCallbacks);
-            var (localX, localY) = ConvertToLocalCoordinates(args.X, args.Y);
-            var buttonStr = args.Button.ToString();
+            var (localX, localY) = ConvertToLocalCoordinates(args.Location.X, args.Location.Y);
+            var buttonStr = KeyModifierHelper.MouseButtonName(args.Button);
 
             if (!_eventChannel.Writer.TryWrite(() =>
                 {
@@ -289,8 +292,8 @@ public class KeyMouseHook: IDisposable
             if (_mouseUpCallbacks.Count == 0) return;
 
             var mouseUpCallbacksCopy = new List<ScriptObject>(_mouseUpCallbacks);
-            var (localX, localY) = ConvertToLocalCoordinates(args.X, args.Y);
-            var buttonStr = args.Button.ToString();
+            var (localX, localY) = ConvertToLocalCoordinates(args.Location.X, args.Location.Y);
+            var buttonStr = KeyModifierHelper.MouseButtonName(args.Button);
 
             if (!_eventChannel.Writer.TryWrite(() =>
                 {
@@ -321,7 +324,7 @@ public class KeyMouseHook: IDisposable
             _lastProcessMouseMoveTime = now;
 
             var mouseMoveCallbacksCopy = new List<ScriptObject>(_mouseMoveCallbacks);
-            var (localX, localY) = ConvertToLocalCoordinates(args.X, args.Y);
+            var (localX, localY) = ConvertToLocalCoordinates(args.Location.X, args.Location.Y);
 
             if (!_eventChannel.Writer.TryWrite(() =>
                 {
@@ -361,7 +364,7 @@ public class KeyMouseHook: IDisposable
             if (_mouseWheelCallbacks.Count == 0) return;
 
             var mouseWheelCallbacksCopy = new List<ScriptObject>(_mouseWheelCallbacks);
-            var (localX, localY) = ConvertToLocalCoordinates(args.X, args.Y);
+            var (localX, localY) = ConvertToLocalCoordinates(args.Location.X, args.Location.Y);
             var delta = args.Delta;
 
             if (!_eventChannel.Writer.TryWrite(() =>
@@ -387,10 +390,10 @@ public class KeyMouseHook: IDisposable
         // 添加事件监听器
         AppHook.KeyDown += _keyDownHandler;
         AppHook.KeyUp += _keyUpHandler;
-        AppHook.MouseDownExt += _mouseDownExtHandler;
-        AppHook.MouseUpExt += _mouseUpExtHandler;
-        AppHook.MouseMoveExt += _mouseMoveExtHandler;
-        AppHook.MouseWheelExt += _mouseWheelExtHandler;
+        AppHook.MouseDown += _mouseDownExtHandler;
+        AppHook.MouseUp += _mouseUpExtHandler;
+        AppHook.MouseMove += _mouseMoveExtHandler;
+        AppHook.MouseWheel += _mouseWheelExtHandler;
     }
     
     /// <summary>
@@ -488,25 +491,25 @@ public class KeyMouseHook: IDisposable
             
             if (_mouseDownExtHandler != null)
             {
-                AppHook.MouseDownExt -= _mouseDownExtHandler;
+                AppHook.MouseDown -= _mouseDownExtHandler;
                 _mouseDownExtHandler = null;
             }
             
             if (_mouseUpExtHandler != null)
             {
-                AppHook.MouseUpExt -= _mouseUpExtHandler;
+                AppHook.MouseUp -= _mouseUpExtHandler;
                 _mouseUpExtHandler = null;
             }
             
             if (_mouseMoveExtHandler != null)
             {
-                AppHook.MouseMoveExt -= _mouseMoveExtHandler;
+                AppHook.MouseMove -= _mouseMoveExtHandler;
                 _mouseMoveExtHandler = null;
             }
             
             if (_mouseWheelExtHandler != null)
             {
-                AppHook.MouseWheelExt -= _mouseWheelExtHandler;
+                AppHook.MouseWheel -= _mouseWheelExtHandler;
                 _mouseWheelExtHandler = null;
             }
             

@@ -5,7 +5,8 @@ using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Service;
-using Gma.System.MouseKeyHook;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -54,9 +55,13 @@ public partial class MouseKeyMonitor : IDisposable
     /// </summary>
     private DateTime _firstSpaceKeyDownTime = DateTime.MaxValue;
 
-    private static IKeyboardMouseEvents? _globalHook;
+    private static IGlobalInputHook? _globalHook;
     private static readonly object GlobalHookLock = new object();
-    public static IKeyboardMouseEvents GlobalHook
+
+    /// <summary>
+    /// 全局键鼠监听（由平台服务创建；Windows 为低级键鼠钩子，首次访问须在 UI 线程上）
+    /// </summary>
+    public static IGlobalInputHook GlobalHook
     {
         get
         {
@@ -66,7 +71,7 @@ public partial class MouseKeyMonitor : IDisposable
                 {
                     if (_globalHook == null)
                     {
-                        _globalHook = Hook.GlobalEvents();
+                        _globalHook = SystemControl.Platform.CreateGlobalInputHook();
                     }
                 }
             }
@@ -113,10 +118,10 @@ public partial class MouseKeyMonitor : IDisposable
         {
             GlobalHook.KeyDown += GlobalHookKeyDown;
             GlobalHook.KeyUp += GlobalHookKeyUp;
-            GlobalHook.MouseDownExt += GlobalHookMouseDownExt;
-            GlobalHook.MouseUpExt += GlobalHookMouseUpExt;
-            GlobalHook.MouseMoveExt += GlobalHookMouseMoveExt;
-            GlobalHook.MouseWheelExt += GlobalHookMouseWheelExt;
+            GlobalHook.MouseDown += GlobalHookMouseDownExt;
+            GlobalHook.MouseUp += GlobalHookMouseUpExt;
+            GlobalHook.MouseMove += GlobalHookMouseMoveExt;
+            GlobalHook.MouseWheel += GlobalHookMouseWheelExt;
         }
         TrySubscribeWinePolling();
         //_globalHook.KeyPress += GlobalHookKeyPress;
@@ -133,10 +138,12 @@ public partial class MouseKeyMonitor : IDisposable
         InputHub.Background.Keyboard.KeyPress(_pickUpKeyCode);
     }
 
-    private void GlobalHookKeyDown(object? sender, KeyEventArgs e)
+    private void GlobalHookKeyDown(object? sender, GlobalKeyEventArgs args)
     {
+        // 热键、聊天框守卫仍使用 WinForms Keys（VK 码相同，KeyData 含修饰键，与原 MouseKeyHook 事件一致）
+        var e = new KeyEventArgs(Win32KeyConvert.ToKeyData(args.Key, args.Modifiers));
         // Debug.WriteLine("KeyDown: \t{0}", e.KeyCode);
-        GlobalKeyMouseRecord.Instance.GlobalHookKeyDown(e, DateTime.UtcNow);
+        GlobalKeyMouseRecord.Instance.GlobalHookKeyDown(args, DateTime.UtcNow);
 
         // 由页面直接 new，没有注入入口，只能在钩子回调里取 GameRuntimeService；
         // 每次按键时读取 Current（不缓存），没有运行环境时按前台进程名判断
@@ -178,10 +185,11 @@ public partial class MouseKeyMonitor : IDisposable
         }
     }
 
-    private void GlobalHookKeyUp(object? sender, KeyEventArgs e)
+    private void GlobalHookKeyUp(object? sender, GlobalKeyEventArgs args)
     {
+        var e = new KeyEventArgs(Win32KeyConvert.ToKeyData(args.Key, args.Modifiers));
         // Debug.WriteLine("KeyUp: \t{0}", e.KeyCode);
-        GlobalKeyMouseRecord.Instance.GlobalHookKeyUp(e, DateTime.UtcNow);
+        GlobalKeyMouseRecord.Instance.GlobalHookKeyUp(args, DateTime.UtcNow);
 
         // 热键松开事件
         HotKeyUp(sender, e);
@@ -223,33 +231,33 @@ public partial class MouseKeyMonitor : IDisposable
     //    Debug.WriteLine("KeyPress: \t{0}", e.KeyChar);
     //}
 
-    private void GlobalHookMouseDownExt(object? sender, MouseEventExtArgs e)
+    private void GlobalHookMouseDownExt(object? sender, GlobalMouseEventArgs e)
     {
         // Debug.WriteLine("MouseDown: {0}; \t Location: {1};\t System Timestamp: {2}", e.Button, e.Location, e.Timestamp);
         GlobalKeyMouseRecord.Instance.GlobalHookMouseDown(e, DateTime.UtcNow);
 
-        if (e.Button != MouseButtons.Left)
-            if (MouseHook.AllMouseHooks.TryGetValue(e.Button, out var hook))
+        if (e.Button != GameKey.VK_LBUTTON)
+            if (MouseHook.AllMouseHooks.TryGetValue(Win32KeyConvert.ToMouseButtons(e.Button), out var hook))
                 hook.MouseDown(sender, e);
     }
 
-    private void GlobalHookMouseUpExt(object? sender, MouseEventExtArgs e)
+    private void GlobalHookMouseUpExt(object? sender, GlobalMouseEventArgs e)
     {
         // Debug.WriteLine("MouseUp: {0}; \t Location: {1};\t System Timestamp: {2}", e.Button, e.Location, e.Timestamp);
         GlobalKeyMouseRecord.Instance.GlobalHookMouseUp(e, DateTime.UtcNow);
 
-        if (e.Button != MouseButtons.Left)
-            if (MouseHook.AllMouseHooks.TryGetValue(e.Button, out var hook))
+        if (e.Button != GameKey.VK_LBUTTON)
+            if (MouseHook.AllMouseHooks.TryGetValue(Win32KeyConvert.ToMouseButtons(e.Button), out var hook))
                 hook.MouseUp(sender, e);
     }
 
-    private void GlobalHookMouseMoveExt(object? sender, MouseEventExtArgs e)
+    private void GlobalHookMouseMoveExt(object? sender, GlobalMouseEventArgs e)
     {
         // Debug.WriteLine("MouseMove: {0}; \t Location: {1};\t System Timestamp: {2}", e.Button, e.Location, e.Timestamp);
         GlobalKeyMouseRecord.Instance.GlobalHookMouseMoveTo(e, DateTime.UtcNow);    
     }
     
-    private void GlobalHookMouseWheelExt(object? sender, MouseEventExtArgs e)
+    private void GlobalHookMouseWheelExt(object? sender, GlobalMouseEventArgs e)
     {
         // Debug.WriteLine("MouseMove: {0}; \t Location: {1};\t Delta: {2};\t System Timestamp: {3}", e.Button, e.Location, e.Delta, e.Timestamp);
         GlobalKeyMouseRecord.Instance.GlobalHookMouseWheel(e, DateTime.UtcNow);
@@ -271,10 +279,10 @@ public partial class MouseKeyMonitor : IDisposable
         {
             _globalHook.KeyDown -= GlobalHookKeyDown;
             _globalHook.KeyUp -= GlobalHookKeyUp;
-            _globalHook.MouseDownExt -= GlobalHookMouseDownExt;
-            _globalHook.MouseUpExt -= GlobalHookMouseUpExt;
-            _globalHook.MouseMoveExt -= GlobalHookMouseMoveExt;
-            _globalHook.MouseWheelExt -= GlobalHookMouseWheelExt;
+            _globalHook.MouseDown -= GlobalHookMouseDownExt;
+            _globalHook.MouseUp -= GlobalHookMouseUpExt;
+            _globalHook.MouseMove -= GlobalHookMouseMoveExt;
+            _globalHook.MouseWheel -= GlobalHookMouseWheelExt;
             //_globalHook.KeyPress -= GlobalHookKeyPress;
             _globalHook.Dispose();
             _globalHook = null;

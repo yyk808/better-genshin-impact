@@ -1,7 +1,8 @@
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
 using Fischless.HotkeyCapture;
-using Gma.System.MouseKeyHook;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -40,14 +41,15 @@ public class MouseHook
         return SystemControl.IsGameForeground(App.GetService<GameRuntimeService>()?.Current?.Window);
     }
 
-    public void MouseDown(object? sender, MouseEventExtArgs e)
+    public void MouseDown(object? sender, GlobalMouseEventArgs e)
     {
+        var button = Win32KeyConvert.ToMouseButtons(e.Button);
         if (!IsGameForeground())
         {
             return;
         }
 
-        if (e.Button != MouseButtons.Left && e.Button != MouseButtons.None && e.Button == BindMouse)
+        if (button != MouseButtons.Left && button != MouseButtons.None && button == BindMouse)
         {
             if (ChatUiHotkeyGuard.ShouldBlockHotkey(ConfigPropertyName))
             {
@@ -72,7 +74,7 @@ public class MouseHook
     /// 长按持续执行
     /// </summary>
     /// <param name="e"></param>
-    private void RunAction(MouseEventExtArgs e)
+    private void RunAction(GlobalMouseEventArgs e)
     {
         lock (this)
         {
@@ -89,9 +91,10 @@ public class MouseHook
         }
     }
 
-    public void MouseUp(object? sender, MouseEventExtArgs e)
+    public void MouseUp(object? sender, GlobalMouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left && e.Button != MouseButtons.None && e.Button == BindMouse)
+        var button = Win32KeyConvert.ToMouseButtons(e.Button);
+        if (button != MouseButtons.Left && button != MouseButtons.None && button == BindMouse)
         {
             IsPressed = false;
             if (IsGameForeground() && !ChatUiHotkeyGuard.ShouldBlockHotkey(ConfigPropertyName))

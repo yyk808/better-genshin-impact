@@ -528,7 +528,7 @@ internal sealed class RelativeMouseMessageHandler
 
     private static bool IsKeyPressed(GameKey key)
     {
-        return (User32.GetAsyncKeyState((int)key) & 0x8000) != 0;
+        return SystemControl.Platform.KeyState.IsKeyDown(key);
     }
 
     /// <summary>
