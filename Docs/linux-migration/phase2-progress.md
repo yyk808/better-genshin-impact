@@ -462,13 +462,32 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
   - `TtsAudioDecoder` 走默认宿主解码 MP3；
   - 空输出能立即完成播放。
 
+## 里程碑 20：任务执行入口移入 Core
+
+- `IHtmlMaskWindowHost` 增加 `CloseAll()`。`TaskRunner` 结束任务时改经 `HtmlMaskWindowHost.Current` 关闭全部 HTML 遮罩，WPF 实现仍转发到 `HtmlMaskWindow.CloseAll`。
+- 新增 `ScriptAutoUpdateGate`：任务开始前等待脚本仓库自动更新结束。
+  - Windows 启动时接到 `ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync`，单例仍在首次调用时创建。
+  - 未设置时直接返回。
+- `RedeemCodeManager.ConfirmCodes`：确认剪贴板兑换码。
+  - Windows 设为 `WpfRedeemCodePrompt`，原 `PromptDialog` 多行文本框代码原样搬出。
+  - 未设置时用 `UiHost.Dialogs` 的确定 / 取消框。
+- 移入 Core：`TaskRunner`、`SoloTaskExecutionService`、`RedeemCodeManager`。宿主现在可以直接用 Core 中的 `TaskRunner` 执行独立任务。
+
+验证：编译 0 错误；Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate、rawmouse 0 FAIL。
+
 ### 剩余（主程序中的任务层文件）
 
+- **一条龙**：`OneDragonTask` 依赖以下三处，需要拆成 Core 中的任务定义与界面项两部分：
+  - `OneDragonTaskItem`：界面项，含 WPF `Brush` 状态色和 `OneDragonBaseViewModel`；
+  - `TaskSettingsPageViewModel.GetFightStrategy`；
+  - `ScriptControlViewModel.GetNextProjects`。
+  - `IScriptService` 本身可以直接移入 Core。
+- **脚本仓库更新 / 路径录制**：
+  - `ScriptRepoUpdater`（约 3400 行）：用到 `WebpageWindow`、WPF 对话框、Vanara、`Microsoft.Web.WebView2`；
+  - `PathRecorder`：用到 `WebpageWindow`；
+  - 需要拆出网页窗口和对话框接口。
 - **剧情语音**：
-  - `WindowsSapiTtsProvider` 及引用它的 `TtsProviderRegistry`：需要把提供者注册改为宿主注入；
-  - `QuestVoiceSessionFactory`：读取嵌入的路由资源；
-  - `QuestVoiceSession` 和路由 / 其它 TTS 提供者：被上面两者连带。
+  - `TtsProviderRegistry` 直接构造 `WindowsSapiTtsProvider`，需要改为宿主注册。
+    - 注意主单测 `RegisteredProviderHasImplementation("windows-sapi")` 不经主程序模块初始化，需要在测试中显式注册。
+  - `QuestVoiceSessionFactory` 读取嵌入的路由资源。
 - **音游**：`MusicGuidedSession` 的截图器创建需要改走平台截图工厂。
-- **依赖界面的任务和组件**：
-  - `ScriptRepoUpdater` / `PathRecorder` 的界面部分拆为接口；
-  - `OneDragonTask`、`TaskRunner`、`RedeemCodeManager`、`SoloTaskExecutionService`。
