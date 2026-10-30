@@ -52,7 +52,7 @@ public class DispatcherTickMetrics
         ProcessingCostMs = Stopwatch.GetElapsedTime(_tickStart).TotalMilliseconds;
     }
 
-    public void Publish(OverlayMetricsService? metricsService)
+    public void Publish(BetterGenshinImpact.Service.IOverlayMetricsSink? metricsService)
     {
         if (!IsEnabled)
         {

@@ -14,6 +14,7 @@ using BetterGenshinImpact.Helpers.Ui;
 using BetterGenshinImpact.Service.Interface;
 using Microsoft.Extensions.Logging;
 using Vanara.PInvoke;
+using BetterGenshinImpact.Platform.Windows;
 
 namespace BetterGenshinImpact.View.Mask;
 
@@ -244,9 +245,10 @@ public sealed class MaskWindowHost : IMaskWindowHost
             _lastGameActive = state.IsActive;
         }
 
-        if (state.Bounds.Width > 0 && state.Bounds.Height > 0 && state.Bounds != _desiredBounds)
+        var reportedBounds = state.Bounds.ToRECT();
+        if (reportedBounds.Width > 0 && reportedBounds.Height > 0 && reportedBounds != _desiredBounds)
         {
-            _desiredBounds = state.Bounds;
+            _desiredBounds = reportedBounds;
             changed = true;
         }
 

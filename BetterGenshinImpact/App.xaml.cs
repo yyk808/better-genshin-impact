@@ -326,6 +326,7 @@ public partial class App : Application
                 services.AddSingleton<RawInputMonitor>();
                 services.AddSingleton<IRelativeMouseInputMonitorFactory, RelativeMouseInputMonitorFactory>();
                 services.AddSingleton<OverlayMetricsService>();
+                services.AddSingleton<IOverlayMetricsSink>(sp => sp.GetRequiredService<OverlayMetricsService>());
                 services.AddSingleton<CustomHtmlMaskService>();
 
                 // 遮罩窗口：业务侧只依赖 IMaskWindowDrawingBoard / IMaskWindowHost / IMaskWindowMapState
@@ -339,6 +340,7 @@ public partial class App : Application
                 services.AddTransient<MaskWindow>();
                 services.AddSingleton<Func<MaskWindow>>(sp => () => sp.GetRequiredService<MaskWindow>());
                 services.AddSingleton<IMaskWindowHost, MaskWindowHost>();
+                services.AddSingleton<IGameWindowStateSink>(sp => sp.GetRequiredService<IMaskWindowHost>());
                 // 悬浮小窗：服务只依赖窗口接口，窗口按需创建，见 Docs/design/guide-window.md
                 services.AddSingleton<GuideLibraryStore>();
                 services.AddTransient<GuideWindowViewModel>();

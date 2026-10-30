@@ -24,6 +24,17 @@ internal static class InputModuleInitializer
         InputHub.DefaultBackendFactory ??= static () => new Win32InputBackend(IntPtr.Zero);
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;
+        PlatformHost.ForegroundProcessId = static () =>
+        {
+            var foreground = Vanara.PInvoke.User32.GetForegroundWindow();
+            if (foreground.IsNull)
+            {
+                return null;
+            }
+
+            _ = Vanara.PInvoke.User32.GetWindowThreadProcessId(foreground, out var pid);
+            return pid;
+        };
         BetterGenshinImpact.GameTask.GameSystem.Control = BetterGenshinImpact.GameTask.SystemControlAdapter.Instance;
         BetterGenshinImpact.Core.Mask.MaskColorParser.ColorTextConverter = static text =>
             BetterGenshinImpact.Core.Mask.MaskWpfConversions.ToMaskColor((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(text));
@@ -34,6 +45,7 @@ internal static class InputModuleInitializer
         BetterGenshinImpact.GameTask.QuestVoice.Features.Audio.QuestVoiceAudioHost.Mp3ReaderFactory = static input => new NAudio.Wave.Mp3FileReader(input);
         BetterGenshinImpact.Core.Script.ScriptAutoUpdateGate.WaitForAutoUpdate = static ct => BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync(ct);
         BetterGenshinImpact.GameTask.UseRedeemCode.RedeemCodeManager.ConfirmCodes = BetterGenshinImpact.GameTask.UseRedeemCode.WpfRedeemCodePrompt.Confirm;
+        BetterGenshinImpact.Service.PictureInPictureHost.Current = BetterGenshinImpact.Service.WpfPictureInPictureHost.Instance;
         BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeView.Current = BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeWindowService.Instance;
         BetterGenshinImpact.GameTask.HotkeyHoldState.Query = BetterGenshinImpact.Model.HoldHotkeyQuery.IsHotkeyPressed;
         BetterGenshinImpact.GameTask.RunnerSuspend.Provider = static () => BetterGenshinImpact.GameTask.RunnerContext.Instance;

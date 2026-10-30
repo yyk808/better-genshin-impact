@@ -15,7 +15,7 @@ using BetterGenshinImpact.Service.Model.OverlayMetric;
 
 namespace BetterGenshinImpact.Service;
 
-public sealed class OverlayMetricsService : IDisposable
+public sealed class OverlayMetricsService : IOverlayMetricsSink, IDisposable
 {
     // 调度器可能按几十毫秒上报一次，遮罩文本和硬件传感器分别节流，避免 UI 与 LibreHardwareMonitor 高频刷新。
     private static readonly TimeSpan PublishInterval = TimeSpan.FromMilliseconds(500);

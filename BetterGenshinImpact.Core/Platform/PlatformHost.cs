@@ -56,12 +56,27 @@ public static class PlatformHost
         set => _isWindows11OrGreater = value ?? throw new ArgumentNullException(nameof(value));
     }
 
+    private static Func<uint?> _foregroundProcessId = static () => null;
+
+    /// <summary>
+    /// 当前前台窗口所属进程 ID；没有前台窗口时为 null（无法判断时 0）。
+    /// Windows 主程序设置为 User32.GetForegroundWindow + GetWindowThreadProcessId；
+    /// <see cref="Use"/> 设置为平台窗口管理器的前台窗口；未设置时视为没有前台窗口
+    /// </summary>
+    public static Func<uint?> ForegroundProcessId
+    {
+        get => _foregroundProcessId;
+        set => _foregroundProcessId = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>用一个平台服务集合设置全部入口</summary>
     public static void Use(IPlatformServices platform)
     {
         ArgumentNullException.ThrowIfNull(platform);
         KeyState = platform.KeyState;
         Screen = platform.Screen;
+        var windows = platform.Windows;
+        ForegroundProcessId = () => windows.GetForegroundWindow() is { } w ? (uint)Math.Max(0, w.ProcessId) : null;
     }
 }
 

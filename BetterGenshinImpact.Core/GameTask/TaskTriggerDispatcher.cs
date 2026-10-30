@@ -2,8 +2,6 @@ using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.Helpers;
-using BetterGenshinImpact.View;
-using Fischless.GameCapture;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using System;
@@ -18,11 +16,11 @@ using BetterGenshinImpact.GameTask.AutoPick;
 using BetterGenshinImpact.GameTask.AutoSkip;
 using BetterGenshinImpact.GameTask.Common.BgiVision;
 using BetterGenshinImpact.GameTask.Runtime;
-using Fischless.GameCapture.Graphics;
 using BetterGenshinImpact.Service;
 using BetterGenshinImpact.Service.Model;
 using BetterGenshinImpact.Service.Model.OverlayMetric;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Core.Script.Dependence;
 using Rect = OpenCvSharp.Rect;
 
 namespace BetterGenshinImpact.GameTask
@@ -30,8 +28,8 @@ namespace BetterGenshinImpact.GameTask
     public class TaskTriggerDispatcher : ITriggerDispatcher, IDisposable
     {
         private readonly ILogger<TaskTriggerDispatcher> _logger;
-        private readonly OverlayMetricsService _metricsService;
-        private readonly IMaskWindowHost _maskWindowHost;
+        private readonly IOverlayMetricsSink _metricsService;
+        private readonly IGameWindowStateSink _maskWindowHost;
 
         /// <summary>
         /// 配置根，触发器创建时一并传入
@@ -134,8 +132,8 @@ namespace BetterGenshinImpact.GameTask
 
         public TaskTriggerDispatcher(
             ILogger<TaskTriggerDispatcher> logger,
-            OverlayMetricsService metricsService,
-            IMaskWindowHost maskWindowHost,
+            IOverlayMetricsSink metricsService,
+            IGameWindowStateSink maskWindowHost,
             AllConfig config)
         {
             _logger = logger;
@@ -340,8 +338,8 @@ namespace BetterGenshinImpact.GameTask
 
             _gameRect = PixelRect.Empty;
             _prevGameActive = false;
-            PictureInPictureService.Hide(resetManual: true);
-            HtmlMaskWindow.CloseAll();
+            PictureInPictureHost.Current.Hide(resetManual: true);
+            HtmlMaskWindowHost.Current.CloseAll();
         }
 
         public void StartTimer()
@@ -416,7 +414,7 @@ namespace BetterGenshinImpact.GameTask
                         _logger.LogInformation("游戏已退出，BetterGI 自动停止截图器");
                     }
 
-                    PictureInPictureService.Hide(resetManual: true);
+                    PictureInPictureHost.Current.Hide(resetManual: true);
                     _maskWindowHost.ReportGameWindow(new GameWindowState(false, false, false, false, default));
                     UiTaskStopTickEvent?.Invoke(sender, e);
                     return;
@@ -426,7 +424,7 @@ namespace BetterGenshinImpact.GameTask
                 if (window.IsMinimized)
                 {
                     ChatUiHotkeyGuard.Reset();
-                    PictureInPictureService.Hide();
+                    PictureInPictureHost.Current.Hide();
                     _maskWindowHost.ReportGameWindow(new GameWindowState(true, false, true, false, default));
                     return;
                 }
@@ -438,7 +436,7 @@ namespace BetterGenshinImpact.GameTask
                 var shouldShowPictureInPicture = runtime.Kind != GameRuntimeKind.WebPage
                                                  && autoSkipConfig.Enabled
                                                  && autoSkipConfig.PictureInPictureEnabled
-                                                 && !PictureInPictureService.IsManuallyClosed
+                                                 && !PictureInPictureHost.Current.IsManuallyClosed
                                                  && TaskControl.TaskSemaphore.CurrentCount == 1; // 没有任务持有锁（也就是没有任务正在运行）
                 var active = window.IsForeground;
                 if (!active)
@@ -478,17 +476,17 @@ namespace BetterGenshinImpact.GameTask
                         if (!hasBackgroundTriggerToRun)
                         {
                             // 没有后台运行的触发器，这次不再进行截图
-                            PictureInPictureService.Hide();
+                            PictureInPictureHost.Current.Hide();
                             return;
                         }
                     }
                 }
                 else
                 {
-                    PictureInPictureService.Hide(resetManual: true);
+                    PictureInPictureHost.Current.Hide(resetManual: true);
                     // 只上报事实，显示、置顶、跟随位置由遮罩宿主去重后决定，不会每帧切 UI 线程
                     _maskWindowHost.ReportGameWindow(new GameWindowState(true, true, false, true,
-                        window.Viewport.ScreenRect.ToRECT()));
+                        window.Viewport.ScreenRect));
 
                     _prevGameActive = active;
                     // // 移动游戏窗口的时候同步遮罩窗口的位置,此时不进行捕获
@@ -529,11 +527,11 @@ namespace BetterGenshinImpact.GameTask
 
                 if (shouldShowPictureInPicture && !active)
                 {
-                    PictureInPictureService.Update(bitmap);
+                    PictureInPictureHost.Current.Update(bitmap);
                 }
                 else
                 {
-                    PictureInPictureService.Hide();
+                    PictureInPictureHost.Current.Hide();
                 }
 
                 NotifyFrameCaptured(bitmap);
@@ -800,7 +798,7 @@ namespace BetterGenshinImpact.GameTask
                     active,
                     window.IsMinimized,
                     active || IsForegroundOwnedByBetterGiOrGame(window),
-                    currentRect.ToRECT()));
+                    currentRect));
                 return true;
             }
 
@@ -826,13 +824,11 @@ namespace BetterGenshinImpact.GameTask
         /// </summary>
         private static bool IsForegroundOwnedByBetterGiOrGame(IGameWindow window)
         {
-            var foreground = User32.GetForegroundWindow();
-            if (foreground.IsNull)
+            if (PlatformHost.ForegroundProcessId() is not { } pid)
             {
                 return true;
             }
 
-            _ = User32.GetWindowThreadProcessId(foreground, out var pid);
             return pid == 0 || pid == (uint)Environment.ProcessId || pid == (uint)window.ProcessId;
         }
     }
