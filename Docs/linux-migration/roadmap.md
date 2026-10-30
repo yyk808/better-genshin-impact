@@ -30,7 +30,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 1. ✅ **平台服务注册**（里程碑 1）：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
 2. ✅ **`SystemControl` 拆分**（里程碑 1）：找窗迁到 `IGameWindowFinder`，Win32 窗口函数迁到 `Platform.Windows` 的 `Win32WindowOps`，进程名 / 启动参数迁到 Core；剩余调用方逐步改用 `IPlatformWindow`。
 3. ✅ **键状态与录制**（里程碑 2，`RawInputMonitor` 相对鼠标与 Wine 轮询未动）：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
-4. **音游输入**（部分完成）：`KeyInputTransports` 已经走 `InputHub` 的前台 / 后台通道（`IInputChannel`），音游文件因封面 `ImageSource` 和 WinForms 热键仍在主项目。`RawInputMonitor` 的接口 `IRelativeMouseInputMonitor` 已在 Core，Linux 实现（XInput2 原始事件）尚未开始。
+4. **音游输入**（部分完成）：`KeyInputTransports` 已经走 `InputHub` 的前台 / 后台通道（`IInputChannel`），音游文件因封面 `ImageSource` 和 WinForms 热键仍在主项目。`RawInputMonitor` 的 Linux 对应实现 `X11RelativeMouseInputMonitor`（XInput2 `XI_RawMotion`）已完成（里程碑 17）。
 5. ✅ **热键**（里程碑 3；UI 的 `HotKey` 模型仍用 WPF `Key`，配置文本格式不变，Core 用 `HotkeyText` 解析）：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。

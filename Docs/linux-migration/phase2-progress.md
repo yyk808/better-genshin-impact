@@ -398,4 +398,33 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
   - `GameTaskManager`、`TaskTriggerDispatcher`；
   - `GameRuntimeService`、Win32 / 网页版运行环境；
   - `SystemControl`、各 Win32 实现类、`AutoComboTreeWindowService`。
-- **尚未开始**：`RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的 Linux 实现（XInput2 `XI_RawMotion`，接口 `IRelativeMouseInputMonitor` 已在 Core）。
+- `RawInputMonitor` 的 Linux 实现已在里程碑 17 完成。
+
+## 里程碑 17：Linux 相对鼠标监听（XInput2 原始事件）
+
+新增 `X11RelativeMouseInputMonitor`，实现 Core 中的 `IRelativeMouseInputMonitor`，对应 Windows 的 `RawInputMonitor` / `DirectInputMonitor`。新增的 `X11RelativeMouseInputMonitorFactory` 对 DirectInput 和 RawInput 两种类型都返回它。
+
+- 在根窗口上为全部主设备选择 `XI_RawMotion`，不抢占输入。
+  - 声明的版本是 XI 2.2：按 XI 2.0 语义，其它客户端（游戏锁定视角时）抓取指针后，根窗口收不到原始事件。实测改用 2.0 时，抓取期间的增量为 0。
+- 增量使用未加速的 raw 值，小数部分按设备累计。
+- 持有抓取时，同一事件可能按“抓取”和“根窗口选择”各投递一次，按 (time, sourceid, raw) 去重。
+- 绝对坐标设备（数位板、虚拟机 / 远程桌面的绝对指针）：用 `XIQueryDevice` 读取 valuator 的模式，再按上一个位置换算为增量。
+- 首个订阅时建立独立连接并启动采集线程，回调在采集线程执行；最后一个订阅释放后停止。
+
+验证：本机驱动新增 `rawmouse` 检查，结果 0 FAIL，内容如下：
+
+- XTest 相对移动 10 次 (7,-3)，收到 10 个事件，累计 (70,-30)；
+- 另一个连接抓取指针期间累计 (-20,30)，没有重复；
+- 去重、绝对设备换算、小数累计的逻辑检查；
+- 订阅释放后线程停止。
+
+其余验证同前：编译 0 错误，Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
+### 下一步计划（尚未开始）
+
+- **音游**：封面改用平台无关的图片数据（字节或 `Mat`），WPF 侧转换为 `ImageSource`；热键改用 `WinFormsKeys` / `GameKey`；`COLORREF` 改为 RGB 结构。
+- **剧情语音**：
+  - 抽出 `IAudioPlayer`（Windows 仍为 `WasapiAudioPlayer`）、TTS 引擎注册（Windows SAPI 留在主程序）和 `IMp3Decoder`。
+  - Windows 继续用 NAudio 的 `Mp3FileReader`（ACM）；Linux 计划用纯托管的 NLayer（MIT 许可，有 NAudio 适配），不依赖系统编解码器。
+  - Linux 的播放器先用空实现，之后接 PulseAudio / PipeWire。
+- **界面拆分**：`ScriptRepoUpdater` / `PathRecorder` 的界面部分拆为接口；处理 `OneDragonTask`、`TaskRunner`、`RedeemCodeManager`、`SoloTaskExecutionService` 对界面服务的依赖。
