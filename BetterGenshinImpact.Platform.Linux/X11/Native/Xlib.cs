@@ -59,6 +59,9 @@ public static unsafe partial class Xlib
     public static partial int XGetWindowProperty(nint d, nint w, nint property, nint offset, nint length, [MarshalAs(UnmanagedType.Bool)] bool delete,
         nint reqType, out nint actualType, out int actualFormat, out nint nitems, out nint bytesAfter, out nint prop);
     [LibraryImport(X11)] public static partial int XChangeProperty(nint d, nint w, nint property, nint type, int format, int mode, byte* data, int nelements);
+    /// <summary>attrs 指向至少 136 字节的 XWindowAttributes（map_state 在偏移 92，见 <see cref="MapStateOffset"/>）</summary>
+    [LibraryImport(X11)] public static partial int XGetWindowAttributes(nint d, nint w, byte* attrs);
+    public const int MapStateOffset = 92, IsViewable = 2;
     [LibraryImport(X11)] public static partial int XQueryTree(nint d, nint w, out nint root, out nint parent, out nint children, out uint nchildren);
     [LibraryImport(X11)] public static partial int XGetGeometry(nint d, nint drawable, out nint root, out int x, out int y, out uint width, out uint height, out uint border, out uint depth);
     [LibraryImport(X11)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XTranslateCoordinates(nint d, nint src, nint dest, int srcX, int srcY, out int destX, out int destY, out nint child);

@@ -17,7 +17,30 @@ public sealed class PlatformGameSystemControl(
 {
     public IPlatformServices Platform => platform;
 
-    public List<string> GetGenshinGameProcessNameList(IGameWindow? boundWindow) => [.. processNames];
+    /// <summary>
+    /// 游戏进程名列表：与 Win32 宿主一致，传入已绑定的游戏窗口时只返回该窗口的进程名
+    /// （Wine/Proton 或测试窗口的进程名不一定在候选列表里），否则返回候选进程名
+    /// </summary>
+    public List<string> GetGenshinGameProcessNameList(IGameWindow? boundWindow)
+    {
+        if (boundWindow is { RequiresForeground: true })
+        {
+            try
+            {
+                var name = boundWindow.ProcessName;
+                if (!string.IsNullOrEmpty(name))
+                {
+                    return [name];
+                }
+            }
+            catch
+            {
+                /* 窗口已失效时退回候选进程名 */
+            }
+        }
+
+        return [.. processNames];
+    }
 
     public GameWindowSearch GetGameWindowSearch() => new(processNames);
 

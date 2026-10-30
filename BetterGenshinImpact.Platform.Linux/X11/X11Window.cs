@@ -83,7 +83,8 @@ public sealed unsafe class X11Window : IPlatformWindow
         }
     }
 
-    public bool IsForeground => _c.GetCardinals(_c.Root, "_NET_ACTIVE_WINDOW", XA_WINDOW).FirstOrDefault() == Handle;
+    /// <summary>见 <see cref="X11Connection.IsForegroundWindow"/>：有窗口管理器用 _NET_ACTIVE_WINDOW，没有时用 XGetInputFocus 上溯到顶层窗口比较</summary>
+    public bool IsForeground => _c.IsForegroundWindow(Handle);
 
     public bool IsMinimized
     {
@@ -102,18 +103,38 @@ public sealed unsafe class X11Window : IPlatformWindow
     public void Activate() => ActivateAndWait();
 
     /// <summary>
-    /// 还原并置前，等待成为前台。EWMH _NET_ACTIVE_WINDOW（source=2，WM 一般无条件执行），超时后回退 XSetInputFocus
+    /// 还原并置前，等待成为前台。有窗口管理器时发 EWMH _NET_ACTIVE_WINDOW（source=2，WM 一般无条件执行），超时后回退 XSetInputFocus；
+    /// 没有窗口管理器时直接 XRaiseWindow + XSetInputFocus
     /// </summary>
     /// <returns>超时前是否确认成为前台</returns>
     public bool ActivateAndWait(TimeSpan? timeout = null)
     {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(2));
+        if (!_c.HasWindowManager)
+        {
+            lock (_c.Gate)
+            {
+                XMapRaised(_c.Display, Handle);
+                XRaiseWindow(_c.Display, Handle);
+                XSetInputFocus(_c.Display, Handle, 2 /*RevertToParent*/, 0 /*CurrentTime*/);
+                XFlush(_c.Display);
+            }
+
+            while (DateTime.UtcNow < deadline)
+            {
+                if (IsForeground) return true;
+                Thread.Sleep(20);
+            }
+
+            return IsForeground;
+        }
+
         lock (_c.Gate)
         {
             XMapRaised(_c.Display, Handle);
             SendRootClientMessage("_NET_ACTIVE_WINDOW", 2, 0);
         }
 
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(2));
         while (DateTime.UtcNow < deadline)
         {
             if (IsForeground) return true;

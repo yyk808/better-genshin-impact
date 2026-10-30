@@ -71,6 +71,77 @@ public sealed unsafe class X11Connection : IDisposable
         return Encoding.UTF8.GetString(b).TrimEnd('\0');
     }
 
+    /// <summary>
+    /// 是否有遵循 EWMH 的窗口管理器：根窗口的 _NET_SUPPORTING_WM_CHECK 指向的窗口上同名属性指向自己
+    /// （窗口管理器退出后根窗口上的属性可能残留，此时那个窗口已不存在）
+    /// </summary>
+    public bool HasWindowManager
+    {
+        get
+        {
+            var check = GetCardinals(Root, "_NET_SUPPORTING_WM_CHECK", XA_WINDOW).FirstOrDefault();
+            return check != 0 && GetCardinals((nint)check, "_NET_SUPPORTING_WM_CHECK", XA_WINDOW).FirstOrDefault() == check;
+        }
+    }
+
+    /// <summary>EWMH 当前活动窗口（客户端窗口），没有时为 0</summary>
+    public nint ActiveWindow => (nint)GetCardinals(Root, "_NET_ACTIVE_WINDOW", XA_WINDOW).FirstOrDefault();
+
+    /// <summary>键盘焦点所在窗口（XGetInputFocus）；None / PointerRoot 时为 0</summary>
+    public nint FocusWindow
+    {
+        get
+        {
+            lock (Gate)
+            {
+                XGetInputFocus(Display, out var f, out _);
+                return f > 1 ? f : 0;
+            }
+        }
+    }
+
+    /// <summary>沿父窗口上溯到根窗口的直接子窗口（顶层窗口；有窗口管理器时通常是 frame）；窗口不存在时返回 0</summary>
+    public nint TopLevelOf(nint window)
+    {
+        lock (Gate)
+        {
+            for (var depth = 0; window != 0 && depth < 64; depth++)
+            {
+                LastErrorCode = 0;
+                if (XQueryTree(Display, window, out _, out var parent, out var children, out _) == 0 || LastErrorCode != 0)
+                {
+                    return 0;
+                }
+
+                if (children != 0) XFree(children);
+                if (parent == 0 || parent == Root) return window;
+                window = parent;
+            }
+
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// 窗口是否在前台。有窗口管理器时以 _NET_ACTIVE_WINDOW 为准（与窗口同一顶层也算，如 Wine 的子窗口）；
+    /// 没有窗口管理器（或它没有设置活动窗口）时用 XGetInputFocus，焦点窗口与该窗口上溯到同一个顶层窗口即为前台
+    /// </summary>
+    public bool IsForegroundWindow(nint window)
+    {
+        if (window == 0) return false;
+        if (HasWindowManager)
+        {
+            var active = ActiveWindow;
+            if (active != 0)
+            {
+                return active == window || TopLevelOf(active) == TopLevelOf(window);
+            }
+        }
+
+        var focus = FocusWindow;
+        return focus != 0 && (focus == window || TopLevelOf(focus) == TopLevelOf(window));
+    }
+
     /// <summary>连接已关闭。持有 <see cref="Gate"/> 时检查，关闭后不能再用 <see cref="Display"/> 调用 Xlib</summary>
     public bool IsDisposed { get; private set; }
 
