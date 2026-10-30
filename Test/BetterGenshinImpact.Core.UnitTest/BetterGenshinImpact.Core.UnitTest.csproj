@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Core 的单元测试：纯 net10.0，Windows / Linux 上都可直接 dotnet test，
+        不依赖 WPF / Win32 / 显示环境。迁入 Core 的逻辑在这里补测试。
+    -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>14.0</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Platforms>x64</Platforms>
+
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+        <PackageReference Include="xunit" Version="2.5.3"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit"/>
+        <Using Include="BetterGenshinImpact.Platform"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj"/>
+    </ItemGroup>
+
+</Project>
