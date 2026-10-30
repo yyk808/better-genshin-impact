@@ -200,3 +200,72 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 验证：编译 0 错误；Core 单测 236 个，230 通过，6 个失败，与之前相同（都是缺素材的钓鱼截图测试）；
 主单测 825 通过 / 207 失败 / 12 跳过，与 7b 基线逐个用例比较，无退化、无缺失；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
+## 里程碑 8a：屏幕信息、InputHub 与服务入口移入 Core
+
+- 新增 `IScreenInfo` 与静态入口 `PlatformHost`（键状态、主屏分辨率、Mica 支持判断）。Windows 主程序在模块初始化时设置为原有 Win32 实现，行为不变。
+- `InputHub` 移入 Core。默认后端由宿主经 `InputHub.DefaultBackendFactory` 提供；未设置时为 `UnsupportedInputBackend`。
+- **Region 卡点已解决**：`Region.Click` / `Move` 与 `DesktopRegion` 取光标和屏幕大小改走 `PlatformHost`，点击 / 移动经 `InputHub` 的 `IInputChannel`，不再直接调用 Vanara / `PrimaryScreen`。
+- 新增 `CoreServices`（服务容器入口，委托给 App 的容器），140 个非界面文件的 `App.GetLogger` / `GetService` / `ServiceProvider` 改为调用它。
+- `SoloTaskRegistry` 同时扫描主程序集与 Core 程序集（按 Order、TaskId 排序，结果不变）。
+
+## 里程碑 8b：配置根与服务基础设施移入 Core
+
+- 配置中使用的 WPF 枚举（`Stretch`、`WindowState`、背景材质）改为成员名和数值都相同的平台无关枚举。配置按数值序列化，配置文件不变；界面绑定经 `EnumValueConverter` 转换。
+- `ConfigHost.Config` 作为配置根入口（`ConfigService.Config` 委托给它）。通知数据经 `INotificationHub` 访问通知服务。
+- `AllConfig` 及全部配置模型、`Global`、`I18nService`、通知器等 42 个文件移入 Core；随后又移入可编译的服务模型、存储 / 网络基础设施、账号记录、攻略库等 158 个文件。
+- 拆分 `IInferenceDeviceDiscovery`（DXGI 实现留在主程序）与 `ColorScalarExtension`。
+- 配置 JSON 选项独立为 `ConfigJson.Options`，`ConfigService.JsonOptions` 仍返回同一实例。
+- 新增 `IGameSystemControl` / `GameSystem`：任务代码经它调用 `SystemControl` 的窗口与进程操作；Windows 由 `SystemControlAdapter` 原样转发。
+
+## 里程碑 8c：解除识别 / 任务代码对界面与 Windows 实现的直接引用
+
+- `SettingItem.ToControl`、`ScriptProject.LoadSettingUi` 拆为主程序的扩展方法（WPF 控件生成留在主程序），数据模型移入 Core。
+- 新增 `ITriggerDispatcher` / `TriggerDispatcher`。任务与脚本经接口启停触发器，调度器本身（画中画、遮罩宿主、性能指标）留在主程序。
+- 新增以下入口，原位置保留同名转发，行为不变：
+  - `GameKeyMapping.MappingKey`（原 `KeyBindingsSettingsPageViewModel.MappingKey`）
+  - `PathingPaths.PathJsonPath`（原 `MapPathingViewModel.PathJsonPath`）
+  - `GameTaskAssets.LoadAssetImage`（原 `GameTaskManager.LoadAssetImage`）
+  - `PickTextHelper`（原 `AutoPickTrigger.GetWhiteTextBoundingRect`）
+- E 技能分类结果改经 `ESkillClassifyMonitor.Publish` 发布。主程序把它接到 `ESkillClassifyViewModel`；结果坐标改用 `MaskRect` / `MaskPoint`。
+- 剧情语音检测的进程音频捕获抽象为 `IProcessAudioCapture`，Windows 由 `ProcessAudioCapture.Factory` 提供 WASAPI 回环实现。
+- `GameRuntimeExtensions` 的暂停逻辑改经 `IRunnerSuspendState`（`RunnerSuspend.Provider`，Windows 为 `RunnerContext.Instance`）。
+- Core 引用 CsTrees 1.0.5、LibGit2Sharp 0.31.0、Microsoft.ClearScript.V8 7.4.5（只引用托管部分，原生库由宿主选择）。
+  - 已确认 NuGet 上有 `Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5。
+  - 在 Linux 上用独立的小程序实测：`V8ScriptEngine` 可以执行脚本（数组方法、Promise）。
+
+## 里程碑 9：识别核心移入 Core
+
+移入 Core 的文件共 35 个：
+
+- `Region` / `ImageRegion` / `DesktopRegion` / `GameCaptureRegion` / `ReferenceRect` / `ConvertRes`
+- `OcrFactory`、PaddleOCR（`Det` / `Rec` / `PaddleOcrService`）、`BgiOnnxFactory` / `BgiYoloPredictor` / `InferenceRuntimeService` / `InferenceModelDiagnostics`
+- 全部 `Bv` 视觉操作
+- `GameRuntime` / `GameRuntimeExtensions` / `ISystemInfo` / `CaptureContent`
+- 素材缓存与 AutoFight / AutoPick / Element 素材
+- `NewRetry`、`RecognitionAssets`
+
+此前已移入的 `RecognitionObject` 与 Bv 的翻译资源（`BvResxHelper*.resx`）配合使用。翻译资源生成 `BetterGenshinImpact.Core.resources.dll` 卫星程序集，复制到主程序输出目录。
+
+验证（8a–9 每个推送点）：
+
+- 编译 0 错误。
+- Core 单测 236 个：230 通过，6 失败。失败的是原有的缺素材钓鱼截图测试，与基线相比无退化。
+- 主单测 825 通过 / 249 失败 / 12 跳过，与 7b 基线逐个用例比较无退化、无缺失。失败比 7b 多出的 42 个都是新发现的理论用例数据行：
+  - 21 行属于 `PuloniaTaskHotkeyTests`，原先因类型加载失败，一行都没有被发现；
+  - 另外 21 行属于 `PaddleOcrService_VariousLangWords`，数据行比原先展开得更多。
+  - 它们失败都是因为 Linux 上没有 `WindowsBase` / `System.Drawing.Common`，与基线中同名用例的失败原因相同。
+- 端到端：Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
+### 剩余阻碍（Core 外的任务层）
+
+从识别核心向外扩展到任务层（约 250 个文件）时，剩下的外部引用如下：
+
+- 4 个独立任务（AutoBoss / AutoDomain / AutoLeyLineOutcrop / AutoStygianOnslaught）的 `[SoloTaskSettingsView(typeof(View), typeof(ViewModel))]` 特性引用界面类型。需要把界面映射挪到主程序的注册表；`AutoDomainTask` 还直接使用 `AutoDomainSettingsViewModel`。
+- `QuickTeleportTrigger` 使用 `HotKey` / `KeyboardHook` / `MouseHook`（WinForms 键鼠钩子）。
+- `SkillCdOverlayRenderer` 使用 WPF `Color`。
+- `ScriptRepoUpdater` / `PathRecorder` 打开 `WebpageWindow`。
+- `AutoFishing/Behaviours` 使用 `MOUSEEVENTF`。
+- `PathExecutor` / `AssertUtils` 调用 `SystemControl.GetGameScreenRect`（返回 Win32 `RECT`）。
+- `TaskTriggerDispatcher` 与 `GameTaskManager.CreateTriggers` 属于宿主编排，计划留在宿主侧。
+- 尚未开始：音游输入（`KeyInputTransports` 直接调用 SendInput / PostMessage）与 `RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的抽象。
