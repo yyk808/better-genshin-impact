@@ -5,12 +5,10 @@ using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Config;
 using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Model;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Helpers;
-using BetterGenshinImpact.View.Windows;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace BetterGenshinImpact.GameTask.AutoGeniusInvokation;
 

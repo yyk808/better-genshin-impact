@@ -14,7 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Text;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.GameTask.GameLoading;
 
@@ -235,70 +234,6 @@ public class GameLoadingTrigger : ITaskTrigger
     // B服登录窗口检测
     private static (IntPtr windowHandle, string windowType) GetBiliLoginWindow(Process process)
     {
-        IntPtr bHWnd = IntPtr.Zero;
-        string windowType = "";
-
-        User32.EnumWindows((hWnd, lParam) =>
-        {
-            try
-            {
-                // 获取窗口标题
-                int titleLength = User32.GetWindowTextLength(hWnd);
-                if (titleLength > 0)
-                {
-                    StringBuilder title = new StringBuilder(titleLength + 1);
-                    User32.GetWindowText(hWnd, title, title.Capacity);
-
-                    string titleText = title.ToString();
-
-                    // 检查是否是B服登录窗口（通过标题匹配）
-                    if (titleText.Contains("bilibili", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // 检查窗口所有者是否是原神进程
-                        var owner = User32.GetWindow(hWnd, User32.GetWindowCmd.GW_OWNER);
-                        if (owner != IntPtr.Zero)
-                        {
-                            User32.GetWindowThreadProcessId(owner, out uint ownerPid);
-                            if (ownerPid == process.Id)
-                            {
-                                // 检查窗口是否可见和启用
-                                bool isVisible = User32.IsWindowVisible(hWnd);
-                                bool isEnabled = User32.IsWindowEnabled(hWnd);
-
-                                // 检查协议窗口
-                                if (titleText.Contains("协议", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (isEnabled)
-                                    {
-                                        bHWnd = hWnd.DangerousGetHandle();
-                                        windowType = "协议";
-                                        return false;
-                                    }
-                                }
-
-                                // 检查登录窗口
-                                if (titleText.Contains("登录", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (isEnabled)
-                                    {
-                                        bHWnd = hWnd.DangerousGetHandle();
-                                        windowType = "登录";
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug($"枚举窗口时出错: {ex.Message}");
-            }
-
-            return true;
-        }, IntPtr.Zero);
-
-        return (bHWnd, windowType);
+        return GameDesktopInterop.Current.FindBiliLoginWindow(process, ex => _logger.LogDebug($"枚举窗口时出错: {ex.Message}"));
     }
 };

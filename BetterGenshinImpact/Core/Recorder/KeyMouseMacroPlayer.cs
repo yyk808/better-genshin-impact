@@ -56,7 +56,8 @@ public class KeyMouseMacroPlayer
     /// <param name="ct">取消令牌</param>
     public static async Task PlayMacro(GameRuntime runtime, List<MacroEvent> macroEvents, CancellationToken ct)
     {
-        WorkingArea = PrimaryScreen.WorkingArea;
+        var screenSize = PlatformHost.Screen.PrimaryScreenSize;
+        WorkingArea = new Size(screenSize.Width, screenSize.Height);
         var startTime = DateTime.UtcNow;
         foreach (var e in macroEvents)
         {

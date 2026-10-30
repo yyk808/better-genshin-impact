@@ -38,13 +38,13 @@ public class TaskRunner
     /// <summary>
     /// 独立任务运行期间的 Windows 通知抑制服务。
     /// </summary>
-    private readonly WindowsNotificationSuppressionService _windowsNotificationSuppressionService =
-        CoreServices.GetService<WindowsNotificationSuppressionService>()!;
+    private readonly ISoloTaskNotificationSuppressor _windowsNotificationSuppressionService =
+        CoreServices.GetService<ISoloTaskNotificationSuppressor>()!;
 
     /// <summary>
     /// 游戏运行环境的编排服务，用于按需启动截图器。TaskRunner 有多处直接 new，暂时从容器获取
     /// </summary>
-    private readonly GameRuntimeService _gameRuntimeService = CoreServices.GetService<GameRuntimeService>()!;
+    private readonly IGameRuntimeHost _gameRuntimeService = CoreServices.GetService<IGameRuntimeHost>()!;
 
     public TaskRunner()
     {

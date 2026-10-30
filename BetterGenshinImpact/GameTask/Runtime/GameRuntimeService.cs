@@ -23,7 +23,7 @@ namespace BetterGenshinImpact.GameTask.Runtime;
 /// 而 StartAsync / StopAsync 可能从任务线程或截图调度线程调用。
 /// </para>
 /// </summary>
-public sealed class GameRuntimeService
+public sealed class GameRuntimeService : IGameRuntimeHost
 {
     private readonly IGameRuntimeProvider _provider;
     private readonly TaskTriggerDispatcher _dispatcher;

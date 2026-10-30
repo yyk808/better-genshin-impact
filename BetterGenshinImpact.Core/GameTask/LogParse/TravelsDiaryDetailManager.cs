@@ -7,7 +7,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Helpers;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.GameTask.LogParse;
 

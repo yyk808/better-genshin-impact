@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using BetterGenshinImpact.GameTask.Model.Area;
-using Vanara.PInvoke;
 using static BetterGenshinImpact.GameTask.Common.TaskControl;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Common;
@@ -48,40 +47,25 @@ internal sealed class Login3rdParty
         {
             if (Process.GetProcessesByName("YuanShen").FirstOrDefault() is Process p)
             {
-                uint tid = User32.GetWindowThreadProcessId(p.MainWindowHandle, out uint pid);
+                string? imagePath = GameDesktopInterop.Current.QueryProcessImagePathOfWindow(p.MainWindowHandle);
 
-                if (tid != 0)
+                if (imagePath != null)
                 {
-                    using Kernel32.SafeHPROCESS hProcess = Kernel32.OpenProcess(new ACCESS_MASK(Kernel32.ProcessAccess.PROCESS_QUERY_INFORMATION), false, pid);
+                    FileInfo fileInfo = new(imagePath);
 
-                    if (!hProcess.IsInvalid)
+                    if (fileInfo.Exists)
                     {
-                        StringBuilder devicePath = new(260);
-                        uint size = (uint)devicePath.Capacity;
+                        string? configIni = Path.Combine(fileInfo.DirectoryName!, "config.ini");
+                        string[] lines = File.ReadAllLines(configIni);
 
-                        if (Kernel32.QueryFullProcessImageName(hProcess, 0, devicePath, ref size))
+                        foreach (string line in lines)
                         {
-                            FileInfo fileInfo = new(devicePath.ToString());
-
-                            if (fileInfo.Exists)
+                            string kv = line.Trim();
+                            if (kv.StartsWith("channel=") && kv.EndsWith("14"))
                             {
-                                string? configIni = Path.Combine(fileInfo.DirectoryName!, "config.ini");
-                                string[] lines = File.ReadAllLines(configIni);
-
-                                foreach (string line in lines)
-                                {
-                                    string kv = line.Trim();
-                                    if (kv.StartsWith("channel=") && kv.EndsWith("14"))
-                                    {
-                                        Type = The3rdPartyType.Bilibili;
-                                        break;
-                                    }
-                                }
+                                Type = The3rdPartyType.Bilibili;
+                                break;
                             }
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Error getting process image file name. Error code: {Marshal.GetLastWin32Error()}");
                         }
                     }
                 }
@@ -171,70 +155,6 @@ internal sealed class Login3rdParty
 
     static (IntPtr windowHandle, string windowType) GetBiliLoginWindow(Process process)
     {
-        IntPtr bHWnd = IntPtr.Zero;
-        string windowType = "";
-
-        User32.EnumWindows((hWnd, lParam) =>
-        {
-            try
-            {
-                // 获取窗口标题
-                int titleLength = User32.GetWindowTextLength(hWnd);
-                if (titleLength > 0)
-                {
-                    StringBuilder title = new StringBuilder(titleLength + 1);
-                    User32.GetWindowText(hWnd, title, title.Capacity);
-
-                    string titleText = title.ToString();
-
-                    // 检查是否是B服登录窗口（通过标题匹配）
-                    if (titleText.Contains("bilibili", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // 检查窗口所有者是否是原神进程
-                        var owner = User32.GetWindow(hWnd, User32.GetWindowCmd.GW_OWNER);
-                        if (owner != IntPtr.Zero)
-                        {
-                            User32.GetWindowThreadProcessId(owner, out uint ownerPid);
-                            if (ownerPid == process.Id)
-                            {
-                                // 检查窗口是否可见和启用
-                                bool isVisible = User32.IsWindowVisible(hWnd);
-                                bool isEnabled = User32.IsWindowEnabled(hWnd);
-
-                                // 检查协议窗口
-                                if (titleText.Contains("协议", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (isEnabled)
-                                    {
-                                        bHWnd = hWnd.DangerousGetHandle();
-                                        windowType = "协议";
-                                        return false;
-                                    }
-                                }
-
-                                // 检查登录窗口
-                                if (titleText.Contains("登录", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (isEnabled)
-                                    {
-                                        bHWnd = hWnd.DangerousGetHandle();
-                                        windowType = "登录";
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AutoWood] 枚举窗口时出错: {ex.Message}");
-            }
-
-            return true;
-        }, IntPtr.Zero);
-
-        return (bHWnd, windowType);
+        return GameDesktopInterop.Current.FindBiliLoginWindow(process, ex => Debug.WriteLine($"[AutoWood] 枚举窗口时出错: {ex.Message}"));
     }
 }

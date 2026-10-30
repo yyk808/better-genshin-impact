@@ -45,6 +45,17 @@ public static class PlatformHost
         set => _isMicaBackdropSupported = value ?? throw new ArgumentNullException(nameof(value));
     }
 
+    private static Func<bool> _isWindows11OrGreater = static () => false;
+
+    /// <summary>
+    /// 是否运行在 Windows 11 及以上（决定是否启用 BitBlt 的 Win11 修复）。Windows 主程序设置为 OsVersionHelper.IsWindows11_OrGreater；其它平台为 false
+    /// </summary>
+    public static Func<bool> IsWindows11OrGreater
+    {
+        get => _isWindows11OrGreater;
+        set => _isWindows11OrGreater = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>用一个平台服务集合设置全部入口</summary>
     public static void Use(IPlatformServices platform)
     {

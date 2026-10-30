@@ -26,13 +26,13 @@ public sealed class MusicInstrumentSwitcher : IMusicInstrumentSwitcher
     /// <summary>
     /// 游戏运行环境服务。进程级单例不持有运行环境，每次切换乐器时读取 Current
     /// </summary>
-    private readonly GameRuntimeService _runtimeService;
+    private readonly IGameRuntimeHost _runtimeService;
 
     /// <summary>
     /// 由容器创建
     /// </summary>
     /// <param name="runtimeService">游戏运行环境服务</param>
-    public MusicInstrumentSwitcher(GameRuntimeService runtimeService)
+    public MusicInstrumentSwitcher(IGameRuntimeHost runtimeService)
     {
         _runtimeService = runtimeService;
     }

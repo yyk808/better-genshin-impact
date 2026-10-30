@@ -8,7 +8,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using BetterGenshinImpact.Core.Config;
-using Wpf.Ui.Violeta.Controls;
 using static BetterGenshinImpact.GameTask.LogParse.LogParse.ConfigGroupEntity;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 

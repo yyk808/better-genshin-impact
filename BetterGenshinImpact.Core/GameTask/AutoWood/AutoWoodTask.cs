@@ -21,9 +21,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using BetterGenshinImpact.Core.Simulator.Extensions;
-using Vanara.PInvoke;
 using static BetterGenshinImpact.GameTask.Common.TaskControl;
-using static Vanara.PInvoke.User32;
 using GC = System.GC;
 
 namespace BetterGenshinImpact.GameTask.AutoWood;
@@ -107,7 +105,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
 
         try
         {
-            Kernel32.SetThreadExecutionState(Kernel32.EXECUTION_STATE.ES_CONTINUOUS | Kernel32.EXECUTION_STATE.ES_SYSTEM_REQUIRED | Kernel32.EXECUTION_STATE.ES_DISPLAY_REQUIRED);
+            GameDesktopInterop.Current.SetKeepSystemAwake(true);
             Logger.LogInformation("→ {Text} 设置伐木总次数：{Cnt}，设置木材数量上限：{MaxCnt}", "自动伐木，启动！", _taskParam.WoodRoundNum, _taskParam.WoodDailyMaxCount);
 
             _login3rdParty.RefreshAvailabled();
@@ -168,7 +166,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
         {
             // 伐木结束计时
             runTimeWatch.Stop();
-            Kernel32.SetThreadExecutionState(Kernel32.EXECUTION_STATE.ES_CONTINUOUS);
+            GameDesktopInterop.Current.SetKeepSystemAwake(false);
             var elapsedTime = runTimeWatch.Elapsed;
             Logger.LogInformation(@"本次伐木总耗时：{Time:hh\:mm\:ss}", elapsedTime);
         }

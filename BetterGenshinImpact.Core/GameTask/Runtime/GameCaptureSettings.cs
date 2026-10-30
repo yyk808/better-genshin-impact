@@ -1,5 +1,4 @@
 using BetterGenshinImpact.Core.Config;
-using BetterGenshinImpact.Helpers;
 using System.Collections.Generic;
 
 namespace BetterGenshinImpact.GameTask.Runtime;
@@ -14,7 +13,7 @@ public static class GameCaptureSettings
         return new Dictionary<string, object>
         {
             // BitBlt 必须传这个键，否则 Start 直接返回，截图器不会启动
-            { "autoFixWin11BitBlt", OsVersionHelper.IsWindows11_OrGreater && config.AutoFixWin11BitBlt },
+            { "autoFixWin11BitBlt", PlatformHost.IsWindows11OrGreater() && config.AutoFixWin11BitBlt },
             // WGC 限流：0 = 不启用；>0 = DWM 最小推帧间隔（毫秒）
             { "MinUpdateIntervalMs", config.WgcMinUpdateIntervalMs },
             // WGC V2 开关：CPU 颜色转换回退（默认 GPU 打包）

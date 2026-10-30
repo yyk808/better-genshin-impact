@@ -4,7 +4,6 @@ using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Helpers;
 using OpenCvSharp;
 using System;
-using Vanara.PInvoke;
 using Size = System.Drawing.Size;
 
 namespace BetterGenshinImpact.GameTask.Model
@@ -73,7 +72,8 @@ namespace BetterGenshinImpact.GameTask.Model
         /// <param name="drawingBoard">运行环境借用的遮罩窗口绘制入口，截图区域树从根开始继承；为空时区域上的绘制不生效</param>
         public SystemInfo(GameViewport viewport, IMaskWindowDrawingBoard? drawingBoard = null)
         {
-            DisplaySize = PrimaryScreen.WorkingArea;
+            var screenSize = PlatformHost.Screen.PrimaryScreenSize;
+            DisplaySize = new Size(screenSize.Width, screenSize.Height);
             DesktopRectArea = new DesktopRegion(drawingBoard);
             DpiScale = viewport.DpiScale;
 

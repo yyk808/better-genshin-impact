@@ -21,12 +21,12 @@ internal sealed class DialogueOptionVoiceDiagnosticService : BackgroundService
     private readonly AutoSkipConfig _config;
     private readonly DialogueOptionVoiceDiagnosticState _state;
     private readonly ILogger<DialogueOptionVoiceDiagnosticService> _logger;
-    private readonly TaskTriggerDispatcher _triggers;
+    private readonly ITriggerDispatcher _triggers;
 
     /// <summary>
     /// 游戏运行环境服务。进程级服务不持有运行环境，每次查找游戏进程时读取 Current
     /// </summary>
-    private readonly GameRuntimeService _runtimeService;
+    private readonly IGameRuntimeHost _runtimeService;
     private DialogueOptionVoiceDetector? _detector;
     private PcmWaveRecorder? _recorder;
     private int? _unavailableProcessId;
@@ -36,8 +36,8 @@ internal sealed class DialogueOptionVoiceDiagnosticService : BackgroundService
         IConfigService configService,
         DialogueOptionVoiceDiagnosticState state,
         ILogger<DialogueOptionVoiceDiagnosticService> logger,
-        TaskTriggerDispatcher triggers,
-        GameRuntimeService runtimeService)
+        ITriggerDispatcher triggers,
+        IGameRuntimeHost runtimeService)
     {
         _config = configService.Get().AutoSkipConfig;
         _state = state;

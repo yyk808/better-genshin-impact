@@ -1793,7 +1793,7 @@ public class TpTask
 
     private (double X, double Y) GetCursorPositionInCapture()
     {
-        User32.GetCursorPos(out var cursor);
+        var cursor = PlatformHost.KeyState.GetCursorPosition() ?? default;
         var captureRect = _runtime.SystemInfo.CaptureAreaRect;
         return (cursor.X - captureRect.X, cursor.Y - captureRect.Y);
     }
@@ -3328,7 +3328,7 @@ public class TpTask
     private List<MapChooseCandidate> GetMapChooseCandidates(ImageRegion imageRegion)
     {
         var candidates = new List<MapChooseCandidate>();
-        var isHdrCapture = _config.CaptureMode == nameof(CaptureModes.WindowsGraphicsCaptureHdr);
+        var isHdrCapture = _config.CaptureMode == "WindowsGraphicsCaptureHdr";
         var threshold = isHdrCapture ? 0.7 : 0.8;
 
         // 在 MapChooseIconRoi 内全匹配一遍图标。

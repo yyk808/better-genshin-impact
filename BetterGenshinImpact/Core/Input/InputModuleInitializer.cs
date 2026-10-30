@@ -35,5 +35,7 @@ internal static class InputModuleInitializer
         BetterGenshinImpact.GameTask.AutoSkip.Audio.ProcessAudioCapture.Factory =
             static pid => new BetterGenshinImpact.GameTask.AutoSkip.Audio.ProcessLoopbackAudioCapture(pid);
         PlatformHost.IsMicaBackdropSupported = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_22523_OrGreater;
+        PlatformHost.IsWindows11OrGreater = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_OrGreater;
+        BetterGenshinImpact.GameTask.GameDesktopInterop.Current = BetterGenshinImpact.GameTask.Win32GameDesktopInterop.Instance;
     }
 }

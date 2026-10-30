@@ -358,6 +358,7 @@ public partial class App : Application
                 services.AddSingleton<GameScreenshotService>();
                 services.AddSingleton<TaskStopService>();
                 services.AddSingleton<WindowsNotificationSuppressionService>();
+                services.AddSingleton<ISoloTaskNotificationSuppressor>(sp => sp.GetRequiredService<WindowsNotificationSuppressionService>());
                 // 平台服务（窗口查找、截图、输入、热键），见 Docs/linux-migration/architecture.md
                 services.AddSingleton<BetterGenshinImpact.Platform.IPlatformServices>(sp =>
                     new BetterGenshinImpact.Platform.Windows.Win32PlatformServices(
@@ -374,6 +375,7 @@ public partial class App : Application
                 services.AddTransient<CloudWebHostWindow>();
                 services.AddSingleton<Func<CloudWebHostWindow>>(sp => () => sp.GetRequiredService<CloudWebHostWindow>());
                 services.AddSingleton<GameRuntimeService>();
+                services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
                 services.AddSingleton<BetterGenshinImpact.Core.Recorder.KeyMouseRecordService>();
                 // 云原神网页版实例：实例名存储与启动器（Primary 首页的管理窗口使用）
                 services.AddSingleton<WebViewInstanceStore>();

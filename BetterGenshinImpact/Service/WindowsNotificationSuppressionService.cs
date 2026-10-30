@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Service;
 /// <summary>
 /// 在独立任务运行期间临时抑制当前 Windows 用户的通知横幅，并在任务结束后恢复原设置。
 /// </summary>
-public sealed class WindowsNotificationSuppressionService
+public sealed class WindowsNotificationSuppressionService : BetterGenshinImpact.GameTask.ISoloTaskNotificationSuppressor
 {
     /// <summary>
     /// Windows 当前用户通知设置的注册表路径。

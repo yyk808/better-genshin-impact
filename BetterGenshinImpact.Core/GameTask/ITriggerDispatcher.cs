@@ -24,6 +24,9 @@ public interface ITriggerDispatcher
     /// <summary>清空启用名单，不销毁任何触发器实例</summary>
     void ClearTriggers();
 
+    /// <summary>取当前截图会话中的触发器实例，供诊断等只读场景使用。截图器未启动时返回 null</summary>
+    T? GetTrigger<T>() where T : class, ITaskTrigger;
+
     void StartTimer();
 
     void StopTimer();
