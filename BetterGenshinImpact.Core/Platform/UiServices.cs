@@ -93,6 +93,7 @@ public static class UiHost
     private static IUiDispatcher _dispatcher = new InlineUiDispatcher();
     private static IDialogService _dialogs = new HeadlessDialogService();
     private static IClipboardService _clipboard = new InMemoryClipboard();
+    private static IAppLifetime _lifetime = new HeadlessAppLifetime();
 
     public static IUiDispatcher Dispatcher
     {
@@ -111,6 +112,28 @@ public static class UiHost
         get => _clipboard;
         set => _clipboard = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    /// <summary>应用程序生命周期（一条龙完成后“关闭软件”等）</summary>
+    public static IAppLifetime Lifetime
+    {
+        get => _lifetime;
+        set => _lifetime = value ?? throw new ArgumentNullException(nameof(value));
+    }
+}
+
+/// <summary>应用程序生命周期。WPF 实现在 UI 线程调用 Application.Current.Shutdown()</summary>
+public interface IAppLifetime
+{
+    /// <summary>请求退出程序（可从任意线程调用）</summary>
+    void Shutdown();
+}
+
+/// <summary>无界面宿主：只记录请求（由宿主自己决定何时退出）</summary>
+public sealed class HeadlessAppLifetime : IAppLifetime
+{
+    public event Action? ShutdownRequested;
+
+    public void Shutdown() => ShutdownRequested?.Invoke();
 }
 
 /// <summary>无 UI 线程时的调度：全部在当前线程执行</summary>

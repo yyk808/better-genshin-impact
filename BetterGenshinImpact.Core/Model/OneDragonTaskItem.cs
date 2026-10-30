@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BetterGenshinImpact.ViewModel.Pages.OneDragon;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Windows.Media;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Script;
 using BetterGenshinImpact.GameTask;
@@ -17,11 +15,14 @@ using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.GameTask.SoloTask;
-using BetterGenshinImpact.ViewModel.Pages;
 using Microsoft.Extensions.Logging;
 
 namespace BetterGenshinImpact.Model;
 
+/// <summary>
+/// 一条龙任务项：名称、开关、“从此执行”标记与执行委托（界面无关，WPF 与 Avalonia 的一条龙页面共用）。
+/// 战斗策略经 ITaskSettingsSource（独立任务页）解析
+/// </summary>
 public partial class OneDragonTaskItem : ObservableObject
 {
     /// <summary>
@@ -43,13 +44,9 @@ public partial class OneDragonTaskItem : ObservableObject
 
     [ObservableProperty] private string _id = Guid.NewGuid().ToString();
 
-    [ObservableProperty] private Brush _statusColor = Brushes.Gray;
-
     [ObservableProperty] private bool _isEnabled = true;
 
     [ObservableProperty] private bool _isNextTask = false;
-
-    [ObservableProperty] private OneDragonBaseViewModel? _viewModel;
 
     /// <summary>
     /// 使用一条龙顶层任务的运行环境与令牌执行当前项目。
@@ -192,7 +189,7 @@ public partial class OneDragonTaskItem : ObservableObject
                     }
 
                     // 策略名取本次运行传入的配置根：在子实例中运行时，它是启动时从磁盘读取的最新配置
-                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<ITaskSettingsSource>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(allConfig.AutoFightConfig.StrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动秘境战斗策略{Msg}，跳过", "未配置");
@@ -239,7 +236,7 @@ public partial class OneDragonTaskItem : ObservableObject
                         config.AutoBossStrategyName = "根据队伍自动选择";
                     }
 
-                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<ITaskSettingsSource>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(config.AutoBossStrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动首领讨伐战斗策略{Msg}，跳过", "未配置");
@@ -283,7 +280,7 @@ public partial class OneDragonTaskItem : ObservableObject
                         allConfig.AutoStygianOnslaughtConfig.StrategyName = "根据队伍自动选择";
                     }
 
-                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<ITaskSettingsSource>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(allConfig.AutoStygianOnslaughtConfig.StrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动幽境危战战斗策略{Msg}，跳过", "未配置");

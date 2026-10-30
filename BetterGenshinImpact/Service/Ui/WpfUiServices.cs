@@ -88,3 +88,9 @@ public sealed class WpfClipboardService : IClipboardService
 
     public void Clear() => UIDispatcherHelper.Invoke(Clipboard.Clear);
 }
+
+/// <summary>WPF 应用程序生命周期（与原先 Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown()) 相同）</summary>
+public sealed class WpfAppLifetime : IAppLifetime
+{
+    public void Shutdown() => Application.Current.Dispatcher.Invoke(() => { Application.Current.Shutdown(); });
+}

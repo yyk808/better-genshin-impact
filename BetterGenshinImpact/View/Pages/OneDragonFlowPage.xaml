@@ -171,7 +171,7 @@
                                                      Width="10"
                                                      Height="10"
                                                      Margin="10,0,10,0"
-                                                     Fill="{Binding StatusColor}"
+                                                     Fill="Gray"
                                                      IsHitTestVisible="False" />
                                             <TextBlock Grid.Column="2"
                                                        VerticalAlignment="Center"

@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Script.Group;
 using BetterGenshinImpact.GameTask.Common.Job;
@@ -16,9 +15,7 @@ using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Service.Interface;
 using BetterGenshinImpact.Service.Notification;
 using BetterGenshinImpact.Service.Notification.Model.Enum;
-using BetterGenshinImpact.ViewModel.Pages;
 using Microsoft.Extensions.Logging;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.GameTask.OneDragon;
 
@@ -205,7 +202,8 @@ public class OneDragonTask : ISoloTask<OneDragonParam, NoData>
             await Task.Delay(500, ct);
             var filePath = Path.Combine(ScriptGroupFolder, $"{groupName}.json");
             var group = ScriptGroup.FromJson(await File.ReadAllTextAsync(filePath, ct));
-            await _scriptService.RunMulti(_runtime, ScriptControlViewModel.GetNextProjects(group), group.Name, ct);
+            // 调度记录在配置根上读写（WPF 中即全局配置，与迁移前 ScriptControlViewModel.GetNextProjects 相同）
+            await _scriptService.RunMulti(_runtime, ScriptGroupSchedule.GetNextProjects(group, ConfigHost.Config ?? _config), group.Name, ct);
             await Task.Delay(1000, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -252,11 +250,11 @@ public class OneDragonTask : ISoloTask<OneDragonParam, NoData>
                 GameSystem.CloseGame();
                 break;
             case "关闭软件":
-                Application.Current.Dispatcher.Invoke(() => { Application.Current.Shutdown(); });
+                UiHost.Lifetime.Shutdown();
                 break;
             case "关闭游戏和软件":
                 GameSystem.CloseGame();
-                Application.Current.Dispatcher.Invoke(() => { Application.Current.Shutdown(); });
+                UiHost.Lifetime.Shutdown();
                 break;
             case "关机":
                 GameSystem.CloseGame();

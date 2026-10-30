@@ -224,6 +224,8 @@ public sealed class GameHost : IAsyncDisposable
             // 独立任务：注册表只扫描 Core（Linux 宿主没有 WPF 主程序集，一条龙另行迁移），执行走 Core 的 TaskRunner
             services.AddSingleton(new SoloTaskRegistry([typeof(CoreServices).Assembly]));
             services.AddSingleton<SoloTaskExecutionService>();
+            // 配置组执行（一条龙中的配置组任务、脚本）
+            services.AddSingleton<IScriptService, ScriptService>();
             services.AddSingleton<ISoloTaskNotificationSuppressor>(NoopSoloTaskNotificationSuppressor.Instance);
             services.AddSingleton<TaskTriggerDispatcher>();
             services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());

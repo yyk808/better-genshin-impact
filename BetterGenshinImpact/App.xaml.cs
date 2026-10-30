@@ -542,6 +542,7 @@ public partial class App : Application
         BetterGenshinImpact.Platform.UiHost.Dispatcher = new BetterGenshinImpact.Service.Ui.WpfUiDispatcher();
         BetterGenshinImpact.Platform.UiHost.Dialogs = new BetterGenshinImpact.Service.Ui.WpfDialogService();
         BetterGenshinImpact.Platform.UiHost.Clipboard = new BetterGenshinImpact.Service.Ui.WpfClipboardService();
+        BetterGenshinImpact.Platform.UiHost.Lifetime = new BetterGenshinImpact.Service.Ui.WpfAppLifetime();
         // Wine 平台适配
         WinePlatformAddon.ApplyApplicationConfig();
         base.OnStartup(e);

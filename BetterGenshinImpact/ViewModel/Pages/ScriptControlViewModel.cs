@@ -1892,18 +1892,7 @@ public partial class ScriptControlViewModel : ViewModel
 
     private static void SetProjectNextFlagFromSchedule(ScriptGroup group)
     {
-        var nst = RootConfig.NextScheduledTask.Find(item => item.Item1 == group.Name);
-        foreach (var item in group.Projects)
-        {
-            item.NextFlag = false;
-            if (nst != default)
-            {
-                if (nst.Item2 == item.Index && nst.Item3 == item.FolderName && nst.Item4 == item.Name)
-                {
-                    item.NextFlag = true;
-                }
-            }
-        }
+        ScriptGroupSchedule.SetProjectNextFlagFromSchedule(group, RootConfig);
     }
 
     private void ReadScriptGroup()
@@ -2089,55 +2078,10 @@ public partial class ScriptControlViewModel : ViewModel
         return groups;
     }
 
+    /// <summary>按“下次从此执行”标记取本次要执行的项目（实现见 Core 的 ScriptGroupSchedule）</summary>
     public static List<ScriptGroupProject> GetNextProjects(ScriptGroup group)
     {
-        SetProjectNextFlagFromSchedule(group);
-        List<ScriptGroupProject> ls = new List<ScriptGroupProject>();
-        if (group.Projects.Where(g => g.NextFlag ?? false).Count() > 0)
-        {
-            bool start = false;
-            foreach (var item in group.Projects)
-            {
-                if (item.NextFlag ?? false)
-                {
-                    start = true;
-                }
-
-                if (!start)
-                {
-                    item.SkipFlag = true;
-                }
-                ls.Add(item);
-            }
-
-            if (!start)
-            {
-                ls.AddRange(group.Projects);
-            }
-
-            //拿出来后清空，和置状态
-            if (start)
-            {
-                List<ValueTuple<string, int, string, string>> nextScheduledTask = RootConfig.NextScheduledTask;
-                foreach (var item in nextScheduledTask)
-                {
-                    if (item.Item1 == group.Name)
-                    {
-                        nextScheduledTask.Remove(item);
-                        break;
-                    }
-                }
-
-                foreach (var item in group.Projects)
-                {
-                    item.NextFlag = false;
-                }
-            }
-
-            return ls;
-        }
-
-        return group.Projects.Select(g => g).ToList();
+        return ScriptGroupSchedule.GetNextProjects(group, RootConfig);
     }
 
     [RelayCommand]
