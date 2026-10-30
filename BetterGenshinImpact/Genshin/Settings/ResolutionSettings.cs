@@ -19,7 +19,7 @@ public class ResolutionSettings
             return;
         }
 
-        string[] names = hk.GetValueNames();
+        var names = hk.GetValueNames();
 
         foreach (string name in names)
         {

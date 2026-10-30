@@ -1,6 +1,6 @@
 using BetterGenshinImpact.GameTask.Common;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
+using BetterGenshinImpact.Platform;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
@@ -89,10 +89,10 @@ public class SettingsContainer
         }
     }
 
-    private static string SearchRegistryName(RegistryKey key)
+    private static string SearchRegistryName(IRegistryKey key)
     {
         string value_name = string.Empty;
-        string[] names = key.GetValueNames();
+        var names = key.GetValueNames();
 
         foreach (string name in names)
         {

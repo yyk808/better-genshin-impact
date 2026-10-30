@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using BetterGenshinImpact.Genshin.Settings;
-using Microsoft.Win32;
+using BetterGenshinImpact.Platform;
 using Newtonsoft.Json;
 using JsonSerializerOptions = System.Text.Json.JsonSerializerOptions;
 
@@ -356,10 +356,10 @@ public class GenshinGameSettings
     }
 
 
-    private static string SearchRegistryName(RegistryKey key)
+    private static string SearchRegistryName(IRegistryKey key)
     {
         string value_name = string.Empty;
-        string[] names = key.GetValueNames();
+        var names = key.GetValueNames();
 
         foreach (string name in names)
         {
