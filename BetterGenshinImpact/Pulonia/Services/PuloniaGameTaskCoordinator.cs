@@ -83,7 +83,7 @@ public sealed class PuloniaGameTaskCoordinator
     /// <param name="runtime">本次租约记录的运行环境</param>
     private static void BeginTaskState(GameRuntime runtime)
     {
-        TaskTriggerDispatcher.Instance().BeginTask();
+        TriggerDispatcher.Instance().BeginTask();
         runtime.MaskWindowMapState.Reset();
         runtime.MaskWindowDrawingBoard.ClearAll();
         runtime.Window.Activate();
@@ -97,7 +97,7 @@ public sealed class PuloniaGameTaskCoordinator
     {
         try
         {
-            TaskTriggerDispatcher.InstanceNullable()?.EndTask();
+            TriggerDispatcher.InstanceNullable()?.EndTask();
         }
         finally
         {

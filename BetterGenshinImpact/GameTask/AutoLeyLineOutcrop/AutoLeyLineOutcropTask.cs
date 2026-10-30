@@ -477,7 +477,7 @@ public class AutoLeyLineOutcropTask : ISoloTask<AutoLeyLineOutcropParam, ResinCl
         }
 
         _autoPickLease?.Dispose();
-        _autoPickLease = TaskTriggerDispatcher.Instance().AddTrigger("AutoPick");
+        _autoPickLease = TriggerDispatcher.Instance().AddTrigger("AutoPick");
     }
 
     private async Task RunLeyLineChallenges()

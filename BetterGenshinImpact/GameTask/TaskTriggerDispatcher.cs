@@ -27,7 +27,7 @@ using Rect = OpenCvSharp.Rect;
 
 namespace BetterGenshinImpact.GameTask
 {
-    public class TaskTriggerDispatcher : IDisposable
+    public class TaskTriggerDispatcher : ITriggerDispatcher, IDisposable
     {
         private readonly ILogger<TaskTriggerDispatcher> _logger;
         private readonly OverlayMetricsService _metricsService;

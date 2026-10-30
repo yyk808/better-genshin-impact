@@ -203,7 +203,7 @@ public partial class ScriptService : IScriptService
         }
 
         // 还原定时器
-        // TaskTriggerDispatcher.Instance().SetTriggers(GameTaskManager.LoadInitialTriggers());
+        // TriggerDispatcher.Instance().SetTriggers(GameTaskManager.LoadInitialTriggers());
 
         if (!string.IsNullOrEmpty(groupName))
         {

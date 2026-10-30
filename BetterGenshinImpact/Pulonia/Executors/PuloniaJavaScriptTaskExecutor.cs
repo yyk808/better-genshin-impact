@@ -73,9 +73,9 @@ public sealed class PuloniaJavaScriptTaskExecutor : IPuloniaTaskExecutor
         var partyConfig = PuloniaTaskCommonSettings.FromParameters("javascript", parameters).PathingConfig;
         // 脚本调用的路线和战斗使用同一份配置，辅助触发器在节点退出时统一撤销。
         using var autoPick = partyConfig.AutoPickEnabled
-            ? TaskTriggerDispatcher.Instance().AddTrigger("AutoPick", null) : null;
+            ? TriggerDispatcher.Instance().AddTrigger("AutoPick", null) : null;
         using var autoEat = partyConfig.AutoEatEnabled
-            ? TaskTriggerDispatcher.Instance().AddTrigger("AutoEat", null) : null;
+            ? TriggerDispatcher.Instance().AddTrigger("AutoEat", null) : null;
 
         var project = new ScriptProject(relativeProjectPath, scriptRoot, repositoryResources);
         await project.ExecuteAsync(runtime, settings, partyConfig, ct).ConfigureAwait(false);

@@ -421,7 +421,7 @@ public class TaskRunner
         runtime.ThrowIfStopping();
 
         // 进入任务模式：用户开启的实时触发器在下一帧停用，任务期间只运行任务或脚本通过 AddTrigger 启用的触发器
-        TaskTriggerDispatcher.Instance().BeginTask();
+        TriggerDispatcher.Instance().BeginTask();
 
         // 地图遮罩触发器停用时也会复位，但要等下一帧；这里同步复位，保证任务第一次点击之前恢复点击穿透
         // 清空绘制内容
@@ -440,7 +440,7 @@ public class TaskRunner
     {
         // 退出任务模式，下一帧按用户配置恢复实时触发器。
         // 放在最前面：即使截图器已在任务中停止，也要保证下次启动后不再停留在任务模式
-        TaskTriggerDispatcher.InstanceNullable()?.EndTask();
+        TriggerDispatcher.InstanceNullable()?.EndTask();
 
         // 运行环境已在任务中停止：按键与遮罩已由解绑流程清理
         if (runtime.IsStopping)

@@ -80,7 +80,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
                 await Task.Delay(1000);
             }
 
-            TaskTriggerDispatcher.Instance().StopTimer();
+            TriggerDispatcher.Instance().StopTimer();
             taskTriggerStopped = true;
 
             // 录制器与主界面判断都绑定到开始录制时的运行环境
@@ -115,7 +115,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
 
             if (taskTriggerStopped)
             {
-                TaskTriggerDispatcher.Instance().StartTimer();
+                TriggerDispatcher.Instance().StartTimer();
             }
 
             Status = KeyMouseRecorderStatus.Stop;
@@ -150,7 +150,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
         finally
         {
             _logger.LogInformation("录制：{Text}", "结束录制");
-            TaskTriggerDispatcher.Instance().StartTimer();
+            TriggerDispatcher.Instance().StartTimer();
             Status = KeyMouseRecorderStatus.Stop;
         }
     }

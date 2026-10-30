@@ -353,6 +353,7 @@ public partial class App : Application
                 services.AddSingleton<DialogueOptionVoiceDiagnosticService>();
                 services.AddHostedService(sp => sp.GetRequiredService<DialogueOptionVoiceDiagnosticService>());
                 services.AddSingleton<TaskTriggerDispatcher>();
+                services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());
                 services.AddSingleton<GameScreenshotService>();
                 services.AddSingleton<TaskStopService>();
                 services.AddSingleton<WindowsNotificationSuppressionService>();

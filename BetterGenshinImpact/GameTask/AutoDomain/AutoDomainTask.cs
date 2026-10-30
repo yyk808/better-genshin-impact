@@ -325,7 +325,7 @@ public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
         }
 
         // 自动吃药只在本次秘境期间启用，返回（含异常）时撤销
-        using var autoEatLease = _taskParam.AutoEat ? TaskTriggerDispatcher.Instance().AddTrigger("AutoEat") : null;
+        using var autoEatLease = _taskParam.AutoEat ? TriggerDispatcher.Instance().AddTrigger("AutoEat") : null;
 
         Notify.Event(NotificationEvent.DomainStart).Success("自动秘境启动");
 
