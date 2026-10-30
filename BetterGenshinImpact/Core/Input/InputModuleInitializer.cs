@@ -20,7 +20,7 @@ internal static class InputModuleInitializer
 
         // InputHub、Region 等已移入 Core，Windows 主程序的默认实现在这里接回：
         // 未 Attach 时是未绑定窗口的 Win32 后端（前台可用，后台 warn），光标 / 屏幕大小走 User32 / Gdi32，与迁移前相同
-        CoreServices.SetProvider(static () => App.ServiceProvider);
+        CoreServices.SetProvider(static () => App.ServiceProvider, static () => System.Windows.Application.Current is App);
         InputHub.DefaultBackendFactory ??= static () => new Win32InputBackend(IntPtr.Zero);
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;

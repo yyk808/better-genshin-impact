@@ -13,12 +13,21 @@ namespace BetterGenshinImpact;
 public static class CoreServices
 {
     private static Func<IServiceProvider>? _providerFactory;
+    private static Func<bool>? _isHostActive;
 
     /// <summary>设置服务容器的取法（每次访问调用，便于宿主延迟创建容器）</summary>
-    public static void SetProvider(Func<IServiceProvider> providerFactory)
+    /// <param name="providerFactory">取容器</param>
+    /// <param name="isHostActive">宿主应用是否已在运行（WPF：Application.Current is App）；为 null 时视为已在运行</param>
+    public static void SetProvider(Func<IServiceProvider> providerFactory, Func<bool>? isHostActive = null)
     {
         _providerFactory = providerFactory ?? throw new ArgumentNullException(nameof(providerFactory));
+        _isHostActive = isHostActive ?? (static () => true);
     }
+
+    /// <summary>
+    /// 宿主应用是否已在运行。单元测试、离线工具中为 false：此时不应为了记一条日志去初始化完整的应用宿主
+    /// </summary>
+    public static bool IsHostActive => _isHostActive?.Invoke() ?? false;
 
     /// <summary>是否已设置宿主容器</summary>
     public static bool HasProvider => _providerFactory != null;

@@ -245,7 +245,7 @@ public partial class App : Application
                     instanceContext,
                     $"BetterGI · 更好的原神 · {Global.Version}{(RuntimeHelper.IsDebug ? " · Dev" : string.Empty)}"));
                 // 独立任务：启动时扫描主程序集中带 [SoloTaskInfo] 的任务类
-                services.AddSingleton(_ => new SoloTaskRegistry([typeof(App).Assembly]));
+                services.AddSingleton(_ => new SoloTaskRegistry([typeof(App).Assembly, typeof(CoreServices).Assembly]));
                 services.AddSingleton<SoloTaskExecutionService>();
                 services.AddSingleton<InstanceService>();
                 services.AddHostedService(sp => sp.GetRequiredService<InstanceService>());
