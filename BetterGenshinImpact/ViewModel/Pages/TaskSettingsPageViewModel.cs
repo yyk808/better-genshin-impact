@@ -24,6 +24,7 @@ using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using BetterGenshinImpact.GameTask.UseRedeemCode;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Helpers.Ui;
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Service;
 using BetterGenshinImpact.Service.Interface;
 using BetterGenshinImpact.Service.Instance;
@@ -54,7 +55,7 @@ using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace BetterGenshinImpact.ViewModel.Pages;
 
-public partial class TaskSettingsPageViewModel : ViewModel, ITaskSettingsSource
+public partial class TaskSettingsPageViewModel : ViewModel, ISoloTaskParamInputs
 {
     public AllConfig Config { get; set; }
 
@@ -543,65 +544,16 @@ public partial class TaskSettingsPageViewModel : ViewModel, ITaskSettingsSource
     /// <returns>参数对象；策略未配置或用户取消输入时返回 null</returns>
     private object? CreateSoloTaskParam(string taskId)
     {
-        switch (taskId)
+        if (taskId == OneDragonTask.TaskId)
         {
-            case AutoGeniusInvokationTask.TaskId:
-                return GetTcgStrategy(out var strategyContent) ? null : new GeniusInvokationTaskParam(strategyContent);
-            case AutoWoodTask.TaskId:
-                return new WoodTaskParam(AutoWoodRoundNum, AutoWoodDailyMaxCount);
-            case AutoFightEntryTask.TaskId:
-                return GetFightStrategy(out var fightStrategyPath)
-                    ? null
-                    : new AutoFightParam(fightStrategyPath, Config.AutoFightConfig);
-            case AutoDomainTask.TaskId:
-                return GetFightStrategy(out var domainStrategyPath)
-                    ? null
-                    : new AutoDomainParam(AutoDomainRoundNum, domainStrategyPath);
-            case AutoBossTask.TaskId:
-                return GetFightStrategy(Config.AutoBossConfig.StrategyName, out var bossStrategyPath)
-                    ? null
-                    : new AutoBossParam(bossStrategyPath);
-            case AutoStygianOnslaughtTask.TaskId:
-                // 无参构造读取全局幽境危战配置，再用点击时选中的策略路径覆盖
-                return GetFightStrategy(Config.AutoStygianOnslaughtConfig.StrategyName, out var stygianStrategyPath)
-                    ? null
-                    : new AutoStygianOnslaughtParam(stygianStrategyPath);
-            case AutoFishingTask.TaskId:
-                return AutoFishingTaskParam.BuildFromConfig(Config.AutoFishingConfig, SaveScreenshotOnKeyTick);
-            case AutoArtifactSalvageTask.TaskId:
-                var salvageConfig = Config.AutoArtifactSalvageConfig;
-                return new AutoArtifactSalvageTaskParam(
-                    int.Parse(salvageConfig.MaxArtifactStar),
-                    salvageConfig.JavaScript,
-                    salvageConfig.ArtifactSetFilter,
-                    salvageConfig.MaxNumToCheck,
-                    salvageConfig.RecognitionFailurePolicy);
-            case UseRedemptionCodeTask.TaskId:
-                var codes = PromptForRedeemCodes();
-                return codes is null ? null : new UseRedemptionCodeParam { Codes = codes };
-            case GetGridIconsTask.TaskId:
-                return new GetGridIconsParam
-                {
-                    GridName = Config.GetGridIconsConfig.GridName,
-                    StarAsSuffix = Config.GetGridIconsConfig.StarAsSuffix,
-                    MaxNumToGet = Config.GetGridIconsConfig.MaxNumToGet
-                };
-            case GridIconsAccuracyTestTask.TaskId:
-                return new GridIconsAccuracyTestParam
-                {
-                    GridName = Config.GetGridIconsConfig.GridName,
-                    MaxNumToTest = Config.GetGridIconsConfig.MaxNumToGet
-                };
-            case InventoryCountComparisonTask.TaskId:
-                return new InventoryCountComparisonParam { Target = InventoryCountComparisonTarget };
-            case OneDragonTask.TaskId:
-                // 一条龙的配置、"从此执行"标记由一条龙页面维护（快捷键经此入口启动）
-                return OneDragonFlowViewModel?.CreateOneDragonParam();
-            default:
-                // 地脉花、音游、烹饪等任务的无参构造已按全局配置给出参数
-                return _soloTaskRegistry.Get(taskId).CreateDefaultParam();
+            // 一条龙的配置、"从此执行"标记由一条龙页面维护（快捷键经此入口启动）
+            return OneDragonFlowViewModel?.CreateOneDragonParam();
         }
+
+        return SoloTaskParamFactory.Create(taskId, Config, _soloTaskRegistry, this);
     }
+
+    List<string>? ISoloTaskParamInputs.PromptForRedeemCodes() => PromptForRedeemCodes();
 
     /// <summary>
     /// 弹出兑换码输入框并返回清理后的有效兑换码；取消或无有效内容时返回 null。
@@ -642,23 +594,20 @@ public partial class TaskSettingsPageViewModel : ViewModel, ITaskSettingsSource
 
     public bool GetTcgStrategy(out string content)
     {
-        content = string.Empty;
-        if (string.IsNullOrEmpty(Config.AutoGeniusInvokationConfig.StrategyName))
+        return TaskStrategyLookup.GetTcgStrategy(Config.AutoGeniusInvokationConfig.StrategyName, ShowStrategyToast, out content);
+    }
+
+    /// <summary>策略检查失败时的提示（与原实现相同，使用 Toast）</summary>
+    private static void ShowStrategyToast(DialogKind kind, string message)
+    {
+        if (kind == DialogKind.Warning)
         {
-            Toast.Warning("请先选择策略");
-            return true;
+            Toast.Warning(message);
         }
-
-        var path = Global.Absolute(@"User\AutoGeniusInvokation\" + Config.AutoGeniusInvokationConfig.StrategyName + ".txt");
-
-        if (!File.Exists(path))
+        else
         {
-            Toast.Error("策略文件不存在");
-            return true;
+            Toast.Error(message);
         }
-
-        content = File.ReadAllText(path);
-        return false;
     }
 
     [RelayCommand]
@@ -686,23 +635,8 @@ public partial class TaskSettingsPageViewModel : ViewModel, ITaskSettingsSource
 
     public bool GetFightStrategy(string strategyName, out string path)
     {
-        if (string.IsNullOrEmpty(strategyName))
-        {
-            UIDispatcherHelper.Invoke(() => { Toast.Warning("请先在下拉列表配置中选择战斗策略！"); });
-            path = string.Empty;
-            return true;
-        }
-
-        // 固定策略不对应文件；所有名称、前缀和路径统一由解析器检查。
-        var strategy = CombatStrategyResolver.Parse(strategyName);
-        path = strategy.Path;
-        if (!strategy.Exists)
-        {
-            UIDispatcherHelper.Invoke(() => { Toast.Error("当前选择的自动战斗策略文件不存在"); });
-            return true;
-        }
-
-        return false;
+        return TaskStrategyLookup.GetFightStrategy(strategyName,
+            (kind, message) => UIDispatcherHelper.Invoke(() => ShowStrategyToast(kind, message)), out path);
     }
 
     [RelayCommand]

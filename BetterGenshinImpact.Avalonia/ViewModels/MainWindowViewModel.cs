@@ -38,11 +38,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Home = new HomePageViewModel(host, log);
         Trigger = new TriggerPageViewModel(host?.Config);
         Environment = new EnvironmentPageViewModel(host, hostError, log);
+        Tasks = new TaskSettingsPageViewModel(host, log);
         NavItems =
         [
             new("启动", IconHome, Home),
             new("实时触发", IconBolt, Trigger),
-            new("独立任务", IconTask, Placeholder("独立任务")),
+            new("独立任务", IconTask, Tasks),
             new("任务计划", IconCalendar, Placeholder("任务计划")),
             new("一条龙", IconDragon, Placeholder("一条龙")),
             new("全自动", IconAuto, Placeholder("全自动")),
@@ -64,6 +65,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public TriggerPageViewModel Trigger { get; }
 
     public EnvironmentPageViewModel Environment { get; }
+
+    public TaskSettingsPageViewModel Tasks { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

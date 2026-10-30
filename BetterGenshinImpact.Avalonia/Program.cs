@@ -17,6 +17,7 @@ using Serilog;
 //                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
 //                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask] [--mask-recognition]
+//                    [--solo-task 任务标识] [--solo-stop-after 秒]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -114,6 +115,11 @@ internal static class AvaloniaHostProgram
                 await viewModel.Home.StartAsync();
             }
 
+            if (options.SoloTaskId is { } soloTaskId && host is not null)
+            {
+                await RunSoloTaskUnattendedAsync(window, viewModel, soloTaskId, options.SoloStopAfterSeconds, options.ScreenshotDirectory, log);
+            }
+
             if (options.UiSelfTest)
             {
                 await UiSelfTestAsync(desktop, log, options.ScreenshotDirectory);
@@ -137,7 +143,7 @@ internal static class AvaloniaHostProgram
             Directory.CreateDirectory(dir);
             // 先让触发器跑一会儿，日志面板里能看到拾取 / 剧情的记录
             await Task.Delay(total / 2);
-            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-placeholder.png"), ("启动", "avalonia-home.png") })
+            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("启动", "avalonia-home.png") })
             {
                 viewModel.Navigate(page);
                 await Task.Delay(600);
@@ -233,6 +239,58 @@ internal static class AvaloniaHostProgram
         log.Information("UiHost 自检：消息框返回 {Result}", result);
     }
 
+    /// <summary>
+    /// 无人值守：在“独立任务”页点击某个任务的启动按钮，运行一段时间后点击停止，等待任务结束（验证取消与按键释放）
+    /// </summary>
+    private static async Task RunSoloTaskUnattendedAsync(MainWindow window, MainWindowViewModel viewModel, string taskId, int stopAfterSeconds,
+        string? dir, ILogger log)
+    {
+        viewModel.Navigate("独立任务");
+        var card = viewModel.Tasks.Groups.SelectMany(g => g.Tasks).FirstOrDefault(t => t.TaskId == taskId);
+        if (card is null)
+        {
+            log.Warning("独立任务页没有任务 {TaskId}", taskId);
+            return;
+        }
+
+        await Task.Delay(500);
+        log.Information("无人值守：启动独立任务 {Name}（{TaskId}），{Seconds} 秒后停止", card.DisplayName, taskId, stopAfterSeconds);
+        await card.ToggleCommand.ExecuteAsync(null);
+        await Task.Delay(TimeSpan.FromSeconds(stopAfterSeconds));
+        await ScrollIntoViewAsync(window, card);
+        if (dir is not null)
+        {
+            Directory.CreateDirectory(dir);
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-solo-running.png"), log);
+        }
+
+        log.Information("无人值守：停止独立任务，当前状态 {Status}", viewModel.Tasks.StatusText);
+        await viewModel.Tasks.StopAsync();
+        for (var i = 0; i < 100 && viewModel.Tasks.IsTaskActive; i++)
+        {
+            await Task.Delay(100);
+        }
+
+        log.Information("无人值守：独立任务已结束，状态 {Status}", viewModel.Tasks.StatusText);
+        await Task.Delay(300);
+        if (dir is not null)
+        {
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-solo-stopped.png"), log);
+        }
+    }
+
+    private static async Task ScrollIntoViewAsync(MainWindow window, object dataContext)
+    {
+        var target = window.GetVisualDescendants().OfType<Expander>().FirstOrDefault(e => ReferenceEquals(e.DataContext, dataContext));
+        if (target is not null)
+        {
+            target.IsExpanded = true;
+            await Task.Delay(200);
+            target.BringIntoView();
+            await Task.Delay(200);
+        }
+    }
+
     /// <summary>无人值守：打开“选择捕获窗口”对话框，截图后选中标题包含指定文字的窗口</summary>
     private static async Task SelectWindowUnattendedAsync(MainWindowViewModel viewModel, string title, string? dir, ILogger log)
     {
@@ -312,7 +370,9 @@ internal sealed record AvaloniaOptions(
     string? ScreenshotDirectory,
     int? ExitAfterSeconds,
     bool UiSelfTest,
-    string? SelectWindowTitle)
+    string? SelectWindowTitle,
+    string? SoloTaskId = null,
+    int SoloStopAfterSeconds = 4)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -323,6 +383,8 @@ internal sealed record AvaloniaOptions(
         var uiSelfTest = false;
         string? selectWindow = null;
         int? exitAfter = null;
+        string? soloTask = null;
+        var soloStopAfter = 4;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -341,10 +403,12 @@ internal sealed record AvaloniaOptions(
                 case "--exit-after": exitAfter = int.Parse(Next()); break;
                 case "--ui-selftest": uiSelfTest = true; break;
                 case "--select-window": selectWindow = Next(); break;
+                case "--solo-task": soloTask = Next(); break;
+                case "--solo-stop-after": soloStopAfter = int.Parse(Next()); break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow);
+        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter);
     }
 }

@@ -16,6 +16,9 @@
         <DataTemplate DataType="vm:TriggerPageViewModel">
             <views:TriggerPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:TaskSettingsPageViewModel">
+            <views:TaskSettingsPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:EnvironmentPageViewModel">
             <views:EnvironmentPage />
         </DataTemplate>

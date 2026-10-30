@@ -1,3 +1,6 @@
+using BetterGenshinImpact.GameTask.AutoMusicGame;
+using BetterGenshinImpact.GameTask.SoloTask;
+using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using System.Collections.Concurrent;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Input;
@@ -134,6 +137,8 @@ public sealed class GameHost : IAsyncDisposable
             log.Information("平台：{Name}（{Kind}），探测：{Probe}", platform.Name, probe.Kind,
                 string.Join("，", probe.Items.Select(kv => $"{kv.Key}={kv.Value}")));
             PlatformHost.Use(platform);
+            // 自动音游的窗口直接取色（Windows 为 GDI GetPixel）
+            WindowPixelSampler.Current = new X11WindowPixelSampler(options.Display);
 
             // 2. 配置：User/config.json（与 Windows 主程序格式相同，防抖保存）或内存中的默认配置
             FileConfigService? fileConfig = null;
@@ -203,6 +208,8 @@ public sealed class GameHost : IAsyncDisposable
             // 3. 依赖注入
             var services = new ServiceCollection();
             services.AddLogging(b => b.AddSerilog(dispose: false));
+            // 任务参数基类经 IStringLocalizer<T> 读取多语言资源（与 WPF 主程序相同）
+            services.AddLocalization();
             services.AddSingleton<IPlatformServices>(platform);
             services.AddSingleton<IConfigService>(configService);
             services.AddSingleton(config);
@@ -214,6 +221,10 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>>(sp => sp.GetRequiredService<MaskWindowDrawingBoard>());
             services.AddSingleton<IMaskWindowMapState, MaskWindowMapState>();
             services.AddSingleton<TaskStopService>();
+            // 独立任务：注册表只扫描 Core（Linux 宿主没有 WPF 主程序集，一条龙另行迁移），执行走 Core 的 TaskRunner
+            services.AddSingleton(new SoloTaskRegistry([typeof(CoreServices).Assembly]));
+            services.AddSingleton<SoloTaskExecutionService>();
+            services.AddSingleton<ISoloTaskNotificationSuppressor>(NoopSoloTaskNotificationSuppressor.Instance);
             services.AddSingleton<TaskTriggerDispatcher>();
             services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());
             services.AddSingleton(linuxConfig);
