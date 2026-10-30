@@ -27,6 +27,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="TestData\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj"/>
     </ItemGroup>
 
