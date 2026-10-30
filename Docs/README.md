@@ -11,6 +11,7 @@ Docs/
 ├─ design/             # 设计文档 / ADR
 ├─ images/             # 文档图片
 ├─ archive/            # 废弃/历史方案
+├─ linux-migration/    # Avalonia / Linux 迁移
 ├─ tmp/                # AI 临时设计文件（git 忽略）
 └─ i18n/               # README 多语言文本
 ```
@@ -24,5 +25,6 @@ Docs/
 | [design](design/) | 设计文档与架构决策记录（ADR） |
 | [images](images/) | 文档引用的图片资源 |
 | [archive](archive/) | 已废弃或仅作历史参考的方案 |
+| [linux-migration](linux-migration/) | 迁移到 Avalonia / 原生 Linux 的路线图、进展与架构说明 |
 | [tmp](tmp/) | AI 临时设计文件，内容不提交 |
 | [i18n](i18n/) | 根目录 README 的多语言文本 |

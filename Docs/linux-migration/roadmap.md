@@ -1,0 +1,69 @@
+# 迁移路线图
+
+总体思路：**不推翻上游现有的 `GameRuntime` / `InputHub` 抽象**，先在 Windows 版里把 Win32 类型从接口中剥离（行为不变），再把平台无关代码逐步移入纯 `net10.0` 的 Core，最后在 Linux 平台实现与 Avalonia UI 上组装出 Linux 版。每个阶段都要求 Windows 版可编译、功能不变。
+
+Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland）窗口。因此第一版 Linux 支持只承诺 **X11 / XWayland**；纯 Wayland（portal）放到后面。
+
+## 阶段 0：调研与环境（已完成）
+
+- Windows 依赖统计、各子系统的 Linux 替代方案（见 [survey.md](survey.md)）。
+- 原版 BetterGI 在 Wine 中运行成功；上游 refactor 分支可以在 Linux 上用 `EnableWindowsTargeting` 编译。
+
+## 阶段 0.5：平台功能验证原型（已完成，未入库）
+
+独立的小程序 + 两个“假游戏”（Wine 中运行的 Windows 版、X11 原生版，会把收到的输入写进日志并把内部状态编码进画面），
+验证 X11 窗口查找、MIT-SHM 截图、XTest 键鼠（含相对移动 → Wine 原始输入）、XGrabKey 全局热键、Wine 内 PostMessage 后台输入。
+结论：X11 / XWayland 路线可行，XTest 相对移动在 Wine 中被转换为数值精确的 WM_INPUT；原生 Linux 侧没有可用的后台输入。
+
+## 阶段 1：平台抽象地基（本次完成，详见 [phase1-foundation.md](phase1-foundation.md)）
+
+- 新增 `BetterGenshinImpact.Core`（纯 `net10.0`）：`GameKey`、`PixelRect`、`IPlatformWindow`、`IGameCapture`、`IInputBackend`/`IInputChannel`、`IHotkeyService`、`IPlatformServices` 等。
+- 接口中的 `User32.VK` / `RECT` / `nint hWnd` 换成平台无关类型，调用方批量更新。
+- 新增 `Platform.Windows`（包装现有实现）与 `Platform.Linux`（X11 实现，从原型移植）。
+- 验收：全解决方案在 Linux 上 0 错误编译；Core 与 Platform.Linux 不带 Windows 目标可编译；单元测试结果与改动前一致；
+  Platform.Linux 在两个假游戏上的端到端回归与原型结果一致。
+
+## 阶段 2：接入平台服务 + 继续清理 Win32 依赖（下一步）
+
+目标：业务层（GameTask / Core）不再直接调用 Win32，所有平台能力都经由 `IPlatformServices`。
+
+1. **平台服务注册**：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
+2. **`SystemControl` 拆分**：窗口查找 / 激活 / DPI / 进程管理迁到 `IWindowManager` / `IPlatformWindow`，`GameWindowState` 改用 `PixelRect`。
+3. **键状态与录制**：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
+4. **音游输入**：`KeyInputTransports`（直接 SendInput / PostMessage）改为走 `IInputChannel`。
+5. **热键**：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
+6. **UI 线程与对话框**：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
+7. **`System.Drawing`**：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
+8. **注册表**：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。
+
+验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。
+
+## 阶段 3：Linux 平台补全
+
+- 截图：XComposite + XDamage（可截被遮挡窗口），评估 Vulkan 游戏全屏下的黑屏 / 撕裂。
+- 输入：uinput 后端（需要权限，X11 / Wayland 通用）；XWayland 下 XTest 注入的实测。
+- 遮罩 overlay：Avalonia 透明窗口 + `_NET_WM_STATE_ABOVE` + XFixes 输入区域置空（点击穿透），需要合成器。
+- 推理：ONNX Runtime CPU 默认，CUDA / ROCm / OpenVINO 可选（替代 DirectML）。
+- 音频：NAudio → OpenAL / SDL2 / PulseAudio；通知 → `org.freedesktop.Notifications`；凭据 → libsecret。
+- `X11Window.ViewportChanged` 通过 ConfigureNotify 实现。
+
+## 阶段 4：Avalonia UI
+
+1. 新建 `BetterGenshinImpact.Avalonia`（`net10.0`）宿主：DI、日志面板、MainWindow 外壳（FluentAvalonia NavigationView）。
+2. 首批页面：首页（启动截图器）、实时触发设置、遮罩 MaskWindow → 在 Linux 上跑通“启动截图 → 自动拾取 / 自动剧情”。
+3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。
+4. WebView2 相关（云原神、HTML 遮罩、脚本设置页）最后迁移，Linux 用 Avalonia NativeWebView（WebKitGTK）。
+5. WPF UI 在过渡期保留，Windows 版可以先继续使用。
+
+## 阶段 5：打包与发布
+
+AppImage / Flatpak、udev 规则（uinput）、Linux 使用文档；Wayland（portal：ScreenCast、RemoteDesktop、GlobalShortcuts）作为后续增强。
+
+## 主要风险
+
+- 上游 `refactor/20260930` 变化很快：抽象尽量放在新项目中，定期合并上游；阶段 1、2 的改动适合拆成小 PR 回馈上游。
+- Wayland 下无法全局查找窗口 / 截图 / 输入，只能走 portal 并需要用户授权。
+- 截图在合成器 unredirect / Vulkan 全屏时的表现需要在真实环境实测；没有 HDR。
+- UI 工作量最大（151 个 XAML，大量 WPF-UI 控件）。
+- 反作弊对 uinput / XTest 的态度无法完全评估。
