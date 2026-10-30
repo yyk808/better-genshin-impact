@@ -26,7 +26,7 @@ public static class TrainingGuideDomainOptions
     /// “跟随培养计划”的显示文字，用于体力计划的执行记录。
     /// 旧版本选择框曾以它作为选项值，读取移涌活动秘境时仍按跟随培养计划处理。
     /// </summary>
-    public const string FollowTrainingPlanOption = "跟随培养计划";
+    public const string FollowTrainingPlanOption = TrainingGuideDomainNames.FollowTrainingPlanOption;
 
     /// <summary>盛材移涌秘境的选项缓存。</summary>
     private static IReadOnlyList<ICascadingItem>? _materialOverflowItems;

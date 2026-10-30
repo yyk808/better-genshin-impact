@@ -46,8 +46,6 @@
 		<EmbeddedResource Include="Resources\JavaScript\guide-site-bilibili.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.guide-site-bilibili.js" />
 		<None Remove="Resources\JavaScript\guide-bridge.js" />
 		<EmbeddedResource Include="Resources\JavaScript\guide-bridge.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.guide-bridge.js" />
-		<None Remove="Resources\TargetItem\target-item-data.json" />
-		<EmbeddedResource Include="Resources\TargetItem\target-item-data.json" LogicalName="BetterGenshinImpact.Resources.TargetItem.target-item-data.json" />
 	</ItemGroup>
 
 	<ItemGroup>

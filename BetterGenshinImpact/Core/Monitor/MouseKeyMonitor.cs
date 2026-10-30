@@ -130,7 +130,11 @@ public partial class MouseKeyMonitor : IDisposable
         // 每次按键时读取 Current（不缓存），没有运行环境时按前台进程名判断
         if (GameSystem.IsGameForeground(CoreServices.GetService<GameRuntimeService>()?.Current?.Window))
         {
-            ChatUiHotkeyGuard.PrimeFromChatKey(e.KeyCode);
+            // 静态门控没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
+            if (e.KeyCode == ConfigHost.Config!.KeyBindingsConfig.OpenChatScreen.ToWinFormKeys())
+            {
+                ChatUiHotkeyGuard.PrimeFromChatKey();
+            }
         }
 
         // 热键按下事件

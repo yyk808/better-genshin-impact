@@ -51,6 +51,14 @@
 		<PackageReference Include="SkiaSharp" Version="3.119.4" />
 		<PackageReference Include="NAudio.Core" Version="2.2.1" />
 		<PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
+		<PackageReference Include="HungarianAlgorithm" Version="2.3.5" />
+		<PackageReference Include="System.IO.Packaging" Version="10.0.12" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- 奖励停止数据：TargetItemCatalog 按 typeof(TargetItemCatalog).Assembly 读取，随类一起移入 Core，资源名不变 -->
+		<None Remove="Resources\TargetItem\target-item-data.json" />
+		<EmbeddedResource Include="Resources\TargetItem\target-item-data.json" LogicalName="BetterGenshinImpact.Resources.TargetItem.target-item-data.json" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -37,5 +37,7 @@ internal static class InputModuleInitializer
         PlatformHost.IsMicaBackdropSupported = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_22523_OrGreater;
         PlatformHost.IsWindows11OrGreater = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_OrGreater;
         BetterGenshinImpact.GameTask.GameDesktopInterop.Current = BetterGenshinImpact.GameTask.Win32GameDesktopInterop.Instance;
+        BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current = BetterGenshinImpact.View.WpfHtmlMaskWindowHost.Instance;
+        BetterGenshinImpact.Core.Recognition.OpenCv.DebugLabelImage.Writer = BetterGenshinImpact.Helpers.GdiDebugLabelImageWriter.Instance;
     }
 }
