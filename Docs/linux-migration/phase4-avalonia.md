@@ -385,3 +385,33 @@ Core 988 个（新增 `GlobalInputHotkeyService`、`KeyMouseRecordInputBridge`�
 ### 文件数（口径同上）
 
 Core 1105 个（移入 Pulonia 114 个，新增 `PuloniaTriggerScheduler`、`PuloniaTaskRunStatusText`、`PuloniaTaskTypeText`），主项目 642 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 48 个。
+
+## 里程碑 35：脚本设置、任务计划编辑与界面自测
+
+### 抽到 Core（WPF 改为调用，行为不变）
+
+- `Model/SettingItemValues`：JS 脚本 settings.json 表单的取值规则（默认值写入且不覆盖已有值、多选列表规范化与勾选顺序、级联选择按二级值反查一级）。WPF `SettingItemControls` 的默认值与多选逻辑改为调用它。
+- `Core/Script/Group/ScriptGroupConfigFields`：配置组设置（原 `ScriptGroupConfigView`）的字段目录，74 项，含分区、属性路径、标题、说明、编辑方式、下拉选项（回复时机、精英掉落模式、伤害数字识别、角色编号、赶路角色、赶路模式）、
+  只在任务计划节点或旧调度器中显示的范围，以及依赖其它设置的显示条件（赶路角色决定跳飞 / 切人步行 / 接近停车距离等，派蒙检测、旋转寻敌、光柱扫描、聚集材料的子项）。按路径读写并做类型转换，无法转换的输入不写入。
+  WPF 视图模型的下拉选项与赶路相关显示条件改为调用它。
+- `Core/Script/Group/ScriptGroupProjectSettings`：项目通用设置的规则（JS 通知在全局关闭时不可改、HTTP 权限按地址列表 Hash 保存、HTTP 提示文字与级别），WPF `ScriptGroupProjectEditorViewModel` 改为调用它。
+- `Pulonia/Services/PuloniaTriggerEditing`：触发方式编辑的选项文字（服务器时区、忙碌策略）、可选目标与账号、数值校验、定时预览、带整体校验的新增 / 替换。WPF 触发器编辑器改为调用它。
+- `Pulonia/Services/PuloniaParameterForm`：按能力参数 Schema 列出顶层参数（排除共享设置覆盖的参数），有效值与运行准备相同（默认值 → 共享设置 → 任务参数），输入解析（布尔、整数、数字、文本、枚举、字符串列表、JSON），合并后按 Schema 校验再写入。
+
+### Avalonia
+
+- 调度器页：可以添加 JS 脚本（User/JsScript）；每个项目有“设置”（执行周期、次数、状态，JS 的通知与 HTTP 权限）与“JS设置”（settings.json 表单：输入框、下拉、勾选、多选、级联选择、分隔线）；标题栏“配置组设置”按分区显示全部字段，显示条件随修改即时刷新。
+  设置面板在页面内打开，“保存并关闭”时写入配置组文件。只提供 HTML 设置页的脚本提示暂不支持（WebView 未迁移）。
+- 任务计划页：选中任务后右侧显示“任务设置”（名称、启用、分组执行次数、按 Schema 生成的参数），“应用”时整体校验，失败时不写入并保留输入；“触发方式”页签可新增 / 编辑定时触发（Cron、时区、忙碌策略、允许延迟、补跑、启用，实时预览接下来 5 次执行时间，无效表达式不能保存），列表中可启用 / 停用 / 删除。快捷键触发仍只能启停与删除（Linux 尚未注册计划快捷键）。
+- 修复：任务移动或应用设置后选中项丢失（保存后计划对象被替换，改为按任务 ID 重新选中）。
+
+### 界面自测
+
+新增宿主内参数 `--ui-test script-settings | taskplan`：在真实窗口里按名称或文字找到控件，像用户一样点按钮、选下拉、勾选、输入，然后直接读取磁盘上的配置文件核对。
+
+- script-settings（32 项）：新增配置组、添加 JS 与 Shell；JS 设置的 6 种控件默认值与修改后存盘、重新打开读回；项目通用设置（周期、次数、HTTP 权限 Hash）；配置组设置（开关、文本、下拉、无效数字不写入、赶路角色切换后显示跳飞设置、Shell 配置）。
+- taskplan（19 项）：新建计划、添加 Shell / 录制回放 / 分组、下移与上移、停用、任务名称与参数（file_name、arguments）、无效执行次数被拒绝且文件不变、分组执行次数、删除任务、无效 Cron 不能保存、新增 / 停用 / 编辑 / 删除定时触发、删除计划。
+
+### 文件数（口径同上）
+
+Core 1110 个（新增上述 5 个），主项目 642 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 51 个。
