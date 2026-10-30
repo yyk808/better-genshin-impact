@@ -7,8 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
 using BetterGenshinImpact.Core.Script.Dependence;
 using Microsoft.ClearScript.JavaScript;
 using BetterGenshinImpact.Core.Script.Repositories;
@@ -52,37 +50,6 @@ public class ScriptProject
 
         Manifest = Manifest.FromJson(File.ReadAllText(ManifestFile));
         Manifest.Validate(ProjectPath);
-    }
-
-    public ScrollViewer? LoadSettingUi(dynamic context)
-    {
-        var settingItems = Manifest.LoadSettingItems(ProjectPath);
-        if (settingItems.Count == 0)
-        {
-            return null;
-        }
-
-        var stackPanel = new StackPanel
-        {
-            Margin = new Thickness(0, 0, 20, 0) // 给右侧滚动条留出位置
-        };
-        foreach (var item in settingItems)
-        {
-            var controls = item.ToControl(context);
-            foreach (var control in controls)
-            {
-                stackPanel.Children.Add(control);
-            }
-        }
-
-        var scrollViewer = new ScrollViewer
-        {
-            Content = stackPanel,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MaxHeight = 350 // 设置最大高度
-        };
-
-        return scrollViewer;
     }
 
     /// <summary>
