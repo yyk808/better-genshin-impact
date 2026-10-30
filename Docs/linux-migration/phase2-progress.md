@@ -334,3 +334,68 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 - `GameRuntimeService`、`InstanceService`（Pulonia 远程）、`OverlayMetricsService`、`IMaskWindowHost`
 
 尚未开始：音游输入（`KeyInputTransports`）与 `RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的抽象。
+
+## 里程碑 14：第二批 22 个任务层文件移入 Core
+
+- 移入的有自动追踪、派遣、开箱、快速购买、一键领奖、兑换码任务、树脂识别，以及独立任务注册表 `SoloTaskRegistry` / `SoloTaskDescriptor`。
+
+## 里程碑 15：桌面系统调用与宿主服务改经接口（39 个文件）
+
+- 新增 `IGameDesktopInterop`（`GameDesktopInterop.Current`）。Win32 实现的代码原样取自原调用处，包括：
+  - B 服协议 / 登录窗口枚举：`GameLoading` 与 `Login3rdParty` 原来各有一份，日志写法不同，改为通过回调分别保留；
+  - 进程映像路径；
+  - 伐木时阻止休眠（`SetThreadExecutionState`）。
+- 新增 `IGameRuntimeHost`（由 `GameRuntimeService` 实现）和 `ISoloTaskNotificationSuppressor`（由 `WindowsNotificationSuppressionService` 实现），在 DI 中转发注册。`ITriggerDispatcher` 增加 `GetTrigger<T>`。
+- 以下调用改走 `PlatformHost`，Windows 实现与原调用相同：
+  - 点击扩展、键鼠宏、`SystemInfo.DisplaySize` 的屏幕尺寸改用 `PlatformHost.Screen`（`GetDeviceCaps`）；
+  - `TpTask` 的光标位置改用 `PlatformHost.KeyState`；
+  - 新增 `PlatformHost.IsWindows11OrGreater`。
+- 不再使用 Vanara 的 `WhereNotNull`，改用 Core 中语义相同的扩展方法。
+- Core 新增包引用：Microsoft.Extensions.Http 10.0.12、SkiaSharp 3.119.4、NAudio.Core 2.2.1、Melanchall.DryWetMidi 8.0.3，均与主程序使用的版本一致。
+- 移入的有七圣召唤全部文件、伐木、游戏加载、日志解析、剧情语音的 OCR / 连续会话部分，以及截图参数。
+
+## 里程碑 16：解开 WinForms 键名、HTML 遮罩、GDI+ 与嵌入资源（145 个文件）
+
+- **WinForms 键名**：新增 `WinFormsKeys` / `WinFormsMouseButtons`，与 WinForms `Keys` / `MouseButtons` 逐项对应：名称、数值、声明顺序相同，同样标记 `[Flags]`。
+  - 逐项副本是用 MetadataLoadContext 从 WindowsDesktop 引用程序集导出生成的，因此 `ToString()` / `Enum.Parse` 的结果与原枚举一致。
+  - 脚本收到的按键名（如 `"A, Shift"`）和键鼠宏 JSON 中鼠标按钮名的解析都不变。
+  - 新增 Core 单测。
+- **HTML 遮罩**：脚本的 `HtmlMask` 改经 `IHtmlMaskWindowHost`，Windows 实现转发到 `HtmlMaskWindow`。未设置宿主时，打开 HTML 遮罩会抛出“当前平台不支持”。
+- **调试标注图**：奖励识别与背包数量对比的调试图改经 `IDebugLabelImageWriter`。
+  - Windows 实现仍是原来的 GDI+ 绘制（字体、底色、对齐、省略号截断都相同）。
+  - 其它平台用 OpenCV 绘制，中文会显示为问号，只影响调试图。
+- **嵌入资源**：`TargetItemCatalog` 与其嵌入资源 `target-item-data.json` 一起移入 Core，资源名不变（有单测）。
+- 其它调整：
+  - 体力计划用到的“跟随培养计划”常量移到 `TrainingGuideDomainNames`；选择框数据仍在界面侧。
+  - 聊天键的比较从 `ChatUiHotkeyGuard` 移到 `MouseKeyMonitor`。
+  - 剧情语音诊断状态改经 `UiHost` 调度，没有 UI 线程时直接执行，与原来相同。
+- Core 新增包引用：HungarianAlgorithm 2.3.5、System.IO.Packaging 10.0.12（`FileFormatException`）。
+- 移入的有：自动战斗（战斗场景、角色、战斗脚本、策略）、路径追踪（`PathExecutor`、全部动作处理器、导航）、大地图与特征匹配、键鼠宏回放、脚本组与脚本依赖（`KeyMouseHook`、`HtmlMask` 等）、秘境 / 首领 / 地脉 / 深境螺旋 / 体力计划任务、传送、快捷传送触发器等。
+
+验证（14–16 每个推送点）：
+
+- 编译 0 错误。
+- Core 单测与基线相比无退化；16 新增 17 个键名 / 资源测试（共 261 个：255 通过，6 个为原有缺素材失败）。
+- 主单测 828 通过 / 248 失败 / 12 跳过，逐个用例比较无退化、无缺失。比 13 多通过的 1 项是 `SoloTaskSchemas_UseSupportedKeywordsOnly`。
+- 端到端：Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
+### 剩余（主程序中约 45 个任务层文件）
+
+- **音游**（`GameTask/Music`、`AutoMusicGame`，约 21 个）：
+  - 曲目封面使用 WPF `ImageSource`（`PerformanceScore`、`IMusicCoverService`）；
+  - 演奏热键使用 WinForms `Keys`（`MusicPlayerInputHook`、`MusicGuidedSession`）；
+  - `AutoMusicGameTask` 使用 `COLORREF`。
+  - `KeyInputTransports` 本身已经走 `InputHub` 的前台 / 后台通道，没有直接调用 Win32，被上面这些文件连带留在主程序。
+- **剧情语音 TTS / 路由**（约 22 个）：
+  - `WasapiAudioPlayer`、`WindowsSapiTtsProvider`；
+  - NAudio 的 `Mp3FileReader` 依赖 WinMM ACM 解码；
+  - 路由语音资源通过嵌入资源读取。
+- **依赖界面的任务和组件**：
+  - `ScriptRepoUpdater` / `PathRecorder`：打开 WebView2 窗口和 WPF 对话框，需要拆出界面部分；
+  - `OneDragonTask`：依赖 `IScriptService` 和 `OneDragonTaskItem`；
+  - `TaskRunner`、`RedeemCodeManager`、`SoloTaskExecutionService`。
+- **宿主侧，计划保留在主程序**：
+  - `GameTaskManager`、`TaskTriggerDispatcher`；
+  - `GameRuntimeService`、Win32 / 网页版运行环境；
+  - `SystemControl`、各 Win32 实现类、`AutoComboTreeWindowService`。
+- **尚未开始**：`RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的 Linux 实现（XInput2 `XI_RawMotion`，接口 `IRelativeMouseInputMonitor` 已在 Core）。

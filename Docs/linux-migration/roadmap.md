@@ -30,17 +30,18 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 1. ✅ **平台服务注册**（里程碑 1）：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
 2. ✅ **`SystemControl` 拆分**（里程碑 1）：找窗迁到 `IGameWindowFinder`，Win32 窗口函数迁到 `Platform.Windows` 的 `Win32WindowOps`，进程名 / 启动参数迁到 Core；剩余调用方逐步改用 `IPlatformWindow`。
 3. ✅ **键状态与录制**（里程碑 2，`RawInputMonitor` 相对鼠标与 Wine 轮询未动）：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
-4. **音游输入**（未开始）：`KeyInputTransports`（直接 SendInput / PostMessage）改为走 `IInputChannel`；`RawInputMonitor` 相对鼠标监听同样待抽象。
+4. **音游输入**（部分完成）：`KeyInputTransports` 已经走 `InputHub` 的前台 / 后台通道（`IInputChannel`），音游文件因封面 `ImageSource` 和 WinForms 热键仍在主项目。`RawInputMonitor` 的接口 `IRelativeMouseInputMonitor` 已在 Core，Linux 实现（XInput2 原始事件）尚未开始。
 5. ✅ **热键**（里程碑 3；UI 的 `HotKey` 模型仍用 WPF `Key`，配置文本格式不变，Core 用 `HotkeyText` 解析）：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
-9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，Core 共 723 个源文件，主项目剩 988 个。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，Core 共 938 个源文件，主项目剩 784 个。
    - 里程碑 7a–9 已移入识别基础、配置根与全部配置、服务基础设施，以及识别核心：`Region` / `ImageRegion`、OCR / ONNX / YOLO、`Bv`、`GameRuntime`。
    - `Region` 的点击 / 移动已改走 `PlatformHost` + `IInputChannel`。
    - ClearScript 的 Linux 原生包（`Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5）已实测可用。
    - 里程碑 10–13 解开了任务层的界面映射、键鼠钩子、WPF 颜色、网页窗口和 Win32 `RECT` 引用，并把第一批 106 个任务层文件移入 Core。
-   - 剩余约 134 个任务层文件，阻碍见 phase2-progress.md 里程碑 13。）
+   - 里程碑 14–16 又移入 206 个任务层文件：自动战斗、路径追踪、大地图、脚本组、七圣召唤、秘境等。
+   - 剩余约 45 个任务层文件（音游、剧情语音 TTS、依赖界面的仓库更新 / 一条龙等），见 phase2-progress.md 里程碑 16。）
 
 验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。
 
