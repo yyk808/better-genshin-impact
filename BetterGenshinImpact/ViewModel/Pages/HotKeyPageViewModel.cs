@@ -264,7 +264,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
 
         if (hotKey.MouseButton is MouseButton.XButton1 or MouseButton.XButton2)
         {
-            keyId = KeyIdConverter.FromMouseButton(hotKey.MouseButton);
+            keyId = KeyIdWpfConverter.FromMouseButton(hotKey.MouseButton);
             return keyId is not KeyId.Unknown and not KeyId.None;
         }
 
@@ -273,7 +273,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             return false;
         }
 
-        keyId = KeyIdConverter.FromInputKey(hotKey.Key);
+        keyId = KeyIdWpfConverter.FromInputKey(hotKey.Key);
         return keyId is not KeyId.Unknown and not KeyId.None;
     }
 

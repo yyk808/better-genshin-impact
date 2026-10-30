@@ -478,12 +478,12 @@
                               VerticalAlignment="Center"
                               SelectedValue="{Binding Config.CommonConfig.MainBackgroundStretch, Mode=TwoWay}"
                               SelectedValuePath="Tag">
-                        <!-- Tag 必须是 Stretch 枚举值本身（而非字符串），SelectedValue 按对象相等匹配，
+                        <!-- Tag 必须是 ImageStretchMode 枚举值本身（而非字符串），SelectedValue 按对象相等匹配，
                              与上方 CrosshairType 选择器写法保持一致，否则配置无法回显 -->
-                        <ComboBoxItem Content="{i18n:T 填充}" Tag="{x:Static media:Stretch.Fill}" />
-                        <ComboBoxItem Content="{i18n:T 等比填充}" Tag="{x:Static media:Stretch.UniformToFill}" />
-                        <ComboBoxItem Content="{i18n:T 等比适应}" Tag="{x:Static media:Stretch.Uniform}" />
-                        <ComboBoxItem Content="{i18n:T 原始尺寸}" Tag="{x:Static media:Stretch.None}" />
+                        <ComboBoxItem Content="{i18n:T 填充}" Tag="{x:Static config:ImageStretchMode.Fill}" />
+                        <ComboBoxItem Content="{i18n:T 等比填充}" Tag="{x:Static config:ImageStretchMode.UniformToFill}" />
+                        <ComboBoxItem Content="{i18n:T 等比适应}" Tag="{x:Static config:ImageStretchMode.Uniform}" />
+                        <ComboBoxItem Content="{i18n:T 原始尺寸}" Tag="{x:Static config:ImageStretchMode.None}" />
                     </ComboBox>
                 </Grid>
             </StackPanel>

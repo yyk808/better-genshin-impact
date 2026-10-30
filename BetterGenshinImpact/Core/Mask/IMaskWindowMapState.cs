@@ -1,4 +1,3 @@
-using System.Windows;
 
 namespace BetterGenshinImpact.Core.Mask;
 
@@ -10,7 +9,7 @@ public interface IMaskWindowMapState
     /// <summary>
     /// 字段为 null 表示不修改；多次调用合并为一个快照
     /// </summary>
-    void Update(bool? isInBigMap = null, Rect? bigMapViewport = null, Rect? miniMapViewport = null);
+    void Update(bool? isInBigMap = null, MaskRect? bigMapViewport = null, MaskRect? miniMapViewport = null);
 
     /// <summary>
     /// 退出大地图并清空两个视口。在任务开始、地图遮罩关闭时调用
@@ -24,7 +23,7 @@ public interface IMaskWindowMapState
 /// <param name="IsInBigMap">是否在大地图界面</param>
 /// <param name="BigMapViewport">大地图视口（2048 级地图坐标），空矩形表示不显示</param>
 /// <param name="MiniMapViewport">小地图视口，空矩形表示不显示</param>
-public sealed record MaskWindowMapSnapshot(bool IsInBigMap, Rect BigMapViewport, Rect MiniMapViewport)
+public sealed record MaskWindowMapSnapshot(bool IsInBigMap, MaskRect BigMapViewport, MaskRect MiniMapViewport)
 {
     public static MaskWindowMapSnapshot Empty { get; } = new(false, default, default);
 }

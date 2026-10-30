@@ -271,8 +271,8 @@ namespace BetterGenshinImpact.ViewModel
         {
             var snapshot = _mapSource.Current;
             IsInBigMapUi = snapshot.IsInBigMap;
-            BigMapViewport = snapshot.BigMapViewport;
-            MiniMapViewport = snapshot.MiniMapViewport;
+            BigMapViewport = snapshot.BigMapViewport.ToWpfRect();
+            MiniMapViewport = snapshot.MiniMapViewport.ToWpfRect();
         }
 
         private void OnMaskWindowConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)

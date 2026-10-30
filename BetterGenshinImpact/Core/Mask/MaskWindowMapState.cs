@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using System.Windows;
 
 namespace BetterGenshinImpact.Core.Mask;
 
@@ -16,7 +15,7 @@ public sealed class MaskWindowMapState : IMaskWindowMapState, IMaskWindowSnapsho
 
     public event Action? Changed;
 
-    public void Update(bool? isInBigMap = null, Rect? bigMapViewport = null, Rect? miniMapViewport = null)
+    public void Update(bool? isInBigMap = null, MaskRect? bigMapViewport = null, MaskRect? miniMapViewport = null)
     {
         lock (_lock)
         {

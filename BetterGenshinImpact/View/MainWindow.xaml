@@ -4,6 +4,7 @@
                  xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
                  xmlns:behavior="clr-namespace:BetterGenshinImpact.View.Behavior"
                  xmlns:controls="clr-namespace:BetterGenshinImpact.View.Controls"
+                 xmlns:converters="clr-namespace:BetterGenshinImpact.View.Converters"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:markup="clr-namespace:BetterGenshinImpact.Markup"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -61,7 +62,7 @@
                IsHitTestVisible="False"
                Opacity="{Binding Config.CommonConfig.MainBackgroundOpacity, FallbackValue=0.35}"
                Source="{Binding MainBackgroundSource, TargetNullValue={x:Null}}"
-               Stretch="{Binding Config.CommonConfig.MainBackgroundStretch, FallbackValue=UniformToFill}"
+               Stretch="{Binding Config.CommonConfig.MainBackgroundStretch, Converter={x:Static converters:EnumValueConverter.Instance}, FallbackValue=UniformToFill}"
                Visibility="{Binding IsMainBackgroundVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
         <ui:NavigationView x:Name="RootNavigation"

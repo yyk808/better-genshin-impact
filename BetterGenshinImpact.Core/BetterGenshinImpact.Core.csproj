@@ -31,6 +31,8 @@
 		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.21.0" />
 		<!-- ImageRegion 的图像缓存（主项目经 YoloSharp 间接引用的同一版本） -->
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+		<!-- YOLO 推理（跨平台；依赖的 Microsoft.ML.OnnxRuntime 含 Windows / Linux 原生库），版本与主项目一致 -->
+		<PackageReference Include="YoloSharp" Version="6.0.3" />
 		<!-- 任务的翻译资源（IStringLocalizer<T> 按 T 所在程序集查找 .resx，任务类与其 .resx 一起移入 Core） -->
 		<PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.12" />
 	</ItemGroup>

@@ -15,7 +15,8 @@ using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Helpers;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
-using Rect = System.Windows.Rect;
+// 地图视口用遮罩的平台无关矩形（原为 System.Windows.Rect，构造参数相同）
+using Rect = BetterGenshinImpact.Core.Mask.MaskRect;
 
 namespace BetterGenshinImpact.GameTask.MapMask;
 

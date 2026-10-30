@@ -2,8 +2,6 @@ using BetterGenshinImpact.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
-using System.Windows.Media;
-using Wpf.Ui.Controls;
 
 namespace BetterGenshinImpact.Core.Config;
 
@@ -61,7 +59,7 @@ public partial class CommonConfig : ObservableObject
     /// 主题（旧版主题，兼容性保留）
     /// </summary>
     [ObservableProperty]
-    private WindowBackdropType _currentBackdropType = WindowBackdropType.Mica;
+    private WindowBackdropKind _currentBackdropType = WindowBackdropKind.Mica;
 
     /// <summary>
     /// 是否启用主窗口自定义背景图
@@ -85,7 +83,7 @@ public partial class CommonConfig : ObservableObject
     /// 主窗口背景图拉伸模式
     /// </summary>
     [ObservableProperty]
-    private Stretch _mainBackgroundStretch = Stretch.UniformToFill;
+    private ImageStretchMode _mainBackgroundStretch = ImageStretchMode.UniformToFill;
 
     /// <summary>
     /// 是否是第一次运行

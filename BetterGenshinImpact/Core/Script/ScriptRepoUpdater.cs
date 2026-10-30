@@ -3001,7 +3001,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                 ? (SystemParameters.WorkArea.Height - height) / 2
                 : scriptConfig.WebviewTop;
             
-            WindowState state = scriptConfig.WebviewState;
+            WindowState state = (WindowState)scriptConfig.WebviewState;
             var screen = SystemParameters.WorkArea;
             bool isSmallScreen = screen.Width <= 1600 || screen.Height <= 900;
             // 如果未设置或非法值，则默认 Normal，小屏则直接最大化
@@ -3009,13 +3009,13 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
             {
                 state = WindowState.Maximized;
             }
-            else if (!Enum.IsDefined(typeof(WindowState), scriptConfig.WebviewState))
+            else if (!Enum.IsDefined(typeof(WindowDisplayState), scriptConfig.WebviewState))
             {
                 state = WindowState.Normal;
             }
             else
             {
-                state = scriptConfig.WebviewState;
+                state = (WindowState)scriptConfig.WebviewState;
             }
             
             _webWindow = new WebpageWindow
@@ -3037,7 +3037,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                     scriptConfig.WebviewTop = _webWindow.Top;
                     scriptConfig.WebviewWidth = _webWindow.Width;
                     scriptConfig.WebviewHeight = _webWindow.Height;
-                    scriptConfig.WebviewState = _webWindow.WindowState;
+                    scriptConfig.WebviewState = (WindowDisplayState)_webWindow.WindowState;
                 }
 
                 _webWindow = null;

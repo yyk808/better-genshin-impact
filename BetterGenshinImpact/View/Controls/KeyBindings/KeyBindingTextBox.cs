@@ -60,7 +60,7 @@ public class KeyBindingTextBox:TextBox
         }
 
         // 将按键转换为KeyId
-        KeyBinding = KeyIdConverter.FromInputKey(key);
+        KeyBinding = KeyIdWpfConverter.FromInputKey(key);
     }
 
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
@@ -74,7 +74,7 @@ public class KeyBindingTextBox:TextBox
         }
 
         // 将鼠标按键转换为KeyId
-        KeyBinding = KeyIdConverter.FromMouseButton(key);
+        KeyBinding = KeyIdWpfConverter.FromMouseButton(key);
     }
 
     protected override void OnGotFocus(RoutedEventArgs e)

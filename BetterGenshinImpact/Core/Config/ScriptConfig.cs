@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
-using System.Windows;
 
 namespace BetterGenshinImpact.Core.Config;
 
@@ -46,7 +45,7 @@ public partial class ScriptConfig : ObservableObject
     [ObservableProperty] private double _webviewTop = 0;
     
     // 仓库页面是否最大化
-    [ObservableProperty] private WindowState _webviewState = WindowState.Normal;
+    [ObservableProperty] private WindowDisplayState _webviewState = WindowDisplayState.Normal;
     
     // 仓库新手教程是否已阅读
     [ObservableProperty] private bool _guideStatus = false;

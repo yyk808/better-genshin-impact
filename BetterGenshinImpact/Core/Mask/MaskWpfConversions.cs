@@ -15,4 +15,6 @@ public static class MaskWpfConversions
     public static MaskPoint ToMaskPoint(this Point point) => new(point.X, point.Y);
 
     public static MaskRect ToMaskRect(this Rect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
+
+    public static Rect ToWpfRect(this MaskRect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 }
