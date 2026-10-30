@@ -220,3 +220,48 @@ Host.Common 12 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 36 个。
 ### 文件数（口径同上）
 
 Core 978 个，主项目 759 个（本里程碑前半部分未移动文件）。
+
+## 里程碑 31：全自动（调度器）、设置页
+
+### 导航对照
+
+Windows 版导航中的“任务计划”现在是新的计划系统（`PuloniaTaskPlanPage`：计划、执行记录、路线 CD、触发方式），
+配置组页面 `ScriptControlPage` 在“全自动 → 调度器”下。Avalonia 宿主按同样的位置组织：
+“全自动”页包含调度器、JS 脚本、地图追踪、录制回放四个标签；“任务计划”暂为说明页（计划系统尚未迁移）。
+
+### 调度器（配置组）
+
+- Core 新增 `ScriptGroupStore`（`User/ScriptGroup/*.json` 的读取、按 Index 排序、恢复“从此执行”标记、原子保存、删除）
+  与 `ScriptGroupRunner`（原 `ScriptControlViewModel.StartGroupsCore`）；`ScriptGroupSchedule` 新增 `GetNextScriptGroups`、`SetGroupNextFlag`、`SetProjectNextFlag`。
+  WPF 的 `ScriptControlViewModel` 改为委托（读取失败的提示、保存失败的提示不变）。新增 4 个单元测试（`ScriptGroupScheduleTests`）。
+- Avalonia 调度器：配置组列表（新增、删除、上移 / 下移、刷新、“连续任务从此开始执行”、连续执行）；组内项目（序号、名称、类型、启用状态切换、
+  “从此执行”、移除、倒序、清空）；添加键鼠脚本与 Shell。增删改后与 WPF 相同地补 Index 并写文件。
+  运行与 WPF 相同：`RunnerContext.Reset()` 后在 `TaskRunner` 中执行 `IScriptService.RunMulti`；停止取消本轮令牌，`TaskRunner` 结束时释放所有按键。
+- JS 脚本 / 地图追踪 / 录制回放：列出 `User/JsScript`（读 manifest）、`User/AutoPathing`、`User/KeyMouseScript`，可添加到选中的配置组；键鼠脚本可直接回放。
+  JS 脚本的自定义设置、项目通用设置、配置组设置、脚本仓库、录制尚未迁移。
+- Linux 宿主补注册 `IServerTimeProvider` 并初始化 `ServerTimeHelper`（此前配置组执行时“月卡判断异常：ServerTimeHelper 尚未初始化”）。
+- 启动时创建 `log` 目录（任务的调试截图直接写入 `log/…`，Windows 版由日志文件创建该目录）。
+
+### 设置
+
+- 通用：原神游戏语言、保存截图 / 截图遮盖 UID / 奖励识别截图、地图追踪匹配方式、地图缩放 / 相对拖动、就近七天神像、失去焦点自动恢复、窗口类名优先、服务器时区、详细错误日志。
+- 遮罩：启用遮罩、识别结果、日志窗口、状态、帧率、UID 遮盖、准星（颜色、线宽、大小、间隔）。
+- 快捷键：与 WPF 快捷键页相同的条目与分组（“内部测试”除外），点击后按下组合键绑定，写法与 WPF `HotKey.ToString` 相同。
+  经平台的 `IHotkeyService`（X11 `XGrabKey`）注册；已实现的动作：启动停止 BetterGI、停止 / 暂停当前任务、自动拾取 / 自动剧情开关、一条龙，其余只保存绑定。
+- 通知：常用开关与 Webhook 地址（Linux 宿主尚未接入通知发送）。
+- 关于：版本、运行时、显示、素材目录、配置文件。
+
+### 验证
+
+- 假游戏 + 键鼠脚本配置组（按住 W 6 秒、空格、点击）：
+  - 3 秒后点击停止：W 在取消时抬起，任务 Cancelled，没有仍按住的键；
+  - 不停止：完整执行，点击落在客户区 (800,450)，任务 Completed；
+  - 配置“停止当前脚本/独立任务”= F10，运行中用 xdotool 按 F10：日志“检测到您配置的停止快捷键F10按下”，任务以 UserRequested 中断，没有仍按住的键。
+- 一条龙在 1920x1080 的假游戏场景（主界面、Esc 菜单、邮件）中：领取邮件“全部领取”完成；合成树脂进入地图追踪。
+  使用 Sdcb 精简版 `libOpenCvSharpExtern.so` 时，地图追踪因缺少 `features2d_SIFT_create` 失败；改用 `Build/Linux/build-opencvsharp.sh`
+  的完整构建（`OpenCvSharpExternPath`）后地图特征点加载完成，之后因假游戏没有大地图画面而“打开大地图失败”，任务按预期重试、取消，没有仍按住的键。
+- 与原版 WPF（Wine）的对照截图：调度器、JS 脚本、地图追踪、录制回放、通用设置、遮罩、快捷键、通知、关于。
+
+### 文件数（口径同上）
+
+Core 980 个（新增 `ScriptGroupStore`、`ScriptGroupRunner`），主项目 759 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 45 个。
