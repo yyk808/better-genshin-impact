@@ -139,3 +139,25 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 
 验证：编译 0 错误；Core 单测 85 个通过；主项目单测 785 / 118 / 5，无退化；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；`keystate` 0 FAIL。
 
+## 里程碑 7a：识别基础代码移入 Core（第一批）
+
+做法：文件按原相对路径 `git mv` 到 `BetterGenshinImpact.Core`，命名空间不变，调用方无需修改；
+逐个编译 Core，依赖主项目类型的文件退回主项目，直到 Core 独立编译通过（迁移脚本留在本机，不提交）。
+
+- 移入 37 个文件：OpenCV 辅助（模板匹配 `TemplateMatchHelper` / `FastSqDiffMatcher` / `SubPixMatch` / `TemplateMatchNormalizer`、
+  裁剪、轮廓、图像差异、特征点分块与 `Feature2DFactory` 等）、OCR 数据类型与 `IOcrService` / `OcrResult`、ONNX 的设备类型 / 运行时包下载 /
+  基准协调等、`SearchOptions`、`RecognitionTypes`、`PaddleOcrModelConfig`。
+- `CommonExtension` 拆分：平台无关的几何 / OpenCV 扩展移入 Core；涉及 WPF `Point`/`Rect`/`Color` 与 Win32 `RECT` 的 5 个方法
+  留在主项目的 `CommonWindowsExtension`（均为扩展方法调用，调用方不变）。
+- Core 增加 `InternalsVisibleTo`（`BetterGI`、两个单测项目），搬入代码的 `internal` 成员可见性与原来一致。
+- `HardwareAccelerationView.xaml` 中引用 `InferenceDeviceType` 的 xmlns 补上 `assembly=BetterGenshinImpact.Core`（命名空间跨程序集后 XAML 需要指明）。
+- Core.UnitTest 引用 OpenCV 原生运行时（Windows：`OpenCvSharp4.runtime.win`；Linux：不依赖 GTK / FFmpeg 的 `Sdcb.OpenCvSharp4.mini.runtime.ubuntu.22.04-x64`），
+  新增模板匹配 / 裁剪 / 图像差异测试，并把 `RectClampTests` 从主单测移入。识别代码的测试现在在 Linux 上原生运行。
+- 仍在主项目的识别代码及主要阻碍：`RecognitionObject` 与 JSON 加载（依赖 `Region` / 配置）、Paddle OCR 与 YOLO（依赖配置 `AllConfig`、
+  `HardwareAccelerationConfig`、ONNX Runtime 包、`Global` 路径）、`MatchTemplateHelper`（取日志用 `App`）、特征存储（依赖 `Global`）。
+  下一批需要先把这些包（Newtonsoft.Json、Microsoft.ML.OnnxRuntime.Managed、YoloSharp、Clipper2 等，均为跨平台包）与配置模型移入 Core。
+
+验证：编译 0 错误；Core 单测 99 个通过（含 OpenCV 原生调用）；主项目单测 785 通过 / 111 失败 / 5 跳过，通过集合与之前完全相同，无退化
+（失败数少 7 是因为 Linux 上缺 WindowsBase 的“灾难性失败”理论用例在报告中少记了 7 行，本来就失败）；端到端 X11 16 PASS / 1 SKIP，
+Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 PASS；keystate 0 FAIL。
+
