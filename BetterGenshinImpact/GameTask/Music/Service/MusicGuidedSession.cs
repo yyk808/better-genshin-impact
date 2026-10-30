@@ -7,9 +7,7 @@ using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Music.Model;
 using BetterGenshinImpact.GameTask.Runtime;
-using Fischless.GameCapture;
 using OpenCvSharp;
-using BetterGenshinImpact.Platform.Windows;
 
 namespace BetterGenshinImpact.GameTask.Music.Service;
 
@@ -471,34 +469,9 @@ public sealed class MusicGuidedSession : IDisposable
             return null;
         }
 
-        // 临时截图器需要截图方式与参数；未提供配置根时无法截图
+        // 临时截图器需要截图方式与参数；未提供配置根时无法截图。截图器由宿主按平台创建（见 GameFrameGrabber）
         var config = _options.Config;
-        if (config == null)
-        {
-            return null;
-        }
-
-        CaptureModes mode;
-        try
-        {
-            mode = config.CaptureMode.ToCaptureMode();
-        }
-        catch (Exception)
-        {
-            mode = CaptureModes.BitBlt;
-        }
-
-        var capture = GameCaptureFactory.Create(mode);
-        try
-        {
-            capture.Start(new Win32PlatformWindow(gameHandle), GameCaptureSettings.From(config));
-            var frame = capture.Capture()?.Frame;
-            return frame == null || frame.Empty() ? null : frame.Clone();
-        }
-        finally
-        {
-            capture.Dispose();
-        }
+        return config == null ? null : GameFrameGrabber.Grab(gameHandle, config);
     }
 
     /// <summary>

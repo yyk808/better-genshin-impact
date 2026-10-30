@@ -60,6 +60,8 @@
 		<!-- 奖励停止数据：TargetItemCatalog 按 typeof(TargetItemCatalog).Assembly 读取，随类一起移入 Core，资源名不变 -->
 		<None Remove="Resources\TargetItem\target-item-data.json" />
 		<EmbeddedResource Include="Resources\TargetItem\target-item-data.json" LogicalName="BetterGenshinImpact.Resources.TargetItem.target-item-data.json" />
+		<EmbeddedResource Include="Resources\QuestVoice\auto-scene.json" LogicalName="BetterGenshinImpact.Resources.QuestVoice.auto-scene.json" />
+		<EmbeddedResource Include="Resources\QuestVoice\routing.example.json" LogicalName="BetterGenshinImpact.Resources.QuestVoice.routing.example.json" />
 	</ItemGroup>
 
 	<ItemGroup>

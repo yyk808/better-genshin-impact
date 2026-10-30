@@ -235,6 +235,23 @@ public sealed class GameHost : IAsyncDisposable
 
             var manualWindow = new ManualWindowSelection(platform);
             GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames, () => linuxConfig, log);
+            // 临时抓帧（音游引导识别键位等）经平台截图器
+            GameFrameGrabber.Current = (handle, c) => GameFrameGrabber.GrabWith(platform, handle, c, EffectiveCaptureMode(linuxConfig));
+            // 音频输出：PulseAudio / PipeWire 可用时播放剧情语音，否则静音（流程照常推进），结果显示在环境页
+            var audio = BetterGenshinImpact.Platform.Linux.Audio.LinuxAudioOutput.Install();
+            log.Information("音频输出：{Status}", audio.Status);
+            // 系统语音：本机装有 espeak-ng 时注册为剧情语音引擎，未安装时不出现在引擎列表
+            if (BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.TryRegister())
+            {
+                // 引擎独立配置的缺省条目（Windows 配置不含该引擎，只在 Linux 宿主补齐）
+                config.QuestVoiceConfig.ExtraProviders.TryAdd(BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.ProviderId,
+                    BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.DefaultConfig());
+                log.Information("系统语音（espeak-ng）：已注册");
+            }
+            else
+            {
+                log.Information("系统语音（espeak-ng）：未安装，不提供该剧情语音引擎");
+            }
 
             // 3. 依赖注入
             var services = new ServiceCollection();

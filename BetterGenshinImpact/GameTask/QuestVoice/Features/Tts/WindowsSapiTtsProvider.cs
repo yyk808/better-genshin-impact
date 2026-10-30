@@ -27,6 +27,9 @@ public sealed class WindowsSapiTtsProvider : ITtsProvider
     /// <summary>统一从注册表读取离线能力描述。</summary>
     public TtsProviderInfo Info => TtsProviderRegistry.GetInfo("windows-sapi");
 
+    /// <summary>向 Core 的引擎注册表登记 SAPI 实现（主程序模块初始化时调用；保持原有列表顺序）。</summary>
+    public static void Register() => TtsProviderRegistry.Register(TtsProviderRegistry.WindowsSapiInfo, static () => new WindowsSapiTtsProvider());
+
     /// <summary>校验选音、倍率和合成期限；实际 token 必须在本次 STA 中再次精确匹配。</summary>
     public void Validate(AppSettings settings)
     {

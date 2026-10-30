@@ -12,6 +12,9 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.QuestVoiceTests;
 /// <summary>新增引擎的注册、独立实例和持久化，不能覆盖旧声线。</summary>
 public sealed class ExtraTtsConfigurationTests
 {
+    /// <summary>注册表已移入 Core，平台引擎由宿主注册；单测不经主程序模块初始化，这里显式登记 SAPI 实现。</summary>
+    public ExtraTtsConfigurationTests() => WindowsSapiTtsProvider.Register();
+
     /// <summary>每个注册条目必须有真实实现及普通完整音频能力。</summary>
     [Theory]
     [InlineData("windows-sapi")]

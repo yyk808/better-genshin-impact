@@ -415,3 +415,29 @@ Core 1105 个（移入 Pulonia 114 个，新增 `PuloniaTriggerScheduler`、`Pul
 ### 文件数（口径同上）
 
 Core 1110 个（新增上述 5 个），主项目 642 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 51 个。
+
+## 里程碑 36：Linux 音频播放、系统语音、剧情语音移入 Core
+
+### 音频播放（PulseAudio / PipeWire）
+
+- `Platform.Linux/Audio/PulseAudioWavePlayer`：实现 NAudio `IWavePlayer`，经 libpulse-simple（P/Invoke，运行时按 soname 加载，不分发 .so）播放；PipeWire 通过 pipewire-pulse 兼容层同样可用。
+  支持 PCM 8/16/32 位与 32 位浮点；`Play` 不阻塞，后台线程约 20 ms 一块写入，播完等待 drain 后触发 `PlaybackStopped`；`Stop` 只置标志，由播放线程丢弃未播放数据（flush）后触发，与 WasapiOut 语义一致，所有 libpulse 调用都在同一线程。目标缓冲设为约 100 ms（服务器默认约 2 秒，短句会等到 drain 才出声）。
+- `LinuxAudioOutput.Install()`：宿主启动时探测（打开一个播放流后立即关闭），可用则把 `QuestVoiceAudioHost.OutputFactory` 设为 PulseAudio 输出，否则保持静音输出（流程照常推进）。结果写日志并显示在环境页“音频 / 播放输出”，不可用时提示安装 libpulse0 或 pipewire-pulse。
+- 验证：本机另起一个私有 pulseaudio（独立运行目录、null sink），用 parec 录制 monitor：1.5 秒 440 Hz 正弦完整录到 1.5 秒；5 秒 660 Hz 在播放 0.8 秒后 Stop，录到 0.8 秒，`PlaybackStopped` 在 Stop 后 10 ms 内触发；espeak-ng 合成的中文语音经 `WasapiAudioPlayer` + PulseAudio 输出完整播放。
+  null sink 空闲时按 2 秒为单位休眠，新流开始时最多有 2 秒的启动延迟，这是 null sink 的特性，真实声卡没有。
+
+### 系统语音与 TTS 引擎注册
+
+- 剧情语音的会话、会话工厂、路由与全部 HTTP TTS 引擎（20 个文件）移入 Core；布局资源 `auto-scene.json` / `routing.example.json` 随 Core 程序集嵌入（资源名不变）。
+- `TtsProviderRegistry` 改为宿主注册平台引擎：内置列表保留 `windows-sapi` 的描述与原有顺序，实现由 WPF 主程序模块初始化时 `WindowsSapiTtsProvider.Register()` 补上（Windows 界面与行为不变）；未注册实现的平台引擎不出现在引擎列表，按 ID 创建时报“当前平台不支持”。
+  主单测 `RegisteredProviderHasImplementation("windows-sapi")` 不经主程序模块初始化，测试类构造时显式注册（该用例在 Linux 单测中保持通过）。
+- `Platform.Linux/Tts/EspeakNgTtsProvider`：调用本机 espeak-ng（`--stdout`，台词经标准输入传入，按实际长度截取 PCM 后重新封装 WAV），支持声音列表（`--voices`）与语速；找不到 espeak-ng 时不注册，环境页显示“未安装”。注册后在配置的引擎独立设置中补齐缺省条目（声音 `cmn`），Windows 配置不含该条目。
+
+### 其余遗留
+
+- `GameFrameGrabber`（Core）：运行环境未启动时临时抓一帧，由宿主按平台设置实现。WPF 的 `Win32GameFrameGrabber` 是原 `MusicGuidedSession.OpenGameFrame` 中的代码（行为不变），Linux 宿主经 `IPlatformServices.CreateCapture` 与 `Windows.FromHandle`。`MusicGuidedSession` 不再引用 Fischless.GameCapture 与 Win32 窗口。
+
+### 文件数（口径同上）
+
+Core 1131 个（剧情语音 20 个文件移入，新增 `GameFrameGrabber`），主项目 623 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 51 个。
+

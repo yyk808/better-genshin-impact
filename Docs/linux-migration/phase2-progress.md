@@ -613,8 +613,5 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
   - `ScriptRepoUpdater`（约 3400 行）：用到 `WebpageWindow`、WPF 对话框、Vanara、`Microsoft.Web.WebView2`；
   - `PathRecorder`：用到 `WebpageWindow`；
   - 需要拆出网页窗口和对话框接口。
-- **剧情语音**：
-  - `TtsProviderRegistry` 直接构造 `WindowsSapiTtsProvider`，需要改为宿主注册。
-    - 注意主单测 `RegisteredProviderHasImplementation("windows-sapi")` 不经主程序模块初始化，需要在测试中显式注册。
-  - `QuestVoiceSessionFactory` 读取嵌入的路由资源。
-- **音游**：`MusicGuidedSession` 的截图器创建需要改走平台截图工厂。
+- ✅ **剧情语音**（里程碑 36）：会话、会话工厂、路由与 HTTP 引擎移入 Core，嵌入资源随 Core 程序集；`TtsProviderRegistry` 改为宿主注册平台引擎（WPF 注册 `windows-sapi`，主单测显式注册；Linux 可选 espeak-ng）。
+- ✅ **音游**（里程碑 36）：`MusicGuidedSession` 的临时截图改走 Core 的 `GameFrameGrabber`，由宿主按平台提供。

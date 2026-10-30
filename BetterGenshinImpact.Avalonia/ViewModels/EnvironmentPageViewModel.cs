@@ -68,6 +68,14 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
             }
         }
 
+        // 音频：宿主启动时探测 PulseAudio / PipeWire（不可用时剧情语音等静音运行），系统语音为可选的 espeak-ng
+        var audio = BetterGenshinImpact.Platform.Linux.Audio.LinuxAudioOutput.AudioStatus;
+        Items.Add(new("音频", "播放输出", audio.Available ? audio.Status
+            : audio.Status + "。需要 PulseAudio 或 PipeWire（pipewire-pulse）并安装 libpulse0"));
+        Items.Add(new("音频", "系统语音（TTS）",
+            BetterGenshinImpact.GameTask.QuestVoice.Features.Tts.TtsProviderRegistry.IsAvailable(BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.ProviderId)
+                ? "espeak-ng（" + BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.FindExecutable() + "）"
+                : "未安装 espeak-ng，剧情语音只能使用在线 / 服务器引擎（安装 espeak-ng 包后重启生效）"));
         Items.Add(new("OpenCV", "版本", SafeOpenCvVersion()));
         Items.Add(new("OpenCV", "原生库", FindNative("libOpenCvSharpExtern.so")));
         Items.Add(new("OpenCV", "特征匹配（地图追踪）", SafeFeatureMatching()));

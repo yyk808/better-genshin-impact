@@ -40,9 +40,11 @@ internal static class InputModuleInitializer
             BetterGenshinImpact.Core.Mask.MaskWpfConversions.ToMaskColor((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(text));
         BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.Factory = static () => new BetterGenshinImpact.GameTask.Music.Service.MusicPlayerInputHook();
         BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.ModifierKeys = static () => (BetterGenshinImpact.Core.Input.WinFormsKeys)System.Windows.Forms.Control.ModifierKeys;
+        BetterGenshinImpact.GameTask.GameFrameGrabber.Current = BetterGenshinImpact.GameTask.Win32GameFrameGrabber.Grab;
         BetterGenshinImpact.GameTask.AutoMusicGame.WindowPixelSampler.Current = BetterGenshinImpact.GameTask.AutoMusicGame.GdiWindowPixelSampler.Instance;
         BetterGenshinImpact.GameTask.QuestVoice.Features.Audio.QuestVoiceAudioHost.OutputFactory = static () => new NAudio.Wave.WasapiOut();
         BetterGenshinImpact.GameTask.QuestVoice.Features.Audio.QuestVoiceAudioHost.Mp3ReaderFactory = static input => new NAudio.Wave.Mp3FileReader(input);
+        BetterGenshinImpact.GameTask.QuestVoice.Features.Tts.WindowsSapiTtsProvider.Register();
         BetterGenshinImpact.Core.Script.ScriptAutoUpdateGate.WaitForAutoUpdate = static ct => BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync(ct);
         BetterGenshinImpact.GameTask.UseRedeemCode.RedeemCodeManager.ConfirmCodes = BetterGenshinImpact.GameTask.UseRedeemCode.WpfRedeemCodePrompt.Confirm;
         BetterGenshinImpact.Service.PictureInPictureHost.Current = BetterGenshinImpact.Service.WpfPictureInPictureHost.Instance;
