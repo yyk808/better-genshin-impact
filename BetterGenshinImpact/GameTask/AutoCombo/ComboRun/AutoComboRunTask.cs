@@ -9,7 +9,6 @@ using BetterGenshinImpact.GameTask.SkillCd;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.ViewModel.Windows;
-using System.Windows.Media;
 using CsTrees;
 using CsTrees.Display;
 using CsTrees.Visitors;
@@ -272,16 +271,15 @@ public class AutoComboRunTask : ISoloTask<AutoFightParam, NoData>
         _drawingBoard.Set("ESkillClassifyRegion",
             new MaskWindowDrawingRect(result.ClassifyRect, MaskWindowDrawingStroke.FromPen(DrawPens.White)));
         _drawingBoard.Set("ESkillClassify",
-            new MaskWindowDrawingText(stateText, result.TextPosition, new MaskWindowDrawingTextStyle(textColor.ToMaskColor())));
+            new MaskWindowDrawingText(stateText, result.TextPosition, new MaskWindowDrawingTextStyle(textColor)));
     }
 
     /// <summary>
     /// 根据角色名经 AvatarProfiles 推导元素颜色，无档案或非元素标签时回退默认识别文本色
     /// </summary>
-    private System.Windows.Media.Color GetElementColor(string? avatarName)
+    private MaskColor GetElementColor(string? avatarName)
     {
-        var defaultColor = (System.Windows.Media.Color)ColorConverter.ConvertFromString(
-            _config.MaskWindowConfig.RecognitionTextColor);
+        var defaultColor = MaskColorParser.ConvertFromString(_config.MaskWindowConfig.RecognitionTextColor);
         if (string.IsNullOrEmpty(avatarName))
         {
             return defaultColor;
@@ -291,13 +289,13 @@ public class AutoComboRunTask : ISoloTask<AutoFightParam, NoData>
         var elementTag = profile?.Tags.FirstOrDefault(t => t.EndsWith("元素", StringComparison.Ordinal));
         return elementTag switch
         {
-            "火元素" => System.Windows.Media.Color.FromRgb(0xFF, 0x57, 0x49),
-            "水元素" => System.Windows.Media.Color.FromRgb(0x33, 0xA6, 0xFF),
-            "风元素" => System.Windows.Media.Color.FromRgb(0x3F, 0xCE, 0xC0),
-            "雷元素" => System.Windows.Media.Color.FromRgb(0xB3, 0x80, 0xFF),
-            "草元素" => System.Windows.Media.Color.FromRgb(0x9A, 0xD9, 0x36),
-            "冰元素" => System.Windows.Media.Color.FromRgb(0x7A, 0xF2, 0xF2),
-            "岩元素" => System.Windows.Media.Color.FromRgb(0xFF, 0xB5, 0x3A),
+            "火元素" => MaskColor.FromRgb(0xFF, 0x57, 0x49),
+            "水元素" => MaskColor.FromRgb(0x33, 0xA6, 0xFF),
+            "风元素" => MaskColor.FromRgb(0x3F, 0xCE, 0xC0),
+            "雷元素" => MaskColor.FromRgb(0xB3, 0x80, 0xFF),
+            "草元素" => MaskColor.FromRgb(0x9A, 0xD9, 0x36),
+            "冰元素" => MaskColor.FromRgb(0x7A, 0xF2, 0xF2),
+            "岩元素" => MaskColor.FromRgb(0xFF, 0xB5, 0x3A),
             _ => defaultColor,
         };
     }

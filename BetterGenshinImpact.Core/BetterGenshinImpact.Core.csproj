@@ -21,7 +21,7 @@
 	<ItemGroup>
 		<!-- 只引用托管包；OpenCvSharp4 的 native 运行时由宿主（Windows/Linux）按 RID 自行引用 -->
 		<PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
 		<!-- 识别 / 配置代码迁入后需要的跨平台托管包，版本与主项目一致 -->
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -41,6 +41,10 @@
 		<!-- 任务的翻译资源（IStringLocalizer<T> 按 T 所在程序集查找 .resx，任务类与其 .resx 一起移入 Core） -->
 		<PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.12" />
 		<PackageReference Include="CsTrees" Version="1.0.5" />
+		<PackageReference Include="CsTrees.MEAI" Version="1.0.2" />
+		<PackageReference Include="Microsoft.Extensions.AI" Version="10.6.0" />
+		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.6.0" />
+		<PackageReference Include="Anthropic" Version="12.53.0" />
 		<PackageReference Include="LibGit2Sharp" Version="0.31.0" />
 		<PackageReference Include="Microsoft.ClearScript.V8" Version="7.4.5" />
 	</ItemGroup>

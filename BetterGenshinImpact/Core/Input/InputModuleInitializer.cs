@@ -25,6 +25,8 @@ internal static class InputModuleInitializer
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;
         BetterGenshinImpact.GameTask.GameSystem.Control = BetterGenshinImpact.GameTask.SystemControlAdapter.Instance;
+        BetterGenshinImpact.Core.Mask.MaskColorParser.ColorTextConverter = static text =>
+            BetterGenshinImpact.Core.Mask.MaskWpfConversions.ToMaskColor((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(text));
         BetterGenshinImpact.GameTask.HotkeyHoldState.Query = BetterGenshinImpact.Model.HoldHotkeyQuery.IsHotkeyPressed;
         BetterGenshinImpact.GameTask.RunnerSuspend.Provider = static () => BetterGenshinImpact.GameTask.RunnerContext.Instance;
         BetterGenshinImpact.GameTask.AutoFight.Model.ESkillClassifyMonitor.Sink =
