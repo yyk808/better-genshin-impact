@@ -35,7 +35,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
-9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，按 git 跟踪的 `.cs` 统计，Core 共 968 个，主项目剩 764 个。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，按 git 跟踪的 `.cs` 统计，Core 共 970 个，主项目剩 763 个。
    - 里程碑 7a–9 已移入识别基础、配置根与全部配置、服务基础设施，以及识别核心：`Region` / `ImageRegion`、OCR / ONNX / YOLO、`Bv`、`GameRuntime`。
    - `Region` 的点击 / 移动已改走 `PlatformHost` + `IInputChannel`。
    - ClearScript 的 Linux 原生包（`Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5）已实测可用。
@@ -43,7 +43,8 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
    - 里程碑 14–16 又移入 206 个任务层文件：自动战斗、路径追踪、大地图、脚本组、七圣召唤、秘境等。
    - 里程碑 18–19 移入音游与剧情语音的播放 / 解码；Linux 的 MP3 解码用 NLayer，音频输出先用空实现。
    - 里程碑 20 移入 `TaskRunner`、`SoloTaskExecutionService`、`RedeemCodeManager`。
-   - 里程碑 21 移入 `TaskTriggerDispatcher`、`GameTaskManager`；无界面宿主的剩余步骤见 phase2-progress.md 里程碑 21。
+   - 里程碑 21 移入 `TaskTriggerDispatcher`、`GameTaskManager`；里程碑 22 移入 `GameRuntimeService` 并新增基于 `IPlatformServices` 的 `PlatformRuntimeProvider`。
+   - 里程碑 23 新增无界面宿主 `BetterGenshinImpact.Host.Headless`，已在 X11 假游戏上找窗、截图并按帧调度触发器；OCR / ONNX 注册等剩余步骤见 phase2-progress.md 里程碑 23。
    - 剩余：一条龙、脚本仓库更新 / 路径录制的界面拆分、剧情语音的 SAPI 注册与会话工厂、跟弹会话，见 phase2-progress.md 里程碑 20。）
 
 验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。

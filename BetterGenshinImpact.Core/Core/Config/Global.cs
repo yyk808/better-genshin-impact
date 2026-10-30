@@ -27,6 +27,12 @@ public class Global
 
     public static string Absolute(string relativePath)
     {
+        // 代码中的相对路径大多按 Windows 写法使用反斜杠；在其它平台上换成目录分隔符（Windows 上不做任何改动）
+        if (Path.DirectorySeparatorChar != '\\')
+        {
+            relativePath = relativePath.Replace('\\', Path.DirectorySeparatorChar);
+        }
+
         return Path.Combine(StartUpPath, relativePath);
     }
 

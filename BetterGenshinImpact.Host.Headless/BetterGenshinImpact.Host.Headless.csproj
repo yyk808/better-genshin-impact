@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		最小的无界面宿主（纯 net10.0）：完成依赖注入、CoreServices / PlatformHost / GameSystem 的初始化，
+		用 Linux 平台服务（X11）启动截图器并运行实时触发器（自动拾取 / 自动剧情）。
+		作为后续 Avalonia 宿主启动代码的基础，也用于在 Linux 上做端到端验证。
+		素材与模型从 Windows 主程序的输出目录读取（见 README.md 的 &#45;&#45;assets 参数）；
+	-->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>BetterGenshinImpact.Host.Headless</RootNamespace>
+		<AssemblyName>bgi-headless</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>14.0</LangVersion>
+		<Platforms>x64</Platforms>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
+		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<!-- OpenCvSharp 的 Linux native 运行时。官方 linux-x64 包依赖系统的 libtesseract.so.4，这里用不依赖 tesseract 的精简构建（core / imgproc / imgcodecs 等） -->
+		<PackageReference Include="Sdcb.OpenCvSharp4.mini.runtime.ubuntu.22.04-x64" Version="4.11.0.35" />
+	</ItemGroup>
+
+</Project>

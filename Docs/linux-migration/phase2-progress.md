@@ -493,21 +493,36 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 验证：编译 0 错误；Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate、rawmouse 0 FAIL。
 
-### 无界面宿主跑通「启动截图 → 拾取 / 剧情」的剩余步骤
+## 里程碑 22：GameRuntimeService 移入 Core，新增通用运行环境提供者
 
-1. `GameRuntimeService`：
-   - 解绑时写死的 `new Win32InputBackend(IntPtr.Zero)` 改为 `InputHub.DefaultBackendFactory`；
-   - 构造函数依赖的 `InstanceBootstrap` / `WebPageRuntimeProvider` 改由主程序在注册时选择 provider；
-   - 然后移入 Core。
-2. 新增基于 `IPlatformServices` 的通用运行环境提供者：
-   - 用 `GameWindows.FindGameWindow` 找窗；
-   - 把 `IPlatformWindow` 包装为 `IGameWindow`；
-   - `CreateCapture` / `CreateInput` 分别提供截图和输入。
-3. 新增 `BetterGenshinImpact.Host.Headless`（net10.0），负责：
-   - DI 注册配置、`TaskTriggerDispatcher`、上述两个空实现；
-   - 调用 `CoreServices.SetProvider`、`PlatformHost.Use(X11PlatformServices)`，设置 `UiHost`；
-   - 启动截图器并开启拾取 / 剧情。
-4. 假游戏增加“显示指定图片”功能（本机测试工程，不提交），用 BGI 素材拼出拾取提示和剧情对话画面，用来确认 F 键和点击都能收到。
+- `GameRuntimeService` 移入 Core：
+  - 解绑时不再写死 `new Win32InputBackend(IntPtr.Zero)`，改为 `InputHub.CreateDefaultBackend()`（宿主设置的 `DefaultBackendFactory`；未设置时为不支持的后端）。
+  - 构造函数直接接收 `IGameRuntimeProvider`。主程序在 `App.xaml.cs` 注册时按实例类型选择：网页实例用 `WebPageRuntimeProvider`，其余用 `Win32WindowRuntimeProvider`。网页实例关闭前停止截图的回调也在这里接上。Windows 行为不变。
+- 新增 `PlatformRuntimeProvider`（Core）：
+  - 用 `IPlatformServices.GameWindows.FindGameWindow` 找游戏窗口，找不到时记录日志并经 `UiHost.Dialogs` 提示；
+  - 把 `IPlatformWindow` 包装为 `IGameWindow`（`PlatformGameWindow`）；
+  - 截图用平台截图器（`GameCaptureSettings.From(config)`），输入用 `IPlatformServices.CreateInput(window)`。
+
+## 里程碑 23：无界面宿主 BetterGenshinImpact.Host.Headless
+
+新项目 `BetterGenshinImpact.Host.Headless`（纯 net10.0，程序名 `bgi-headless`），作为后续 Avalonia 宿主启动代码的基础：
+
+- 启动顺序：
+  1. `X11PlatformServices` 探测，`PlatformHost.Use(platform)`，`GameSystem.Control` 设为基于平台服务的实现；
+  2. 内存配置（不写回文件），开启自动拾取 / 自动剧情；
+  3. DI 注册配置、遮罩相关空实现、`TaskStopService`、`TaskTriggerDispatcher`、`PlatformRuntimeProvider`、`GameRuntimeService`；
+  4. `CoreServices.SetProvider`，启动截图器，按 `--seconds` 运行后停止。
+- 参数：`--display`、`--assets <主程序输出目录>`（取 `GameTask/*/Assets` 素材）、`--process`、`--seconds`、`--interval`、`--frames <目录>`（保存首末帧）、`--no-pick`、`--no-skip`、`--log <文件>`。
+- OpenCvSharp 的 Linux 原生库：引用 `Sdcb.OpenCvSharp4.mini.runtime.ubuntu.22.04-x64`。官方 `OpenCvSharp4.official.runtime.linux-x64` 依赖系统的 `libtesseract.so.4`，在没有它的系统上加载失败。
+- Core 修正：`Global.Absolute` 在非 Windows 平台把相对路径里的反斜杠换成目录分隔符。素材路径都按 `GameTask\X\Assets\...` 书写，Linux 上原来找不到素材文件夹。Windows 上不做任何改动。
+- 自动开门（自动进入游戏）每帧都要 OCR，无界面宿主尚未注册 OCR / ONNX 推理服务，先在配置中关闭。
+
+运行结果（X11 假游戏，窗口 1600x900）：找到并绑定窗口，截图器按 50 ms 间隔运行，6 秒处理约 120 帧；同步执行的首帧调度没有异常（触发器“自动拾取”“自动剧情”启用）。
+
+### 剩余步骤
+
+1. 在无界面宿主中注册 OCR 与 ONNX 推理：`OcrFactory`、`BgiOnnxFactory`、`InferenceRuntimeService`，需要 Linux 版 `IOnnxRuntimeSelection`（Windows 的 `OnnxRuntimeLoader` 在主程序中）和 Linux 的 onnxruntime 原生库。自动拾取识别到 F 键后要 OCR 物品名，没有 OCR 时会抛异常（计时器回调中的异常被吞掉，需在宿主中记录）。
+2. 假游戏显示指定图片（本机测试工程，不提交），用 BGI 素材拼出拾取提示和剧情对话画面，确认 F 键和点击都能收到。
 
 ### 剩余（主程序中的任务层文件）
 
