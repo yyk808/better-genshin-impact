@@ -256,29 +256,6 @@ internal class QuickTeleportTrigger : ITaskTrigger
     //     return text;
     // }
 
-    private bool IsHotkeyPressed()
-    {
-        if (HotKey.IsMouseButton(_hotkeyConfig.QuickTeleportTickHotkey))
-        {
-            if (MouseHook.AllMouseHooks.TryGetValue((MouseButtons)Enum.Parse(typeof(MouseButtons), _hotkeyConfig.QuickTeleportTickHotkey), out var mouseHook))
-            {
-                if (mouseHook.IsPressed)
-                {
-                    return true;
-                }
-            }
-        }
-        else
-        {
-            if (KeyboardHook.AllKeyboardHooks.TryGetValue((Keys)Enum.Parse(typeof(Keys), _hotkeyConfig.QuickTeleportTickHotkey), out var keyboardHook))
-            {
-                if (keyboardHook.IsPressed)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+    /// <summary>快速传送的按住热键当前是否按下（由宿主的键鼠钩子判断）</summary>
+    private bool IsHotkeyPressed() => HotkeyHoldState.IsPressed(_hotkeyConfig.QuickTeleportTickHotkey);
 }
