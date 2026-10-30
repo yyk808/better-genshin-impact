@@ -161,3 +161,27 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 （失败数少 7 是因为 Linux 上缺 WindowsBase 的“灾难性失败”理论用例在报告中少记了 7 行，本来就失败）；端到端 X11 16 PASS / 1 SKIP，
 Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 PASS；keystate 0 FAIL。
 
+## 里程碑 7b：配置模型、任务模型与脚本基础代码移入 Core（第二批）
+
+- Core 增加跨平台托管包（版本与主项目一致）：CommunityToolkit.Mvvm、Newtonsoft.Json、Clipper2、YamlDotNet、NCalc、Microsoft.ML.OnnxRuntime.Managed。
+- 移入 274 个文件（命名空间不变）。主要有：配置模型 `Core/Config` 17 个（各功能的 `*Config`，`AllConfig`、`Global` 仍在主项目）、
+  `GameTask/Common`（地图坐标、树脂、异常类型、奖励、部分 Job 模型）36 个、剧情语音 `QuestVoice` 的核心 / 特征 35 个、
+  `SoloTask` 的契约与特性 17 个、秘境 / 战斗 / 钓鱼 / 七圣召唤 / 寻路 / 树脂规划等任务的模型与纯算法、`Core/Script` 的仓库模型与工具 13 个、
+  `Helpers` 中的通用工具与扩展、`Model` 中的数据模型。
+- 不搬的规则（脚本自动排除）：用 `typeof(X).Assembly` 取嵌入资源或程序集信息的文件；作为 `IStringLocalizer<T>` 资源定位类型的任务类
+  （资源按 T 所在程序集查找，搬走会找不到翻译）；使用 Win32 / 注册表 / P/Invoke 的文件（`ConsoleHelper`、`UrlProtocolHelper`、
+  `GenshinHdrRegistryHelper` 编译能过，但属于 Windows 专用，已退回主项目）。已确认没有被拆到两个程序集的 partial 类，也没有同名类型冲突。
+  `SoloTaskRegistry` 扫描主程序集中带 `[SoloTaskInfo]` 的任务，这些任务都依赖 `GameRuntime`，仍在主项目，注册结果不变。
+- XAML：6 个页面引用了已移入 Core 的枚举 / 类型（`CrosshairType`、`AutoPickMode`、`DamageNumberRecognitionMode`、`QuestVoiceStageState`、
+  `SkillCdRule`、`AutoComboLlmProvider` 等），其 xmlns 补上 `assembly=BetterGenshinImpact.Core`。
+- 测试：12 个只依赖 Core 的测试文件从主单测移入 Core.UnitTest（钓鱼图像识别、RodNet、OCR 后处理、树脂规划 / 执行 / 旧配置映射、
+  剧情语音文本比较与控制器、`GameTaskWait` 等）；`FakeLogger`、`FakeInputChannel` 两个测试替身以源码链接方式共用。
+
+验证：编译 0 错误；Core 单测 233 个，227 通过、6 失败——这 6 个是钓鱼截图测试，测试素材在未初始化的 Assets 子模块中，搬迁前在主单测中同样失败。
+其中 62 个用例搬迁前就有 Linux 结果，结果一一相同（56 通过 / 6 失败）；另外约 70 个用例搬迁前在 Linux 上因为加载 WindowsBase 失败而根本没有报告结果，
+现在可以在 Linux 上原生运行并通过。
+主单测：所有搬迁前通过的用例现在仍然通过（在主单测或 Core 单测中），无退化。主单测的报告总数从 908 变为 1044，原因是部分测试类不再因类型加载失败而整类不报告；
+新出现的用例中 96 个通过，95 个失败，失败原因都是 Linux 测试环境本身：缺 WPF 程序集（WindowsBase / PresentationCore）、缺 onnxruntime 原生库、
+测试素材缺失，以及 `CombatStrategyResolverTests` 期望 Windows 路径分隔符。代码未改，Windows 上不受影响。
+端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
