@@ -5,7 +5,8 @@ using Serilog;
 
 // 用法：bgi-headless [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact]
 //                    [--seconds 30] [--interval 50] [--frames 截图目录] [--no-pick] [--no-skip] [--log 日志文件]
-//                    [--auto-enter | --no-auto-enter]
+//                    [--auto-enter | --no-auto-enter] [--capture ShmRoot|GetImageRoot|GetImageWindow]
+//                    [--save-config | --config 配置文件]   # 默认只用内存中的默认配置，不读写配置文件
 //        bgi-headless --check-opencv    # 只检查 OpenCvSharpExtern 原生库的模块（特征匹配、dnn 等）
 var options = HeadlessOptions.Parse(args);
 

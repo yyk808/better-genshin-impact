@@ -21,7 +21,8 @@ public sealed class PlatformRuntimeProvider(
     IMaskWindowMapState maskWindowMapState,
     ILogger<PlatformRuntimeProvider> logger,
     Func<GameWindowSearch>? windowSearch = null,
-    string? captureMethod = null)
+    Func<string?>? captureMethod = null,
+    Func<IPlatformWindow?>? windowOverride = null)
     : IGameRuntimeProvider
 {
     public GameRuntimeKind Kind => GameRuntimeKind.PlatformWindow;
@@ -29,6 +30,19 @@ public sealed class PlatformRuntimeProvider(
     public Task<GameRuntime?> AcquireAsync(CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        // 宿主手动选择的窗口优先（找不到原神窗口时使用）
+        if (windowOverride?.Invoke() is { } manual)
+        {
+            if (manual.IsAlive)
+            {
+                logger.LogInformation("使用手动选择的窗口：{Title}（{Class}，进程 {Pid}）", manual.Title, manual.ClassName, manual.ProcessId);
+                return Task.FromResult<GameRuntime?>(AttachTo(manual));
+            }
+
+            manual.Dispose();
+            logger.LogWarning("手动选择的窗口已关闭，改为按进程名查找");
+        }
+
         var search = (windowSearch ?? GameSystem.GetGameWindowSearch)();
         var found = platform.GameWindows.FindGameWindow(search);
         if (found is null)
@@ -55,10 +69,11 @@ public sealed class PlatformRuntimeProvider(
 
             window.Activate();
             var systemInfo = new SystemInfo(window.Viewport, maskWindowDrawingBoard);
-            capture = platform.CreateCapture(captureMethod);
+            var method = captureMethod?.Invoke();
+            capture = platform.CreateCapture(method);
             capture.Start(window, GameCaptureSettings.From(configService.Get()));
-            logger.LogInformation("已绑定游戏窗口（{Platform}）：{Title}（{Class}，进程 {Pid}），画面 {Rect}",
-                platform.Name, window.Title, window.ClassName, window.ProcessId, window.Viewport.ScreenRect);
+            logger.LogInformation("已绑定游戏窗口（{Platform}）：{Title}（{Class}，进程 {Pid}），画面 {Rect}，截图方式 {Capture}",
+                platform.Name, window.Title, window.ClassName, window.ProcessId, window.Viewport.ScreenRect, capture.Capabilities.Method);
             return new GameRuntime(Kind, window, capture, platform.CreateInput(window), systemInfo,
                 maskWindowDrawingBoard, maskWindowMapState);
         }

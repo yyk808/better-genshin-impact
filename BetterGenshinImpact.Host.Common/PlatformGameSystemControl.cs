@@ -9,7 +9,11 @@ namespace BetterGenshinImpact.Host.Common;
 /// 只依赖 <see cref="IPlatformServices"/> 的游戏系统操作（找窗、激活、取画面区域等）。
 /// 启动游戏、关机等宿主相关的操作在无界面宿主中不支持。
 /// </summary>
-public sealed class PlatformGameSystemControl(IPlatformServices platform, IReadOnlyList<string> processNames) : IGameSystemControl
+public sealed class PlatformGameSystemControl(
+    IPlatformServices platform,
+    IReadOnlyList<string> processNames,
+    Func<Config.LinuxHostConfig>? launchConfig = null,
+    Serilog.ILogger? log = null) : IGameSystemControl
 {
     public IPlatformServices Platform => platform;
 
@@ -23,8 +27,29 @@ public sealed class PlatformGameSystemControl(IPlatformServices platform, IReadO
         return window?.Handle ?? 0;
     }
 
-    public Task<nint> StartFromLocalAsync(string path) =>
-        throw new PlatformNotSupportedException("当前宿主不支持启动游戏，请先手动启动");
+    /// <summary>按 Linux 宿主设置的启动命令（Wine / Proton 等）启动游戏，等待游戏窗口出现</summary>
+    public async Task<nint> StartFromLocalAsync(string path)
+    {
+        if (launchConfig is null)
+        {
+            throw new PlatformNotSupportedException("当前宿主不支持启动游戏，请先手动启动");
+        }
+
+        var config = launchConfig();
+        GameLauncher.Launch(config, log ?? Serilog.Log.Logger, path);
+        var deadline = DateTime.UtcNow.AddSeconds(Math.Max(5, config.LaunchTimeoutSeconds));
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(1000);
+            var handle = FindGenshinImpactHandle();
+            if (handle != 0)
+            {
+                return handle;
+            }
+        }
+
+        return 0;
+    }
 
     public string GetActiveByProcess() => GetActiveProcessName() ?? string.Empty;
 

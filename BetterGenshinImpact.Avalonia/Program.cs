@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using BetterGenshinImpact.Avalonia;
 using BetterGenshinImpact.Avalonia.Services;
 using BetterGenshinImpact.Avalonia.ViewModels;
@@ -15,6 +16,7 @@ using Serilog;
 // 用法：bgi-avalonia [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact] [--interval 50]
 //                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
+//                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -94,6 +96,11 @@ internal static class AvaloniaHostProgram
 
             // 后台初始化推理（OCR），不阻塞界面
             _ = viewModel.Home.EnsureInferenceAsync();
+            if (options.SelectWindowTitle is { } title && host is not null)
+            {
+                await SelectWindowUnattendedAsync(viewModel, title, options.ScreenshotDirectory, log);
+            }
+
             if (options.AutoStart && host is not null)
             {
                 await viewModel.Home.StartAsync();
@@ -128,6 +135,19 @@ internal static class AvaloniaHostProgram
                 await Task.Delay(600);
                 SaveScreenshot(window, Path.Combine(dir, file), log);
             }
+
+            // 启动页下半部分：收起日志、展开“同时启动原神”，滚动到底部
+            viewModel.IsLogExpanded = false;
+            foreach (var expander in window.GetVisualDescendants().OfType<Expander>())
+            {
+                expander.IsExpanded = true;
+            }
+
+            await Task.Delay(400);
+            window.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(s => s.Extent.Height > s.Viewport.Height)?.ScrollToEnd();
+            await Task.Delay(400);
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-home-launch.png"), log);
+            viewModel.IsLogExpanded = true;
         }
 
         var remaining = total - (DateTime.UtcNow - started);
@@ -157,6 +177,22 @@ internal static class AvaloniaHostProgram
         var readBack = await Task.Run(() => UiHost.Clipboard.GetText());
         log.Information("UiHost 自检：剪贴板写入后从后台线程读回 {Result}（{Text}）", readBack == text ? "一致" : "不一致", readBack);
 
+        // 配置保存：经界面绑定同样的路径修改配置属性，防抖后应写入文件
+        if (desktop.MainWindow?.DataContext is MainWindowViewModel { Host: { ConfigFilePath: { } configPath } host })
+        {
+            var before = File.Exists(configPath) ? File.GetLastWriteTimeUtc(configPath) : DateTime.MinValue;
+            var value = !host.Config.AutoSkipConfig.QuicklySkipConversationsEnabled;
+            host.Config.AutoSkipConfig.QuicklySkipConversationsEnabled = value;
+            host.LinuxConfig.LaunchTimeoutSeconds += 1;
+            await Task.Delay(1200);
+            var json = File.ReadAllText(configPath);
+            var saved = json.Contains($"\"quicklySkipConversationsEnabled\": {(value ? "true" : "false")}", StringComparison.Ordinal);
+            log.Information("UiHost 自检：修改配置后防抖保存 {Result}（文件{Changed}更新）", saved ? "成功" : "失败",
+                File.GetLastWriteTimeUtc(configPath) > before ? "已" : "未");
+            host.Config.AutoSkipConfig.QuicklySkipConversationsEnabled = !value;
+            host.LinuxConfig.LaunchTimeoutSeconds -= 1;
+        }
+
         UiHost.Dialogs.Toast(DialogKind.Information, "UiHost 自检：这是一条轻提示");
         var dialog = Task.Run(() => UiHost.Dialogs.Show("这是 UiHost.Dialogs 的消息框自检（任务代码在后台线程同步调用）。\n截图后自动关闭。",
             "消息框自检", DialogKind.Question, DialogButtons.YesNo));
@@ -183,6 +219,34 @@ internal static class AvaloniaHostProgram
         log.Information("UiHost 自检：消息框返回 {Result}", result);
     }
 
+    /// <summary>无人值守：打开“选择捕获窗口”对话框，截图后选中标题包含指定文字的窗口</summary>
+    private static async Task SelectWindowUnattendedAsync(MainWindowViewModel viewModel, string title, string? dir, ILogger log)
+    {
+        var pick = viewModel.Home.SelectWindowAsync();
+        await Task.Delay(800);
+        var picker = AvaloniaPickers.CurrentWindowPicker;
+        if (picker is null)
+        {
+            log.Warning("没有打开窗口选择对话框");
+            return;
+        }
+
+        log.Information("窗口选择对话框列出 {Count} 个窗口：{Windows}", picker.Items.Count, string.Join(" | ", picker.Items.Select(w => w.Display)));
+        if (dir is not null)
+        {
+            Directory.CreateDirectory(dir);
+            SaveScreenshot(picker, Path.Combine(dir, "avalonia-window-picker.png"), log);
+        }
+
+        if (!picker.SelectAndConfirm(w => w.Title.Contains(title, StringComparison.Ordinal)))
+        {
+            log.Warning("没有标题包含 {Title} 的窗口", title);
+            picker.Close(null);
+        }
+
+        await pick;
+    }
+
     private static void SaveScreenshot(Window window, string path, ILogger log)
     {
         var scale = window.RenderScaling;
@@ -203,14 +267,17 @@ internal sealed record AvaloniaOptions(
     bool AutoStart,
     string? ScreenshotDirectory,
     int? ExitAfterSeconds,
-    bool UiSelfTest)
+    bool UiSelfTest,
+    string? SelectWindowTitle)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
-        var host = new GameHostOptions();
+        // 图形界面默认读写配置文件（User/config.json、User/linux-host.json），可用 --no-save-config 关闭
+        var host = new GameHostOptions { PersistConfig = true };
         string? logFile = null, page = null, screenshots = null;
         var autoStart = false;
         var uiSelfTest = false;
+        string? selectWindow = null;
         int? exitAfter = null;
         for (var i = 0; i < args.Length; i++)
         {
@@ -229,10 +296,11 @@ internal sealed record AvaloniaOptions(
                 case "--screenshots": screenshots = Next(); break;
                 case "--exit-after": exitAfter = int.Parse(Next()); break;
                 case "--ui-selftest": uiSelfTest = true; break;
+                case "--select-window": selectWindow = Next(); break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest);
+        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow);
     }
 }

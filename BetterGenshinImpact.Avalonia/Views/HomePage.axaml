@@ -2,6 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:hc="using:BetterGenshinImpact.Host.Common"
+             xmlns:hcc="using:BetterGenshinImpact.Host.Common.Config"
              x:Class="BetterGenshinImpact.Avalonia.Views.HomePage"
              x:DataType="vm:HomePageViewModel">
     <ScrollViewer>
@@ -22,25 +24,113 @@
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button Classes="accent" Content="启动" MinWidth="88" HorizontalContentAlignment="Center"
-                                Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
-                        <Button Content="停止" MinWidth="88" HorizontalContentAlignment="Center"
-                                Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
-                    </StackPanel>
-                    <PathIcon Classes="cardIcon" Data="M8,5 L19,12 L8,19 Z" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="BetterGI 截图器，启动！" />
-                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
-                            <Ellipse Width="8" Height="8" VerticalAlignment="Center"
-                                     Fill="{Binding IsRunning, Converter={x:Static svc:Converters.RunningBrush}}" />
-                            <TextBlock Classes="desc" Text="{Binding StatusText}" />
+            <!-- 截图器：标题行启动 / 停止，展开后为启动相关配置（对应原版首页第一张卡片） -->
+            <Expander Classes="card" IsExpanded="True">
+                <Expander.Header>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Classes="accent" Content="启动" MinWidth="88" HorizontalContentAlignment="Center"
+                                    Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
+                            <Button Content="停止" MinWidth="88" HorizontalContentAlignment="Center"
+                                    Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
                         </StackPanel>
-                    </StackPanel>
-                </DockPanel>
-            </Border>
+                        <PathIcon Classes="cardIcon" Data="M8,5 L19,12 L8,19 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="BetterGI 截图器，启动！" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                         Fill="{Binding IsRunning, Converter={x:Static svc:Converters.RunningBrush}}" />
+                                <TextBlock Classes="desc" Text="{Binding StatusText}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                <StackPanel Spacing="12" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <DockPanel>
+                        <ComboBox DockPanel.Dock="Right" Width="240" ItemsSource="{Binding CaptureMethods}"
+                                  SelectedItem="{Binding SelectedCaptureMethod}" IsEnabled="{Binding !IsRunning}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="hc:CaptureMethodInfo">
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel>
+                            <TextBlock Text="截图模式" />
+                            <TextBlock Classes="desc" Text="{Binding SelectedCaptureMethod.Description, FallbackValue=''}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel>
+                        <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="1000" Increment="10" FormatString="0"
+                                       Value="{Binding Config.TriggerInterval}" IsEnabled="{Binding !IsRunning}" />
+                        <StackPanel>
+                            <TextBlock Text="触发器间隔（毫秒）" />
+                            <TextBlock Classes="desc" Text="默认50ms，普通用户不建议调整这个值" />
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                            <Button Content="选择捕获窗口" Command="{Binding SelectWindowCommand}" IsEnabled="{Binding !IsRunning}" />
+                            <Button Content="清除" Command="{Binding ClearManualWindowCommand}" IsEnabled="{Binding !IsRunning}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="手动选择窗口（无法找到原神窗口时使用）" />
+                            <TextBlock Classes="desc" Text="{Binding ManualWindowText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Classes="desc" Text="{Binding ConfigFileText}" />
+                </StackPanel>
+            </Expander>
+
+            <!-- 同时启动原神（Linux：Wine / Proton 等命令） -->
+            <Expander Classes="card" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch DockPanel.Dock="Right" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"
+                                      IsChecked="{Binding LinuxConfig.LaunchGameEnabled}" />
+                        <PathIcon Classes="cardIcon" Data="F0 M3,3 H15 V15 H3 Z M5,5 H13 V13 H5 Z M9,9 H21 V21 H9 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="同时启动原神" />
+                            <TextBlock Classes="desc" Text="启动截图器时，如果原神未启动，则按下方命令启动（Wine / Proton / Steam 等）" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                <StackPanel Spacing="10">
+                    <DockPanel>
+                        <ComboBox DockPanel.Dock="Right" Width="240" ItemsSource="{Binding LaunchPresets}" SelectedItem="{Binding SelectedPreset}"
+                                  PlaceholderText="选择预置命令">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="hcc:LaunchPreset">
+                                    <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel>
+                            <TextBlock Text="启动命令" />
+                            <TextBlock Classes="desc" Text="经 /bin/sh -c 执行，{game} 替换为加引号的游戏路径" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBox Text="{Binding LinuxConfig.LaunchCommand}" FontFamily="monospace" PlaceholderText="wine {game}" />
+                    <Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Text="游戏路径" VerticalAlignment="Center" />
+                        <DockPanel Grid.Row="0" Grid.Column="1">
+                            <Button DockPanel.Dock="Right" Content="浏览" Margin="8,0,0,0" Command="{Binding BrowseGamePathCommand}" />
+                            <TextBox Text="{Binding LinuxConfig.GamePath}" PlaceholderText="原神安装位置，如 ~/Games/Genshin Impact/YuanShen.exe" />
+                        </DockPanel>
+                        <TextBlock Grid.Row="1" Text="工作目录" VerticalAlignment="Center" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LinuxConfig.WorkingDirectory}" PlaceholderText="为空时用游戏所在目录" />
+                        <TextBlock Grid.Row="2" Text="环境变量" Margin="0,6,0,0" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LinuxConfig.Environment}" AcceptsReturn="True" Height="70" FontFamily="monospace"
+                                 PlaceholderText="每行一个 KEY=VALUE，如 WINEPREFIX=~/.wine-genshin" />
+                    </Grid>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="立即启动游戏" Command="{Binding LaunchGameNowCommand}" />
+                        <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="5" Maximum="600" Increment="10" FormatString="0"
+                                       Margin="0,0,12,0" Value="{Binding LinuxConfig.LaunchTimeoutSeconds}" />
+                        <TextBlock Text="等待游戏窗口出现（秒）" VerticalAlignment="Center" />
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
 
             <Border Classes="card">
                 <DockPanel>
@@ -64,17 +154,6 @@
                 </DockPanel>
             </Border>
 
-            <Border Classes="card" IsVisible="{Binding Config, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <DockPanel>
-                    <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="1000" Increment="10" FormatString="0"
-                                   Value="{Binding Config.TriggerInterval}" IsEnabled="{Binding !IsRunning}" VerticalAlignment="Center" />
-                    <PathIcon Classes="cardIcon" Data="F0 M12,2 A10,10 0 1 1 11.99,2 Z M12,4 A8,8 0 1 0 12.01,4 Z M11,7 H13 V11 H17 V13 H11 Z" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="触发器间隔（毫秒）" />
-                        <TextBlock Classes="desc" Text="默认50ms，普通用户不建议调整这个值；启动截图器前修改生效" />
-                    </StackPanel>
-                </DockPanel>
-            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

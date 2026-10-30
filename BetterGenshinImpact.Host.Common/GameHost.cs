@@ -7,6 +7,7 @@ using BetterGenshinImpact.Core.Recognition.ONNX;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Runtime;
+using BetterGenshinImpact.Host.Common.Config;
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Platform.Linux.X11;
 using BetterGenshinImpact.Service;
@@ -31,10 +32,18 @@ public sealed class GameHost : IAsyncDisposable
     private readonly ConcurrentDictionary<string, int> _tickErrors = new();
     private long _frames;
 
+    private readonly FileConfigService? _fileConfig;
+    private readonly LinuxHostConfigStore? _linuxConfigStore;
+
     private GameHost(GameHostOptions options, X11PlatformServices platform, PlatformProbeResult probe, AllConfig config,
-        ServiceProvider provider, ILogger log)
+        ServiceProvider provider, ILogger log, FileConfigService? fileConfig, LinuxHostConfigStore? linuxConfigStore,
+        LinuxHostConfig linuxConfig, ManualWindowSelection manualWindow)
     {
         Options = options;
+        _fileConfig = fileConfig;
+        _linuxConfigStore = linuxConfigStore;
+        LinuxConfig = linuxConfig;
+        ManualWindow = manualWindow;
         _platform = platform;
         Probe = probe;
         Config = config;
@@ -55,6 +64,25 @@ public sealed class GameHost : IAsyncDisposable
 
     public AllConfig Config { get; }
 
+    /// <summary>Linux 宿主设置（截图方式、启动游戏命令）</summary>
+    public LinuxHostConfig LinuxConfig { get; }
+
+    /// <summary>手动选择的游戏窗口（找不到原神窗口时使用，只在本次运行有效）</summary>
+    public ManualWindowSelection ManualWindow { get; }
+
+    /// <summary>配置文件路径（不保存配置时为 null）</summary>
+    public string? ConfigFilePath => _fileConfig?.FilePath;
+
+    /// <summary>Linux 宿主设置文件路径（不保存配置时为 null）</summary>
+    public string? LinuxConfigFilePath => _linuxConfigStore?.Store.FilePath;
+
+    /// <summary>X11 可用的截图方式</summary>
+    public static IReadOnlyList<CaptureMethodInfo> CaptureMethods { get; } =
+    [
+        new("ShmRoot", "MIT-SHM 屏幕区域（推荐）", "XShmGetImage 截取游戏画面所在的屏幕区域，最快；游戏窗口须可见、不被遮挡（类似 Windows 的 BitBlt）"),
+        new("GetImageRoot", "XGetImage 屏幕区域", "不使用共享内存，较慢；远程 X 或 MIT-SHM 不可用时使用"),
+        new("GetImageWindow", "XGetImage 窗口", "直接读取窗口内容，较慢；没有合成器时被遮挡部分的内容未定义"),
+    ];
     public IServiceProvider Services => _provider;
 
     public TaskTriggerDispatcher Dispatcher { get; }
@@ -93,28 +121,59 @@ public sealed class GameHost : IAsyncDisposable
             log.Information("平台：{Name}（{Kind}），探测：{Probe}", platform.Name, probe.Kind,
                 string.Join("，", probe.Items.Select(kv => $"{kv.Key}={kv.Value}")));
             PlatformHost.Use(platform);
-            GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames);
 
-            // 2. 配置（内存中，不写回文件）
-            var config = new AllConfig();
-            config.AutoPickConfig.Enabled = options.Pick;
-            config.AutoSkipConfig.Enabled = options.Skip;
-            config.TriggerInterval = options.IntervalMs;
-            if (options.AutoEnterGame is { } autoEnter)
+            // 2. 配置：User/config.json（与 Windows 主程序格式相同，防抖保存）或内存中的默认配置
+            FileConfigService? fileConfig = null;
+            LinuxHostConfigStore? linuxConfigStore = null;
+            IConfigService configService;
+            AllConfig config;
+            InferenceStartupStatus inferenceStartupStatus = null!;
+
+            void ApplyOverrides(AllConfig c)
             {
-                // 自动开门（自动进入游戏）：默认沿用配置默认值
-                config.GenshinStartConfig.AutoEnterGameEnabled = autoEnter;
+                // 命令行覆盖（之后的任意改动保存时会一并写回）
+                if (options.Pick is { } pick) c.AutoPickConfig.Enabled = pick;
+                if (options.Skip is { } skip) c.AutoSkipConfig.Enabled = skip;
+                if (options.IntervalMs is { } interval) c.TriggerInterval = interval;
+                if (options.AutoEnterGame is { } autoEnter) c.GenshinStartConfig.AutoEnterGameEnabled = autoEnter;
+
+                // 推理：只用 CPU 和随程序发布的 onnxruntime 原生库
+                c.HardwareAccelerationConfig ??= new();
+                inferenceStartupStatus = InferenceRuntimeService.PrepareStartup(c.HardwareAccelerationConfig);
+                if (c.HardwareAccelerationConfig.InferenceDevice != InferenceDeviceType.Cpu)
+                {
+                    c.HardwareAccelerationConfig.SwitchToCpu();
+                }
             }
 
-            // 推理：只用 CPU 和随程序发布的 onnxruntime 原生库
-            config.HardwareAccelerationConfig ??= new();
-            var inferenceStartupStatus = InferenceRuntimeService.PrepareStartup(config.HardwareAccelerationConfig);
-            if (config.HardwareAccelerationConfig.InferenceDevice != InferenceDeviceType.Cpu)
+            LinuxHostConfig linuxConfig;
+            if (options.PersistConfig)
             {
-                config.HardwareAccelerationConfig.SwitchToCpu();
+                var configPath = Path.GetFullPath(options.ConfigFile ?? Global.Absolute(FileConfigService.DefaultRelativePath));
+                fileConfig = new FileConfigService(configPath, log);
+                config = fileConfig.Load(ApplyOverrides);
+                configService = fileConfig;
+                linuxConfigStore = new LinuxHostConfigStore(Path.Combine(Path.GetDirectoryName(configPath)!, "linux-host.json"), log);
+                linuxConfig = linuxConfigStore.Config;
+                log.Information("配置文件：{Path}（{State}），Linux 宿主设置：{Linux}", configPath,
+                    fileConfig.CreatedDefault ? "新建" : "已读取", linuxConfigStore.Store.FilePath);
+            }
+            else
+            {
+                config = new AllConfig();
+                ApplyOverrides(config);
+                configService = new MemoryConfigService(config);
+                linuxConfig = new LinuxHostConfig();
+                log.Information("配置：只在内存中（不读写配置文件）");
             }
 
-            var configService = new MemoryConfigService(config);
+            if (options.CaptureMode is { } captureMode)
+            {
+                linuxConfig.CaptureMode = captureMode;
+            }
+
+            var manualWindow = new ManualWindowSelection(platform);
+            GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames, () => linuxConfig, log);
 
             // 3. 依赖注入
             var services = new ServiceCollection();
@@ -129,8 +188,12 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<TaskStopService>();
             services.AddSingleton<TaskTriggerDispatcher>();
             services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());
+            services.AddSingleton(linuxConfig);
+            services.AddSingleton(manualWindow);
             services.AddSingleton<IGameRuntimeProvider>(sp => ActivatorUtilities.CreateInstance<PlatformRuntimeProvider>(sp,
-                (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames))));
+                (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames)),
+                (Func<string?>)(() => linuxConfig.CaptureMode),
+                (Func<IPlatformWindow?>)manualWindow.Open));
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
             services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
             // OCR / ONNX 推理（CPU）
@@ -152,7 +215,7 @@ public sealed class GameHost : IAsyncDisposable
             var inputLogger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
             InputChannelBase.LoggerFactory = () => inputLogger;
 
-            return new GameHost(options, platform, probe, config, provider, log);
+            return new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
         }
         catch
         {
@@ -174,6 +237,15 @@ public sealed class GameHost : IAsyncDisposable
     /// <summary>启动截图器（找窗 → 截图 → 输入 → 触发器调度）；找不到游戏窗口等失败时返回 null</summary>
     public async Task<GameRuntime?> StartAsync(CancellationToken ct = default)
     {
+        if (ManualWindow.Handle is null && LinuxConfig.LaunchGameEnabled && !IsGameWindowPresent())
+        {
+            // 同时启动游戏：找不到游戏窗口时按设置的命令启动，等待窗口出现
+            if (!await LaunchGameAndWaitAsync(ct))
+            {
+                return null;
+            }
+        }
+
         var runtime = await RuntimeService.StartAsync(ct);
         if (runtime is null)
         {
@@ -185,6 +257,71 @@ public sealed class GameHost : IAsyncDisposable
             runtime.Window.Handle, runtime.Window.Viewport.ScreenRect, Config.TriggerInterval,
             Config.AutoPickConfig.Enabled, Config.AutoSkipConfig.Enabled);
         return runtime;
+    }
+
+    /// <summary>按进程名能否找到游戏窗口</summary>
+    public bool IsGameWindowPresent()
+    {
+        using var window = Platform.GameWindows.FindGameWindow(new GameWindowSearch(Options.ProcessNames));
+        return window is not null;
+    }
+
+    /// <summary>按 Linux 宿主设置启动游戏并等待游戏窗口出现</summary>
+    public async Task<bool> LaunchGameAndWaitAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            GameLauncher.Launch(LinuxConfig, _log);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "启动游戏失败");
+            UiHost.Dialogs.Error("启动游戏失败：" + e.Message);
+            return false;
+        }
+
+        var timeout = TimeSpan.FromSeconds(Math.Max(5, LinuxConfig.LaunchTimeoutSeconds));
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(1000, ct);
+            if (IsGameWindowPresent())
+            {
+                _log.Information("游戏窗口已出现");
+                // 等窗口完成映射与首帧绘制
+                await Task.Delay(1500, ct);
+                return true;
+            }
+        }
+
+        _log.Error("启动游戏后 {Seconds} 秒内没有找到游戏窗口（进程名 {Names}）", (int)timeout.TotalSeconds, string.Join(", ", Options.ProcessNames));
+        UiHost.Dialogs.Error($"启动游戏后 {(int)timeout.TotalSeconds} 秒内没有找到游戏窗口");
+        return false;
+    }
+
+    /// <summary>列出可选的顶层窗口（手动选择游戏窗口用），游戏窗口候选排在前面</summary>
+    public IReadOnlyList<WindowInfo> ListWindows()
+    {
+        var search = new GameWindowSearch(Options.ProcessNames);
+        using var game = Platform.GameWindows.FindGameWindow(search);
+        var result = new List<WindowInfo>();
+        foreach (var window in Platform.Windows.EnumerateWindows())
+        {
+            using (window)
+            {
+                var rect = window.Viewport.ScreenRect;
+                // 跳过太小、无标题的窗口和宿主自己的窗口
+                if (rect.Width < 64 || rect.Height < 64 || string.IsNullOrEmpty(window.Title) || window.ProcessId == Environment.ProcessId)
+                {
+                    continue;
+                }
+
+                result.Add(new WindowInfo(window.Handle, window.Title, window.ClassName, window.ProcessName, window.ProcessId,
+                    rect.Width, rect.Height, game is not null && game.Handle == window.Handle));
+            }
+        }
+
+        return [.. result.OrderByDescending(w => w.IsGameCandidate).ThenBy(w => w.Title, StringComparer.CurrentCulture)];
     }
 
     /// <summary>
@@ -233,7 +370,41 @@ public sealed class GameHost : IAsyncDisposable
             await RuntimeService.StopAsync();
         }
 
+        // 写入未保存的配置改动
+        _fileConfig?.Dispose();
+        _linuxConfigStore?.Dispose();
         await _provider.DisposeAsync();
         _platform.Dispose();
     }
+}
+
+/// <summary>截图方式</summary>
+public sealed record CaptureMethodInfo(string Id, string Name, string Description);
+
+/// <summary>可选择的顶层窗口</summary>
+public sealed record WindowInfo(nint Handle, string Title, string ClassName, string ProcessName, int ProcessId, int Width, int Height,
+    bool IsGameCandidate)
+{
+    public string Display => $"{Title}  [{ClassName}]  {ProcessName}（{ProcessId}） {Width}×{Height}" + (IsGameCandidate ? "  ★游戏窗口" : "");
+}
+
+/// <summary>手动选择的窗口：只记录句柄，每次启动截图器时重新打开（运行环境持有并释放打开的窗口对象）</summary>
+public sealed class ManualWindowSelection(IPlatformServices platform)
+{
+    private nint? _handle;
+
+    public nint? Handle
+    {
+        get => _handle;
+        set
+        {
+            _handle = value;
+            Changed?.Invoke();
+        }
+    }
+
+    public event Action? Changed;
+
+    /// <summary>打开选择的窗口；没有选择或窗口已关闭时返回 null</summary>
+    public IPlatformWindow? Open() => _handle is { } h ? platform.Windows.FromHandle(h) : null;
 }

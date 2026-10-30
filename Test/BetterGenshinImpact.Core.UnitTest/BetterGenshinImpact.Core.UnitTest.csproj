@@ -42,6 +42,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj"/>
         <ProjectReference Include="..\..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj"/>
+        <ProjectReference Include="..\..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj"/>
     </ItemGroup>
 
 </Project>

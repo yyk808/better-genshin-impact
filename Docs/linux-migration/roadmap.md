@@ -62,7 +62,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 ## 阶段 4：Avalonia UI（进行中，进展见 [phase4-avalonia.md](phase4-avalonia.md)）
 
 1. ✅ 新建 `BetterGenshinImpact.Avalonia`（`net10.0`，Avalonia 12）宿主：DI（与无界面宿主共用 `Host.Common` 的 `GameHost`）、日志面板、MainWindow 外壳（Avalonia 自带 Fluent 主题，样式仿原版 NavigationView / CardControl）、`UiHost` 的 Avalonia 实现（里程碑 26）。
-2. 首批页面：首页（启动截图器）、实时触发设置、遮罩 MaskWindow → 在 Linux 上跑通“启动截图 → 自动拾取 / 自动剧情”。（首页与实时触发已完成并在假游戏上跑通拾取 / 剧情；遮罩未做）
+2. 首批页面：首页（启动截图器）、实时触发设置、遮罩 MaskWindow → 在 Linux 上跑通“启动截图 → 自动拾取 / 自动剧情”。（首页与实时触发已完成并在假游戏上跑通拾取 / 剧情；里程碑 27 补全首页的截图模式、手动选择窗口、同时启动游戏，并实现 Linux 上的配置持久化 `User/config.json`（与 Windows 格式相同）；遮罩未做）
 3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。
 4. WebView2 相关（云原神、HTML 遮罩、脚本设置页）最后迁移，Linux 用 Avalonia NativeWebView（WebKitGTK）。
 5. WPF UI 在过渡期保留，Windows 版可以先继续使用。

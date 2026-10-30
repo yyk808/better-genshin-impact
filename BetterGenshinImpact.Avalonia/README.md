@@ -10,7 +10,7 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 | 部分 | 说明 |
 | --- | --- |
 | 主窗口外壳 | 左侧导航 + 内容区 + 底部日志面板，配色和卡片样式参照原版（WPF-UI 深色） |
-| 启动 | 启动 / 停止截图器，显示游戏窗口、已处理帧数、触发器间隔 |
+| 启动 | 启动 / 停止截图器；截图模式、触发器间隔、手动选择捕获窗口（列出 X11 窗口）；同时启动原神（Wine / Proton 等命令可配置）；游戏窗口、已处理帧数 |
 | 实时触发 | 自动拾取（极速模式、黑白名单模式、拾取按键）、自动剧情（快速跳过、选项优先级等）、自动邀约、自动开门、半自动钓鱼、自动吃药、快速传送 |
 | 环境 | 平台探测结果（显示服务器、X 扩展）、推理设备、OpenCV 版本与原生库、OpenCV 模块自检、界面字体、素材目录 |
 | 日志面板 | Serilog 日志实时显示，可切换调试日志、复制（经 `UiHost.Clipboard`）、清空、收起 |
@@ -19,7 +19,14 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 其余导航项（独立任务、任务计划、一条龙、全自动、设置）目前是说明页。
 
 实时触发页直接绑定 Core 的 `AllConfig`，与 WPF 的 `TriggerSettingsPageViewModel` 绑定的是同一批配置属性；
-触发器每帧读取 `IsEnabledByConfig`，开关立即生效。配置目前只保存在内存中（`MemoryConfigService`），不写回文件。
+触发器每帧读取 `IsEnabledByConfig`，开关立即生效。
+
+## 配置文件
+
+- `User/config.json`：与 Windows 主程序格式相同，两边可以互相拷贝；改动后 500 ms 防抖写入（临时文件 + 改名），退出时写完。
+- `User/linux-host.json`：Linux 专有设置（截图方式、同时启动游戏的命令、游戏路径、工作目录、环境变量、等待超时）。
+
+`User` 目录在素材目录下（`--assets`），也可以用 `--config 文件` 指定，`linux-host.json` 放在同一目录。
 
 ## 主题选择
 
@@ -54,11 +61,15 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--assets 目录` | 素材 / 模型 / User 目录的根目录 |
 | `--process 名称,名称` | 游戏进程名，默认 `YuanShen,GenshinImpact` |
 | `--interval 毫秒` | 触发器间隔，默认 50 |
-| `--no-pick` / `--no-skip` | 初始关闭自动拾取 / 自动剧情 |
+| `--pick` / `--no-pick`、`--skip` / `--no-skip` | 打开 / 关闭自动拾取、自动剧情（覆盖配置文件，之后保存时写回） |
+| `--config 文件` | 配置文件路径，默认 `<素材目录>/User/config.json` |
+| `--no-save-config` | 不读写配置文件，只用内存中的默认配置 |
+| `--capture 方式` | 截图方式：`ShmRoot`（默认）、`GetImageRoot`、`GetImageWindow` |
 | `--auto-enter` / `--no-auto-enter` | 自动开门初始开关 |
 | `--log 文件` | 同时写日志文件 |
 | `--page 页面名` | 启动后切换到指定页面（如 `实时触发`） |
 | `--auto-start` | 窗口打开后自动启动截图器 |
 | `--screenshots 目录` | 无人值守：运行一段时间后依次切换页面保存界面截图 |
 | `--exit-after 秒` | 无人值守：到时退出 |
-| `--ui-selftest` | `UiHost` 自检：后台线程调度、剪贴板读回、轻提示、消息框 |
+| `--ui-selftest` | `UiHost` 自检：后台线程调度、剪贴板读回、配置防抖保存、轻提示、消息框 |
+| `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |

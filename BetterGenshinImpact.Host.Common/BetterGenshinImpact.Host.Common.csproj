@@ -53,6 +53,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<!-- ONNX Runtime 原生库（linux-x64 为 libonnxruntime.so，CPU 推理），版本与 Core 的 Microsoft.ML.OnnxRuntime.Managed 一致 -->

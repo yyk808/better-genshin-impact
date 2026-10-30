@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="using:BetterGenshinImpact.Host.Common"
+        x:Class="BetterGenshinImpact.Avalonia.Views.WindowPickerWindow"
+        Title="选择捕获窗口" Width="760" Height="480" WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgiWindowBrush}">
+    <DockPanel Margin="20,16">
+        <TextBlock DockPanel.Dock="Top" Classes="desc" Margin="0,0,0,10" TextWrapping="Wrap"
+                   Text="原神已经启动、但点击“启动”仍提示找不到窗口时使用。列出 X11 顶层窗口（★ 为按进程名找到的游戏窗口），选择后在下次启动截图器时生效，只在本次运行有效。" />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+            <Button Content="刷新" Click="OnRefresh" />
+            <Button x:Name="OkButton" Classes="accent" Content="确定" MinWidth="80" HorizontalContentAlignment="Center" Click="OnOk" IsDefault="True" />
+            <Button Content="取消" MinWidth="80" HorizontalContentAlignment="Center" Click="OnCancel" IsCancel="True" />
+        </StackPanel>
+        <Border Classes="card" Padding="0">
+            <ListBox x:Name="WindowList" Background="Transparent" DoubleTapped="OnOk">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="hc:WindowInfo">
+                        <StackPanel Margin="4,2">
+                            <TextBlock Text="{Binding Title}" FontWeight="Medium" />
+                            <TextBlock Classes="desc" Text="{Binding Display}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+    </DockPanel>
+</Window>
