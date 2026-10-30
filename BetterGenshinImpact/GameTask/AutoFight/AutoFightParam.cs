@@ -15,7 +15,7 @@ public class AutoFightParam : BaseTaskParam<AutoFightTask>
     /// <summary>
     /// 配置根。参数类可以被脚本和界面直接 new，没有创建方可以传配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 自动连招（LLM 行为树）策略的固定名称；该名称不对应任何策略文件，

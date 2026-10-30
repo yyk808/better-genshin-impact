@@ -41,7 +41,7 @@ public partial class AllConfig : ObservableObject
     ///     窗口捕获的方式
     /// </summary>
     [ObservableProperty]
-    private string _captureMode = CaptureModes.BitBlt.ToString();
+    private string _captureMode = "BitBlt"; // 与 Fischless.GameCapture.CaptureModes.BitBlt.ToString() 相同（配置不引用 Windows 截图库）
 
     /// <summary>
     ///     详细的错误日志
@@ -348,6 +348,7 @@ public partial class AllConfig : ObservableObject
 
     public void OnNotificationPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
-        NotificationService.Instance().RefreshNotifiers();
+        // 与原 NotificationService.Instance().RefreshNotifiers() 相同：取容器中的通知服务单例，未初始化时抛出同样的异常
+        INotificationHub.Instance().RefreshNotifiers();
     }
 }

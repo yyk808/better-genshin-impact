@@ -95,7 +95,7 @@ internal static class RuntimeHelper
                     // 轮询等待 Config 初始化完成（最多等待 3 秒）
                     var timeout = TimeSpan.FromSeconds(3);
                     var startTime = DateTime.Now;
-                    while (ConfigService.Config == null && DateTime.Now - startTime < timeout)
+                    while (ConfigHost.Config == null && DateTime.Now - startTime < timeout)
                     {
                         await Task.Delay(50);
                     }

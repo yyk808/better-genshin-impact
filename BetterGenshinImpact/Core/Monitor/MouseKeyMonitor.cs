@@ -26,7 +26,7 @@ public partial class MouseKeyMonitor : IDisposable
     /// <summary>
     ///     配置根。由页面直接 new，没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     ///     长按F变F连发

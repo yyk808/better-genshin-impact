@@ -113,7 +113,7 @@ public static class AvatarRecognition
     /// <summary>
     /// 配置根。静态工具类没有创建方可以传配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 传奇血条动态追踪字典：(xBin, yBin) → 连续出现计数。

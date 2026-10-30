@@ -10,7 +10,7 @@ public class AvatarMacro
     /// <summary>
     /// 配置根。本类由 avatar_macro.json 反序列化得到，没有创建方可以传配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     public string Name { get; set; } = string.Empty;
     public string ScriptContent1 { get; set; } = string.Empty;

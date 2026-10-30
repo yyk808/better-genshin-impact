@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Service;
 using Microsoft.Extensions.Localization;
 using System;
@@ -27,7 +28,7 @@ public abstract class BaseTaskParam<T> where T : class
     public BaseTaskParam(CultureInfo? gameCultureInfo, IStringLocalizer<T>? stringLocalizer)
     {
         // 参数类可以由脚本直接 new，没有创建方传入配置，语言回退暂时读配置根（见 task-context-removal.md 第 5 节）
-        GameCultureInfo = gameCultureInfo ?? new CultureInfo(ConfigService.Config!.OtherConfig.GameCultureInfoName);
+        GameCultureInfo = gameCultureInfo ?? new CultureInfo(ConfigHost.Config!.OtherConfig.GameCultureInfoName);
         StringLocalizer = stringLocalizer ?? CoreServices.GetService<IStringLocalizer<T>>() ?? throw new Exception();
     }
 }

@@ -17,7 +17,7 @@ public class WindowHelper
     public static void TryApplySystemBackdrop(System.Windows.Window window)
     {
         // 静态方法没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
-        var themeType = ConfigService.Config!.CommonConfig.CurrentThemeType;
+        var themeType = ConfigHost.Config!.CommonConfig.CurrentThemeType;
 
         // Wine 平台适配
         if (WinePlatformAddon.IsRunningOnWine)

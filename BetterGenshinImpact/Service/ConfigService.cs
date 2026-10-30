@@ -98,7 +98,11 @@ public class ConfigService : IConfigService
     /// 全局唯一的配置实例，任何线程都可以读写。
     /// 写入只会登记改动并异步落盘，序列化统一在 UI 线程进行。
     /// </summary>
-    public static AllConfig? Config { get; private set; }
+    public static AllConfig? Config
+    {
+        get => ConfigHost.Config;
+        private set => ConfigHost.Config = value;
+    }
 
     public ConfigService()
     {

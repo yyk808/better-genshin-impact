@@ -13,7 +13,7 @@ public static class SimulateKeyHelper
     /// <summary>
     /// 键位配置。经 SimulateAction 有大量间接调用点，暂时读配置根，随 InputHub 一起收敛（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static KeyBindingsConfig KeyConfig => ConfigService.Config!.KeyBindingsConfig;
+    private static KeyBindingsConfig KeyConfig => ConfigHost.Config!.KeyBindingsConfig;
 
     public static KeyId ToActionKey(this GIActions action)
     {

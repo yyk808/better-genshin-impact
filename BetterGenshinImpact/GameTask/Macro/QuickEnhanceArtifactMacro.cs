@@ -14,7 +14,7 @@ public class QuickEnhanceArtifactMacro
     /// <summary>
     /// 配置根。静态方法没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 一键强化热键入口。运行环境是否存在由热键调用方判断

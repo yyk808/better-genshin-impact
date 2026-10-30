@@ -24,7 +24,7 @@ public sealed class PuloniaRepositoryManagementService
     /// 与现有官方弹窗共用的渠道配置，避免保存第二份官方选择。
     /// 本服务也由窗口和页面直接 new（构造只接收仓库存储），没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    public ScriptConfig OfficialConfig => ConfigService.Config!.ScriptConfig;
+    public ScriptConfig OfficialConfig => ConfigHost.Config!.ScriptConfig;
 
     /// <summary>复用调用方的存储，所有 Git 操作仍经过统一更新器的互斥。</summary>
     public PuloniaRepositoryManagementService(ScriptRepositoryStore repositories) => Repositories = repositories;

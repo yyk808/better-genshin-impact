@@ -23,7 +23,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
     /// <summary>
     /// 配置根。单例没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     private readonly ILogger<GlobalKeyMouseRecord> _logger = CoreServices.GetLogger<GlobalKeyMouseRecord>();
 

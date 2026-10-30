@@ -1,4 +1,5 @@
-﻿using BetterGenshinImpact.GameTask.AutoPathing.Model.Enum;
+﻿using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.GameTask.AutoPathing.Model.Enum;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
@@ -58,7 +59,7 @@ public class PathingTaskInfo
     /// TemplateMatch 支持分层地图
     /// 数据类由 JSON 反序列化创建，没有创建方传入配置，默认值暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    public string MapMatchMethod { get; set; } = ConfigService.Config!.PathingConditionConfig.MapMatchingMethod;
+    public string MapMatchMethod { get; set; } = ConfigHost.Config!.PathingConditionConfig.MapMatchingMethod;
     
     
     public List<MaterialInfo> Items { get; set; } = [];

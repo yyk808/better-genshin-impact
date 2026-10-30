@@ -25,7 +25,7 @@ namespace BetterGenshinImpact.Service.Notification;
 /// <summary>
 ///     通知服务类，管理和分发各种通知
 /// </summary>
-public class NotificationService : IHostedService, IDisposable
+public class NotificationService : IHostedService, IDisposable, INotificationHub
 {
     private readonly NotifierManager _notifierManager;
     private readonly GameRuntimeService _gameRuntimeService;

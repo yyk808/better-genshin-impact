@@ -48,7 +48,7 @@ public class AutoDomainParam : BaseTaskParam<AutoDomainTask>
     /// <summary>
     /// 配置根。参数类由脚本和界面直接 new，没有创建方可以传入配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>仅本次运行使用。null 沿用游戏培养计划；JSON 数组元素为 material 和 target（目标库存）。</summary>
     public string? TrainingTargetsJson { get; set; }

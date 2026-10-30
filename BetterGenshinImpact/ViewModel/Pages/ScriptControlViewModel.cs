@@ -84,7 +84,7 @@ public partial class ScriptControlViewModel : ViewModel
     /// <summary>
     /// 静态方法没有创建方可以传配置时使用的配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig RootConfig => BetterGenshinImpact.Service.ConfigService.Config!;
+    private static AllConfig RootConfig => BetterGenshinImpact.Core.Config.ConfigHost.Config!;
 
     public ScriptControlViewModel(ISnackbarService snackbarService, IScriptService scriptService, AllConfig config)
     {

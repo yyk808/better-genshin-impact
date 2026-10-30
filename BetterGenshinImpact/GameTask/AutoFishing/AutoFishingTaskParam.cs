@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
         /// <summary>
         /// 配置根。参数类由脚本和界面直接构建，没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
         /// </summary>
-        private static AllConfig Config => ConfigService.Config!;
+        private static AllConfig Config => ConfigHost.Config!;
 
         /// <summary>
         /// 使用默认值创建参数（与 <see cref="AutoFishingConfig"/> 的默认值一致），供 JSON 反序列化和默认参数使用

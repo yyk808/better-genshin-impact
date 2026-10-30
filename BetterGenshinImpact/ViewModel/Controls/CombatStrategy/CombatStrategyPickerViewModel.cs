@@ -117,7 +117,7 @@ public partial class CombatStrategyPickerViewModel : ObservableObject
         .Where(b => b != SelectedCategory && b.MatchCount > 0);
     /// <summary>未配置热键时的引导及录制使用建议。</summary>
     public string RecordHint => "适合站位固定的场景，例如秘境、首领。单段宏建议不超过 20 秒。"
-        + (string.IsNullOrWhiteSpace(Service.ConfigService.Config?.HotKeyConfig.KeyMouseMacroRecordHotkey)
+        + (string.IsNullOrWhiteSpace(BetterGenshinImpact.Core.Config.ConfigHost.Config?.HotKeyConfig.KeyMouseMacroRecordHotkey)
             ? " 可在热键设置中配置键鼠录制热键。" : " 可使用键鼠录制热键停止。 ");
 
     /// <summary>每个控件创建自己的 VM，复用全局录制与导航服务。</summary>

@@ -61,7 +61,7 @@ public partial class MacroConfig : ObservableObject
     ///     一键战斗宏快捷键模式
     /// </summary>
     [ObservableProperty]
-    private string _combatMacroHotkeyMode = OneKeyFightTask.HoldOnMode;
+    private string _combatMacroHotkeyMode = "按住时重复(新)"; // 与 OneKeyFightTask.HoldOnMode 相同（配置不引用任务类）
 
     /// <summary>
     ///     一键战斗宏优先级
@@ -73,7 +73,7 @@ public partial class MacroConfig : ObservableObject
     ///     一键领取奖励快捷键模式
     /// </summary>
     [ObservableProperty]
-    private string _oneKeyClaimRewardHotkeyMode = OneKeyClaimRewardTask.ClickOnceMode;
+    private string _oneKeyClaimRewardHotkeyMode = "点按一次"; // 与 OneKeyClaimRewardTask.ClickOnceMode 相同（配置不引用任务类）
 
     /// <summary>
     ///     一键领取奖励未找到领取图标时滚轮下滑

@@ -49,7 +49,7 @@ public class BaseNotificationData
     {
         try
         {
-            NotificationService.Instance().NotifyAllNotifiers(this);
+            INotificationHub.Instance().NotifyAllNotifiers(this); // 原为 NotificationService.Instance()，同一单例
         }
         catch (Exception e)
         {

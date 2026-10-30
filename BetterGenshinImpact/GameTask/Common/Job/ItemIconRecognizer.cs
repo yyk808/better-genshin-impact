@@ -48,7 +48,7 @@ public static class ItemIconRecognizerFactory
     public static IItemIconRecognizer CreateConfigured()
     {
         // 静态工厂没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
-        return Create(ConfigService.Config!.OtherConfig.ItemIconRecognitionMode);
+        return Create(ConfigHost.Config!.OtherConfig.ItemIconRecognitionMode);
     }
 
     /// <summary>

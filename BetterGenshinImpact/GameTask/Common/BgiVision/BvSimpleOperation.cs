@@ -23,7 +23,7 @@ public static partial class Bv
     /// <summary>
     /// 配置根。Bv 是静态识别方法集合，没有创建方可以传参，暂时读静态入口（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 通用方法：查找识别对象，如果存在则点击

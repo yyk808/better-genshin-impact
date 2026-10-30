@@ -88,7 +88,7 @@ public class ScriptProject
     /// <summary>
     /// 配置根。ScriptProject 由界面和 Pulonia 直接 new，没有创建方可以传入配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 为本次脚本执行创建并初始化独立的 V8 引擎。

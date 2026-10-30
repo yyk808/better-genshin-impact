@@ -266,7 +266,7 @@ public partial class PathingPartyConfig : ObservableObject
     {
         // 运行时回退配置保持禁用标记，确保继续使用地图追踪条件和独立战斗配置
         // 数据类的静态方法没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
-        var pathingConditionConfig = ConfigService.Config!.PathingConditionConfig;
+        var pathingConditionConfig = ConfigHost.Config!.PathingConditionConfig;
         return new PathingPartyConfig
         {
             Enabled = false,

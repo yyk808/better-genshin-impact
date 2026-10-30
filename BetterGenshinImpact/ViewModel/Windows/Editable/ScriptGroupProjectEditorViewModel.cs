@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -141,7 +142,7 @@ public class ScriptGroupProjectEditorViewModel : ObservableObject, IDisposable
         }
 
         // 调用方没有传入时读配置根：本 ViewModel 由界面直接 new，没有注入入口（见 task-context-removal.md 第 5 节）
-        _globalNotificationConfig = globalNotificationConfig ?? BetterGenshinImpact.Service.ConfigService.Config!.NotificationConfig;
+        _globalNotificationConfig = globalNotificationConfig ?? BetterGenshinImpact.Core.Config.ConfigHost.Config!.NotificationConfig;
         // 监听全局配置变更
         _project.PropertyChanged += OnProjectPropertyChanged;
     }

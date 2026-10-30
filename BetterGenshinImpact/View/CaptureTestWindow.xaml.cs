@@ -1,4 +1,5 @@
-﻿using BetterGenshinImpact.GameTask;
+﻿using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.GameTask;
 using Fischless.GameCapture;
 using System;
 using System.Collections.Generic;
@@ -54,7 +55,7 @@ public partial class CaptureTestWindow
         _capture.Start(new Win32PlatformWindow(hWnd),
             new Dictionary<string, object>()
             {
-                { "autoFixWin11BitBlt", OsVersionHelper.IsWindows11 && ConfigService.Config!.AutoFixWin11BitBlt }
+                { "autoFixWin11BitBlt", OsVersionHelper.IsWindows11 && ConfigHost.Config!.AutoFixWin11BitBlt }
             }
         );
 

@@ -40,7 +40,7 @@ public class SystemControl
     /// <summary>
     /// 配置根。SystemControl 是静态的 Win32 函数集合，没有创建方可以传参，暂时读静态入口（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 游戏进程名列表：传入已绑定的 Win32 游戏窗口时只返回该窗口的进程名，否则返回候选进程名（含安装路径中的自定义 exe 名）

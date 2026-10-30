@@ -45,7 +45,7 @@ public class OneKeyFightTask : Singleton<OneKeyFightTask>
     /// <summary>
     /// 配置根。热键单例没有创建方可以传配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
     private readonly object _pressedKeysLock = new();
     private readonly HashSet<string> _pressedKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _pressedMouseKeys = new(StringComparer.OrdinalIgnoreCase);

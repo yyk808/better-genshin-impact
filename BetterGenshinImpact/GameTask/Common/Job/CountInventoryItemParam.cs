@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.Model.GameUI;
 using BetterGenshinImpact.Service;
 using System;
@@ -30,7 +31,7 @@ public class CountInventoryItemParam
     public CountInventoryItemParam()
     {
         // 参数类由脚本直接 new，没有创建方可以传入配置，读配置根（见 task-context-removal.md 第 5 节）
-        IconRecognitionMode = ConfigService.Config!.OtherConfig.ItemIconRecognitionMode;
+        IconRecognitionMode = ConfigHost.Config!.OtherConfig.ItemIconRecognitionMode;
     }
 
     public void Validate()

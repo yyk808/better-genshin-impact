@@ -60,7 +60,7 @@ public partial class ScriptRepoWindow
     [ObservableProperty] private int _updateProgressValue;
     [ObservableProperty] private string _updateProgressText = "准备更新，请耐心等待...";
     // 窗口由调用方直接 new，没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
-    [ObservableProperty] private ScriptConfig _config = ConfigService.Config!.ScriptConfig;
+    [ObservableProperty] private ScriptConfig _config = ConfigHost.Config!.ScriptConfig;
 
     // Git 凭据相关属性
     private const string GitCredentialAppName = "BetterGenshinImpact.GitCredentials";

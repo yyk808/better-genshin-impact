@@ -194,7 +194,7 @@ public partial class ScriptGroupProject : ObservableObject
     /// <summary>
     /// 配置根。ScriptGroupProject 是 JSON 反序列化的数据类，没有创建方可以传入配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     /// <summary>
     /// 使用所属顶层任务的运行环境与取消令牌执行当前脚本项目。

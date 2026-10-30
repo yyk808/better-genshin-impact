@@ -65,7 +65,7 @@ public static class ChatUiHotkeyGuard
     public static void PrimeFromChatKey(Keys keyCode)
     {
         // 静态门控没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）
-        if (keyCode != ConfigService.Config!.KeyBindingsConfig.OpenChatScreen.ToWinFormKeys())
+        if (keyCode != ConfigHost.Config!.KeyBindingsConfig.OpenChatScreen.ToWinFormKeys())
         {
             return;
         }

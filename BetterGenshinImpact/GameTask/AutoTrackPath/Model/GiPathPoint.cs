@@ -1,4 +1,5 @@
-﻿using BetterGenshinImpact.GameTask.Common.Map;
+﻿using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.GameTask.Common.Map;
 using OpenCvSharp;
 using System;
 using BetterGenshinImpact.GameTask.Common.Map.Maps;
@@ -27,7 +28,7 @@ public class GiPathPoint
     public static GiPathPoint BuildFrom(Point2f point, int index)
     {
         // 数据类的静态工厂没有创建方传入配置，暂时读配置根（见 task-context-removal.md 第 5 节）
-        var matchingMethod = ConfigService.Config!.PathingConditionConfig.MapMatchingMethod;
+        var matchingMethod = ConfigHost.Config!.PathingConditionConfig.MapMatchingMethod;
         var pt = MapManager.GetMap(MapTypes.Teyvat, matchingMethod).ConvertImageCoordinatesToGenshinMapCoordinates(point);
         return new GiPathPoint
         {

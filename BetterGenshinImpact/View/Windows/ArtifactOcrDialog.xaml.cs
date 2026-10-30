@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Recognition.OCR;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.AutoArtifactSalvage;
@@ -41,7 +42,7 @@ public partial class ArtifactOcrDialog
         this.heightRatio = heightRatio;
         this.javaScript = javaScript;
         // 对话框由调用方直接 new，没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
-        this.salvageTaskParam = new AutoArtifactSalvageTaskParam(5, null, null, null, null, new CultureInfo(ConfigService.Config!.OtherConfig.GameCultureInfoName));
+        this.salvageTaskParam = new AutoArtifactSalvageTaskParam(5, null, null, null, null, new CultureInfo(ConfigHost.Config!.OtherConfig.GameCultureInfoName));
 
         InitializeComponent();
         SourceInitialized += (s, e) => WindowHelper.TryApplySystemBackdrop(this);

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -121,7 +122,7 @@ public static class ResinRewardPrompt
     /// <param name="ct">取消令牌。</param>
     public static bool SwitchOriginalTier(GameRuntime runtime, int expectedNum, ILogger logger, string logPrefix, CancellationToken ct)
     {
-        var culture = new CultureInfo(ConfigService.Config!.OtherConfig.GameCultureInfoName);
+        var culture = new CultureInfo(ConfigHost.Config!.OtherConfig.GameCultureInfoName);
         var pattern = ResolveResinNamePattern(ResinKind.Original, Localizer(), culture);
         for (var attempt = 0; attempt < 10; attempt++)
         {

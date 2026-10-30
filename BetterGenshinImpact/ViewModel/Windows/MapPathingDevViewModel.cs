@@ -24,7 +24,7 @@ public partial class MapPathingDevViewModel: ObservableObject
     /// <summary>
     /// 开发者配置。本 ViewModel 由窗口直接 new，没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    public DevConfig DevConfig { get; set; } = BetterGenshinImpact.Service.ConfigService.Config!.DevConfig;
+    public DevConfig DevConfig { get; set; } = BetterGenshinImpact.Core.Config.ConfigHost.Config!.DevConfig;
     
     [RelayCommand]
     private void DropDownChanged()

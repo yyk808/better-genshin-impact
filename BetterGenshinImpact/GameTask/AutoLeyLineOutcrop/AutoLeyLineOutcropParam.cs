@@ -50,7 +50,7 @@ public class AutoLeyLineOutcropParam:BaseTaskParam<AutoLeyLineOutcropTask>
     /// <summary>
     /// 配置根。参数类由脚本和界面直接 new，没有创建方可以传入配置，暂时读配置根（见 task-context-removal.md 第 5 节）
     /// </summary>
-    private static AllConfig Config => ConfigService.Config!;
+    private static AllConfig Config => ConfigHost.Config!;
 
     // 刷取次数
     /// <summary>JS 兼容属性，已赋值时读取暂存值，否则投影统一设置，调用 ResolveResinUsage 后归一化。</summary>
