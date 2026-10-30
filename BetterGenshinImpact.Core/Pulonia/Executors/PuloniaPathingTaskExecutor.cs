@@ -11,7 +11,6 @@ using BetterGenshinImpact.GameTask.AutoPathing;
 using BetterGenshinImpact.GameTask.AutoPathing.Model;
 using BetterGenshinImpact.Pulonia.Models;
 using BetterGenshinImpact.Pulonia.Services;
-using BetterGenshinImpact.ViewModel.Pages;
 using Newtonsoft.Json.Linq;
 
 namespace BetterGenshinImpact.Pulonia.Executors;

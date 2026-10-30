@@ -1,6 +1,9 @@
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.Core.Recorder;
+using BetterGenshinImpact.Core.Script.Repositories;
+using BetterGenshinImpact.Pulonia.Executors;
+using BetterGenshinImpact.Pulonia.Services;
 using BetterGenshinImpact.Host.Common.Notification;
 using BetterGenshinImpact.Infrastructure.Network;
 using BetterGenshinImpact.Service.Notification;
@@ -293,6 +296,31 @@ public sealed class GameHost : IAsyncDisposable
             // 服务器时间（月卡判断、按服务器日期的执行周期等使用，与 WPF 相同）
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IServerTimeProvider, ServerTimeProvider>();
+            // 任务计划（Pulonia）：模型、存储、执行服务与执行器都在 Core，与 Windows 相同；
+            // 没有多实例与账号切换（不注册远程派发、账号切换器），登录凭据不保存
+            services.AddSingleton<PuloniaTaskStore>();
+            services.AddSingleton(_ => ScriptRepositoryStore.Shared);
+            services.AddSingleton<PuloniaTaskBuilder>();
+            services.AddSingleton<PuloniaTaskClipboardService>();
+            services.AddSingleton<PuloniaCSharpTaskRegistry>();
+            services.AddSingleton<PuloniaGameTaskCoordinator>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaCSharpTaskExecutor>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaShellTaskExecutor>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaPathingTaskExecutor>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaJavaScriptTaskExecutor>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaKeyMouseTaskExecutor>();
+            services.AddSingleton<IPuloniaTaskExecutor, PuloniaSoloTaskExecutor>();
+            services.AddSingleton<PuloniaTaskResourceCatalog>();
+            services.AddSingleton<PuloniaTaskCreationService>();
+            services.AddSingleton<IPuloniaTaskService>(sp => new PuloniaTaskService(
+                sp.GetRequiredService<PuloniaTaskStore>(),
+                sp.GetRequiredService<PuloniaTaskBuilder>(),
+                sp.GetServices<IPuloniaTaskExecutor>(),
+                sp.GetRequiredService<PuloniaGameTaskCoordinator>(),
+                sp.GetRequiredService<TaskStopService>(),
+                sp.GetRequiredService<TimeProvider>(),
+                logger: sp.GetRequiredService<ILogger<PuloniaTaskService>>()));
+            services.AddSingleton<PuloniaSchedulerHost>();
             configureServices?.Invoke(services);
             var provider = services.BuildServiceProvider();
             CoreServices.SetProvider(() => provider);

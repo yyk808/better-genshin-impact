@@ -6,7 +6,6 @@ using BetterGenshinImpact.Core.Script;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Runtime;
-using BetterGenshinImpact.View;
 using Microsoft.Extensions.Logging;
 
 namespace BetterGenshinImpact.Pulonia.Services;
@@ -56,7 +55,7 @@ public sealed class PuloniaGameTaskCoordinator
             ct.ThrowIfCancellationRequested();
 
             // 自动更新会删除并重新检出用户脚本目录，与 TaskRunner 一样等它结束后再执行节点
-            await ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync(ct).ConfigureAwait(false);
+            await BetterGenshinImpact.Core.Script.ScriptAutoUpdateGate.WaitForAutoUpdateAsync(ct).ConfigureAwait(false);
 
             // Pulonia 节点始终沿调用链使用本次运行令牌，不创建独立任务执行作用域。
             BeginTaskState(runtime);
@@ -115,7 +114,7 @@ public sealed class PuloniaGameTaskCoordinator
                 {
                     try
                     {
-                        HtmlMaskWindow.CloseAll();
+                        BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current.CloseAll();
                     }
                     finally
                     {

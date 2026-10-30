@@ -22,6 +22,9 @@
         <DataTemplate DataType="vm:SettingsPageViewModel">
             <views:SettingsPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:TaskPlanPageViewModel">
+            <views:TaskPlanPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:AutoPageViewModel">
             <views:AutoPage />
         </DataTemplate>

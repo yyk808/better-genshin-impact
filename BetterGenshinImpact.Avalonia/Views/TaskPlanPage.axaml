@@ -1,0 +1,148 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             x:Class="BetterGenshinImpact.Avalonia.Views.TaskPlanPage"
+             x:DataType="vm:TaskPlanPageViewModel">
+    <DockPanel Margin="20,16,20,12">
+        <TextBlock DockPanel.Dock="Bottom" Classes="desc" Margin="4,8,0,0" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="230,*">
+            <!-- 左侧：计划列表 -->
+            <Border Grid.Column="0" Classes="card" Margin="0,0,10,0" Padding="10">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="4,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="↻" Padding="8,2" Command="{Binding ReloadCommand}" ToolTip.Tip="重新加载" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="计划" FontWeight="SemiBold" FontSize="16" />
+                            <TextBlock Classes="desc" Text="{Binding PlanCountText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="＋" Margin="6,0,0,0" Command="{Binding NewPlanCommand}" ToolTip.Tip="新建计划" />
+                            <TextBox Watermark="新计划名称" Text="{Binding NewPlanName}" />
+                        </DockPanel>
+                        <Button Content="删除计划" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Command="{Binding DeletePlanCommand}" IsEnabled="{Binding HasSelectedPlan}" />
+                        <TextBlock Classes="desc" Text="计划保存在 User/Pulonia，与 Windows 版共用" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Plans}" SelectedItem="{Binding SelectedPlan}" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TaskPlanItem">
+                                <DockPanel Margin="2,4">
+                                    <Button DockPanel.Dock="Right" Content="▶" Padding="8,2" VerticalAlignment="Center" ToolTip.Tip="运行"
+                                            Command="{Binding $parent[ListBox].((vm:TaskPlanPageViewModel)DataContext).RunPlanCommand}"
+                                            CommandParameter="{Binding}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Classes="desc" Text="{Binding Summary}" />
+                                            <TextBlock Classes="desc" Text="· 运行中" Foreground="#4CC2FF" IsVisible="{Binding IsRunning}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- 右侧：当前计划 -->
+            <Border Grid.Column="1" Classes="card" Padding="14,10">
+                <Panel>
+                    <TextBlock Classes="desc" Text="还没有任务计划，在左侧输入名称后点“＋”新建。" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsVisible="{Binding !HasSelectedPlan}" />
+                    <DockPanel IsVisible="{Binding HasSelectedPlan}">
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Button Classes="accent" Content="运行" MinWidth="72" HorizontalContentAlignment="Center"
+                                        Command="{Binding RunPlanCommand}" CommandParameter="{x:Null}" IsVisible="{Binding !IsSelectedPlanRunning}" />
+                                <Button Classes="danger" Content="停止" MinWidth="72" HorizontalContentAlignment="Center"
+                                        Command="{Binding StopPlanCommand}" IsVisible="{Binding IsSelectedPlanRunning}" />
+                            </StackPanel>
+                            <TextBlock Classes="pageTitle" FontSize="20" Text="{Binding SelectedPlan.Name, FallbackValue=''}" />
+                        </DockPanel>
+                        <TabControl SelectedIndex="{Binding SelectedTab}">
+                            <TabItem Header="任务">
+                                <DockPanel Margin="0,6,0,0">
+                                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                        <ComboBox ItemsSource="{Binding AddOptions}" SelectedItem="{Binding SelectedAddOption}" MinWidth="170"
+                                                  PlaceholderText="任务类型" Margin="0,0,6,4" />
+                                        <ComboBox ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" MinWidth="220" MaxWidth="360"
+                                                  IsVisible="{Binding HasResources}" Margin="0,0,6,4" />
+                                        <Button Content="＋ 添加" Command="{Binding AddTaskCommand}" Margin="0,0,6,4" />
+                                        <Button Content="分组" Command="{Binding AddGroupCommand}" Margin="0,0,14,4" />
+                                        <Button Content="↑" Command="{Binding MoveTaskCommand}" CommandParameter="up" Margin="0,0,4,4" ToolTip.Tip="上移" />
+                                        <Button Content="↓" Command="{Binding MoveTaskCommand}" CommandParameter="down" Margin="0,0,4,4" ToolTip.Tip="下移" />
+                                        <Button Content="删除" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
+                                    </WrapPanel>
+                                    <Border DockPanel.Dock="Top" Background="#14FFFFFF" CornerRadius="4" Padding="12,6">
+                                        <Grid ColumnDefinitions="*,110,60">
+                                            <TextBlock Classes="desc" Text="名称" />
+                                            <TextBlock Grid.Column="1" Classes="desc" Text="类型" />
+                                            <TextBlock Grid.Column="2" Classes="desc" Text="启用" />
+                                        </Grid>
+                                    </Border>
+                                    <Panel>
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" IsVisible="{Binding HasNoNodes}">
+                                            <TextBlock Text="这个计划还没有任务" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                            <TextBlock Classes="desc" Text="在上方选择任务类型（独立任务、录制回放、地图追踪、JS 脚本、Shell）后点“添加”" />
+                                        </StackPanel>
+                                        <ListBox ItemsSource="{Binding Nodes}" SelectedItem="{Binding SelectedNode}" Background="Transparent">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TaskPlanNodeRow">
+                                                    <Grid ColumnDefinitions="*,110,60" Opacity="{Binding RowOpacity}">
+                                                        <StackPanel Margin="{Binding Indent}">
+                                                            <TextBlock Text="{Binding Name}" />
+                                                            <TextBlock Classes="desc" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Classes="desc" Text="{Binding TypeText}" VerticalAlignment="Center" />
+                                                        <CheckBox Grid.Column="2" IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Panel>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem Header="执行记录">
+                                <DockPanel Margin="0,6,0,0">
+                                    <Button DockPanel.Dock="Top" HorizontalAlignment="Right" Content="刷新" Command="{Binding RefreshRunsCommand}" Margin="0,0,0,6" />
+                                    <ScrollViewer>
+                                        <ItemsControl ItemsSource="{Binding Runs}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TaskPlanRunRow">
+                                                    <Border Classes="row">
+                                                        <Grid ColumnDefinitions="90,*,60">
+                                                            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
+                                                            <StackPanel Grid.Column="1">
+                                                                <TextBlock Text="{Binding TimeText}" />
+                                                                <TextBlock Classes="desc" Text="{Binding Message}" TextWrapping="Wrap" MaxHeight="40" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Classes="desc" Text="{Binding SourceText}" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem Header="触发方式">
+                                <StackPanel Margin="0,8,0,0" Spacing="6">
+                                    <ItemsControl ItemsSource="{Binding Triggers}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Border Classes="row"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SchedulerStatus, StringFormat='调度：{0}'}" />
+                                </StackPanel>
+                            </TabItem>
+                        </TabControl>
+                    </DockPanel>
+                </Panel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

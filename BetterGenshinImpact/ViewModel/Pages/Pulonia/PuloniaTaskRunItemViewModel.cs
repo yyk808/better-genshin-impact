@@ -52,20 +52,7 @@ public sealed class PuloniaTaskRunItemViewModel : ObservableObject
     /// <summary>
     /// 当前状态的中文显示文本。
     /// </summary>
-    public string StatusText => Run.Status switch
-    {
-        PuloniaTaskRunStatus.Queued => "排队中",
-        PuloniaTaskRunStatus.Running => "运行中",
-        PuloniaTaskRunStatus.Cancelling => "停止中",
-        PuloniaTaskRunStatus.Succeeded => "已完成",
-        PuloniaTaskRunStatus.Failed => "已失败",
-        PuloniaTaskRunStatus.Cancelled => "已停止",
-        PuloniaTaskRunStatus.TimedOut => "已超时",
-        PuloniaTaskRunStatus.Interrupted => "已中断",
-        PuloniaTaskRunStatus.NeedsAttention => "待处理",
-        PuloniaTaskRunStatus.Expired => "已过期（未执行）",
-        _ => Run.Status.ToString()
-    };
+    public string StatusText => PuloniaTaskRunStatusText.Get(Run.Status);
 
     /// <summary>
     /// 状态的语义分类键，供列表与详情按类别着色：running=进行中、success=成功、failed=失败、attention=需关注，其余显示为中性灰。

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Pulonia.Models;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -130,6 +131,11 @@ internal static class AvaloniaHostProgram
             if (options.ScriptGroup is { } scriptGroup && host is not null)
             {
                 await RunScriptGroupUnattendedAsync(window, viewModel, scriptGroup, options.ScriptStopAfterSeconds, options.ScreenshotDirectory, log);
+            }
+
+            if (options.TaskPlan is { } taskPlan && host is not null)
+            {
+                await RunTaskPlanUnattendedAsync(window, viewModel, taskPlan, options.ScriptStopAfterSeconds, options.ScreenshotDirectory, log);
             }
 
             if (options.NotifyTest && host is not null)
@@ -363,6 +369,67 @@ internal static class AvaloniaHostProgram
         }
     }
 
+    /// <summary>无人值守：切到任务计划页，选中计划并点击运行；到时（大于 0 时）点击停止，等待运行结束</summary>
+    private static async Task RunTaskPlanUnattendedAsync(MainWindow window, MainWindowViewModel viewModel, string planName, int stopAfterSeconds,
+        string? dir, ILogger log)
+    {
+        viewModel.Navigate("任务计划");
+        var page = viewModel.TaskPlan;
+        await page.ReloadAsync();
+        var plan = page.Plans.FirstOrDefault(p => p.Name == planName || p.Plan.Id == planName);
+        if (plan is null)
+        {
+            log.Warning("任务计划页没有计划 {Name}", planName);
+            return;
+        }
+
+        page.SelectedPlan = plan;
+        await Task.Delay(500);
+        if (dir is not null)
+        {
+            Directory.CreateDirectory(dir);
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-taskplan.png"), log);
+        }
+
+        log.Information("无人值守：运行任务计划 {Name}，{Seconds} 秒后停止", planName, stopAfterSeconds);
+        if (await page.RunPlanAsync(plan) is not { } runId)
+        {
+            return;
+        }
+
+        using var cts = new CancellationTokenSource();
+        var wait = page.WaitForRunAsync(runId, cts.Token);
+        var waited = 0;
+        while (!wait.IsCompleted && (stopAfterSeconds <= 0 || waited < stopAfterSeconds * 10))
+        {
+            await Task.Delay(100);
+            waited++;
+        }
+
+        if (dir is not null)
+        {
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-taskplan-running.png"), log);
+        }
+
+        if (!wait.IsCompleted)
+        {
+            log.Information("无人值守：点击停止任务计划");
+            await page.StopPlanAsync();
+        }
+
+        var result = await wait;
+        log.Information("无人值守：任务计划已结束，状态 {Status}，{Message}", result is null ? "?" : PuloniaTaskRunStatusText.Get(result.Status), result?.Message);
+        await Task.Delay(500);
+        page.SelectedTab = 1;
+        await Task.Delay(500);
+        if (dir is not null)
+        {
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-taskplan-history.png"), log);
+        }
+
+        page.SelectedTab = 0;
+    }
+
     private static async Task ScrollIntoViewAsync(MainWindow window, object dataContext)
     {
         var target = window.GetVisualDescendants().OfType<Expander>().FirstOrDefault(e => ReferenceEquals(e.DataContext, dataContext));
@@ -465,7 +532,8 @@ internal sealed record AvaloniaOptions(
     int SoloStopAfterSeconds = 4,
     string? ScriptGroup = null,
     int ScriptStopAfterSeconds = 0,
-    bool NotifyTest = false)
+    bool NotifyTest = false,
+    string? TaskPlan = null)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -481,6 +549,7 @@ internal sealed record AvaloniaOptions(
         string? scriptGroup = null;
         var scriptStopAfter = 0;
         var notifyTest = false;
+        string? taskPlan = null;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -504,11 +573,13 @@ internal sealed record AvaloniaOptions(
                 case "--script-group": scriptGroup = Next(); break;
                 case "--script-stop-after": scriptStopAfter = int.Parse(Next()); break;
                 case "--notify-test": notifyTest = true; break;
+                // 无人值守运行任务计划（按名称），停止时间沿用 --script-stop-after
+                case "--task-plan": taskPlan = Next(); break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
         return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
-            scriptStopAfter, notifyTest);
+            scriptStopAfter, notifyTest, taskPlan);
     }
 }

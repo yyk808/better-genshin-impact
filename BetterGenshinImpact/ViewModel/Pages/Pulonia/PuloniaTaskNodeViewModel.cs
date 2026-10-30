@@ -62,22 +62,7 @@ public partial class PuloniaTaskNodeViewModel : ObservableObject
     /// <summary>
     /// 用户可见的任务类型名称。
     /// </summary>
-    public string TypeDisplayName => _model.Source?.Kind switch
-    {
-        "plan" => "计划引用",
-        "directory" => "目录引用",
-        _ => _model.TaskType switch
-        {
-            "group" => "分组",
-            "pathing" => "地图追踪",
-            "javascript" => "JS 脚本",
-            "keymouse" => "录制回放",
-            "shell" => "Shell",
-            "csharp" => "进程内 C#",
-            _ when PuloniaSoloTaskExecutor.IsSoloTaskType(_model.TaskType) => "独立任务",
-            _ => _model.TaskType
-        }
-    };
+    public string TypeDisplayName => PuloniaTaskTypeText.Get(_model);
 
     /// <summary>
     /// 任务树名称前与类型对应的图标，便于快速区分分组、引用与各类任务；分类与 <see cref="TypeDisplayName"/> 一致。

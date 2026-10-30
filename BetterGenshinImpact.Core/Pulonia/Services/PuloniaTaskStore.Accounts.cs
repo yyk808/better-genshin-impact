@@ -18,8 +18,25 @@ public sealed partial class PuloniaTaskStore
     /// <summary>Windows 凭据目标名前缀，后接账号 ID；同一账号的目标名固定，改密码时覆盖原条目。</summary>
     private const string CredentialTargetPrefix = "BetterGenshinImpact.Pulonia.Account.";
 
-    /// <summary>登录凭据的保存位置；默认使用 Windows 凭据管理器，测试可替换为内存实现。</summary>
-    internal IPuloniaCredentialVault CredentialVault { get; init; } = new PuloniaWindowsCredentialVault();
+    /// <summary>
+    /// 创建默认凭据保存位置。Windows 主程序加载时设为 Windows 凭据管理器；
+    /// 未设置的平台不支持保存登录凭据（写入时抛出异常，删除时忽略）
+    /// </summary>
+    internal static Func<IPuloniaCredentialVault> DefaultCredentialVaultFactory { get; set; } = static () => new UnsupportedCredentialVault();
+
+    /// <summary>登录凭据的保存位置；默认使用 <see cref="DefaultCredentialVaultFactory"/>，测试可替换为内存实现。</summary>
+    internal IPuloniaCredentialVault CredentialVault { get; init; } = DefaultCredentialVaultFactory();
+
+    /// <summary>不支持凭据保存的平台使用的实现</summary>
+    private sealed class UnsupportedCredentialVault : IPuloniaCredentialVault
+    {
+        public void Write(string target, string userName, string password) =>
+            throw new InvalidOperationException("当前平台不支持保存账号登录凭据");
+
+        public void Delete(string target)
+        {
+        }
+    }
 
     /// <summary>读取独立账号草稿；首次使用不要求创建任何账号。</summary>
     public async Task<PuloniaGenshinAccountSettings> LoadAccountSettingsAsync(CancellationToken ct = default)

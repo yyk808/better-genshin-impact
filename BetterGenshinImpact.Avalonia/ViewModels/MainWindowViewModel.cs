@@ -42,6 +42,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OneDragon = new OneDragonPageViewModel(host, Tasks, log);
         ScriptControl = new ScriptControlPageViewModel(host, log);
         Auto = new AutoPageViewModel(host, ScriptControl, log);
+        TaskPlan = new TaskPlanPageViewModel(host, log);
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
             taskId => Tasks.ToggleAsync(taskId));
@@ -50,9 +51,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new("启动", IconHome, Home),
             new("实时触发", IconBolt, Trigger),
             new("独立任务", IconTask, Tasks),
-            new("任务计划", IconCalendar, new PlaceholderPageViewModel("任务计划",
-                "Windows 版的“任务计划”是新的计划系统（计划、执行记录、路线 CD、触发方式），尚未迁移到 Avalonia 宿主。" +
-                "配置组（调度器）在“全自动 → 调度器”中，与 Windows 版共用 User/ScriptGroup。")),
+            new("任务计划", IconCalendar, TaskPlan),
             new("一条龙", IconDragon, OneDragon),
             new("全自动", IconAuto, Auto),
         ];
@@ -81,6 +80,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ScriptControlPageViewModel ScriptControl { get; }
 
     public AutoPageViewModel Auto { get; }
+
+    public TaskPlanPageViewModel TaskPlan { get; }
 
     public SettingsPageViewModel Settings { get; }
 
