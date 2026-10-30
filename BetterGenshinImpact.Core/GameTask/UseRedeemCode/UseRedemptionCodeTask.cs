@@ -15,7 +15,6 @@ using BetterGenshinImpact.GameTask.UseRedeemCode.Model;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Helpers.Extensions;
 using Microsoft.Extensions.Logging;
-using Vanara.PInvoke;
 using Rect = OpenCvSharp.Rect;
 
 namespace BetterGenshinImpact.GameTask.UseRedeemCode;
