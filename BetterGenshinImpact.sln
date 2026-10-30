@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Core", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Platform.Windows", "BetterGenshinImpact.Platform.Windows\BetterGenshinImpact.Platform.Windows.csproj", "{C7B31988-1913-402A-8D56-45E7615B5647}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Platform.Linux", "BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj", "{89C77465-F808-4DD7-9F68-873F4301470F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +107,14 @@ Global
 		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|Any CPU.Build.0 = Release|x64
 		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|x64.ActiveCfg = Release|x64
 		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|x64.Build.0 = Release|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Debug|Any CPU.Build.0 = Debug|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Debug|x64.ActiveCfg = Debug|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Debug|x64.Build.0 = Debug|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Release|Any CPU.ActiveCfg = Release|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Release|Any CPU.Build.0 = Release|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Release|x64.ActiveCfg = Release|x64
+		{89C77465-F808-4DD7-9F68-873F4301470F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

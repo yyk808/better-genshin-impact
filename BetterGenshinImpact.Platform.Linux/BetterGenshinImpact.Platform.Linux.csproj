@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Linux 平台实现（纯 net10.0）。第一阶段：X11 / XWayland 下的窗口枚举、截图（MIT-SHM / XGetImage）、
+		XTest 输入与 XGrabKey 全局热键，实现 BetterGenshinImpact.Core 中的平台接口。
+		代码从平台验证工程移植（只依赖 libX11 / libXext / libXtst，运行时通过 LibraryImport 加载）。
+		OpenCvSharp 的 native 运行时（OpenCvSharp4.official.runtime.linux-x64 或系统 libOpenCvSharpExtern）由宿主程序引用。
+	-->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>BetterGenshinImpact.Platform.Linux</RootNamespace>
+		<AssemblyName>BetterGenshinImpact.Platform.Linux</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>14.0</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Platforms>x64</Platforms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="BetterGenshinImpact.Platform" />
+	</ItemGroup>
+
+</Project>
