@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Media;
+using BetterGenshinImpact.Core.Mask;
 
 namespace BetterGenshinImpact.Helpers.Ui;
 
@@ -39,26 +40,8 @@ public static class OverlayStyleHelper
     /// 解析 #RRGGBB 或 #RRGGBBAA（注意 Alpha 在末尾，与 WPF 的 #AARRGGBB 不同）。
     /// 准星、技能 CD 等配置项使用这种格式。解析失败返回 null
     /// </summary>
-    public static Color? ParseRgbaHexColor(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var hex = value.Trim().TrimStart('#');
-        if ((hex.Length != 6 && hex.Length != 8)
-            || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
-        {
-            return null;
-        }
-
-        var r = byte.Parse(hex[0..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        var g = byte.Parse(hex[2..4], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        var b = byte.Parse(hex[4..6], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        var a = hex.Length == 8 ? byte.Parse(hex[6..8], NumberStyles.HexNumber, CultureInfo.InvariantCulture) : byte.MaxValue;
-        return Color.FromArgb(a, r, g, b);
-    }
+    public static Color? ParseRgbaHexColor(string? value) =>
+        MaskColorParser.ParseRgbaHex(value) is { } c ? Color.FromArgb(c.A, c.R, c.G, c.B) : null;
 
     public static SolidColorBrush CreateBrush(string? value, Color fallback)
     {

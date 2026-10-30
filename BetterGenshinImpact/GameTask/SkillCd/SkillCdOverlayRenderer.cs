@@ -2,13 +2,10 @@ using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask.AutoFight.Assets;
 using BetterGenshinImpact.GameTask.Runtime;
-using BetterGenshinImpact.Helpers.Ui;
 using BetterGenshinImpact.Service;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Windows.Media;
-using Point = System.Windows.Point;
 
 namespace BetterGenshinImpact.GameTask.SkillCd;
 
@@ -28,8 +25,8 @@ public static class SkillCdOverlayRenderer
     /// </summary>
     private const double ReadyThresholdSeconds = 0.8;
 
-    private static readonly Color DefaultReadyTextColor = Color.FromRgb(93, 204, 23);
-    private static readonly Color DefaultNormalTextColor = Color.FromRgb(218, 74, 35);
+    private static readonly MaskColor DefaultReadyTextColor = MaskColor.FromRgb(93, 204, 23);
+    private static readonly MaskColor DefaultNormalTextColor = MaskColor.FromRgb(218, 74, 35);
 
     /// <summary>
     /// 技能 CD 文字属于功能提示，不受「在遮罩上显示识别结果」开关影响
@@ -78,14 +75,14 @@ public static class SkillCdOverlayRenderer
 
         var fontSize = BaseFontSize1080P * systemInfo.ScaleTo1080PRatio * config.Scale;
         var readyStyle = new MaskWindowDrawingTextStyle(
-            (OverlayStyleHelper.ParseRgbaHexColor(config.TextReadyColor) ?? DefaultReadyTextColor).ToMaskColor(),
+            MaskColorParser.ParseRgbaHex(config.TextReadyColor) ?? DefaultReadyTextColor,
             fontSize,
-            (OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundReadyColor) ?? Colors.White).ToMaskColor(),
+            MaskColorParser.ParseRgbaHex(config.BackgroundReadyColor) ?? MaskColor.White,
             Numeric: true);
         var normalStyle = new MaskWindowDrawingTextStyle(
-            (OverlayStyleHelper.ParseRgbaHexColor(config.TextNormalColor) ?? DefaultNormalTextColor).ToMaskColor(),
+            MaskColorParser.ParseRgbaHex(config.TextNormalColor) ?? DefaultNormalTextColor,
             fontSize,
-            (OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundNormalColor) ?? Colors.White).ToMaskColor(),
+            MaskColorParser.ParseRgbaHex(config.BackgroundNormalColor) ?? MaskColor.White,
             Numeric: true);
 
         var texts = new List<MaskWindowDrawingShape>(4);
