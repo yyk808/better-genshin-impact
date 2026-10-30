@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Core.Un
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Host.Common", "BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj", "{9607A1C2-D122-4136-A447-6E036141B10E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Avalonia", "BetterGenshinImpact.Avalonia\BetterGenshinImpact.Avalonia.csproj", "{48DA0EF7-D528-419E-A26B-224CB758C3C3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -199,6 +201,18 @@ Global
 		{9607A1C2-D122-4136-A447-6E036141B10E}.Release|x64.Build.0 = Release|x64
 		{9607A1C2-D122-4136-A447-6E036141B10E}.Release|x86.ActiveCfg = Release|x64
 		{9607A1C2-D122-4136-A447-6E036141B10E}.Release|x86.Build.0 = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|Any CPU.Build.0 = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|x64.ActiveCfg = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|x64.Build.0 = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|x86.ActiveCfg = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Debug|x86.Build.0 = Debug|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|Any CPU.ActiveCfg = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|Any CPU.Build.0 = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|x64.ActiveCfg = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|x64.Build.0 = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|x86.ActiveCfg = Release|x64
+		{48DA0EF7-D528-419E-A26B-224CB758C3C3}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

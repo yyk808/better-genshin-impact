@@ -23,4 +23,21 @@ public sealed record GameHostOptions
 
     /// <summary>自动开门（自动进入游戏）；为空时沿用配置默认值</summary>
     public bool? AutoEnterGame { get; init; }
+
+    /// <summary>
+    /// 解析宿主共用的命令行参数（--display、--assets、--process、--interval、--no-pick、--no-skip、--auto-enter、--no-auto-enter）；
+    /// 不认识的参数返回 null，由宿主自己处理
+    /// </summary>
+    public GameHostOptions? Apply(string argument, Func<string> nextValue) => argument switch
+    {
+        "--display" => this with { Display = nextValue() },
+        "--assets" => this with { AssetsDirectory = nextValue() },
+        "--process" => this with { ProcessNames = nextValue().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) },
+        "--interval" => this with { IntervalMs = int.Parse(nextValue()) },
+        "--no-pick" => this with { Pick = false },
+        "--no-skip" => this with { Skip = false },
+        "--auto-enter" => this with { AutoEnterGame = true },
+        "--no-auto-enter" => this with { AutoEnterGame = false },
+        _ => null,
+    };
 }

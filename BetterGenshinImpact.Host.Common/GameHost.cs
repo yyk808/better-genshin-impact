@@ -90,7 +90,8 @@ public sealed class GameHost : IAsyncDisposable
         try
         {
             var probe = platform.Probe();
-            log.Information("平台：{Name}，探测：{Probe}", platform.Name, probe);
+            log.Information("平台：{Name}（{Kind}），探测：{Probe}", platform.Name, probe.Kind,
+                string.Join("，", probe.Items.Select(kv => $"{kv.Key}={kv.Value}")));
             PlatformHost.Use(platform);
             GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames);
 
@@ -146,8 +147,10 @@ public sealed class GameHost : IAsyncDisposable
             configureServices?.Invoke(services);
             var provider = services.BuildServiceProvider();
             CoreServices.SetProvider(() => provider);
-            // 输入通道的“不支持的操作已忽略 / 已跳过”告警写进日志
-            InputChannelBase.LoggerFactory = () => provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
+            // 输入通道的“不支持的操作已忽略 / 已跳过”告警写进日志。
+            // 先取出记录器：停止截图器时仍在执行的一帧可能在服务容器释放后才发出告警
+            var inputLogger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
+            InputChannelBase.LoggerFactory = () => inputLogger;
 
             return new GameHost(options, platform, probe, config, provider, log);
         }

@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             x:Class="BetterGenshinImpact.Avalonia.Views.EnvironmentPage"
+             x:DataType="vm:EnvironmentPageViewModel">
+    <DockPanel Margin="28,20,28,12">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Classes="pageTitle" Text="环境" />
+            <DockPanel Margin="0,-10,0,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                    <Button Content="刷新" Command="{Binding RefreshCommand}" />
+                    <Button Classes="accent" Content="OpenCV 模块自检" Command="{Binding RunOpenCvCheckCommand}" IsEnabled="{Binding !IsChecking}" />
+                </StackPanel>
+                <TextBlock Classes="desc" VerticalAlignment="Center"
+                           Text="平台服务的环境探测结果、推理与 OpenCV 原生库、界面字体、素材目录" />
+            </DockPanel>
+        </StackPanel>
+        <Border Classes="card" Padding="0">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:EnvironmentItem">
+                            <Grid ColumnDefinitions="90,190,*" Margin="16,3">
+                                <TextBlock Grid.Column="0" Text="{Binding Group}" Foreground="{StaticResource BgiAccentBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{StaticResource BgiSubTextBrush}" />
+                                <SelectableTextBlock Grid.Column="2" Text="{Binding Value}" TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</UserControl>

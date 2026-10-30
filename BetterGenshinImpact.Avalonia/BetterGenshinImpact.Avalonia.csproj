@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Avalonia 宿主（纯 net10.0，Avalonia 12 + 自带 Fluent 主题）：Linux 上的图形界面。
+		启动引导与无界面宿主共用 BetterGenshinImpact.Host.Common 的 GameHost；
+		UiHost（UI 线程、消息框、剪贴板）由本项目提供 Avalonia 实现。
+		OpenCvSharpExtern / onnxruntime 原生库由 Host.Common 引用（本地构建见 Build/Linux/build-opencvsharp.sh）。
+		素材与模型从 Windows 主程序的输出目录读取（&#45;&#45;assets 参数，见 README.md）。
+	-->
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>BetterGenshinImpact.Avalonia</RootNamespace>
+		<AssemblyName>bgi-avalonia</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>14.0</LangVersion>
+		<Platforms>x64</Platforms>
+		<PlatformTarget>x64</PlatformTarget>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="12.1.4" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+	</ItemGroup>
+
+</Project>

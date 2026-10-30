@@ -599,7 +599,7 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 ### 剩余步骤
 
-1. 后续 Avalonia 宿主复用本宿主的启动代码（DI、平台初始化、推理、触发器）。
+1. ✅ Avalonia 宿主复用本宿主的启动代码：已抽成 `Host.Common` 的 `GameHost`（里程碑 26，见 phase4-avalonia.md）。
 2. 发布流程：在 CI 中运行 `build-opencvsharp.sh`，把产物随 Linux 包发布。
 
 ### 剩余（主程序中的任务层文件）

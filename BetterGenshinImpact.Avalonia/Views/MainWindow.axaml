@@ -1,0 +1,115 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+        xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
+        xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+        x:Class="BetterGenshinImpact.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="BetterGI · 更好的原神"
+        Width="1100" Height="740" MinWidth="800" MinHeight="520"
+        Background="{StaticResource BgiWindowBrush}">
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="vm:HomePageViewModel">
+            <views:HomePage />
+        </DataTemplate>
+        <DataTemplate DataType="vm:TriggerPageViewModel">
+            <views:TriggerPage />
+        </DataTemplate>
+        <DataTemplate DataType="vm:EnvironmentPageViewModel">
+            <views:EnvironmentPage />
+        </DataTemplate>
+        <DataTemplate DataType="vm:PlaceholderPageViewModel">
+            <StackPanel Margin="28,20">
+                <TextBlock Classes="pageTitle" Text="{Binding Title}" />
+                <Border Classes="card">
+                    <TextBlock Classes="desc" Text="{Binding Description}" />
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid ColumnDefinitions="232,*">
+        <!-- 左侧导航 -->
+        <Border Grid.Column="0" Background="{StaticResource BgiPaneBrush}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,16,0,14" Spacing="10">
+                    <Border Width="28" Height="28" CornerRadius="6" Background="{StaticResource BgiAccentBrush}">
+                        <TextBlock Text="B" FontWeight="Bold" FontSize="16" Foreground="#101010"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="BetterGI" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="Linux · Avalonia 预览" FontSize="11" Foreground="{StaticResource BgiSubTextBrush}" />
+                    </StackPanel>
+                </StackPanel>
+                <ListBox DockPanel.Dock="Bottom" Classes="nav" Margin="0,0,0,10"
+                         ItemsSource="{Binding FooterItems}" SelectedItem="{Binding SelectedNav}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavItem">
+                            <Grid ColumnDefinitions="3,Auto,*" Opacity="{Binding Opacity}">
+                                <Border Classes="indicator" Grid.Column="0" Width="3" Height="16" CornerRadius="2"
+                                        Background="{StaticResource BgiAccentBrush}" VerticalAlignment="Center" />
+                                <PathIcon Grid.Column="1" Width="16" Height="16" Margin="12,0,14,0" Data="{Binding IconData}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Title}" VerticalAlignment="Center" FontSize="14" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <ListBox Classes="nav" ItemsSource="{Binding NavItems}" SelectedItem="{Binding SelectedNav}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavItem">
+                            <Grid ColumnDefinitions="3,Auto,*" Opacity="{Binding Opacity}">
+                                <Border Classes="indicator" Grid.Column="0" Width="3" Height="16" CornerRadius="2"
+                                        Background="{StaticResource BgiAccentBrush}" VerticalAlignment="Center" />
+                                <PathIcon Grid.Column="1" Width="16" Height="16" Margin="12,0,14,0" Data="{Binding IconData}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Title}" VerticalAlignment="Center" FontSize="14" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- 内容区 + 底部日志面板 -->
+        <Grid Grid.Column="1" RowDefinitions="*,Auto,Auto">
+            <ContentControl Grid.Row="0" Content="{Binding CurrentPage}" />
+
+            <!-- 轻提示（UiHost.Dialogs.Toast） -->
+            <Border Grid.Row="0" IsVisible="{Binding HasToast}" VerticalAlignment="Top" HorizontalAlignment="Right"
+                    Margin="0,14,20,0" Padding="14,8" CornerRadius="6" Background="#333A40" BorderBrush="{StaticResource BgiAccentBrush}"
+                    BorderThickness="1" MaxWidth="460">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="{Binding ToastText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button Content="✕" Padding="6,0" Background="Transparent" Command="{Binding HideToastCommand}" />
+                </StackPanel>
+            </Border>
+
+            <GridSplitter Grid.Row="1" Height="4" Background="#2A2A2A" ResizeDirection="Rows" IsVisible="{Binding IsLogExpanded}" />
+
+            <Border Grid.Row="2" Background="{StaticResource BgiLogBrush}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="12,4">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                            <CheckBox Content="调试日志" IsChecked="{Binding ShowDebugLog}" FontSize="12" />
+                            <Button Content="复制" FontSize="12" Padding="10,2" Command="{Binding CopyLogCommand}" />
+                            <Button Content="清空" FontSize="12" Padding="10,2" Command="{Binding ClearLogCommand}" />
+                            <Button Content="{Binding IsLogExpanded, Converter={x:Static svc:Converters.ExpandGlyph}}" FontSize="12" Padding="10,2"
+                                    Command="{Binding ToggleLogCommand}" />
+                        </StackPanel>
+                        <TextBlock Text="日志" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ListBox x:Name="LogList" Classes="log" Height="190" IsVisible="{Binding IsLogExpanded}"
+                             Background="Transparent" ItemsSource="{Binding LogLines}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="svc:LogLine">
+                                <TextBlock Text="{Binding Text}" FontSize="12" TextWrapping="NoWrap"
+                                           Foreground="{Binding Level, Converter={x:Static svc:Converters.LogLevelBrush}}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

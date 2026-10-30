@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             x:Class="BetterGenshinImpact.Avalonia.Views.HomePage"
+             x:DataType="vm:HomePageViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="28,20,28,20">
+            <!-- 横幅（原版为背景图 + BetterGI 标题） -->
+            <Border Height="190" CornerRadius="8" ClipToBounds="True" Margin="0,0,0,16">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                        <GradientStop Offset="0" Color="#24496B" />
+                        <GradientStop Offset="0.55" Color="#3B3A6E" />
+                        <GradientStop Offset="1" Color="#6B3F63" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel VerticalAlignment="Bottom" Margin="28,0,0,24">
+                    <TextBlock Text="BetterGI" FontSize="40" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="更好的原神，免费且开源" FontSize="16" Foreground="#E6FFFFFF" />
+                    <TextBlock Text="Linux 原生宿主（Avalonia）预览版" FontSize="12" Foreground="#B3FFFFFF" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Classes="accent" Content="启动" MinWidth="88" HorizontalContentAlignment="Center"
+                                Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
+                        <Button Content="停止" MinWidth="88" HorizontalContentAlignment="Center"
+                                Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
+                    </StackPanel>
+                    <PathIcon Classes="cardIcon" Data="M8,5 L19,12 L8,19 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="BetterGI 截图器，启动！" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                     Fill="{Binding IsRunning, Converter={x:Static svc:Converters.RunningBrush}}" />
+                            <TextBlock Classes="desc" Text="{Binding StatusText}" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Border Classes="card">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding WindowText}" VerticalAlignment="Center" Foreground="{StaticResource BgiSubTextBrush}" />
+                    <PathIcon Classes="cardIcon" Data="F0 M2,4 H22 V18 H2 Z M4,6 H20 V16 H4 Z M8,20 H16 V22 H8 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="游戏窗口" />
+                        <TextBlock Classes="desc" Text="经平台服务（X11）按进程名查找，截图与输入（XTest）都作用于该窗口" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Border Classes="card">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding FramesText}" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" />
+                    <PathIcon Classes="cardIcon" Data="M3,21 H7 V11 H3 Z M10,21 H14 V4 H10 Z M17,21 H21 V14 H17 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="已处理帧数" />
+                        <TextBlock Classes="desc" Text="触发器调度器每帧截图并运行已启用的实时触发器" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding Config, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <DockPanel>
+                    <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="1000" Increment="10" FormatString="0"
+                                   Value="{Binding Config.TriggerInterval}" IsEnabled="{Binding !IsRunning}" VerticalAlignment="Center" />
+                    <PathIcon Classes="cardIcon" Data="F0 M12,2 A10,10 0 1 1 11.99,2 Z M12,4 A8,8 0 1 0 12.01,4 Z M11,7 H13 V11 H17 V13 H11 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="触发器间隔（毫秒）" />
+                        <TextBlock Classes="desc" Text="默认50ms，普通用户不建议调整这个值；启动截图器前修改生效" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

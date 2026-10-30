@@ -28,7 +28,7 @@ JOBS=8 Build/Linux/build-opencvsharp.sh /path/to/work
 
 ### 使用
 
-`BetterGenshinImpact.Host.Headless` 默认取仓库根目录下的 `opencv-build/out/libOpenCvSharpExtern.so`，复制到输出目录的 `runtimes/linux-x64/native/`。放在其它位置时用构建属性（或同名环境变量）指定：
+`BetterGenshinImpact.Host.Common`（无界面宿主与 Avalonia 宿主都引用它）默认取仓库根目录下的 `opencv-build/out/libOpenCvSharpExtern.so`，复制到宿主输出目录的 `runtimes/linux-x64/native/`。放在其它位置时用构建属性（或同名环境变量）指定：
 
 ```bash
 dotnet build BetterGenshinImpact.Host.Headless -p:OpenCvSharpExternPath=/path/to/work/out/libOpenCvSharpExtern.so

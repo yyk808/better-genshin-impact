@@ -1,0 +1,167 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:pick="using:BetterGenshinImpact.GameTask.AutoPick"
+             x:Class="BetterGenshinImpact.Avalonia.Views.TriggerPage"
+             x:DataType="vm:TriggerPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="" />
+            <Setter Property="OffContent" Value="" />
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+    </UserControl.Styles>
+    <ScrollViewer>
+        <StackPanel Margin="28,20,28,20">
+            <TextBlock Classes="pageTitle" Text="实时触发的自动化任务设置" FontSize="20" />
+
+            <!-- 自动拾取 -->
+            <Expander Classes="card">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.AutoPickConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="M7,11 V5 A2,2 0 0 1 11,5 V10 M11,10 V3 A2,2 0 0 1 15,3 V10 M15,10 V5 A2,2 0 0 1 19,5 V14 A7,7 0 0 1 12,21 H11 A7,7 0 0 1 4,14 V11 A2,2 0 0 1 7,11 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="自动拾取" />
+                            <TextBlock Classes="desc" Text="根据选择的名单模式，自动按下 F 拾取/交互" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoPickConfig.FastModeEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="极速拾取模式" />
+                                <TextBlock Classes="desc" Text="打开时，将不再识别具体拾取内容，黑、白名单会失效" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                                <RadioButton GroupName="pickMode" Content="黑名单模式" IsChecked="{Binding IsBlacklistAutoPickMode, Mode=OneWay}"
+                                             Command="{Binding SetAutoPickModeCommand}" CommandParameter="{x:Static pick:AutoPickMode.Blacklist}" />
+                                <RadioButton GroupName="pickMode" Content="白名单模式" IsChecked="{Binding IsWhitelistAutoPickMode, Mode=OneWay}"
+                                             Command="{Binding SetAutoPickModeCommand}" CommandParameter="{x:Static pick:AutoPickMode.Whitelist}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="黑白名单模式" />
+                                <TextBlock Classes="desc" Text="选择自动拾取的基础行为；两种模式互斥，切换后立即生效（名单编辑窗口尚未迁移）" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="120" ItemsSource="{Binding PickButtonNames}"
+                                      SelectedItem="{Binding Config.AutoPickConfig.PickKey}" />
+                            <StackPanel>
+                                <TextBlock Text="自定义拾取按键" />
+                                <TextBlock Classes="desc" Text="默认为 F，自带了 E 和 G 按键" />
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+            </Expander>
+
+            <!-- 自动剧情 -->
+            <Expander Classes="card">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="M4,4 H20 V16 H9 L4,20 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="自动剧情" />
+                            <TextBlock Classes="desc" Text="快速跳过剧情文本、自动选择选项、自动提交物品等" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.QuicklySkipConversationsEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="快速跳过对话文本" />
+                                <TextBlock Classes="desc" Text="如果你要听完整的主线语音的话，可以关闭此功能" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="200" ItemsSource="{Binding ClickChatOptionNames}"
+                                      SelectedItem="{Binding Config.AutoSkipConfig.ClickChatOption}" />
+                            <StackPanel>
+                                <TextBlock Text="选择选项优先级" />
+                                <TextBlock Classes="desc" Text="进入对话后，对话选项的选择方式" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.SubmitGoodsEnabled}" />
+                            <TextBlock Text="自动提交物品" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.ClosePopupPagedEnabled}" />
+                            <TextBlock Text="自动关闭弹出页" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoGetDailyRewardsEnabled}" />
+                            <TextBlock Text="自动领取每日委托奖励" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoReExploreEnabled}" />
+                            <TextBlock Text="自动领取已完成探索的奖励，并重新派遣" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
+            </Expander>
+
+            <!-- 自动邀约 -->
+            <Border Classes="card">
+                <DockPanel>
+                    <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutEventEnabled}" />
+                    <PathIcon Classes="cardIcon" Data="M12,21 L4,13 A5,5 0 0 1 12,6 A5,5 0 0 1 20,13 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="自动邀约" />
+                        <TextBlock Classes="desc" Text="自动剧情开启的情况下此功能才会生效，自动选择邀约选项" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 自动开门 -->
+            <Border Classes="card">
+                <DockPanel>
+                    <ToggleSwitch IsChecked="{Binding Config.GenshinStartConfig.AutoEnterGameEnabled}" />
+                    <PathIcon Classes="cardIcon" Data="F0 M5,2 H19 V22 H5 Z M7,4 H17 V20 H7 Z M13,11 H15 V13 H13 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="自动开门" />
+                        <TextBlock Classes="desc" Text="在游戏启动画面自动点击进入游戏（需要 OCR）" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <TextBlock Classes="section" Text="其它实时触发（Linux 上尚未验证）" />
+            <Border Classes="card">
+                <DockPanel>
+                    <ToggleSwitch IsChecked="{Binding Config.AutoFishingConfig.Enabled}" />
+                    <PathIcon Classes="cardIcon" Data="M3,12 C7,6 15,6 19,12 C15,18 7,18 3,12 Z M19,12 L22,9 V15 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="半自动钓鱼" />
+                        <TextBlock Classes="desc" Text="半自动钓鱼需要手动抛竿（全自动钓鱼已迁移至独立任务下）" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <Border Classes="card">
+                <DockPanel>
+                    <ToggleSwitch IsChecked="{Binding Config.AutoEatConfig.Enabled}" />
+                    <PathIcon Classes="cardIcon" Data="F0 M8,2 H16 V6 L19,11 V22 H5 V11 L8,6 Z M11,12 H13 V14 H15 V16 H13 V18 H11 V16 H9 V14 H11 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="自动吃药" />
+                        <TextBlock Classes="desc" Text="检测角色红血状态，自动使用便携营养袋回复生命值" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <Border Classes="card">
+                <DockPanel>
+                    <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.Enabled}" />
+                    <PathIcon Classes="cardIcon" Data="M12,2 A7,7 0 0 1 19,9 C19,14 12,22 12,22 C12,22 5,14 5,9 A7,7 0 0 1 12,2 Z M12,6 A3,3 0 1 0 12.01,6 Z" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="title" Text="快速传送" />
+                        <TextBlock Classes="desc" Text="在大地图上点击传送点（或列表中有传送点）时，自动点击传送" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

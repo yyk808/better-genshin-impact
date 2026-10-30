@@ -122,16 +122,14 @@ internal sealed record HeadlessOptions(
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
+            if (host.Apply(args[i], Next) is { } applied)
+            {
+                host = applied;
+                continue;
+            }
+
             switch (args[i])
             {
-                case "--display": host = host with { Display = Next() }; break;
-                case "--assets": host = host with { AssetsDirectory = Next() }; break;
-                case "--process": host = host with { ProcessNames = Next().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }; break;
-                case "--interval": host = host with { IntervalMs = int.Parse(Next()) }; break;
-                case "--no-pick": host = host with { Pick = false }; break;
-                case "--no-skip": host = host with { Skip = false }; break;
-                case "--auto-enter": host = host with { AutoEnterGame = true }; break;
-                case "--no-auto-enter": host = host with { AutoEnterGame = false }; break;
                 case "--seconds": seconds = int.Parse(Next()); break;
                 case "--frames": frames = Next(); break;
                 case "--log": logFile = Next(); break;
