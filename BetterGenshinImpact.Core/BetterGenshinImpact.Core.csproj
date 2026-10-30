@@ -24,4 +24,11 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- 从主项目搬入的代码保留原有的 internal 可见性：主项目与原单测项目仍可访问 -->
+		<InternalsVisibleTo Include="BetterGI" />
+		<InternalsVisibleTo Include="BetterGenshinImpact.UnitTest" />
+		<InternalsVisibleTo Include="BetterGenshinImpact.Core.UnitTest" />
+	</ItemGroup>
+
 </Project>
