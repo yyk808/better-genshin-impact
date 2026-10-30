@@ -114,6 +114,8 @@ public static unsafe partial class Xlib
     // XInput2
     [LibraryImport(Xi)] public static partial int XIQueryVersion(nint d, ref int major, ref int minor);
     [LibraryImport(Xi)] public static partial int XISelectEvents(nint d, nint w, XIEventMask* masks, int num);
+    [LibraryImport(Xi)] public static partial nint XIQueryDevice(nint d, int deviceid, out int ndevices);
+    [LibraryImport(Xi)] public static partial void XIFreeDeviceInfo(nint info);
 
     // XFixes
     [LibraryImport(Xfixes)] public static partial void XFixesHideCursor(nint d, nint w);

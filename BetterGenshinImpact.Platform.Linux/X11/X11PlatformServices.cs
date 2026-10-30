@@ -48,6 +48,9 @@ public sealed class X11PlatformServices : IPlatformServices
     public IGlobalInputHook CreateGlobalInputHook() =>
         new PollingGlobalInputHook(new X11KeyStateProvider(new X11Connection(_display), ownsConnection: true), ownsState: true);
 
+    /// <summary>新建 XInput2 原始鼠标移动监听（首个订阅时建立独立连接）</summary>
+    public X11RelativeMouseInputMonitor CreateRelativeMouseMonitor() => new(_display);
+
     /// <summary>新建截图器（独立连接，Dispose 时关闭）</summary>
     /// <param name="method"><see cref="X11CaptureMode"/> 名称，null 或无法识别时为 ShmRoot</param>
     public IGameCapture CreateCapture(string? method = null)
