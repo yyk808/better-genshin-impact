@@ -1,5 +1,3 @@
-using System.Windows.Media;
-
 namespace BetterGenshinImpact.Core.Mask;
 
 /// <summary>
@@ -14,11 +12,11 @@ public sealed record MaskWindowDrawingStyle(
     bool OverrideRecognitionStroke,
     MaskWindowDrawingStroke RectStroke,
     MaskWindowDrawingStroke LineStroke,
-    Color TextColor,
+    MaskColor TextColor,
     double TextFontSize)
 {
-    public static MaskWindowDrawingStroke DefaultStroke { get; } = new(Colors.Red, 2);
+    public static MaskWindowDrawingStroke DefaultStroke { get; } = new(MaskColor.Red, 2);
 
     public static MaskWindowDrawingStyle Default { get; } =
-        new(false, DefaultStroke, DefaultStroke, Colors.Black, 36);
+        new(false, DefaultStroke, DefaultStroke, MaskColor.Black, 36);
 }

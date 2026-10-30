@@ -307,12 +307,12 @@ namespace BetterGenshinImpact.ViewModel
             return new MaskWindowDrawingStyle(
                 config.RecognitionUseDrawableStyle,
                 new MaskWindowDrawingStroke(
-                    OverlayStyleHelper.ParseColorOrDefault(config.RecognitionRectStrokeColor, Colors.Red),
+                    OverlayStyleHelper.ParseColorOrDefault(config.RecognitionRectStrokeColor, Colors.Red).ToMaskColor(),
                     Math.Max(0, config.RecognitionRectStrokeThickness)),
                 new MaskWindowDrawingStroke(
-                    OverlayStyleHelper.ParseColorOrDefault(config.RecognitionLineStrokeColor, Colors.Red),
+                    OverlayStyleHelper.ParseColorOrDefault(config.RecognitionLineStrokeColor, Colors.Red).ToMaskColor(),
                     Math.Max(0, config.RecognitionLineStrokeThickness)),
-                OverlayStyleHelper.ParseColorOrDefault(config.RecognitionTextColor, Colors.Black),
+                OverlayStyleHelper.ParseColorOrDefault(config.RecognitionTextColor, Colors.Black).ToMaskColor(),
                 Math.Max(1, config.RecognitionTextFontSize) * ScaleTo1080PRatio);
         }
 

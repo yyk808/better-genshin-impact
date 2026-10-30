@@ -11,7 +11,7 @@ public static class MaskWindowDrawingConversions
     public static MaskWindowDrawingRect ToMaskWindowDrawingRect(this OpenCvSharp.Rect rect, DrawPen? pen = null)
     {
         return new MaskWindowDrawingRect(
-            new System.Windows.Rect(rect.X, rect.Y, rect.Width, rect.Height),
+            new MaskRect(rect.X, rect.Y, rect.Width, rect.Height),
             MaskWindowDrawingStroke.FromPen(pen));
     }
 }

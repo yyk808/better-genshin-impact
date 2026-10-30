@@ -442,14 +442,14 @@ public class AutoArtifactSalvageTask : ISoloTask<AutoArtifactSalvageTaskParam, N
                         {
                             var rect = itemRegion.SelfToMaskWindowDrawingRect();
                             drawShapes.Add(rect);
-                            drawShapes.Add(new MaskWindowDrawingText("识别失败", new System.Windows.Point(rect.Bounds.X + rect.Bounds.Width / 3, rect.Bounds.Y)));
+                            drawShapes.Add(new MaskWindowDrawingText("识别失败", new MaskPoint(rect.Bounds.X + rect.Bounds.Width / 3, rect.Bounds.Y)));
                             itemRegion.DrawingBoard.Set(drawKey, drawShapes);
                         }
                         else
                         {
                             var rect = itemRegion.SelfToMaskWindowDrawingRect(DrawPens.Lime);
                             drawShapes.Add(rect);
-                            drawShapes.Add(new MaskWindowDrawingText(predName, new System.Windows.Point(rect.Bounds.X + rect.Bounds.Width / 3, rect.Bounds.Y)));
+                            drawShapes.Add(new MaskWindowDrawingText(predName, new MaskPoint(rect.Bounds.X + rect.Bounds.Width / 3, rect.Bounds.Y)));
                             itemRegion.DrawingBoard.Set(drawKey, drawShapes);
                             if (this.artifactSetFilter.Contains(predName))
                             {

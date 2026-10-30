@@ -78,14 +78,14 @@ public static class SkillCdOverlayRenderer
 
         var fontSize = BaseFontSize1080P * systemInfo.ScaleTo1080PRatio * config.Scale;
         var readyStyle = new MaskWindowDrawingTextStyle(
-            OverlayStyleHelper.ParseRgbaHexColor(config.TextReadyColor) ?? DefaultReadyTextColor,
+            (OverlayStyleHelper.ParseRgbaHexColor(config.TextReadyColor) ?? DefaultReadyTextColor).ToMaskColor(),
             fontSize,
-            OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundReadyColor) ?? Colors.White,
+            (OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundReadyColor) ?? Colors.White).ToMaskColor(),
             Numeric: true);
         var normalStyle = new MaskWindowDrawingTextStyle(
-            OverlayStyleHelper.ParseRgbaHexColor(config.TextNormalColor) ?? DefaultNormalTextColor,
+            (OverlayStyleHelper.ParseRgbaHexColor(config.TextNormalColor) ?? DefaultNormalTextColor).ToMaskColor(),
             fontSize,
-            OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundNormalColor) ?? Colors.White,
+            (OverlayStyleHelper.ParseRgbaHexColor(config.BackgroundNormalColor) ?? Colors.White).ToMaskColor(),
             Numeric: true);
 
         var texts = new List<MaskWindowDrawingShape>(4);
@@ -111,7 +111,7 @@ public static class SkillCdOverlayRenderer
             // 按显示出来的数值判断是否就绪，与文字保持一致
             var isReady = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var shown)
                           && Math.Abs(shown) < ReadyThresholdSeconds;
-            texts.Add(new MaskWindowDrawingText(text, new Point(px, py), isReady ? readyStyle : normalStyle));
+            texts.Add(new MaskWindowDrawingText(text, new MaskPoint(px, py), isReady ? readyStyle : normalStyle));
         }
 
         drawingBoard.Set(group, texts);

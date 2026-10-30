@@ -240,7 +240,7 @@ public class Region : IDisposable
     {
         var res = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x, y, w, h, this);
         return new MaskWindowDrawingRect(
-            new System.Windows.Rect(res.X, res.Y, res.Width, res.Height),
+            new MaskRect(res.X, res.Y, res.Width, res.Height),
             MaskWindowDrawingStroke.FromPen(pen));
     }
 
@@ -252,8 +252,8 @@ public class Region : IDisposable
         var res1 = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x1, y1, 0, 0, this);
         var res2 = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x2, y2, 0, 0, this);
         return new MaskWindowDrawingLine(
-            new System.Windows.Point(res1.X, res1.Y),
-            new System.Windows.Point(res2.X, res2.Y),
+            new MaskPoint(res1.X, res1.Y),
+            new MaskPoint(res2.X, res2.Y),
             MaskWindowDrawingStroke.FromPen(pen));
     }
 

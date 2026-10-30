@@ -48,7 +48,7 @@ public sealed class MaskWindowDrawingLayer : FrameworkElement
     private static readonly Lazy<Typeface> TextTypeface = new(CreateTextTypeface);
     private static readonly Lazy<Typeface> NumericTypeface = new(CreateNumericTypeface);
 
-    private readonly Dictionary<(Color Color, double Thickness), Pen> _penCache = new();
+    private readonly Dictionary<(MaskColor Color, double Thickness), Pen> _penCache = new();
     private readonly Dictionary<Color, SolidColorBrush> _brushCache = new();
 
     public MaskWindowDrawingLayer()
@@ -129,12 +129,8 @@ public sealed class MaskWindowDrawingLayer : FrameworkElement
 
     private void DrawRect(DrawingContext dc, MaskWindowDrawingRect rect, MaskWindowDrawingStroke stroke, MaskWindowLayerMetrics metrics)
     {
+        // MaskRect 不存在 WPF 的 Rect.Empty，原先的 IsEmpty 判断对按坐标构造的矩形恒为 false
         var bounds = rect.Bounds;
-        if (bounds.IsEmpty)
-        {
-            return;
-        }
-
         var unitRect = new Rect(
             bounds.X * metrics.PixelToUnitX,
             bounds.Y * metrics.PixelToUnitY,
@@ -162,7 +158,7 @@ public sealed class MaskWindowDrawingLayer : FrameworkElement
         var fontSizePx = Math.Max(1, textStyle?.FontSize ?? style.TextFontSize);
         var fontSize = fontSizePx * metrics.PixelToUnitY;
         var typeface = textStyle?.Numeric == true ? NumericTypeface.Value : TextTypeface.Value;
-        var foreground = GetBrush(textStyle?.Foreground ?? style.TextColor);
+        var foreground = GetBrush((textStyle?.Foreground ?? style.TextColor).ToWpfColor());
         var origin = new Point(text.Origin.X * metrics.PixelToUnitX, text.Origin.Y * metrics.PixelToUnitY);
 
         var formattedText = new FormattedText(
@@ -184,7 +180,7 @@ public sealed class MaskWindowDrawingLayer : FrameworkElement
                 origin.Y - paddingY,
                 formattedText.Width + paddingX * 2,
                 formattedText.Height + paddingY * 2);
-            dc.DrawRoundedRectangle(GetBrush(background), null, badge, radius, radius);
+            dc.DrawRoundedRectangle(GetBrush(background.ToWpfColor()), null, badge, radius, radius);
         }
 
         dc.DrawText(formattedText, origin);
@@ -204,7 +200,7 @@ public sealed class MaskWindowDrawingLayer : FrameworkElement
             _penCache.Clear();
         }
 
-        pen = new Pen(GetBrush(stroke.Color), thickness);
+        pen = new Pen(GetBrush(stroke.Color.ToWpfColor()), thickness);
         pen.Freeze();
         _penCache[key] = pen;
         return pen;

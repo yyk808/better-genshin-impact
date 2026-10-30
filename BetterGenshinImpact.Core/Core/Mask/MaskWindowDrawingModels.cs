@@ -1,8 +1,7 @@
 using BetterGenshinImpact.Core.Drawing;
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Media;
+using BetterGenshinImpact.Core.Drawing;
 
 namespace BetterGenshinImpact.Core.Mask;
 
@@ -35,16 +34,16 @@ public readonly record struct MaskWindowDrawingGroup(string Name, MaskWindowDraw
 /// </summary>
 public abstract record MaskWindowDrawingShape;
 
-public sealed record MaskWindowDrawingRect(Rect Bounds, MaskWindowDrawingStroke? Stroke = null) : MaskWindowDrawingShape;
+public sealed record MaskWindowDrawingRect(MaskRect Bounds, MaskWindowDrawingStroke? Stroke = null) : MaskWindowDrawingShape;
 
-public sealed record MaskWindowDrawingLine(Point From, Point To, MaskWindowDrawingStroke? Stroke = null) : MaskWindowDrawingShape;
+public sealed record MaskWindowDrawingLine(MaskPoint From, MaskPoint To, MaskWindowDrawingStroke? Stroke = null) : MaskWindowDrawingShape;
 
-public sealed record MaskWindowDrawingText(string Text, Point Origin, MaskWindowDrawingTextStyle? Style = null) : MaskWindowDrawingShape;
+public sealed record MaskWindowDrawingText(string Text, MaskPoint Origin, MaskWindowDrawingTextStyle? Style = null) : MaskWindowDrawingShape;
 
 /// <summary>
 /// 线条样式。Thickness 为 DIP
 /// </summary>
-public readonly record struct MaskWindowDrawingStroke(Color Color, double Thickness = 2)
+public readonly record struct MaskWindowDrawingStroke(MaskColor Color, double Thickness = 2)
 {
     /// <summary>
     /// 兼容业务代码里现有的 System.Drawing.Pen（如 Pens.Lime、识别对象的 DrawOnWindowPen）
@@ -57,7 +56,7 @@ public readonly record struct MaskWindowDrawingStroke(Color Color, double Thickn
         }
 
         var c = pen.Color;
-        return new MaskWindowDrawingStroke(Color.FromArgb(c.A, c.R, c.G, c.B), pen.Width);
+        return new MaskWindowDrawingStroke(MaskColor.FromArgb(c.A, c.R, c.G, c.B), pen.Width);
     }
 }
 
@@ -69,9 +68,9 @@ public readonly record struct MaskWindowDrawingStroke(Color Color, double Thickn
 /// <param name="Background">不为空时在文字下方绘制圆角底色</param>
 /// <param name="Numeric">是否使用数字字体（Fgi）</param>
 public sealed record MaskWindowDrawingTextStyle(
-    Color? Foreground = null,
+    MaskColor? Foreground = null,
     double? FontSize = null,
-    Color? Background = null,
+    MaskColor? Background = null,
     bool Numeric = false);
 
 /// <summary>
