@@ -17,12 +17,17 @@ public sealed unsafe class X11HotkeyService : IHotkeyService
     private readonly X11Connection _c;
     private readonly Thread _thread;
     private readonly ConcurrentQueue<Action> _ops = new();
-    private readonly Dictionary<(int code, uint mods), (HotkeyGesture hk, Action<HotkeyGesture> cb)> _map = new();
+    private readonly Dictionary<(int code, uint mods), (HotkeyGesture hk, Action<HotkeyGesture> cb, bool noRepeat)> _map = new();
+
+    /// <summary>当前按住的热键 keycode（事件线程使用），用于识别自动重复</summary>
+    private readonly HashSet<int> _down = [];
     private volatile bool _stop;
 
     public X11HotkeyService(string? display = null)
     {
         _c = new X11Connection(display);
+        // 自动重复只产生连续的 KeyPress（不夹 KeyRelease），据此识别并按需忽略重复
+        XkbSetDetectableAutoRepeat(_c.Display, true, 0);
         _thread = new Thread(Loop) { IsBackground = true, Name = "X11Hotkey" };
         _thread.Start();
     }
@@ -49,7 +54,7 @@ public sealed unsafe class X11HotkeyService : IHotkeyService
         return tcs.Task.GetAwaiter().GetResult();
     }
 
-    public IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed)
+    public IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed, bool noRepeat = false)
     {
         ArgumentNullException.ThrowIfNull(onPressed);
         var key = Invoke(() =>
@@ -67,7 +72,7 @@ public sealed unsafe class X11HotkeyService : IHotkeyService
                 throw new InvalidOperationException($"XGrabKey {hotkey} 失败（X 错误 {LastErrorCode}，10=BadAccess 表示已被其它程序占用）");
             }
 
-            _map[(code, mods)] = (hotkey, onPressed);
+            _map[(code, mods)] = (hotkey, onPressed, noRepeat);
             return (code, mods);
         });
         return new Registration(this, key);
@@ -105,16 +110,22 @@ public sealed unsafe class X11HotkeyService : IHotkeyService
             }
 
             XNextEvent(_c.Display, ev);
-            if (*(int*)ev == KeyPress)
+            var type = *(int*)ev;
+            if (type == KeyPress)
             {
                 // XKeyEvent（x86_64）：state 在偏移 80，keycode 在 84
                 uint state = *(uint*)(ev + 80) & ~(LockMask | Mod2Mask);
                 int code = *(int*)(ev + 84);
-                if (_map.TryGetValue((code, state), out var e))
+                var repeat = !_down.Add(code);
+                if (_map.TryGetValue((code, state), out var e) && !(repeat && e.noRepeat))
                 {
-                    var (hk, cb) = e;
+                    var (hk, cb, _) = e;
                     ThreadPool.QueueUserWorkItem(_ => cb(hk));
                 }
+            }
+            else if (type == KeyRelease)
+            {
+                _down.Remove(*(int*)(ev + 84));
             }
         }
     }

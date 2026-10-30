@@ -12,7 +12,7 @@ namespace BetterGenshinImpact.Platform.Windows;
 /// </summary>
 public sealed class Win32HotkeyService : IHotkeyService
 {
-    public IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed)
+    public IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed, bool noRepeat = false)
     {
         ArgumentNullException.ThrowIfNull(onPressed);
         var hook = new HotkeyHook();
@@ -20,7 +20,8 @@ public sealed class Win32HotkeyService : IHotkeyService
         try
         {
             // WinForms Keys 的取值与 VK 相同
-            hook.RegisterHotKey(ToModifiers(hotkey.Modifiers), (Keys)(int)hotkey.Key);
+            var modifiers = ToModifiers(hotkey.Modifiers);
+            hook.RegisterHotKey(noRepeat ? modifiers | User32.HotKeyModifiers.MOD_NOREPEAT : modifiers, (Keys)(int)hotkey.Key);
         }
         catch
         {

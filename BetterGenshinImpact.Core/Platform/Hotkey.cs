@@ -60,6 +60,9 @@ public readonly record struct HotkeyGesture(GameKey Key, KeyModifiers Modifiers 
 /// </summary>
 public interface IHotkeyService : IDisposable
 {
-    /// <summary>注册热键；被占用等失败时抛 <see cref="InvalidOperationException"/>。返回对象 Dispose 即注销</summary>
-    IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed);
+    /// <summary>注册热键；被占用等失败时抛异常（Windows 为 HotkeyHook 的原异常，X11 为 <see cref="InvalidOperationException"/>）。返回对象 Dispose 即注销</summary>
+    /// <param name="hotkey">组合键</param>
+    /// <param name="onPressed">按下回调</param>
+    /// <param name="noRepeat">按住不放时不重复触发（Windows MOD_NOREPEAT；X11 按 KeyRelease 判断）</param>
+    IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed, bool noRepeat = false);
 }
