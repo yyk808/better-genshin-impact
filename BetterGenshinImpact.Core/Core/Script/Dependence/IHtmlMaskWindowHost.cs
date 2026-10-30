@@ -25,6 +25,9 @@ public interface IHtmlMaskWindowHost
 
     /// <summary>通知窗口刷新待推送的消息</summary>
     void NotifyFlush(string windowId);
+
+    /// <summary>关闭全部 HTML 遮罩窗口（任务结束时清理）</summary>
+    void CloseAll();
 }
 
 public static class HtmlMaskWindowHost
@@ -45,6 +48,10 @@ public static class HtmlMaskWindowHost
         public bool Close(string id) => false;
 
         public string[] GetWindowIds() => [];
+
+        public void CloseAll()
+        {
+        }
 
         public bool Exists(string id) => false;
 

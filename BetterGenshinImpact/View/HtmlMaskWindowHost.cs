@@ -22,4 +22,6 @@ public sealed class WpfHtmlMaskWindowHost : IHtmlMaskWindowHost
     public void ToggleClickThrough(string windowId) => HtmlMaskWindow.ToggleClickThrough(windowId);
 
     public void NotifyFlush(string windowId) => HtmlMaskWindow.NotifyFlush(windowId);
+
+    public void CloseAll() => HtmlMaskWindow.CloseAll();
 }

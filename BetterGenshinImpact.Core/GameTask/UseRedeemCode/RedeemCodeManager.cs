@@ -3,13 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Helpers.Security;
 using BetterGenshinImpact.Service;
-using BetterGenshinImpact.View.Windows;
-using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace BetterGenshinImpact.GameTask.UseRedeemCode;
 
@@ -21,6 +17,15 @@ public class RedeemCodeManager
     private static AllConfig Config => ConfigHost.Config!;
 
     public static HashSet<string> CancelClipboardHash { get; } = [];
+
+    /// <summary>
+    /// 询问用户是否使用从剪贴板中识别到的兑换码，返回 true 表示确认。
+    /// Windows 主程序启动时设为原来的 PromptDialog 多行文本框对话框；
+    /// 未设置时用 <see cref="UiHost.Dialogs"/> 的确认框（兑换码逐行列在消息里）。
+    /// </summary>
+    public static System.Func<IReadOnlyList<string>, bool> ConfirmCodes { get; set; } = static codes =>
+        UiHost.Dialogs.Show("从剪切版中获取到下面的兑换码，是否自动使用？\n" + string.Join("\n", codes),
+            "自动使用兑换码", DialogKind.Information, DialogButtons.OkCancel) == DialogResult.Ok;
 
     private static readonly Regex UrlStripRegex =
         new(@"https?://\S+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -51,22 +56,7 @@ public class RedeemCodeManager
             return;
         }
 
-        var multilineTextBox = new TextBox
-        {
-            TextWrapping = TextWrapping.Wrap,
-            Height = 340,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Text = codes.Aggregate("", (current, code) => current + $"{code}\n"),
-        };
-        var p = new PromptDialog(
-            "从剪切版中获取到下面的兑换码，是否自动使用？",
-            "自动使用兑换码",
-            multilineTextBox,
-            null);
-        p.Height = 500;
-        p.ShowDialog();
-
-        if (p.DialogResult != true)
+        if (!ConfirmCodes(codes))
         {
             if (CancelClipboardHash.Count > 10)
             {

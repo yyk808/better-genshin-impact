@@ -1,9 +1,9 @@
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Script;
+using BetterGenshinImpact.Core.Script.Dependence;
 using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Exception;
 
-using BetterGenshinImpact.View;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
@@ -19,7 +19,6 @@ using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.Helpers;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.GameTask;
 
@@ -372,7 +371,7 @@ public class TaskRunner
         }
 
         // 自动更新会删除并重新检出用户脚本目录，等它结束后再执行任务
-        await ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync(ct);
+        await ScriptAutoUpdateGate.WaitForAutoUpdateAsync(ct);
         return runtime;
     }
 
@@ -451,7 +450,7 @@ public class TaskRunner
         InputHub.ReleaseAll();
 
         runtime.MaskWindowDrawingBoard.ClearAll();
-        HtmlMaskWindow.CloseAll();
+        HtmlMaskWindowHost.Current.CloseAll();
     }
 
 }
