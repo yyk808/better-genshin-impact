@@ -29,6 +29,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "html-settings": await HtmlSettingsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -90,6 +91,73 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         if (dir is null) return;
         Directory.CreateDirectory(dir);
         AvaloniaHostProgram.SaveScreenshotPublic(window, Path.Combine(dir, file), log);
+    }
+
+    // —— HTML 设置页 ——
+
+    /// <summary>
+    /// 新建自测专用配置组（不动已有配置组），加入只提供 settings_html 的演示脚本 m36html，点击“JS设置”打开网页设置窗口；
+    /// 演示页面加载后自动保存一次，核对配置组文件中的设置值，最后删除该配置组
+    /// </summary>
+    private async Task HtmlSettingsAsync()
+    {
+        const string groupName = "M36网页设置自测";
+        vm.Navigate("全自动");
+        vm.Auto.SelectedTab = 0;
+        var page = vm.ScriptControl;
+        page.Reload();
+        await Settle(1000);
+        if (page.ScriptGroups.FirstOrDefault(g => g.Name == groupName) is { } old)
+        {
+            page.DeleteScriptGroupCommand.Execute(old);
+        }
+
+        await Settle();
+        page.NewGroupName = groupName;
+        await Click(await WaitFor(() => ButtonByText("新增")), "新增配置组");
+        var path = ScriptGroupStore.FilePath(groupName);
+        Check("新增配置组写入文件", File.Exists(path), path);
+        var group = page.SelectedScriptGroup;
+        if (group?.Name != groupName)
+        {
+            Check("选中自测配置组", false, group?.Name);
+            return;
+        }
+
+        page.SelectedJsScript = "m36html";
+        await Settle();
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "添加"), "添加 JS 脚本");
+        Check("配置组内项目", group.Projects.Count == 1 && group.Projects[0].Type == "Javascript", group.Projects.Count);
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "JS设置"), "JS设置");
+        var htmlWindow = await WaitFor(() => window.OwnedWindows.OfType<HtmlSettingsWindow>().FirstOrDefault());
+        Check("HTML 设置窗口打开", htmlWindow is not null, htmlWindow?.Title);
+
+        // 演示页面加载后约 0.8 秒自动保存；等待配置组文件中出现页面写入的值
+        string? saved = null;
+        for (var i = 0; i < 100 && saved is null; i++)
+        {
+            await Task.Delay(100);
+            var json = File.Exists(path) ? File.ReadAllText(path) : "";
+            if (json.Contains("M36 网页队伍")) saved = json;
+        }
+
+        Check("页面保存写入配置组文件", saved is not null);
+        if (saved is not null)
+        {
+            var settings = JObject.Parse(saved).Descendants().OfType<JProperty>()
+                .FirstOrDefault(x => x.Name.Equals("JsScriptSettingsObject", StringComparison.OrdinalIgnoreCase))?.Value as JObject;
+            Check("设置值：文本", settings?["teamName"]?.ToString() == "M36 网页队伍", settings?.ToString(Newtonsoft.Json.Formatting.None));
+            Check("设置值：数字与数组", settings?["count"]?.ToObject<int>() == 3 && settings?["regions"]?.Count() == 2);
+        }
+
+        Check("窗口标题显示保存时间", htmlWindow?.Title?.Contains("已保存") == true, htmlWindow?.Title);
+        log.Information("UI 自测 HTML 设置窗口已显示，等待截图");
+        await Task.Delay(int.TryParse(Environment.GetEnvironmentVariable("BGI_UITEST_HOLD_MS"), out var hold) ? hold : 1500);
+        htmlWindow?.Close();
+        await Settle();
+        page.DeleteScriptGroupCommand.Execute(page.ScriptGroups.FirstOrDefault(g => g.Name == groupName));
+        await Settle();
+        Check("删除自测配置组", !File.Exists(path));
     }
 
     // —— 脚本设置 ——

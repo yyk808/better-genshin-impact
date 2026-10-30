@@ -76,6 +76,7 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
             BetterGenshinImpact.GameTask.QuestVoice.Features.Tts.TtsProviderRegistry.IsAvailable(BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.ProviderId)
                 ? "espeak-ng（" + BetterGenshinImpact.Platform.Linux.Tts.EspeakNgTtsProvider.FindExecutable() + "）"
                 : "未安装 espeak-ng，剧情语音只能使用在线 / 服务器引擎（安装 espeak-ng 包后重启生效）"));
+        Items.Add(new("界面", "网页引擎（HTML 设置页）", SafeWebViewInfo()));
         Items.Add(new("OpenCV", "版本", SafeOpenCvVersion()));
         Items.Add(new("OpenCV", "原生库", FindNative("libOpenCvSharpExtern.so")));
         Items.Add(new("OpenCV", "特征匹配（地图追踪）", SafeFeatureMatching()));
@@ -106,6 +107,19 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
         {
             IsChecking = false;
             Refresh();
+        }
+    }
+
+    private static string SafeWebViewInfo()
+    {
+        try
+        {
+            var gtk = global::Avalonia.Platform.WebViewAdapterInfo.GetAdapterInfo(global::Avalonia.Platform.WebViewAdapterType.WebKitGtk);
+            return gtk.IsInstalled ? $"WebKitGTK {gtk.Version}" : "未安装 WebKitGTK 4.1（Debian/Ubuntu：libwebkit2gtk-4.1-0），HTML 设置页不可用";
+        }
+        catch (Exception e)
+        {
+            return "无法检测：" + e.Message;
         }
     }
 

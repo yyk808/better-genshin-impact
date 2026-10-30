@@ -8,6 +8,7 @@
 | [phase1-foundation.md](phase1-foundation.md) | 第一阶段（平台抽象地基）的成果、验证结果与遗留问题 |
 | [phase2-progress.md](phase2-progress.md) | 第二阶段（接入平台服务、清理 Win32 依赖）的里程碑记录与验证结果 |
 | [phase4-avalonia.md](phase4-avalonia.md) | Avalonia 宿主（共享宿主引导、主窗口外壳、启动 / 实时触发 / 环境页、配置持久化）的里程碑记录与验证结果 |
+| [webview-linux.md](webview-linux.md) | Linux 网页视图方案评估（HTML 设置页、HTML 遮罩）与最小实现 |
 | [architecture.md](architecture.md) | 项目结构、平台抽象接口、Windows / Linux 实现的对应关系与约定 |
 | [survey.md](survey.md) | 迁移前的 Windows 依赖调研（精简版） |
 

@@ -416,7 +416,7 @@ Core 1105 个（移入 Pulonia 114 个，新增 `PuloniaTriggerScheduler`、`Pul
 
 Core 1110 个（新增上述 5 个），主项目 642 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 51 个。
 
-## 里程碑 36：Linux 音频播放、系统语音、剧情语音移入 Core
+## 里程碑 36：Linux 音频播放、系统语音、剧情语音移入 Core、网页设置页
 
 ### 音频播放（PulseAudio / PipeWire）
 
@@ -437,7 +437,16 @@ Core 1110 个（新增上述 5 个），主项目 642 个；Avalonia 宿主 `.cs
 
 - `GameFrameGrabber`（Core）：运行环境未启动时临时抓一帧，由宿主按平台设置实现。WPF 的 `Win32GameFrameGrabber` 是原 `MusicGuidedSession.OpenGameFrame` 中的代码（行为不变），Linux 宿主经 `IPlatformServices.CreateCapture` 与 `Windows.FromHandle`。`MusicGuidedSession` 不再引用 Fischless.GameCapture 与 Win32 窗口。
 
+### 网页视图与 HTML 设置页
+
+方案对比与建议见 [webview-linux.md](webview-linux.md)。采用 Avalonia 官方 `Avalonia.Controls.WebView`（12.1.1，MIT，Linux 使用系统 WebKitGTK 4.1）：
+
+- `Avalonia/Services/WebKitSchemeHandler`：在 WebKitWebView 的上下文注册 `bgi-settings://` 自定义协议，页面全部请求交给 Core 的 `ScriptSettingsRequestHandler`（与 Windows 版拦截 WebView2 请求相同，不联网、不监听端口），响应头含相同的内容安全策略。
+- `Avalonia/Views/HtmlSettingsWindow`：对应 WPF `JsScriptHtmlSettingsWindow`；调度器中只提供 `settings_html` 的脚本点“JS设置”时打开，保存写回配置组文件，标题显示保存时间。没有 WebKitGTK 时提示安装 `libwebkit2gtk-4.1-0`。环境页显示网页引擎版本。
+- 界面自测 `--ui-test html-settings`（8 项）：新建自测专用配置组，加入演示脚本，点击“JS设置”打开网页窗口，演示页读取上下文与设置、访问外网被拦截、自动保存一次，核对配置组文件中的文本 / 数字 / 数组与窗口标题，最后删除该配置组（不动已有配置组）。
+- HTML 遮罩（`IHtmlMaskWindowHost`）尚未实现，建议见对比文档。
+
 ### 文件数（口径同上）
 
-Core 1131 个（剧情语音 20 个文件移入，新增 `GameFrameGrabber`），主项目 623 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 51 个。
+Core 1131 个（剧情语音 20 个文件移入，新增 `GameFrameGrabber`），主项目 623 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 53 个。
 

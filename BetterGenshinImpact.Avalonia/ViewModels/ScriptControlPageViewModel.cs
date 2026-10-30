@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Script.Settings;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -396,8 +397,15 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
         var manifest = item.Project.Manifest;
         if (string.IsNullOrWhiteSpace(manifest.SettingsUi))
         {
-            UiHost.Dialogs.Toast(DialogKind.Warning,
-                string.IsNullOrWhiteSpace(manifest.SettingsHtml) ? "此脚本未提供自定义配置" : "此脚本只提供 HTML 设置页，Linux 版暂不支持");
+            if (string.IsNullOrWhiteSpace(manifest.SettingsHtml))
+            {
+                UiHost.Dialogs.Toast(DialogKind.Warning, "此脚本未提供自定义配置");
+            }
+            else if (OpenJsHtmlSettings(g, item, item.Project) is { } reason)
+            {
+                UiHost.Dialogs.Toast(DialogKind.Warning, "无法打开 HTML 设置页：" + reason);
+            }
+
             return;
         }
 
@@ -421,6 +429,34 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
 
         item.JsScriptSettingsObject ??= new ExpandoObject();
         Editor = new ScriptSettingsEditor(ScriptSettingsKind.JsSettings, $"修改JS脚本自定义设置 - {item.Name}", g, item, items);
+    }
+
+    /// <summary>
+    /// 打开脚本作者提供的 HTML 设置页（对应 WPF ScriptControlViewModel.OpenJsScriptHtmlSettings）：
+    /// 设置值读写配置组中的 JS 设置对象，页面每次保存都写回配置组文件（写入失败时错误交给页面显示）
+    /// </summary>
+    /// <returns>无法打开时的原因</returns>
+    private string? OpenJsHtmlSettings(ScriptGroup group, ScriptGroupProject item, ScriptProject project)
+    {
+        ScriptSettingsHtmlPage page;
+        try
+        {
+            page = ScriptSettingsHtmlPage.Resolve(project.ProjectPath, project.Manifest);
+        }
+        catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return e.Message;
+        }
+
+        var owner = (global::Avalonia.Application.Current?.ApplicationLifetime as global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        return BetterGenshinImpact.Avalonia.Views.HtmlSettingsWindow.Show(new ScriptSettingsEditRequest(page, "scheduler", false,
+            () => ScriptSettingsJson.FromExpando(item.JsScriptSettingsObject),
+            settings =>
+            {
+                item.JsScriptSettingsObject = ScriptSettingsJson.ToExpando(settings);
+                ScriptGroupStore.Save(group);
+                _log.Information("已保存配置组 {Name} 中 {Script} 的 HTML 设置", group.Name, item.Name);
+            }), owner);
     }
 
     /// <summary>关闭设置面板并保存所属配置组（JS 设置对象不触发属性通知，与 WPF 相同需要手动保存）</summary>
