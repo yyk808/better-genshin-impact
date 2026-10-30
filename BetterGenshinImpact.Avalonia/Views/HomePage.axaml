@@ -78,6 +78,14 @@
                             <TextBlock Classes="desc" Text="{Binding ManualWindowText}" />
                         </StackPanel>
                     </DockPanel>
+                    <DockPanel>
+                        <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding LinuxConfig.MaskWindowEnabled}" OnContent="" OffContent="" />
+                        <StackPanel>
+                            <TextBlock Text="遮罩窗口（预览）" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap"
+                                       Text="透明、置顶、点击穿透，跟随游戏画面。屏幕区域截图会把遮罩内容一起截进去，目前只在左下角显示状态" />
+                        </StackPanel>
+                    </DockPanel>
                     <TextBlock Classes="desc" Text="{Binding ConfigFileText}" />
                 </StackPanel>
             </Expander>

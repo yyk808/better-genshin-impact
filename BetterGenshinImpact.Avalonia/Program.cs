@@ -16,7 +16,7 @@ using Serilog;
 // 用法：bgi-avalonia [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact] [--interval 50]
 //                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
-//                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式]
+//                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -74,11 +74,24 @@ internal static class AvaloniaHostProgram
             log.Error(e, "平台服务初始化失败（是否设置了 DISPLAY / 能否连接 X 服务器？）");
         }
 
+        // 遮罩窗口（透明、置顶、点击穿透），截图器运行且启用遮罩时显示
+        MaskWindowController? mask = null;
+        if (host is not null)
+        {
+            if (options.MaskWindow is { } maskEnabled)
+            {
+                host.LinuxConfig.MaskWindowEnabled = maskEnabled;
+            }
+
+            mask = new MaskWindowController(host, options.Host.Display, log);
+        }
+
         viewModel = new MainWindowViewModel(host, hostError, log);
         window = new MainWindow { DataContext = viewModel };
         desktop.MainWindow = window;
         desktop.Exit += (_, _) =>
         {
+            mask?.Dispose();
             if (host is not null)
             {
                 // 退出时（关闭主窗口或 Shutdown）停止截图器并释放平台连接（X11），避免输入线程使用已关闭的连接
@@ -268,7 +281,8 @@ internal sealed record AvaloniaOptions(
     string? ScreenshotDirectory,
     int? ExitAfterSeconds,
     bool UiSelfTest,
-    string? SelectWindowTitle)
+    string? SelectWindowTitle,
+    bool? MaskWindow)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -279,6 +293,7 @@ internal sealed record AvaloniaOptions(
         var uiSelfTest = false;
         string? selectWindow = null;
         int? exitAfter = null;
+        bool? mask = null;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -297,10 +312,12 @@ internal sealed record AvaloniaOptions(
                 case "--exit-after": exitAfter = int.Parse(Next()); break;
                 case "--ui-selftest": uiSelfTest = true; break;
                 case "--select-window": selectWindow = Next(); break;
+                case "--mask": mask = true; break;
+                case "--no-mask": mask = false; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow);
+        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, mask);
     }
 }

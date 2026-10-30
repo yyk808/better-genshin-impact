@@ -104,6 +104,12 @@ public static unsafe partial class Xlib
     [LibraryImport(Xext)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XShmDetach(nint d, XShmSegmentInfo* shminfo);
     [LibraryImport(Xext)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XShmGetImage(nint d, nint drawable, nint image, int x, int y, ulong planeMask);
 
+    // SHAPE（遮罩窗口点击穿透：输入区域置空）
+    public const int ShapeInput = 2, ShapeSet = 0, Unsorted = 0;
+    [LibraryImport(Xext)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XShapeQueryExtension(nint d, out int eventBase, out int errorBase);
+    [LibraryImport(X11)] public static partial nint XGetSelectionOwner(nint d, nint selection);
+    [LibraryImport(Xext)] public static partial void XShapeCombineRectangles(nint d, nint w, int kind, int xOff, int yOff, nint rectangles, int count, int op, int ordering);
+
     // XTEST
     [LibraryImport(Xtst)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XTestQueryExtension(nint d, out int ev, out int err, out int major, out int minor);
     [LibraryImport(Xtst)] public static partial int XTestFakeKeyEvent(nint d, uint keycode, [MarshalAs(UnmanagedType.Bool)] bool isPress, nuint delay);

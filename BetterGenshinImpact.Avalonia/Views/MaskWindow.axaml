@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BetterGenshinImpact.Avalonia.Views.MaskWindow"
+        Title="BetterGI 遮罩" SystemDecorations="None" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        CanResize="False" Background="Transparent" TransparencyLevelHint="Transparent"
+        WindowStartupLocation="Manual">
+    <!-- 遮罩只在游戏画面的左下角显示状态，尽量少遮挡识别区域（对应原版遮罩左下角的日志框） -->
+    <Canvas x:Name="Root">
+        <Border x:Name="StatusBox" Canvas.Left="20" Background="#99000000" CornerRadius="4" Padding="8,4">
+            <TextBlock x:Name="StatusText" Foreground="#E0FFFFFF" FontSize="12" Text="BetterGI" />
+        </Border>
+    </Canvas>
+</Window>

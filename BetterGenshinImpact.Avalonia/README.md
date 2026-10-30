@@ -24,7 +24,7 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 ## 配置文件
 
 - `User/config.json`：与 Windows 主程序格式相同，两边可以互相拷贝；改动后 500 ms 防抖写入（临时文件 + 改名），退出时写完。
-- `User/linux-host.json`：Linux 专有设置（截图方式、同时启动游戏的命令、游戏路径、工作目录、环境变量、等待超时）。
+- `User/linux-host.json`：Linux 专有设置（截图方式、同时启动游戏的命令、游戏路径、工作目录、环境变量、等待超时、遮罩窗口开关）。
 
 `User` 目录在素材目录下（`--assets`），也可以用 `--config 文件` 指定，`linux-host.json` 放在同一目录。
 
@@ -72,4 +72,5 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--screenshots 目录` | 无人值守：运行一段时间后依次切换页面保存界面截图 |
 | `--exit-after 秒` | 无人值守：到时退出 |
 | `--ui-selftest` | `UiHost` 自检：后台线程调度、剪贴板读回、配置防抖保存、轻提示、消息框 |
+| `--mask` / `--no-mask` | 打开 / 关闭遮罩窗口（透明、置顶、点击穿透；需要合成器，预览） |
 | `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |

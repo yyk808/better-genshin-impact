@@ -37,6 +37,11 @@ public sealed partial class LinuxHostConfig : ObservableObject
     /// <summary>启动后等待游戏窗口出现的最长时间（秒）</summary>
     [ObservableProperty] private int _launchTimeoutSeconds = 90;
 
+    /// <summary>
+    /// 显示遮罩窗口（透明、置顶、点击穿透，跟随游戏画面）。默认关闭：屏幕区域截图方式会把遮罩上的内容一起截进去
+    /// </summary>
+    [ObservableProperty] private bool _maskWindowEnabled;
+
     /// <summary>预置的启动命令（界面下拉框用）</summary>
     [JsonIgnore]
     public static IReadOnlyList<LaunchPreset> Presets { get; } =

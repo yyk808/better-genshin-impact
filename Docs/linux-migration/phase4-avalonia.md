@@ -41,7 +41,7 @@ Linux 原生库（OpenCvSharpExtern、onnxruntime）改在 Host.Common 中引用
 
 1. 启动页补全：截图模式、窗口选择、同时启动游戏（Linux 用 Wine / Proton 启动命令）——里程碑 27 完成。
 2. 配置持久化：Linux 上的 `ConfigService`（`User/config.json`）——里程碑 27 完成。
-3. 遮罩窗口（透明、置顶、点击穿透）。
+3. 遮罩窗口（透明、置顶、点击穿透）——里程碑 27 完成窗口本身，绘制内容待迁移。
 4. 按页面迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。
 
 ### 文件数（按 git 跟踪的 `.cs` 统计，口径同 phase2-progress.md）
@@ -86,7 +86,21 @@ Core 972 个，主项目 763 个（本里程碑未移动 Core / 主项目文件�
   宿主启动假游戏、约 1 秒后找到窗口、以 XGetImage(root) 截图并持续自动拾取。
 - 全量回归（编译、Core / 主项目单测对照基线、Wine 与 X11 端到端）无新增失败；无界面宿主拾取 / 对话场景通过。
 
+### 遮罩窗口（预览）
+
+- Avalonia `MaskWindow`：无边框、透明背景、置顶（`_NET_WM_STATE_ABOVE`）、不在任务栏、显示时不抢焦点；
+  截图器运行时每 500 ms 跟随游戏画面的位置和大小，停止后隐藏。
+- 点击穿透：窗口打开后经 `X11Overlay.SetClickThrough` 把 X11 SHAPE 的输入区域设为空（`XShapeCombineRectangles`，
+  ShapeInput + 空矩形列表），鼠标事件直接落到下面的游戏窗口。
+- 目前只在左下角显示状态（已处理帧数），识别结果绘制（`MaskWindowDrawingBoard`）、日志框等后续再迁移。
+- 默认关闭（`linux-host.json` 的 `maskWindowEnabled`，启动页开关，命令行 `--mask`）。原因：
+  - 透明需要合成器；没有合成器时透明部分是黑色，会挡住游戏，宿主会给出警告（检测 `_NET_WM_CM_S0`）；
+  - 屏幕区域截图（MIT-SHM / XGetImage 根窗口）会把遮罩上画的内容一起截进去（Windows 上截的是游戏窗口本身，没有这个问题）。
+    之后考虑用 Composite 扩展直接读游戏窗口的离屏图像，或只在识别区域之外绘制。
+- 验证（假游戏 + picom）：遮罩窗口与游戏画面位置大小一致、带 `_NET_WM_STATE_ABOVE`；在遮罩上点击，假游戏收到对应坐标的点击；
+  游戏窗口保持为活动窗口，自动拾取持续工作（每帧发 F）。没有合成器时会出现警告，截图被遮罩挡住，拾取停止（符合预期）。
+
 ### 文件数（口径同上）
 
 Core 972 个，主项目 763 个（本里程碑未移动文件；Core 只改了 `PlatformRuntimeProvider`，Windows 不使用）；Host.Common 10 个；
-Avalonia 宿主 `.cs` 与 `.axaml` 共 26 个（含 `.axaml` 视图 7 个）。
+Avalonia 宿主 `.cs` 与 `.axaml` 共 29 个（含 `.axaml` 视图 8 个）；Platform.Linux 新增 `X11Overlay.cs`。
