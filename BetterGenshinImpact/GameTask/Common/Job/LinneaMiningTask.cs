@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using System;
 using System.IO;
@@ -328,7 +329,7 @@ public class LinneaMiningTask
         {
             var mark = new Rect((int)(c.TargetX - c.TargetWidth / 2) - expansion, (int)(c.TargetY - c.TargetHeight / 2) - expansion,
                 (int)c.TargetWidth + expansion * 2, (int)c.TargetHeight + expansion * 2);
-            return ra.ToMaskWindowDrawingRect(mark, new Pen(Color.DodgerBlue, 2));
+            return ra.ToMaskWindowDrawingRect(mark, new DrawPen(Color.DodgerBlue, 2));
         }).ToList();
         ra.DrawingBoard.Set("MiningCluster", clusterDrawList);
 

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Core.Recognition.OCR;
 using BetterGenshinImpact.Core.Recognition.ONNX;
@@ -610,7 +611,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
             else
             {
                 noTargetFishTimes = 0;
-                imageRegion.DrawRect(fishpondTargetRect, "Target", System.Drawing.Pens.White);
+                imageRegion.DrawRect(fishpondTargetRect, "Target", DrawPens.White);
                 imageRegion.Derive(currentFish.Rect).DrawSelf("Fish");
 
                 // drawContent.PutRect("Target", fishpond.TargetRect.ToRectDrawable());
@@ -1155,7 +1156,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
                     FishBoxRect.Set(rect);
                 }
                 using var boxRa = imageRegion.Derive(FishBoxRect.Get());
-                boxRa.DrawSelf("FishBox", System.Drawing.Pens.LightPink);
+                boxRa.DrawSelf("FishBox", DrawPens.LightPink);
                 logger.LogInformation("  识别到钓鱼框");
                 return Status.Success;
             }
@@ -1347,9 +1348,9 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
             using var fishBoxRa = imageRegion.Derive(FishBoxRect.Get());
             var list = new List<MaskWindowDrawingRect>
                 {
-                    fishBoxRa.ToMaskWindowDrawingRect(left, System.Drawing.Pens.Red),
-                    fishBoxRa.ToMaskWindowDrawingRect(cur, System.Drawing.Pens.Red),
-                    fishBoxRa.ToMaskWindowDrawingRect(right, System.Drawing.Pens.Red),
+                    fishBoxRa.ToMaskWindowDrawingRect(left, DrawPens.Red),
+                    fishBoxRa.ToMaskWindowDrawingRect(cur, DrawPens.Red),
+                    fishBoxRa.ToMaskWindowDrawingRect(right, DrawPens.Red),
                 }.Where(r => r.Bounds.Height != 0).ToList();
             imageRegion.DrawingBoard.Set("FishingBarAll", list);
         }

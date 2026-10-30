@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Helpers.Extensions;
 using Microsoft.Extensions.Logging;
 using NCalc;
@@ -171,7 +172,7 @@ public static class RecognitionObjectJsonLoader
                     ? ParseColor(config.DrawColor)
                     : recognitionObject.DrawOnWindowPen.Color;
                 var drawWidth = config.DrawWidth ?? recognitionObject.DrawOnWindowPen.Width;
-                recognitionObject.DrawOnWindowPen = new Pen(drawColor, drawWidth);
+                recognitionObject.DrawOnWindowPen = new DrawPen(drawColor, drawWidth);
             }
 
             if (config.MaxMatchCount.HasValue)

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -48,7 +49,7 @@ public readonly record struct MaskWindowDrawingStroke(Color Color, double Thickn
     /// <summary>
     /// 兼容业务代码里现有的 System.Drawing.Pen（如 Pens.Lime、识别对象的 DrawOnWindowPen）
     /// </summary>
-    public static MaskWindowDrawingStroke? FromPen(System.Drawing.Pen? pen)
+    public static MaskWindowDrawingStroke? FromPen(DrawPen? pen)
     {
         if (pen == null)
         {

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.GameTask.Common.Resin;
 using BetterGenshinImpact.GameTask.AutoFight.Strategy;
 using BetterGenshinImpact.Core.Input;
@@ -176,7 +177,7 @@ public class AutoLeyLineOutcropTask : ISoloTask<AutoLeyLineOutcropParam, ResinCl
     private const int KazuhaPickupPostSkillWaitMs = 3000;
     private static readonly TimeSpan LeyLineFightSeekInitialDelay = TimeSpan.FromSeconds(2);
     private static readonly Rect HandbookTrackActionButtonRoi = new(ScaleTo1080(1120), ScaleTo1080(680), ScaleTo1080(700), ScaleTo1080(320));
-    private static readonly System.Drawing.Pen OcrOverlayPen = new(System.Drawing.Color.Lime, 2);
+    private static readonly DrawPen OcrOverlayPen = new(System.Drawing.Color.Lime, 2);
     private static readonly object PickLock = new();
     private bool _friendshipTeamSwitched;
 

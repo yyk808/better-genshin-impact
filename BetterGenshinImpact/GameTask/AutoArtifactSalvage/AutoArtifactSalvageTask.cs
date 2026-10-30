@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Core.Recognition.OCR;
@@ -446,7 +447,7 @@ public class AutoArtifactSalvageTask : ISoloTask<AutoArtifactSalvageTaskParam, N
                         }
                         else
                         {
-                            var rect = itemRegion.SelfToMaskWindowDrawingRect(System.Drawing.Pens.Lime);
+                            var rect = itemRegion.SelfToMaskWindowDrawingRect(DrawPens.Lime);
                             drawShapes.Add(rect);
                             drawShapes.Add(new MaskWindowDrawingText(predName, new System.Windows.Point(rect.Bounds.X + rect.Bounds.Width / 3, rect.Bounds.Y)));
                             itemRegion.DrawingBoard.Set(drawKey, drawShapes);

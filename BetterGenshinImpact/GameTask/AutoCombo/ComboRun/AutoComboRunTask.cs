@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoFight;
 using BetterGenshinImpact.GameTask.AutoFight.Model;
@@ -269,7 +270,7 @@ public class AutoComboRunTask : ISoloTask<AutoFightParam, NoData>
 
         // 坐标（ClassifyRect/TextPosition）已由 Avatar 换算到捕获像素域，直接绘制
         _drawingBoard.Set("ESkillClassifyRegion",
-            new MaskWindowDrawingRect(result.ClassifyRect, MaskWindowDrawingStroke.FromPen(System.Drawing.Pens.White)));
+            new MaskWindowDrawingRect(result.ClassifyRect, MaskWindowDrawingStroke.FromPen(DrawPens.White)));
         _drawingBoard.Set("ESkillClassify",
             new MaskWindowDrawingText(stateText, result.TextPosition, new MaskWindowDrawingTextStyle(textColor)));
     }

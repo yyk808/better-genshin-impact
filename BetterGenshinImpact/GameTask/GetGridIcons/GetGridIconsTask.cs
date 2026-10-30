@@ -249,10 +249,11 @@ public class GetGridIconsTask : ISoloTask<GetGridIconsParam, NoData>
             try
             {
                 using (privateMat)
-                using (var bitmap = privateMat.ToBitmap())
-                using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    bitmap.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+                    // 用 OpenCV 编码 PNG（像素与原先经 GDI+ Bitmap 保存的相同），不依赖 System.Drawing.Common
+                    Cv2.ImEncode(".png", privateMat, out byte[] png);
+                    using FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                    fs.Write(png);
                 }
                 logger.LogInformation("图片保存成功：{Text}", fileName);
             }

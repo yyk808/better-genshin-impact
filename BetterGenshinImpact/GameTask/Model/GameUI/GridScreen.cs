@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Recognition.OpenCv;
 using BetterGenshinImpact.GameTask.Common;
@@ -37,7 +38,7 @@ namespace BetterGenshinImpact.GameTask.Model.GameUI
             foreach ((Rect rect, bool isPhantom) in items)
             {
                 using ImageRegion item = page.DeriveCrop(rect);
-                item.DrawSelf($"GridItem{item.GetHashCode()}", isPhantom ? System.Drawing.Pens.Yellow : System.Drawing.Pens.Lime);
+                item.DrawSelf($"GridItem{item.GetHashCode()}", isPhantom ? DrawPens.Yellow : DrawPens.Lime);
             }
         };
 

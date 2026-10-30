@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Script;
@@ -243,13 +244,13 @@ public class AutoTrackPathTask
                 Logger.LogInformation("下个点位[{Index}]：{nextMapImagePathPos}", nextPointIndex, nextMapImagePathPos);
 
                 var angle = CharacterOrientation.Compute(miniMapMat);
-                CameraOrientation.DrawDirection(ra, angle, "avatar", new Pen(Color.Blue, 1));
+                CameraOrientation.DrawDirection(ra, angle, "avatar", new DrawPen(Color.Blue, 1));
                 Debug.WriteLine($"当前人物图像坐标系角度：{angle}，位置：{currMapImageAvatarPos}");
 
                 var nextAngle = Math.Round(Math.Atan2(nextMapImagePathPos.Y - currMapImageAvatarPos.Y, nextMapImagePathPos.X - currMapImageAvatarPos.X) * 180 / Math.PI);
                 var nextDistance = MathHelper.Distance(nextMapImagePathPos, currMapImageAvatarPos);
                 Debug.WriteLine($"当前目标点图像坐标系角度：{nextAngle}，距离：{nextDistance}");
-                CameraOrientation.DrawDirection(ra, nextAngle, "target", new Pen(Color.Red, 1));
+                CameraOrientation.DrawDirection(ra, nextAngle, "target", new DrawPen(Color.Red, 1));
 
                 if (nextDistance < 10)
                 {
@@ -278,7 +279,7 @@ public class AutoTrackPathTask
                     throw new InvalidOperationException("当前不在主界面");
                 }
                 angle = CharacterOrientation.Compute(miniMapMat);
-                CameraOrientation.DrawDirection(ra, angle, "avatar", new Pen(Color.Blue, 1));
+                CameraOrientation.DrawDirection(ra, angle, "avatar", new DrawPen(Color.Blue, 1));
 
                 _runtime.Sleep(100);
                 MovementControl.Instance.WDown();

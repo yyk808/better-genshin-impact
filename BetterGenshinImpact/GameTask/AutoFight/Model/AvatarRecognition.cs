@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Recognition;
@@ -44,7 +45,7 @@ public static class AvatarRecognition
     /// <summary>
     /// 索敌叠加层目标框共享画笔（避免每帧新建 Pen 导致 GDI+ 句柄抖动）
     /// </summary>
-    private static readonly System.Drawing.Pen _targetPen = new(System.Drawing.Color.LimeGreen, 2);
+    private static readonly DrawPen _targetPen = new(System.Drawing.Color.LimeGreen, 2);
 
     /// <summary>
     /// 设置当前战斗参数，后续的视觉配置读取将优先使用此参数中的值而非全局配置。

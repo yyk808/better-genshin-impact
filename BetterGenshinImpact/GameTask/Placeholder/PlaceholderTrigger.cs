@@ -1,4 +1,5 @@
-﻿using BetterGenshinImpact.GameTask.Runtime;
+﻿using BetterGenshinImpact.Core.Drawing;
+using BetterGenshinImpact.GameTask.Runtime;
 using OpenCvSharp;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ public class TestTrigger : ITaskTrigger
     public int Priority => 9999;
     public bool IsExclusive { get; private set; }
 
-    private readonly Pen _pen = new(Color.Coral, 1);
+    private readonly DrawPen _pen = new(Color.Coral, 1);
 
     //private readonly AutoGeniusInvokationAssets _autoGeniusInvokationAssets;
 

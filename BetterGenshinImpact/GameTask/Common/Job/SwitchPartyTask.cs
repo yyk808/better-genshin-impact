@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Core.Simulator.Extensions;
@@ -190,7 +191,7 @@ public class SwitchPartyTask
             RegionOfInterest = regionOfInterest,
             DrawOnWindow = true,
             Name = "队伍名称",
-            DrawOnWindowPen= System.Drawing.Pens.White
+            DrawOnWindowPen= DrawPens.White
         };
         // 逐页查找
         try

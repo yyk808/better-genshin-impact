@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Recognition.OCR;
 using BetterGenshinImpact.GameTask.AutoSkip.Model;
@@ -234,7 +235,7 @@ public class ExpeditionTask
         return cards;
     }
 
-    private readonly Pen _pen = new(Color.Red, 1);
+    private readonly DrawPen _pen = new(Color.Red, 1);
 
     private OcrResult CaptureAndOcr(CaptureContent content)
     {

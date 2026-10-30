@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Config;
@@ -33,7 +34,7 @@ public static class AvatarSpecialAction
     /// <summary>
     /// 桑多涅特化叠加层目标框共享画笔（避免每帧新建 Pen 导致 GDI+ 句柄抖动）
     /// </summary>
-    private static readonly System.Drawing.Pen _targetPen = new(System.Drawing.Color.LimeGreen, 2);
+    private static readonly DrawPen _targetPen = new(System.Drawing.Color.LimeGreen, 2);
 
     /// <summary>
     /// 木偶（桑多涅）红温状态特征模型（硬编码自训练工具导出的 JSON）。

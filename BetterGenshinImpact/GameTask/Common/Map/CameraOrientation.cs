@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.GameTask.Model.Area;
 using OpenCvSharp;
 using System;
@@ -42,7 +43,7 @@ public class CameraOrientation
        return angle;
     }
 
-    public static void DrawDirection(ImageRegion region, double angle, string name = "camera", Pen? pen = null)
+    public static void DrawDirection(ImageRegion region, double angle, string name = "camera", DrawPen? pen = null)
     {
         // 绘图
         var scale = region.GetAssetScale();
@@ -57,7 +58,7 @@ public class CameraOrientation
         // };
         // VisionContext.Instance().DrawContent.PutLine("camera", line);
 
-        pen ??= new Pen(Color.Yellow, 1);
+        pen ??= new DrawPen(Color.Yellow, 1);
 
         region.DrawLine(center.X, center.Y, (int)x1, (int)y1, name, pen);
     }

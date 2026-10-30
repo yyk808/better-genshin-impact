@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.GameTask.Model.Area.Converter;
 using BetterGenshinImpact.Core.Mask;
@@ -195,7 +196,7 @@ public class Region : IDisposable
     /// </summary>
     /// <param name="name">绘制分组名</param>
     /// <param name="pen">线条样式，为空时使用默认样式</param>
-    public void DrawSelf(string name, Pen? pen = null)
+    public void DrawSelf(string name, DrawPen? pen = null)
     {
         // 相对自己是 0, 0 坐标
         DrawRect(0, 0, Width, Height, name, pen);
@@ -204,12 +205,12 @@ public class Region : IDisposable
     /// <summary>
     /// 直接在遮罩窗口绘制当前区域下的【指定区域】
     /// </summary>
-    public void DrawRect(int x, int y, int w, int h, string name, Pen? pen = null)
+    public void DrawRect(int x, int y, int w, int h, string name, DrawPen? pen = null)
     {
         DrawingBoard.Set(name, ToMaskWindowDrawingRect(x, y, w, h, pen));
     }
 
-    public void DrawRect(Rect rect, string name, Pen? pen = null)
+    public void DrawRect(Rect rect, string name, DrawPen? pen = null)
     {
         DrawingBoard.Set(name, ToMaskWindowDrawingRect(rect.X, rect.Y, rect.Width, rect.Height, pen));
     }
@@ -217,7 +218,7 @@ public class Region : IDisposable
     /// <summary>
     /// 转换【自己】到遮罩窗口绘制矩形
     /// </summary>
-    public MaskWindowDrawingRect SelfToMaskWindowDrawingRect(Pen? pen = null)
+    public MaskWindowDrawingRect SelfToMaskWindowDrawingRect(DrawPen? pen = null)
     {
         // 相对自己是 0, 0 坐标
         return ToMaskWindowDrawingRect(0, 0, Width, Height, pen);
@@ -226,7 +227,7 @@ public class Region : IDisposable
     /// <summary>
     /// 转换【指定区域】到遮罩窗口绘制矩形
     /// </summary>
-    public MaskWindowDrawingRect ToMaskWindowDrawingRect(Rect rect, Pen? pen = null)
+    public MaskWindowDrawingRect ToMaskWindowDrawingRect(Rect rect, DrawPen? pen = null)
     {
         return ToMaskWindowDrawingRect(rect.X, rect.Y, rect.Width, rect.Height, pen);
     }
@@ -235,7 +236,7 @@ public class Region : IDisposable
     /// 转换【指定区域】到遮罩窗口绘制矩形，坐标为游戏捕获区域的物理像素
     /// </summary>
     /// <exception cref="Exception">当前区域不在游戏捕获区域树下</exception>
-    public MaskWindowDrawingRect ToMaskWindowDrawingRect(int x, int y, int w, int h, Pen? pen = null)
+    public MaskWindowDrawingRect ToMaskWindowDrawingRect(int x, int y, int w, int h, DrawPen? pen = null)
     {
         var res = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x, y, w, h, this);
         return new MaskWindowDrawingRect(
@@ -246,7 +247,7 @@ public class Region : IDisposable
     /// <summary>
     /// 转换【指定直线】到遮罩窗口绘制直线，坐标为游戏捕获区域的物理像素
     /// </summary>
-    public MaskWindowDrawingLine ToMaskWindowDrawingLine(int x1, int y1, int x2, int y2, Pen? pen = null)
+    public MaskWindowDrawingLine ToMaskWindowDrawingLine(int x1, int y1, int x2, int y2, DrawPen? pen = null)
     {
         var res1 = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x1, y1, 0, 0, this);
         var res2 = ConvertRes<GameCaptureRegion>.ConvertPositionToTargetRegion(x2, y2, 0, 0, this);
@@ -256,7 +257,7 @@ public class Region : IDisposable
             MaskWindowDrawingStroke.FromPen(pen));
     }
 
-    public void DrawLine(int x1, int y1, int x2, int y2, string name, Pen? pen = null)
+    public void DrawLine(int x1, int y1, int x2, int y2, string name, DrawPen? pen = null)
     {
         DrawingBoard.Set(name, ToMaskWindowDrawingLine(x1, y1, x2, y2, pen));
     }

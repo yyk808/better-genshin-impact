@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -159,7 +160,7 @@ public class EngineExtend
         engine.AddHostType("ImageRegion", typeof(ImageRegion));
         engine.AddHostType("Region", typeof(Region));
 
-        engine.AddHostType("Pen", typeof(Pen));
+        engine.AddHostType("Pen", typeof(DrawPen)); // 原为 System.Drawing.Pen，构造与属性兼容
         engine.AddHostType("Color", typeof(Color));
 
         // CombatScenes、Avatar 的构造需要运行环境，在下方 RegisterRuntimeBoundHostTypes 中统一包装
