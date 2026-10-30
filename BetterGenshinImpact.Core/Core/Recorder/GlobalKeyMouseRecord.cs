@@ -1,4 +1,5 @@
 using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Common;
@@ -6,15 +7,12 @@ using BetterGenshinImpact.GameTask.Common.Element.Assets;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Service;
-using BetterGenshinImpact.View.Windows;
 using BetterGenshinImpact.Platform;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.Core.Recorder;
 
@@ -177,8 +175,8 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
 
     public void GlobalHookKeyDown(GlobalKeyEventArgs e, DateTime time)
     {
-        // 排除热键（热键配置保存的是 WinForms Keys 名称）
-        if (((Keys)(ushort)e.Key).ToString() == Config.HotKeyConfig.KeyMouseMacroRecordHotkey)
+        // 排除热键（热键配置保存的是 WinForms Keys 名称；WinFormsKeys 与 Keys 的取值和名称相同）
+        if (((WinFormsKeys)(ushort)e.Key).ToString() == Config.HotKeyConfig.KeyMouseMacroRecordHotkey)
         {
             return;
         }
@@ -204,7 +202,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
 
     public void GlobalHookKeyUp(GlobalKeyEventArgs e, DateTime time)
     {
-        if (((Keys)(ushort)e.Key).ToString() == Config.HotKeyConfig.Test1Hotkey)
+        if (((WinFormsKeys)(ushort)e.Key).ToString() == Config.HotKeyConfig.Test1Hotkey)
         {
             return;
         }

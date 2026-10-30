@@ -1,4 +1,6 @@
 using BetterGenshinImpact.Helpers;
+using BetterGenshinImpact.Core.Monitor;
+using BetterGenshinImpact.Core.Recorder;
 using BetterGenshinImpact.Host.Common.Notification;
 using BetterGenshinImpact.Infrastructure.Network;
 using BetterGenshinImpact.Service.Notification;
@@ -248,6 +250,10 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>>(sp => sp.GetRequiredService<MaskWindowDrawingBoard>());
             services.AddSingleton<IMaskWindowMapState, MaskWindowMapState>();
             services.AddSingleton<TaskStopService>();
+            // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
+            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
+            services.AddSingleton<KeyMouseRecordService>();
+            services.AddSingleton<KeyMouseRecordController>();
             // 独立任务：注册表只扫描 Core（Linux 宿主没有 WPF 主程序集，一条龙另行迁移），执行走 Core 的 TaskRunner
             services.AddSingleton(new SoloTaskRegistry([typeof(CoreServices).Assembly]));
             services.AddSingleton<SoloTaskExecutionService>();
@@ -275,6 +281,10 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<InferenceRuntimeService>();
             services.AddSingleton<BgiOnnxFactory>();
             services.AddSingleton<OcrFactory>();
+            // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
+            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
+            services.AddSingleton<KeyMouseRecordService>();
+            services.AddSingleton<KeyMouseRecordController>();
             // 通知：网络通知器与 Windows 版相同（Core 的 NetworkNotifierFactory），系统通知走 freedesktop Notifications
             services.AddHttpClient(HttpClientNames.Notification, c => c.Timeout = TimeSpan.FromSeconds(30));
             services.AddSingleton<NotifierManager>();

@@ -10,7 +10,6 @@ using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.ViewModel.Message;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.Core.Recorder;
 

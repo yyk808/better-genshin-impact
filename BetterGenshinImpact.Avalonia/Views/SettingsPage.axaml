@@ -283,21 +283,26 @@
                         <StackPanel>
                             <TextBlock Classes="desc" Text="{Binding HotkeyStatus}" />
                             <TextBlock Classes="desc" TextWrapping="Wrap"
-                                       Text="点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除），写法与 Windows 版相同。Linux 上经 X11 XGrabKey 注册为全局热键（注册期间该组合键不会传给游戏）；目前实现了启动停止、停止 / 暂停任务、自动拾取 / 剧情开关、一条龙，其余只保存绑定。" />
+                                       Text="点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除），写法与 Windows 版相同。方式与 Windows 版相同：“全局热键”经 X11 XGrabKey 注册（游戏收不到该键）；“键鼠监听”经 XInput2 原始事件监听、不拦截按键，只在游戏位于前台时触发，不支持组合键（组合键改用全局热键）。长按类固定为键鼠监听。" />
                         </StackPanel>
                     </DockPanel>
                     <ItemsControl ItemsSource="{Binding Hotkeys}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                                 <Border Classes="row">
-                                    <Grid ColumnDefinitions="90,*,110,230,60">
+                                    <Grid ColumnDefinitions="90,*,120,230,60">
                                         <TextBlock Grid.Column="0" Classes="desc" Text="{Binding Group}" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" />
                                             <TextBlock Classes="desc" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                         </StackPanel>
-                                        <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center"
-                                                   Text="{Binding IsSupported, Converter={x:Static vm:SettingsConverters.Supported}}" />
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <Button Content="{Binding TypeText}" Padding="6,2" IsEnabled="{Binding !IsHold}"
+                                                    ToolTip.Tip="点击切换：全局热键（XGrabKey，游戏收不到该键）/ 键鼠监听（不拦截，只在游戏前台时触发）"
+                                                    Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ToggleHotkeyTypeCommand}"
+                                                    CommandParameter="{Binding}" />
+                                            <TextBlock Classes="desc" Text="{Binding IsSupported, Converter={x:Static vm:SettingsConverters.Supported}}" />
+                                        </StackPanel>
                                         <Button Grid.Column="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="8,3"
                                                 Content="{Binding DisplayValue}" Classes.accent="{Binding IsRecording}"
                                                 Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).StartRecordCommand}"

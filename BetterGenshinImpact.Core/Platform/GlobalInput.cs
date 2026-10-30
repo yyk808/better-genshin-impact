@@ -7,14 +7,22 @@ namespace BetterGenshinImpact.Platform;
 /// <param name="Key">按键（VK 码）。左右修饰键报告为 VK_LSHIFT / VK_RCONTROL 等</param>
 /// <param name="Modifiers">事件发生时按住的修饰键（Shift / Ctrl / Alt；Win 键不计入，与 WinForms Keys 一致）</param>
 /// <param name="Timestamp">系统时间戳（毫秒，仅用于先后比较，不同平台起点不同）</param>
-public sealed record GlobalKeyEventArgs(GameKey Key, KeyModifiers Modifiers, int Timestamp);
+public sealed record GlobalKeyEventArgs(GameKey Key, KeyModifiers Modifiers, int Timestamp)
+{
+    /// <summary>本进程自己注入的事件（如 X11 上经 XTest 发送的按键）。快捷键据此忽略，避免回环；实现无法区分时为 false</summary>
+    public bool IsSelfInjected { get; init; }
+}
 
 /// <summary>全局鼠标事件</summary>
 /// <param name="Button">VK_LBUTTON / VK_RBUTTON / VK_MBUTTON / VK_XBUTTON1 / VK_XBUTTON2；移动与滚轮事件为 <see cref="GameKey.None"/></param>
 /// <param name="Location">屏幕坐标（物理像素）</param>
 /// <param name="Delta">滚轮增量（120 的倍数，向上为正）；其它事件为 0</param>
 /// <param name="Timestamp">系统时间戳（毫秒）</param>
-public sealed record GlobalMouseEventArgs(GameKey Button, PixelPoint Location, int Delta, int Timestamp);
+public sealed record GlobalMouseEventArgs(GameKey Button, PixelPoint Location, int Delta, int Timestamp)
+{
+    /// <summary>本进程自己注入的事件；实现无法区分时为 false</summary>
+    public bool IsSelfInjected { get; init; }
+}
 
 /// <summary>
 /// 全局键鼠监听（不拦截）。Windows 为低级键鼠钩子（MouseKeyHook）；X11 为轮询键状态。

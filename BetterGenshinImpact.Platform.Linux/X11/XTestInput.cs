@@ -82,6 +82,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
                 return;
             }
 
+            XTestInjectionLedger.Note(false, code, down);
             XTestFakeKeyEvent(_c.Display, (uint)code, down, 0);
             XFlush(_c.Display);
         }
@@ -116,6 +117,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
         lock (_c.Gate)
         {
             if (_c.IsDisposed) return;
+            XTestInjectionLedger.Note(true, (int)btn, down);
             XTestFakeButtonEvent(_c.Display, btn, down, 0);
             XFlush(_c.Display);
         }

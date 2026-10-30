@@ -73,9 +73,13 @@
             <TabItem Header="录制回放">
                 <DockPanel Margin="20,8,20,12">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="刷新" Command="{Binding RefreshCommand}" />
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                            <Button Content="开始录制" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" />
+                            <Button Content="停止录制" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" />
+                            <Button Content="刷新" Command="{Binding RefreshCommand}" />
+                        </StackPanel>
                         <TextBlock Classes="desc" VerticalAlignment="Center" TextWrapping="Wrap"
-                                   Text="{Binding KmFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组'}" />
+                                   Text="{Binding KmFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组；录制需先启动截图器，3 秒后开始'}" />
                     </DockPanel>
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding KmScripts}">

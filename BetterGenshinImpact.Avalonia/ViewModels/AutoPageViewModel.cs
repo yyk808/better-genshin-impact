@@ -9,6 +9,9 @@ using BetterGenshinImpact.Host.Common;
 using BetterGenshinImpact.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using BetterGenshinImpact.ViewModel.Message;
+using Microsoft.Extensions.DependencyInjection;
 using ILogger = Serilog.ILogger;
 
 namespace BetterGenshinImpact.Avalonia.ViewModels;
@@ -19,7 +22,8 @@ public sealed record AutoScriptItem(string Name, string Detail, string Descripti
 /// <summary>
 /// “全自动”页（对应 WPF 导航中的“全自动”分组：调度器、JS 脚本、地图追踪、录制回放）。
 /// 调度器为 ScriptControlPageViewModel；JS 脚本、地图追踪、键鼠脚本列出 User 下的文件，可以添加到调度器中选中的配置组，
-/// 键鼠脚本可以直接回放（Core 的 KeyMouseMacroPlayer，在 TaskRunner 中运行）。脚本仓库、订阅、录制尚未迁移
+/// 键鼠脚本可以直接回放（Core 的 KeyMouseMacroPlayer，在 TaskRunner 中运行），
+/// 也可以录制（Core 的 KeyMouseRecordService，按键 / 按钮来自 XInput2 全局监听，相对鼠标来自 XInput2 原始移动）。脚本仓库、订阅尚未迁移
 /// </summary>
 public sealed partial class AutoPageViewModel : PageViewModel
 {
@@ -29,13 +33,39 @@ public sealed partial class AutoPageViewModel : PageViewModel
 
     [ObservableProperty] private int _selectedTab;
     [ObservableProperty] private bool _isPlaying;
+    [ObservableProperty] private bool _isRecording;
 
     public AutoPageViewModel(GameHost? host, ScriptControlPageViewModel scheduler, ILogger log)
     {
         _host = host;
         _log = log;
         Scheduler = scheduler;
+        WeakReferenceMessenger.Default.Register<KeyMouseRecordStateChangedMessage>(this, (_, m) => IsRecording = m.IsRecording);
+        WeakReferenceMessenger.Default.Register<KeyMouseRecordSavedMessage>(this, (_, m) =>
+        {
+            _log.Information("键鼠录制已保存：{Path}", m.Path);
+            Refresh();
+        });
     }
+
+    private KeyMouseRecordController? Recorder => _host?.Services.GetService<KeyMouseRecordController>();
+
+    /// <summary>开始录制（与 WPF 录制回放页相同：3 秒倒计时；也可以用“启动/停止键鼠录制”快捷键）</summary>
+    [RelayCommand]
+    private async Task StartRecord()
+    {
+        if (Recorder is not { } recorder)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "请先在启动页，启动截图器再使用本功能");
+            return;
+        }
+
+        await recorder.StartAsync();
+    }
+
+    /// <summary>停止录制并保存到键鼠脚本目录</summary>
+    [RelayCommand]
+    private void StopRecord() => Recorder?.Stop();
 
     public override string Title => "全自动";
 

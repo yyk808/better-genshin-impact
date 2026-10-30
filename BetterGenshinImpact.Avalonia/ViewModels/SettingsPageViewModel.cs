@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reflection;
 using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.AutoFight;
 using BetterGenshinImpact.GameTask.AutoTrackPath;
@@ -67,7 +68,23 @@ public sealed partial class HotkeyItemViewModel : ObservableObject
 
     public string DisplayValue => IsRecording ? "请按下组合键…（Esc 取消，Backspace 清除）" : string.IsNullOrEmpty(Value) ? "< None >" : Value;
 
-    public string TypeText => _type?.GetValue(_config) is string t && Enum.TryParse<HotKeyTypeEnum>(t, out var e) ? e.ToChineseName() : "";
+    /// <summary>长按类快捷键（固定为键鼠监听）</summary>
+    public bool IsHold => HotkeyActionCatalog.HoldHotkeys.Contains(Property);
+
+    /// <summary>快捷键方式（HotKeyConfig 中的 xxxType），缺省为全局热键</summary>
+    public HotKeyTypeEnum Type
+    {
+        get => IsHold ? HotKeyTypeEnum.KeyboardMonitor
+            : _type?.GetValue(_config) is string t && Enum.TryParse<HotKeyTypeEnum>(t, out var e) ? e : HotKeyTypeEnum.GlobalRegister;
+        set
+        {
+            _type?.SetValue(_config, value.ToString());
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TypeText));
+        }
+    }
+
+    public string TypeText => Type.ToChineseName();
 
     partial void OnIsRecordingChanged(bool value) => OnPropertyChanged(nameof(DisplayValue));
 }
@@ -227,6 +244,26 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                         WithRuntime(r => OneKeyFightTask.Instance.KeyDown(r));
                     }
                 }, () => OneKeyFightTask.Instance.KeyUp(), Hold: true),
+                ["KeyMouseMacroRecordHotkey"] = new(() =>
+                {
+                    if (_host?.Services.GetService<KeyMouseRecordController>() is not { } recorder)
+                    {
+                        _log.Warning("请先启动截图器再使用键鼠录制");
+                        return;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await recorder.ToggleAsync();
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Error(e, "键鼠录制失败");
+                        }
+                    });
+                }),
                 ["RecBigMapPosHotkey"] = new(() => WithRuntime(r =>
                 {
                     try
@@ -284,6 +321,51 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     }
 
     private readonly Dictionary<string, HoldHotkeyRunner> _holdRunners = new(StringComparer.Ordinal);
+
+    private GlobalInputHotkeyService? _passthroughHotkeys;
+    private bool _passthroughFailed;
+
+    /// <summary>键鼠监听方式的热键（共用的全局键鼠监听，Linux 为 XInput2 原始事件）；不可用时为 null</summary>
+    private GlobalInputHotkeyService? PassthroughHotkeys
+    {
+        get
+        {
+            if (_passthroughHotkeys != null || _passthroughFailed || _host is null)
+            {
+                return _passthroughHotkeys;
+            }
+
+            try
+            {
+                var hook = SharedGlobalInputHook.Instance;
+                _log.Information("快捷键：键鼠监听使用 {Hook}", hook.GetType().Name);
+                _passthroughHotkeys = new GlobalInputHotkeyService(hook);
+            }
+            catch (Exception e)
+            {
+                _passthroughFailed = true;
+                _log.Warning("快捷键：键鼠监听不可用（{Message}），全部改用全局热键", e.Message);
+            }
+
+            return _passthroughHotkeys;
+        }
+    }
+
+    /// <summary>切换快捷键方式（全局热键 / 键鼠监听），长按类固定为键鼠监听</summary>
+    [RelayCommand]
+    private void ToggleHotkeyType(HotkeyItemViewModel? item)
+    {
+        if (item is null || item.IsHold)
+        {
+            return;
+        }
+
+        item.Type = item.Type == HotKeyTypeEnum.GlobalRegister ? HotKeyTypeEnum.KeyboardMonitor : HotKeyTypeEnum.GlobalRegister;
+        if (item.IsSupported)
+        {
+            RegisterHotkeys();
+        }
+    }
 
     // —— 通知 ——
 
@@ -355,19 +437,33 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             try
             {
                 var gesture = HotkeyGesture.Parse(item.Value);
+                // 与 Windows 相同：长按类固定用键鼠监听；其余按配置的方式（全局热键 / 键鼠监听）。
+                // 键鼠监听经 XInput2 原始事件，不抓取按键，游戏照常收到；只在游戏位于前台时触发（同 WPF KeyboardHook）
+                var monitor = action.Hold || item.Type == HotKeyTypeEnum.KeyboardMonitor;
+                var modeNote = "";
+                if (monitor && gesture.Modifiers != KeyModifiers.None && !action.Hold)
+                {
+                    monitor = false;
+                    modeNote = "（组合键改用全局热键）";
+                }
+
+                var passthrough = monitor ? PassthroughHotkeys : null;
+                if (monitor && passthrough is null)
+                {
+                    modeNote = "（键鼠监听不可用，改用全局热键）";
+                }
+
+                Func<bool> foreground = () => GameSystem.IsGameForeground(_host.RuntimeService.Current?.Window);
                 if (action.Hold)
                 {
-                    if (_host.Platform.Hotkeys is not IHotkeyHoldService holdService)
-                    {
-                        throw new NotSupportedException("平台热键服务不支持长按");
-                    }
-
+                    var holdService = passthrough as IHotkeyHoldService ?? _host.Platform.Hotkeys as IHotkeyHoldService
+                        ?? throw new NotSupportedException("平台热键服务不支持长按");
                     var runner = new HoldHotkeyRunner
                     {
                         OnKeyPress = action.Press,
                         OnKeyDown = action.Down,
                         OnKeyUp = action.Up,
-                        CanRun = () => GameSystem.IsGameForeground(_host.RuntimeService.Current?.Window),
+                        CanRun = foreground,
                     };
                     var name = item.Name;
                     runner.Error += e => _log.Warning("快捷键“{Name}”执行异常：{Message}", name, e.Message);
@@ -377,8 +473,15 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                 else
                 {
                     var press = action.Press!;
-                    _registrations.Add(_host.Platform.Hotkeys.Register(gesture, _ =>
+                    var service = (IHotkeyService?)passthrough ?? _host.Platform.Hotkeys;
+                    var checkForeground = passthrough != null;
+                    _registrations.Add(service.Register(gesture, _ =>
                     {
+                        if (checkForeground && !foreground())
+                        {
+                            return;
+                        }
+
                         try
                         {
                             press();
@@ -390,8 +493,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                     }, noRepeat: true));
                 }
 
-                item.Status = "已注册";
-                ok.Add($"{item.Name}={item.Value}");
+                item.Status = (passthrough != null ? "已注册：键鼠监听（不拦截）" : "已注册：全局热键（XGrabKey，游戏收不到该键）") + modeNote;
+                ok.Add($"{item.Name}={item.Value}{(passthrough != null ? "[监听]" : "[抓取]")}");
             }
             catch (Exception e)
             {
@@ -480,6 +583,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         }
 
         _holdRunners.Clear();
+        _passthroughHotkeys?.Dispose();
+        _passthroughHotkeys = null;
     }
 }
 

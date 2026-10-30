@@ -43,10 +43,20 @@ public sealed class X11PlatformServices : IPlatformServices
     public IScreenInfo Screen => new X11ScreenInfo(_display);
 
     /// <summary>
-    /// 轮询键状态的全局监听（独立连接）。X11 没有不抢占输入的低级钩子；XInput2 原始事件 / XRecord 版本见路线图
+    /// 全局键鼠监听（不抓取，游戏照常收到按键）：XInput2 原始事件（<see cref="X11RawInputHook"/>，忽略本进程的 XTest 注入）；
+    /// X 服务器不支持 XInput 2.1 时退回轮询键状态（没有滚轮）
     /// </summary>
-    public IGlobalInputHook CreateGlobalInputHook() =>
-        new PollingGlobalInputHook(new X11KeyStateProvider(new X11Connection(_display), ownsConnection: true), ownsState: true);
+    public IGlobalInputHook CreateGlobalInputHook()
+    {
+        try
+        {
+            return new X11RawInputHook(_display);
+        }
+        catch (InvalidOperationException)
+        {
+            return new PollingGlobalInputHook(new X11KeyStateProvider(new X11Connection(_display), ownsConnection: true), ownsState: true);
+        }
+    }
 
     /// <summary>新建 XInput2 原始鼠标移动监听（首个订阅时建立独立连接）</summary>
     public X11RelativeMouseInputMonitor CreateRelativeMouseMonitor() => new(_display);
