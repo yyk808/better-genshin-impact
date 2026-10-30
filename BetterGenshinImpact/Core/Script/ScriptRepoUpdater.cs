@@ -2476,7 +2476,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
             if (string.IsNullOrWhiteSpace(json))
                 return new List<string>();
 
-            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json, ConfigService.JsonOptions) ?? new List<string>();
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json, ConfigJson.Options) ?? new List<string>();
         }
         catch (Exception ex)
         {
@@ -2508,7 +2508,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                 return;
             }
 
-            var json = System.Text.Json.JsonSerializer.Serialize(paths, ConfigService.JsonOptions);
+            var json = System.Text.Json.JsonSerializer.Serialize(paths, ConfigJson.Options);
             File.WriteAllText(filePath, json);
         }
         catch (Exception ex)

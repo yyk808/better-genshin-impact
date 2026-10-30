@@ -249,7 +249,7 @@ public partial class AutoPickTrigger : ITaskTrigger
             var json = Global.ReadAllTextIfExist(jsonFilePath);
             if (!string.IsNullOrEmpty(json))
             {
-                return JsonSerializer.Deserialize<HashSet<string>>(json, ConfigService.JsonOptions) ?? [];
+                return JsonSerializer.Deserialize<HashSet<string>>(json, ConfigJson.Options) ?? [];
             }
         }
         catch (Exception e)

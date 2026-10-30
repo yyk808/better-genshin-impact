@@ -138,7 +138,7 @@ public static class MapMaskStateStorage
 
             var json = File.ReadAllText(filePath);
             // 统一使用项目配置的 JSON 选项，兼容现有序列化命名策略。
-            return Normalize(JsonSerializer.Deserialize<MapMaskDataSourceState>(json, ConfigService.JsonOptions));
+            return Normalize(JsonSerializer.Deserialize<MapMaskDataSourceState>(json, ConfigJson.Options));
         }
         catch (Exception e)
         {
@@ -209,7 +209,7 @@ public static class MapMaskStateStorage
                 Directory.CreateDirectory(directoryPath);
             }
 
-            File.WriteAllText(filePath, JsonSerializer.Serialize(state, ConfigService.JsonOptions));
+            File.WriteAllText(filePath, JsonSerializer.Serialize(state, ConfigJson.Options));
         }
         catch (Exception e)
         {

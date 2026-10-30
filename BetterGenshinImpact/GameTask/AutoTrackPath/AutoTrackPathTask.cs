@@ -73,7 +73,7 @@ public class AutoTrackPathTask
         _taskParam = taskParam;
 
         var wayJson = File.ReadAllText(Global.Absolute(@"log\way\way2.json"));
-        _way = JsonSerializer.Deserialize<GiPath>(wayJson, ConfigService.JsonOptions) ?? throw new Exception("way json deserialize failed");
+        _way = JsonSerializer.Deserialize<GiPath>(wayJson, ConfigJson.Options) ?? throw new Exception("way json deserialize failed");
     }
 
     /// <summary>

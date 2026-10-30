@@ -35,7 +35,7 @@ public sealed class PuloniaTaskLegacyImporter
     /// <summary>复用运行系统的资源版本范围。</summary>
     private readonly PuloniaTaskResourceVersionService _versions;
     /// <summary>旧配置使用 System.Text.Json，保留其命名、枚举和忽略约定。</summary>
-    private static readonly JsonSerializerOptions LegacyOptions = new(ConfigService.JsonOptions) { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions LegacyOptions = new(ConfigJson.Options) { PropertyNameCaseInsensitive = true };
 
     /// <summary>建立独立导入器，不订阅全局状态。</summary>
     public PuloniaTaskLegacyImporter(IReadOnlyList<PuloniaTaskDefinition> definitions, PuloniaTaskResourceCatalog catalog)

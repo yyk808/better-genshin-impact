@@ -110,7 +110,7 @@ public class PathPointRecorder : Singleton<PathPointRecorder>
                 }
             }
 #if DEBUG
-            File.WriteAllText(Global.Absolute($@"log\way\{DateTime.Now:yyyy-MM-dd HH：mm：ss：ffff}.json"), JsonSerializer.Serialize(way, ConfigService.JsonOptions));
+            File.WriteAllText(Global.Absolute($@"log\way\{DateTime.Now:yyyy-MM-dd HH：mm：ss：ffff}.json"), JsonSerializer.Serialize(way, ConfigJson.Options));
 #endif
             Logger.LogInformation("路线录制结束");
         }, ct);

@@ -82,7 +82,7 @@ public class Manifest
         if (File.Exists(settingFile))
         {
             var json = File.ReadAllText(settingFile);
-            settingItems = JsonSerializer.Deserialize<List<SettingItem>>(json, ConfigService.JsonOptions) ?? [];
+            settingItems = JsonSerializer.Deserialize<List<SettingItem>>(json, ConfigJson.Options) ?? [];
         }
 
         return settingItems;

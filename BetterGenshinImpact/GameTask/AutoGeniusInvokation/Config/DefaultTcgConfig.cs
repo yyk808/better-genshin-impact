@@ -16,7 +16,7 @@ public class DefaultTcgConfig
     static DefaultTcgConfig()
     {
         var json = File.ReadAllText(Global.Absolute(@"GameTask\AutoGeniusInvokation\Assets\tcg_character_card.json"));
-        var config = JsonSerializer.Deserialize<List<CharacterCard>>(json, ConfigService.JsonOptions);
+        var config = JsonSerializer.Deserialize<List<CharacterCard>>(json, ConfigJson.Options);
         CharacterCards = config ?? throw new System.Exception("tcg_character_card.json deserialize failed");
         CharacterCardMap = config.ToDictionary(x => x.Name);
     }

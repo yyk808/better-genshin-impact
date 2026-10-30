@@ -305,7 +305,7 @@ public class OneKeyFightTask : Singleton<OneKeyFightTask>
         var jsonPath = GetAvatarMacroJsonPath();
         var json = File.ReadAllText(jsonPath);
         _lastUpdateTime = File.GetLastWriteTime(jsonPath);
-        var avatarMacros = JsonSerializer.Deserialize<List<AvatarMacro>>(json, ConfigService.JsonOptions);
+        var avatarMacros = JsonSerializer.Deserialize<List<AvatarMacro>>(json, ConfigJson.Options);
         if (avatarMacros == null)
         {
             return [];

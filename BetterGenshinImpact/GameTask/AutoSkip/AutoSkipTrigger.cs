@@ -181,7 +181,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
             var defaultPauseListJson = Global.ReadAllTextIfExist(@"Assets\Config\Skip\default_pause_options.json");
             if (!string.IsNullOrEmpty(defaultPauseListJson))
             {
-                _defaultPauseList = JsonSerializer.Deserialize<List<string>>(defaultPauseListJson, ConfigService.JsonOptions) ?? [];
+                _defaultPauseList = JsonSerializer.Deserialize<List<string>>(defaultPauseListJson, ConfigJson.Options) ?? [];
             }
         }
         catch (Exception e)
@@ -196,7 +196,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
             var pauseListJson = Global.ReadAllTextIfExist(@"Assets\Config\Skip\pause_options.json");
             if (!string.IsNullOrEmpty(pauseListJson))
             {
-                _pauseList = JsonSerializer.Deserialize<List<string>>(pauseListJson, ConfigService.JsonOptions) ?? [];
+                _pauseList = JsonSerializer.Deserialize<List<string>>(pauseListJson, ConfigJson.Options) ?? [];
             }
         }
         catch (Exception e)
@@ -210,7 +210,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
             var selectListJson = Global.ReadAllTextIfExist(@"Assets\Config\Skip\select_options.json");
             if (!string.IsNullOrEmpty(selectListJson))
             {
-                _selectList = JsonSerializer.Deserialize<List<string>>(selectListJson, ConfigService.JsonOptions) ?? [];
+                _selectList = JsonSerializer.Deserialize<List<string>>(selectListJson, ConfigJson.Options) ?? [];
             }
         }
         catch (Exception e)

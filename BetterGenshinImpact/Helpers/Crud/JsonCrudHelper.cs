@@ -86,12 +86,12 @@ public class JsonCrudHelper<T> : ICrudHelper<T> where T : class
         }
 
         var json = File.ReadAllText(_filePath);
-        return JsonSerializer.Deserialize<ObservableCollection<T>>(json, ConfigService.JsonOptions) ?? [];
+        return JsonSerializer.Deserialize<ObservableCollection<T>>(json, ConfigJson.Options) ?? [];
     }
 
     private void SaveToFile()
     {
-        var json = JsonSerializer.Serialize(Items, ConfigService.JsonOptions);
+        var json = JsonSerializer.Serialize(Items, ConfigJson.Options);
         File.WriteAllText(_filePath, json);
     }
 

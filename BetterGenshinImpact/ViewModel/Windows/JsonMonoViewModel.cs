@@ -41,7 +41,7 @@ public partial class JsonMonoViewModel : ObservableObject
     {
         try
         {
-            JsonSerializer.Deserialize<object>(JsonText, ConfigService.JsonOptions);
+            JsonSerializer.Deserialize<object>(JsonText, ConfigJson.Options);
         }
         catch (Exception e)
         {

@@ -47,7 +47,7 @@ public partial class ScriptGroup : ObservableObject
 
     public string ToJson()
     {
-        return JsonSerializer.Serialize(this, ConfigService.JsonOptions);
+        return JsonSerializer.Serialize(this, ConfigJson.Options);
     }
 
     public void WriteToFileAtomically(string filePath)
