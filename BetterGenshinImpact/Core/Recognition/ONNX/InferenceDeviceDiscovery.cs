@@ -8,11 +8,6 @@ using SharpDX.DXGI;
 
 namespace BetterGenshinImpact.Core.Recognition.ONNX;
 
-public interface IInferenceDeviceDiscovery
-{
-    IReadOnlyList<InferenceDeviceInfo> GetDevices(InferenceDeviceType engine, string runtimeDirectory);
-}
-
 /// <summary>只探测硬件 API，不加载、替换其他引擎的 onnxruntime.dll。</summary>
 public sealed class InferenceDeviceDiscovery : IInferenceDeviceDiscovery
 {
