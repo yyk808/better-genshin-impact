@@ -121,3 +121,21 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 验证：编译 0 错误；Core 单测 82 个通过（新增 UI 服务与命令行剪贴板测试，后者用脚本模拟剪贴板工具）；主项目单测 785 / 118 / 5，无退化；
 端到端 X11 16 PASS / 1 SKIP，Wine 第一次 16 PASS / 1 WARN（同里程碑 4 的锁定视角相对移动偶发），重跑 17 PASS；`keystate` 0 FAIL。
 
+## 里程碑 6：清理业务代码中的 System.Drawing（GDI+）
+
+区分两部分：`Color` / `Point` / `Size` / `Rectangle` 属于跨平台的 System.Drawing.Primitives（.NET 共享框架自带，Linux 可用），保留；
+`Pen` / `Bitmap` / `Graphics` / `Font` / `Brush` 属于只支持 Windows 的 System.Drawing.Common（GDI+），需要从业务代码中去掉。
+
+- Core：`Drawing/DrawPen`（颜色 + 线宽，不持有非托管资源）与 `DrawPens`（对应 `System.Drawing.Pens`，线宽 1，每次返回新实例）。
+  为兼容原有代码与脚本，构造函数（`(Color)`、`(Color, float)`）、`Color` / `Width` 属性、`Dispose()` 与 `System.Drawing.Pen` 一致。
+- 主项目：遮罩绘制相关 API（`Region.DrawSelf` / `DrawRect` / `DrawLine` / `ToMaskWindowDrawingRect`、`RecognitionObject.DrawOnWindowPen`、
+  `CameraOrientation.DrawDirection`、`MaskWindowDrawingStroke.FromPen` 等）及 20 个调用文件改用 `DrawPen`，颜色与线宽不变。
+- 脚本引擎：JS 中的 `Pen` 宿主类型改为 `DrawPen`。已在 Wine 中用 ClearScript V8 实测 `new Pen(Color.Lime, 3)`、`new Pen(Color.Red)`、
+  给 `RecognitionObject.DrawOnWindowPen` 赋值、修改 `Width`、调用 `Dispose()` 均与原来一致。
+- `GetGridIconsTask` 保存图标改用 OpenCV 编码 PNG（像素与原先经 GDI+ `Bitmap` 保存的相同）。
+- 剩余（未改，均为 Windows 专用或仅调试输出）：`RewardResultRecognizer` 与 `InventoryCountComparisonTask` 的调试图用 GDI+ 写中文标注
+  （OpenCV 的 `PutText` 不支持中文，需换 SkiaSharp，输出会有细微差异，留待移入 Core 时处理）；`Helpers/Extensions/BitmapExtension`（WPF 图像转换）；
+  View 中的用法随 Avalonia 宿主替换。
+
+验证：编译 0 错误；Core 单测 85 个通过；主项目单测 785 / 118 / 5，无退化；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；`keystate` 0 FAIL。
+
