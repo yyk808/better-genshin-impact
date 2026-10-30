@@ -34,6 +34,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- 与主单测项目共用的测试替身（源码链接，不复制） -->
+        <Compile Include="..\BetterGenshinImpact.UnitTest\FakeLogger.cs" Link="Shared\FakeLogger.cs" />
+        <Compile Include="..\BetterGenshinImpact.UnitTest\GameTaskTests\AutoFishingTests\FakeInputChannel.cs" Link="Shared\FakeInputChannel.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj"/>
         <ProjectReference Include="..\..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj"/>
     </ItemGroup>
