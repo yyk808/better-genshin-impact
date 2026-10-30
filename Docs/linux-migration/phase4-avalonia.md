@@ -307,3 +307,51 @@ Core 980 个（新增 `ScriptGroupStore`、`ScriptGroupRunner`），主项目 75
 - 普通：F6 切换自动钓鱼（日志“切换自动钓鱼状态为[开启] / [关闭]”），F8 启动 / 停止自动伐木。
 - 通知：本机 Webhook 接收端收到任务失败事件（task.error）与测试通知（notify.test），均带截图；用记录参数的 notify-send 替身验证系统通知的参数。
 - OpenCV：精简构建与完整构建分别启动，日志分别为不可用警告与“SIFT / SURF 可用”。
+
+## 里程碑 33：快捷键透传（不拦截按键）、Linux 键鼠录制
+
+### 快捷键透传
+
+Windows 的“键鼠监听”类快捷键用低级键盘钩子，按键照常送到游戏；X11 的 XGrabKey 会把按键从游戏“抢走”。几种方案的比较：
+
+| 方案 | 游戏能否收到 | 问题 |
+| --- | --- | --- |
+| XGrabKey | 否 | 现有“全局热键”方式 |
+| XGrabKey 后 XTest 重放 | 是 | 重放的按键又会触发抓取（需临时解除抓取），时序与修饰键状态难以还原 |
+| XRecord | 是 | 需要单独的数据连接，部分环境（XWayland）不支持 |
+| XInput2 原始事件（XI_RawKeyPress 等，只监听不抓取） | 是 | 与 Windows 低级钩子相同：只观察，不拦截 |
+
+采用 XInput2 原始事件：
+
+- `Platform.Linux` 新增 `X11RawInputHook`（`IGlobalInputHook`）：在根窗口监听原始按键、按钮、移动与滚轮，按键名与 WinForms Keys 相同；
+  X 服务器没有 XInput2 时退回原来的轮询实现。
+- 区分自身的 XTest 注入，避免回环：`XTestInput` 每次注入前在 `XTestInjectionLedger` 记一笔（按键或按钮、按下或抬起），
+  监听收到来自 XTEST 从设备、且台账中有对应记录的事件时标记 `IsSelfInjected`（`GlobalKeyEventArgs` / `GlobalMouseEventArgs` 新增的属性，Windows 上恒为 false），
+  快捷键服务忽略这些事件；其它订阅方（录制等）照常收到。用户自己用 xdotool 等发送的按键仍然能触发快捷键。
+- Core 新增 `Platform/GlobalInputHotkeyService`：基于任意 `IGlobalInputHook` 实现 `IHotkeyService` 与 `IHotkeyHoldService`（修饰键精确匹配、按住时不重复触发、回调在同一线程按顺序执行）。
+- 设置 → 快捷键：每个快捷键可在“全局热键（XGrabKey，抓取）”与“键鼠监听（不拦截）”之间切换，沿用配置中的 `xxxHotkeyType`（与 Windows 相同的取值）。
+  键鼠监听方式与 Windows 一样只在游戏窗口在前台时触发；长按类快捷键总是用键鼠监听；带修饰键的组合键在键鼠监听方式下仍改用全局热键。
+
+### 键鼠录制
+
+- `GlobalKeyMouseRecord`、`KeyMouseRecordService` 与录制消息从主项目移到 Core（`Core/Recorder`），WPF 的录制页、快捷键、战斗策略选择器继续使用，行为不变。
+- Core 新增 `KeyMouseRecordInputBridge`：把全局键鼠监听的事件转交给录制（WPF 由 `MouseKeyMonitor` 转交）。
+- Linux 宿主注册 `IRelativeMouseInputMonitorFactory`（XInput2 原始移动，DirectInput / RawInput 都映射到它）与 `KeyMouseRecordService`，
+  新增 `KeyMouseRecordController`（录制期间接上监听）。全自动 → 录制回放新增“开始录制 / 停止录制”，“启动/停止键鼠录制”快捷键可用。
+  录制文件与 Windows 相同（`User/KeyMouseScript/BetterGI_GCM_*.json`），主界面（检测到好友聊天图标）记录相对移动，其它界面记录绝对坐标。
+
+### 验证（假游戏，1920×1080）
+
+- 透传：W 绑定“自动钓鱼开关”（键鼠监听）。BetterGI 自己回放的键鼠脚本按住 W 1.2 秒时不触发开关（自身注入）；xdotool 按 W 时开关切换，假游戏同时收到 W。
+  F6（键鼠监听）游戏收到并切换自动邀约；F7（那维莱特转圈，长按）游戏收到 F7，按住 1.5 秒期间持续转动、抬起停止；F10（全局热键）游戏收不到，停止任务。结束时没有仍按住的键。
+- 录制：F9 开始录制，3 秒后开始；xdotool 依次按住 W 1.2 秒、相对移动 5×80 像素、左键单击、空格，再按 F9 停止。
+  脚本中为 W 按下 / 抬起（间隔 1215 ms）、5 条 MouseMoveBy (80, 0)、左键按下 / 抬起、空格按下 / 抬起。
+- 回放：把录制文件加入配置组运行，假游戏收到 W 按住 1204 ms、5 次相对移动 80 像素、左键单击、空格 317 ms，与录制一致。
+
+### 尚未完成
+
+- Windows 版新的“任务计划”页（PuloniaTaskPlanPage）尚未迁移。
+
+### 文件数（口径同上）
+
+Core 988 个（新增 `GlobalInputHotkeyService`、`KeyMouseRecordInputBridge`，并移入录制的 3 个文件），主项目 756 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 45 个。
