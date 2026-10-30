@@ -23,12 +23,12 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 - 验收：全解决方案在 Linux 上 0 错误编译；Core 与 Platform.Linux 不带 Windows 目标可编译；单元测试结果与改动前一致；
   Platform.Linux 在两个假游戏上的端到端回归与原型结果一致。
 
-## 阶段 2：接入平台服务 + 继续清理 Win32 依赖（下一步）
+## 阶段 2：接入平台服务 + 继续清理 Win32 依赖（进行中，进展见 [phase2-progress.md](phase2-progress.md)）
 
 目标：业务层（GameTask / Core）不再直接调用 Win32，所有平台能力都经由 `IPlatformServices`。
 
-1. **平台服务注册**：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
-2. **`SystemControl` 拆分**：窗口查找 / 激活 / DPI / 进程管理迁到 `IWindowManager` / `IPlatformWindow`，`GameWindowState` 改用 `PixelRect`。
+1. ✅ **平台服务注册**（里程碑 1）：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
+2. ✅ **`SystemControl` 拆分**（里程碑 1）：找窗迁到 `IGameWindowFinder`，Win32 窗口函数迁到 `Platform.Windows` 的 `Win32WindowOps`，进程名 / 启动参数迁到 Core；剩余调用方逐步改用 `IPlatformWindow`。
 3. **键状态与录制**：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
 4. **音游输入**：`KeyInputTransports`（直接 SendInput / PostMessage）改为走 `IInputChannel`。
 5. **热键**：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。

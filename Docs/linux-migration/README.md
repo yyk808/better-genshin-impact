@@ -6,6 +6,7 @@
 |---|---|
 | [roadmap.md](roadmap.md) | 分阶段路线图、每阶段的目标与验收标准 |
 | [phase1-foundation.md](phase1-foundation.md) | 第一阶段（平台抽象地基）的成果、验证结果与遗留问题 |
+| [phase2-progress.md](phase2-progress.md) | 第二阶段（接入平台服务、清理 Win32 依赖）的里程碑记录与验证结果 |
 | [architecture.md](architecture.md) | 项目结构、平台抽象接口、Windows / Linux 实现的对应关系与约定 |
 | [survey.md](survey.md) | 迁移前的 Windows 依赖调研（精简版） |
 
@@ -27,4 +28,7 @@ dotnet build BetterGenshinImpact.sln -p:EnableWindowsTargeting=true
 # 平台无关部分可以不带 Windows 目标单独编译
 dotnet build BetterGenshinImpact.Core
 dotnet build BetterGenshinImpact.Platform.Linux
+
+# Core 的单元测试在 Linux 上原生运行
+dotnet test Test/BetterGenshinImpact.Core.UnitTest
 ```
