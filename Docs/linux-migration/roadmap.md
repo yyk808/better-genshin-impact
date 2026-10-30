@@ -63,7 +63,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 
 1. ✅ 新建 `BetterGenshinImpact.Avalonia`（`net10.0`，Avalonia 12）宿主：DI（与无界面宿主共用 `Host.Common` 的 `GameHost`）、日志面板、MainWindow 外壳（Avalonia 自带 Fluent 主题，样式仿原版 NavigationView / CardControl）、`UiHost` 的 Avalonia 实现（里程碑 26）。
 2. 首批页面：首页（启动截图器）、实时触发设置、遮罩 MaskWindow → 在 Linux 上跑通“启动截图 → 自动拾取 / 自动剧情”。（首页与实时触发已完成并在假游戏上跑通拾取 / 剧情；里程碑 27 补全首页的截图模式、手动选择窗口、同时启动游戏，并实现 Linux 上的配置持久化 `User/config.json`（与 Windows 格式相同）；遮罩窗口（透明、置顶、SHAPE 点击穿透）与识别框 / 日志框绘制已完成，截图改用 Composite 窗口图像避免截到遮罩（里程碑 28）；HTML 遮罩待 WebView）
-3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。（里程碑 29：独立任务页与一条龙页主体已完成，执行走 Core 的 `SoloTaskExecutionService` / `OneDragonTask`；各任务的详细设置界面待迁移。里程碑 31：全自动页（调度器 / 配置组、JS 脚本、地图追踪、录制回放列表）与设置页常用项（通用、遮罩、快捷键、通知、关于）已完成，快捷键经 X11 XGrabKey 生效（里程碑 32 补齐其余动作与长按类快捷键；里程碑 33 新增不拦截按键的“键鼠监听”方式（XInput2 原始事件）与 Linux 键鼠录制）；Linux 通知（网络通知器与 freedesktop 系统通知）里程碑 32 接入；Windows 版新的“任务计划”（计划系统）尚未迁移）
+3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。（里程碑 29：独立任务页与一条龙页主体已完成，执行走 Core 的 `SoloTaskExecutionService` / `OneDragonTask`；各任务的详细设置界面待迁移。里程碑 31：全自动页（调度器 / 配置组、JS 脚本、地图追踪、录制回放列表）与设置页常用项（通用、遮罩、快捷键、通知、关于）已完成，快捷键经 X11 XGrabKey 生效（里程碑 32 补齐其余动作与长按类快捷键；里程碑 33 新增不拦截按键的“键鼠监听”方式（XInput2 原始事件）与 Linux 键鼠录制）；Linux 通知（网络通知器与 freedesktop 系统通知）里程碑 32 接入；Windows 版新的“任务计划”（Pulonia 计划系统）里程碑 34 迁移：模型、存储、调度与执行在 Core，Avalonia 任务计划页可编辑、运行、停止，共享设置与触发方式编辑等待迁移）
 4. WebView2 相关（云原神、HTML 遮罩、脚本设置页）最后迁移，Linux 用 Avalonia NativeWebView（WebKitGTK）。
 5. WPF UI 在过渡期保留，Windows 版可以先继续使用。
 

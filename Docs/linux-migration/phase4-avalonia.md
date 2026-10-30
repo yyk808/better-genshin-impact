@@ -355,3 +355,33 @@ Windows 的“键鼠监听”类快捷键用低级键盘钩子，按键照常送
 ### 文件数（口径同上）
 
 Core 988 个（新增 `GlobalInputHotkeyService`、`KeyMouseRecordInputBridge`，并移入录制的 3 个文件），主项目 756 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 45 个。
+
+## 里程碑 34：任务计划（Pulonia）
+
+### 抽到 Core
+
+- `Pulonia/Models`、`Pulonia/Services`、`Pulonia/Executors`、`Pulonia/Remote` 移到 Core（命名空间不变）：计划模型、存储 `PuloniaTaskStore`（User/Pulonia，两个平台共用）、
+  任务构建与创建、校验、调度（Cron、触发器游标）、执行服务 `PuloniaTaskService`、游戏任务协调器、6 种执行器（独立任务、录制回放、地图追踪、JS、Shell、进程内 C#）、路线 CD、执行记录。
+- 仍留在主程序（Windows 专用）：账号切换器（窗口识别与 Win32 输入）、Windows 凭据管理器、仓库管理服务（`ScriptRepoUpdater`）、热键键位校验（WPF HotKey），以及调度宿主 `PuloniaTaskTriggerHost`（WPF Dispatcher、多实例、热键注册）。
+- 依赖改为 Core 已有的接口：自动更新等待用 `ScriptAutoUpdateGate`，关闭 HTML 遮罩用 `HtmlMaskWindowHost`；
+  凭据保存改为 `PuloniaTaskStore.DefaultCredentialVaultFactory`，Windows 主程序加载时设为 Windows 凭据管理器（与原来相同），其它平台写入凭据时报“不支持”。
+- 调度循环抽成 Core 的 `PuloniaTriggerScheduler`（每秒检查定时触发器、计划变化时重读、热键注册错误按 30 秒周期重试），热键注册经 `IPuloniaTriggerHotkeys` 由宿主提供。
+  `PuloniaTaskTriggerHost` 保留主实例判断、Dispatcher 关闭守卫与热键注册，循环交给它，行为不变。
+- 运行状态与任务类型的显示文本移到 Core（`PuloniaTaskRunStatusText`、`PuloniaTaskTypeText`），WPF 视图模型改为调用它们。
+
+### Linux 宿主
+
+- `GameHost` 注册存储、构建器、执行器、资源目录、创建服务与执行服务（没有多实例派发与账号切换），以及 `PuloniaSchedulerHost`（后台运行 `PuloniaTriggerScheduler`，定时触发器生效；计划快捷键尚未注册）。
+- Avalonia 新增“任务计划”页（原来是占位页），布局对照 WPF：左侧计划列表（任务数、运行中标记、▶ 运行、新建、删除），右侧计划标题与运行 / 停止，
+  “任务”页签（选择任务类型与资源后添加、添加分组、上移 / 下移、删除、启用勾选；任务树按层级缩进），“执行记录”页签（状态、提交时间与耗时、结果、来源），“触发方式”页签（只读与调度状态）。
+  修改自动保存。共享设置、设置方案、路线 CD、计划引用、任务参数编辑、运行预览、触发方式编辑尚未迁移。
+- 无人值守参数 `--task-plan <名称或 ID>`（停止时间沿用 `--script-stop-after`）。
+
+### 验证（假游戏 1920×1080）
+
+- 简单计划（1 个录制回放任务）：运行 5.9 秒后“已完成”，假游戏收到 W 按住 1211 ms、空格 319 ms，与录制一致，执行记录页显示该运行。
+- 停止测试（3 个录制回放任务）：运行 3 秒后点击停止，状态“已停止”（计划已取消，当前执行器已退出并释放资源）；停止时正按住的 W 随即抬起（按住 800 ms），结束时没有仍按住的键。
+
+### 文件数（口径同上）
+
+Core 1105 个（移入 Pulonia 114 个，新增 `PuloniaTriggerScheduler`、`PuloniaTaskRunStatusText`、`PuloniaTaskTypeText`），主项目 642 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 48 个。

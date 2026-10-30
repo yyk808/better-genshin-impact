@@ -756,11 +756,11 @@ public sealed class SoloTaskRunResult
 | 泛型合同、结构化结果、注册与动态调用 | [`ISoloTask.cs`](../../BetterGenshinImpact/GameTask/SoloTask/ISoloTask.cs)、[`SoloTaskRegistry.cs`](../../BetterGenshinImpact/GameTask/SoloTask/SoloTaskRegistry.cs)、[`SoloTaskDescriptor.cs`](../../BetterGenshinImpact/GameTask/SoloTask/SoloTaskDescriptor.cs) |
 | 独立运行、取消及完成事件 | [`TaskRunner.cs`](../../BetterGenshinImpact/GameTask/TaskRunner.cs)、[`SoloTaskExecutionService.cs`](../../BetterGenshinImpact/GameTask/SoloTask/Execution/SoloTaskExecutionService.cs) |
 | 提前结束异常转结果 | [`SoloTaskAbortException.cs`](../../BetterGenshinImpact/GameTask/SoloTask/SoloTaskAbortException.cs)、[`SoloTaskExtensions.cs`](../../BetterGenshinImpact/GameTask/SoloTask/SoloTaskExtensions.cs) |
-| Pulonia 执行、首领累计次数及 Schema | [`PuloniaSoloTaskExecutor.cs`](../../BetterGenshinImpact/Pulonia/Executors/PuloniaSoloTaskExecutor.cs)、[`PuloniaSoloTaskSchema.cs`](../../BetterGenshinImpact/Pulonia/Services/PuloniaSoloTaskSchema.cs) |
+| Pulonia 执行、首领累计次数及 Schema | [`PuloniaSoloTaskExecutor.cs`](../../BetterGenshinImpact.Core/Pulonia/Executors/PuloniaSoloTaskExecutor.cs)、[`PuloniaSoloTaskSchema.cs`](../../BetterGenshinImpact.Core/Pulonia/Services/PuloniaSoloTaskSchema.cs) |
 | 注册表驱动的默认清单与菜单 | [`PuloniaOneDragonDefaults.cs`](../../BetterGenshinImpact/ViewModel/Pages/Pulonia/PuloniaOneDragonDefaults.cs)、[`PuloniaTaskMenuBuilder.cs`](../../BetterGenshinImpact/ViewModel/Pages/Pulonia/PuloniaTaskMenuBuilder.cs) |
 | 非泛型设置 VM、工厂与全局模板 | [`SoloTaskSettingsViewModel.cs`](../../BetterGenshinImpact/ViewModel/SoloTaskSettings/SoloTaskSettingsViewModel.cs)、[`SoloTaskSettingsFactory.cs`](../../BetterGenshinImpact/ViewModel/SoloTaskSettings/SoloTaskSettingsFactory.cs)、[`SoloTaskSettingsTemplates.cs`](../../BetterGenshinImpact/ViewModel/SoloTaskSettings/SoloTaskSettingsTemplates.cs) |
 | 原 TXT 实现保留，新增统一入口 | [`AutoFightEntryTask.cs`](../../BetterGenshinImpact/GameTask/AutoFight/AutoFightEntryTask.cs) |
-| 会话仍由两条路径管理，统一租约未落地 | [`PuloniaGameTaskCoordinator.cs`](../../BetterGenshinImpact/Pulonia/Services/PuloniaGameTaskCoordinator.cs)、[`PuloniaLocalNodeRunner.cs`](../../BetterGenshinImpact/Pulonia/Services/PuloniaLocalNodeRunner.cs)、[`GameTaskSessionScope.cs`](../../BetterGenshinImpact/GameTask/GameTaskSessionScope.cs) |
+| 会话仍由两条路径管理，统一租约未落地 | [`PuloniaGameTaskCoordinator.cs`](../../BetterGenshinImpact.Core/Pulonia/Services/PuloniaGameTaskCoordinator.cs)、[`PuloniaLocalNodeRunner.cs`](../../BetterGenshinImpact.Core/Pulonia/Services/PuloniaLocalNodeRunner.cs)、[`GameTaskSessionScope.cs`](../../BetterGenshinImpact/GameTask/GameTaskSessionScope.cs) |
 
 本次执行仓库约定的编译命令：
 
