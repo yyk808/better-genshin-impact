@@ -1,4 +1,8 @@
 using BetterGenshinImpact.Helpers;
+using BetterGenshinImpact.Host.Common.Notification;
+using BetterGenshinImpact.Infrastructure.Network;
+using BetterGenshinImpact.Service.Notification;
+using BetterGenshinImpact.Service.Notifier;
 using BetterGenshinImpact.GameTask.AutoMusicGame;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
@@ -140,6 +144,15 @@ public sealed class GameHost : IAsyncDisposable
             log.Warning("创建 log 目录失败：{Message}", e.Message);
         }
 
+        try
+        {
+            OpenCvCapabilities.LogStartupStatus(log);
+        }
+        catch (Exception e)
+        {
+            log.Warning("OpenCV 特征匹配探测失败：{Message}", e.Message);
+        }
+
         // 1. 平台服务：X11 找窗 / 截图 / XTest 输入
         var platform = new X11PlatformServices(options.Display);
         try
@@ -220,7 +233,8 @@ public sealed class GameHost : IAsyncDisposable
 
             // 3. 依赖注入
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddSerilog(dispose: false));
+            // HttpClient 的请求日志包含完整地址（Webhook 地址中可能带令牌），只记录警告以上
+            services.AddLogging(b => b.AddSerilog(dispose: false).AddFilter("System.Net.Http.HttpClient", Microsoft.Extensions.Logging.LogLevel.Warning));
             // 任务参数基类经 IStringLocalizer<T> 读取多语言资源（与 WPF 主程序相同）
             services.AddLocalization();
             services.AddSingleton<IPlatformServices>(platform);
@@ -261,6 +275,11 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<InferenceRuntimeService>();
             services.AddSingleton<BgiOnnxFactory>();
             services.AddSingleton<OcrFactory>();
+            // 通知：网络通知器与 Windows 版相同（Core 的 NetworkNotifierFactory），系统通知走 freedesktop Notifications
+            services.AddHttpClient(HttpClientNames.Notification, c => c.Timeout = TimeSpan.FromSeconds(30));
+            services.AddSingleton<NotifierManager>();
+            services.AddSingleton<LinuxNotificationService>();
+            services.AddSingleton<INotificationHub>(sp => sp.GetRequiredService<LinuxNotificationService>());
             // 服务器时间（月卡判断、按服务器日期的执行周期等使用，与 WPF 相同）
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IServerTimeProvider, ServerTimeProvider>();

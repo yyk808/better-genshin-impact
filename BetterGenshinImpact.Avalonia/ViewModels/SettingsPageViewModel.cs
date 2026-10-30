@@ -2,8 +2,18 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask;
+using BetterGenshinImpact.GameTask.AutoFight;
+using BetterGenshinImpact.GameTask.AutoTrackPath;
+using BetterGenshinImpact.GameTask.Common.Hotkeys;
+using BetterGenshinImpact.GameTask.Common.Map.Maps.Base;
+using BetterGenshinImpact.GameTask.Macro;
 using BetterGenshinImpact.GameTask.OneDragon;
+using BetterGenshinImpact.GameTask.QuickBuy;
+using BetterGenshinImpact.GameTask.QuickClaimReward;
+using BetterGenshinImpact.GameTask.QuickSereniteaPot;
+using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Host.Common;
+using BetterGenshinImpact.Host.Common.Notification;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Service;
@@ -65,14 +75,14 @@ public sealed partial class HotkeyItemViewModel : ObservableObject
 /// <summary>
 /// “设置”页（对应 WPF 的 CommonSettingsPage 常用项 + HotKeyPage + NotificationSettingsPage + 关于）：
 /// 直接绑定 Core 的 AllConfig（配置文件与 Windows 版共用，修改即保存）。
-/// 快捷键在 Linux 上经平台的 IHotkeyService（X11 XGrabKey）注册，先实现了常用的几个动作，其余只能查看和修改绑定
+/// 快捷键在 Linux 上经平台的 IHotkeyService（X11 XGrabKey）注册，动作与 WPF 相同（键鼠录制、模板素材制作、路径记录器除外）
 /// </summary>
 public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 {
     private readonly GameHost? _host;
     private readonly ILogger _log;
     private readonly Func<Task>? _toggleCapture;
-    private readonly Func<Task>? _toggleOneDragon;
+    private readonly Func<string, Task>? _toggleSoloTask;
     private readonly List<IDisposable> _registrations = [];
 
     [ObservableProperty] private int _selectedTab;
@@ -118,12 +128,14 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         ("开发者", "添加路径点", "AddWaypointHotkey"),
     ];
 
-    public SettingsPageViewModel(GameHost? host, ILogger log, Func<Task>? toggleCapture = null, Func<Task>? toggleOneDragon = null)
+    public SettingsPageViewModel(GameHost? host, ILogger log, Func<Task>? toggleCapture = null, Func<string, Task>? toggleSoloTask = null)
     {
         _host = host;
         _log = log;
         _toggleCapture = toggleCapture;
-        _toggleOneDragon = toggleOneDragon;
+        _toggleSoloTask = toggleSoloTask;
+        // 快速传送“按住时生效”：Windows 由键鼠钩子提供按住状态，这里由长按快捷键提供
+        HotkeyHoldState.Query ??= hotkey => _holdRunners.TryGetValue(hotkey, out var r) && r.IsPressed;
         Config = host?.Config ?? new AllConfig();
         IsAvailable = host is not null;
         foreach (var (group, name, property) in HotkeyTable)
@@ -165,28 +177,147 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     // —— 快捷键 ——
 
-    /// <summary>Linux 宿主已实现动作的快捷键（与 WPF HotKeyPageViewModel 中对应条目的动作相同）</summary>
-    private Dictionary<string, Action> HotkeyActions => new()
+    /// <summary>一个快捷键的动作：普通快捷键只有 Press；长按类（见 HotkeyActionCatalog.HoldHotkeys）按住期间反复 Press，或分别处理 Down / Up</summary>
+    private sealed record HotkeyBinding(Action? Press, Action? Down = null, Action? Up = null, bool Hold = false);
+
+    /// <summary>
+    /// Linux 宿主的快捷键动作，与 WPF HotKeyPageViewModel 中对应条目相同；与界面无关的部分在 Core 的 HotkeyActionCatalog 中。
+    /// 键鼠录制、模板素材制作、路径记录器 / 添加路径点依赖 Windows 版的录制与编辑器，尚未迁移
+    /// </summary>
+    private Dictionary<string, HotkeyBinding> HotkeyActions
     {
-        ["BgiEnabledHotkey"] = () => UiHost.Dispatcher.Post(() => _ = _toggleCapture?.Invoke()),
-        ["CancelTaskHotkey"] = () =>
+        get
         {
-            _log.Information("检测到您配置的停止快捷键{Key}按下，停止当前执行任务", Config.HotKeyConfig.CancelTaskHotkey);
-            _host?.Services.GetService<TaskStopService>()?.StopAll(TaskStopReason.UserRequested);
-        },
-        ["SuspendHotkey"] = () => RunnerContext.Instance.IsSuspend = !RunnerContext.Instance.IsSuspend,
-        ["AutoPickEnabledHotkey"] = () => UiHost.Dispatcher.Post(() =>
+            var map = new Dictionary<string, HotkeyBinding>
+            {
+                ["BgiEnabledHotkey"] = new(() => UiHost.Dispatcher.Post(() => _ = _toggleCapture?.Invoke())),
+                ["CancelTaskHotkey"] = new(() =>
+                {
+                    _log.Information("检测到您配置的停止快捷键{Key}按下，停止当前执行任务", Config.HotKeyConfig.CancelTaskHotkey);
+                    _host?.Services.GetService<TaskStopService>()?.StopAll(TaskStopReason.UserRequested);
+                }),
+                ["SuspendHotkey"] = new(() => RunnerContext.Instance.IsSuspend = !RunnerContext.Instance.IsSuspend),
+                ["TakeScreenshotHotkey"] = new(() =>
+                {
+                    if (_host?.RuntimeService.Current is { } runtime)
+                    {
+                        Screenshots?.SaveCurrentFrame(runtime);
+                    }
+                    else
+                    {
+                        _log.Information("截图失败，未获取到图像");
+                    }
+                }),
+                ["LogBoxDisplayHotkey"] = new(() => UiHost.Dispatcher.Post(() => HotkeyActionCatalog.ToggleLogBox(Config.MaskWindowConfig))),
+                ["OverlayMetricsDisplayHotkey"] = new(() => UiHost.Dispatcher.Post(() => HotkeyActionCatalog.ToggleOverlayMetrics(Config.MaskWindowConfig))),
+                ["QuickTeleportTickHotkey"] = new(() => Thread.Sleep(100), Hold: true),
+                ["TurnAroundHotkey"] = new(TurnAroundMacro.Done, Hold: true),
+                ["EnhanceArtifactHotkey"] = new(() => WithRuntime(QuickEnhanceArtifactMacro.Done), Hold: true),
+                ["QuickBuyHotkey"] = new(() => WithRuntime(QuickBuyTask.Done), Hold: true),
+                ["OneKeyClaimRewardHotkey"] = new(null, () => WithRuntime(r => OneKeyClaimRewardTask.Instance.KeyDown(r)),
+                    () => OneKeyClaimRewardTask.Instance.KeyUp(), Hold: true),
+                ["QuickSereniteaPotHotkey"] = new(() => WithRuntime(QuickSereniteaPotTask.Done)),
+                ["ClickGenshinConfirmButtonHotkey"] = new(() => WithRuntime(r => HotkeyActionCatalog.ClickGenshinButton(r, true)), Hold: true),
+                ["ClickGenshinCancelButtonHotkey"] = new(() => WithRuntime(r => HotkeyActionCatalog.ClickGenshinButton(r, false)), Hold: true),
+                ["OneKeyFightHotkey"] = new(null, () =>
+                {
+                    // 一键宏未启用时与 WPF 相同地静默返回
+                    if (OneKeyFightTask.IsEnabled())
+                    {
+                        WithRuntime(r => OneKeyFightTask.Instance.KeyDown(r));
+                    }
+                }, () => OneKeyFightTask.Instance.KeyUp(), Hold: true),
+                ["RecBigMapPosHotkey"] = new(() => WithRuntime(r =>
+                {
+                    try
+                    {
+                        var p = new TpTask(r, Config, r.Stopping).GetPositionFromBigMap(MapTypes.Teyvat.ToString());
+                        _log.Information("大地图位置：{Position}", p);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e.Message);
+                    }
+                })),
+            };
+            foreach (var toggle in HotkeyActionCatalog.RealtimeToggles)
+            {
+                map[toggle.HotkeyProperty] = new(() => UiHost.Dispatcher.Post(() => HotkeyActionCatalog.Toggle(toggle, Config, MsLogger)));
+            }
+
+            foreach (var (property, taskId) in HotkeyActionCatalog.SoloTaskHotkeys)
+            {
+                map[property] = new(() => UiHost.Dispatcher.Post(() => _ = _toggleSoloTask?.Invoke(taskId)));
+            }
+
+            return map;
+        }
+    }
+
+    private GameScreenshotService? _screenshots;
+
+    private GameScreenshotService? Screenshots => _screenshots ??= _host is null
+        ? null
+        : _host.Services.GetService<GameScreenshotService>() ?? ActivatorUtilities.CreateInstance<GameScreenshotService>(_host.Services);
+
+    private Microsoft.Extensions.Logging.ILogger MsLogger =>
+        _host?.Services.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger("BetterGenshinImpact.ViewModel.Pages.HotKeyPageViewModel")
+        ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
+    private long _lastNoRuntimeTick;
+
+    /// <summary>截图器未启动时提示“请先启动”（长按类会反复回调，限制提示频率），与 WPF TryGetRuntime 相同</summary>
+    private void WithRuntime(Action<GameRuntime> action)
+    {
+        if (_host?.RuntimeService.Current is { } runtime)
         {
-            Config.AutoPickConfig.Enabled = !Config.AutoPickConfig.Enabled;
-            _log.Information("切换{Name}状态为[{Enabled}]", "自动拾取", Config.AutoPickConfig.Enabled ? "开" : "关");
-        }),
-        ["AutoSkipEnabledHotkey"] = () => UiHost.Dispatcher.Post(() =>
+            action(runtime);
+            return;
+        }
+
+        var now = Environment.TickCount64;
+        if (now - Interlocked.Read(ref _lastNoRuntimeTick) >= 3000)
         {
-            Config.AutoSkipConfig.Enabled = !Config.AutoSkipConfig.Enabled;
-            _log.Information("切换{Name}状态为[{Enabled}]", "自动剧情", Config.AutoSkipConfig.Enabled ? "开" : "关");
-        }),
-        ["OnedragonHotkey"] = () => UiHost.Dispatcher.Post(() => _ = _toggleOneDragon?.Invoke()),
-    };
+            Interlocked.Exchange(ref _lastNoRuntimeTick, now);
+            UiHost.Dispatcher.Post(() => UiHost.Dialogs.Toast(DialogKind.Warning, "请先启动"));
+        }
+    }
+
+    private readonly Dictionary<string, HoldHotkeyRunner> _holdRunners = new(StringComparer.Ordinal);
+
+    // —— 通知 ——
+
+    [ObservableProperty] private string _notificationStatus = string.Empty;
+
+    /// <summary>系统通知（freedesktop）在当前环境是否可用</summary>
+    public string SystemNotificationDesc => FreedesktopNotifier.IsAvailable
+        ? "通过 freedesktop 通知服务（notify-send / D-Bus）显示桌面通知，与 Windows 版“Windows 通知”共用开关"
+        : "未找到 notify-send 或 gdbus，系统通知不会显示（其他通知渠道不受影响）";
+
+    /// <summary>向当前启用的全部通知渠道发送测试通知</summary>
+    [RelayCommand]
+    public async Task SendTestNotificationAsync()
+    {
+        var service = _host?.Services.GetService<LinuxNotificationService>();
+        if (service is null)
+        {
+            NotificationStatus = "平台服务未初始化，无法发送通知";
+            return;
+        }
+
+        NotificationStatus = "发送中…";
+        try
+        {
+            service.RefreshNotifiers();
+            NotificationStatus = await Task.Run(service.SendTestAsync);
+        }
+        catch (Exception e)
+        {
+            NotificationStatus = "发送失败：" + e.Message;
+        }
+
+        _log.Information("测试通知：{Status}", NotificationStatus);
+    }
 
     /// <summary>按当前配置（重新）注册已实现动作的快捷键</summary>
     [RelayCommand]
@@ -198,6 +329,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         }
 
         _registrations.Clear();
+        foreach (var runner in _holdRunners.Values)
+        {
+            runner.KeyUp();
+        }
+
+        _holdRunners.Clear();
         if (_host is null)
         {
             HotkeyStatus = "平台服务未初始化，快捷键不可用";
@@ -218,7 +355,41 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             try
             {
                 var gesture = HotkeyGesture.Parse(item.Value);
-                _registrations.Add(_host.Platform.Hotkeys.Register(gesture, _ => action(), noRepeat: true));
+                if (action.Hold)
+                {
+                    if (_host.Platform.Hotkeys is not IHotkeyHoldService holdService)
+                    {
+                        throw new NotSupportedException("平台热键服务不支持长按");
+                    }
+
+                    var runner = new HoldHotkeyRunner
+                    {
+                        OnKeyPress = action.Press,
+                        OnKeyDown = action.Down,
+                        OnKeyUp = action.Up,
+                        CanRun = () => GameSystem.IsGameForeground(_host.RuntimeService.Current?.Window),
+                    };
+                    var name = item.Name;
+                    runner.Error += e => _log.Warning("快捷键“{Name}”执行异常：{Message}", name, e.Message);
+                    _holdRunners[item.Value] = runner;
+                    _registrations.Add(holdService.RegisterHold(gesture, _ => runner.KeyDown(), _ => runner.KeyUp()));
+                }
+                else
+                {
+                    var press = action.Press!;
+                    _registrations.Add(_host.Platform.Hotkeys.Register(gesture, _ =>
+                    {
+                        try
+                        {
+                            press();
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Warning("快捷键执行异常：{Message}", e.Message);
+                        }
+                    }, noRepeat: true));
+                }
+
                 item.Status = "已注册";
                 ok.Add($"{item.Name}={item.Value}");
             }
@@ -303,6 +474,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         }
 
         _registrations.Clear();
+        foreach (var runner in _holdRunners.Values)
+        {
+            runner.KeyUp();
+        }
+
+        _holdRunners.Clear();
     }
 }
 

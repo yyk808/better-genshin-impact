@@ -319,6 +319,29 @@
                     <TextBlock Classes="section" Text="通知" Margin="0,12,0,4" />
                     <Border Classes="card">
                         <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding NotificationStatus}" VerticalAlignment="Center" MaxWidth="360" TextWrapping="Wrap" />
+                                <Button Content="发送测试通知" Command="{Binding SendTestNotificationCommand}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="测试通知" />
+                                <TextBlock Classes="desc" Text="向当前启用的全部通知渠道发送一条测试通知" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.WindowsUwpNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="系统通知" />
+                                <TextBlock Classes="desc" Text="{Binding SystemNotificationDesc}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
                             <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
                                 <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.JsNotificationEnabled}" OnContent="" OffContent="" />
                             </ContentControl>

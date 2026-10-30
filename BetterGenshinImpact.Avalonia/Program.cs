@@ -19,7 +19,7 @@ using Serilog;
 //                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
 //                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask] [--mask-recognition]
-//                    [--solo-task 任务标识] [--solo-stop-after 秒] [--script-group 配置组名称] [--script-stop-after 秒]
+//                    [--solo-task 任务标识] [--solo-stop-after 秒] [--script-group 配置组名称] [--script-stop-after 秒] [--notify-test]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -130,6 +130,12 @@ internal static class AvaloniaHostProgram
             if (options.ScriptGroup is { } scriptGroup && host is not null)
             {
                 await RunScriptGroupUnattendedAsync(window, viewModel, scriptGroup, options.ScriptStopAfterSeconds, options.ScreenshotDirectory, log);
+            }
+
+            if (options.NotifyTest && host is not null)
+            {
+                // 无人值守：经设置页的“发送测试通知”发送一条测试通知，结果写入日志
+                await viewModel.Settings.SendTestNotificationAsync();
             }
 
             if (options.UiSelfTest)
@@ -458,7 +464,8 @@ internal sealed record AvaloniaOptions(
     string? SoloTaskId = null,
     int SoloStopAfterSeconds = 4,
     string? ScriptGroup = null,
-    int ScriptStopAfterSeconds = 0)
+    int ScriptStopAfterSeconds = 0,
+    bool NotifyTest = false)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -473,6 +480,7 @@ internal sealed record AvaloniaOptions(
         var soloStopAfter = 4;
         string? scriptGroup = null;
         var scriptStopAfter = 0;
+        var notifyTest = false;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -495,11 +503,12 @@ internal sealed record AvaloniaOptions(
                 case "--solo-stop-after": soloStopAfter = int.Parse(Next()); break;
                 case "--script-group": scriptGroup = Next(); break;
                 case "--script-stop-after": scriptStopAfter = int.Parse(Next()); break;
+                case "--notify-test": notifyTest = true; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
         return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
-            scriptStopAfter);
+            scriptStopAfter, notifyTest);
     }
 }

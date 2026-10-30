@@ -66,3 +66,13 @@ public interface IHotkeyService : IDisposable
     /// <param name="noRepeat">按住不放时不重复触发（Windows MOD_NOREPEAT；X11 按 KeyRelease 判断）</param>
     IDisposable Register(HotkeyGesture hotkey, Action<HotkeyGesture> onPressed, bool noRepeat = false);
 }
+
+/// <summary>
+/// 可选能力：同时报告热键的按下与抬起（长按类快捷键用）。按住不放时只报告一次按下。
+/// Windows 宿主的长按类快捷键走低级键盘钩子，不需要实现；Linux X11 由 XGrabKey 的 KeyPress / KeyRelease 实现
+/// </summary>
+public interface IHotkeyHoldService
+{
+    /// <summary>注册长按热键；失败时抛异常。返回对象 Dispose 即注销</summary>
+    IDisposable RegisterHold(HotkeyGesture hotkey, Action<HotkeyGesture> onDown, Action<HotkeyGesture> onUp);
+}

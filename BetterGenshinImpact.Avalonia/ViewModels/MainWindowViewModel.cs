@@ -44,7 +44,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Auto = new AutoPageViewModel(host, ScriptControl, log);
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
-            () => Tasks.ToggleAsync(BetterGenshinImpact.GameTask.OneDragon.OneDragonTask.TaskId));
+            taskId => Tasks.ToggleAsync(taskId));
         NavItems =
         [
             new("启动", IconHome, Home),

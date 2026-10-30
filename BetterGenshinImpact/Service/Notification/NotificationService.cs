@@ -115,23 +115,16 @@ public class NotificationService : IHostedService, IDisposable, INotificationHub
     {
         if (_notificationConfig == null) _notificationConfig = _config.NotificationConfig;
 
-        // 初始化各类通知器
-        InitializeWebhookNotifier();
+        // 网络通知器（与 Linux 宿主共用，见 Core 的 NetworkNotifierFactory），通知并发发送，注册顺序不影响结果
+        foreach (var notifier in NetworkNotifierFactory.Create(_notificationConfig, _notifyHttpClient,
+                     () => _httpClientFactory.CreateClient(HttpClientNames.Notification), _webSocketCts ?? new CancellationTokenSource()))
+        {
+            _notifierManager.RegisterNotifier(notifier);
+        }
+
+        // 仅 Windows 主程序提供的通知器
         InitializeWindowsUwpNotifier();
-        InitializeFeishuNotifier();
-        InitializeOneBotNotifier();
-        InitializeWorkWeixinNotifier();
-        InitializeWebSocketNotifier();
-        InitializeBarkNotifier();
         InitializeEmailNotifier();
-        InitializeDingDingNotifier();
-        InitializeTelegramNotifier();
-        InitializeXxtuiNotifier();
-        InitializeDiscordNotifier();
-        InitializeServerChanNotifier();
-        InitializeMeowNotifier();
-        InitializeGotifyNotifier();
-        InitializeQqNotifier();
         InitializeWechatClawbotNotifier();
 
         // 添加新通知渠道时，在此处添加对应的初始化方法调用
@@ -141,15 +134,6 @@ public class NotificationService : IHostedService, IDisposable, INotificationHub
     // 添加新的通知渠道时，参考以下模板创建新的初始化方法
 
     /// <summary>
-    ///     初始化Webhook通知器
-    /// </summary>
-    private void InitializeWebhookNotifier()
-    {
-        if (_notificationConfig?.WebhookEnabled == true)
-            _notifierManager.RegisterNotifier(new WebhookNotifier(_notifyHttpClient, _notificationConfig));
-    }
-
-    /// <summary>
     ///     初始化Windows UWP通知器
     /// </summary>
     private void InitializeWindowsUwpNotifier()
@@ -157,87 +141,6 @@ public class NotificationService : IHostedService, IDisposable, INotificationHub
         if (_notificationConfig?.WindowsUwpNotificationEnabled == true)
         {
             _notifierManager.RegisterNotifier(new WindowsUwpNotifier(_tempFileService));
-        }
-    }
-
-    /// <summary>
-    ///     初始化飞书通知器
-    /// </summary>
-    private void InitializeFeishuNotifier()
-    {
-        if (_notificationConfig?.FeishuNotificationEnabled == true)
-            _notifierManager.RegisterNotifier(new FeishuNotifier(
-                _notifyHttpClient,
-                _notificationConfig.FeishuWebhookUrl,
-                _notificationConfig.FeishuAppId,
-                _notificationConfig.FeishuAppSecret
-            ));
-    }
-
-    /// <summary>
-    ///     初始化OneBot通知器
-    /// </summary>
-    private void InitializeOneBotNotifier()
-    {
-        if (_notificationConfig?.OneBotNotificationEnabled == true)
-            _notifierManager.RegisterNotifier(new OneBotNotifier(
-                _notifyHttpClient,
-                _notificationConfig.OneBotEndpoint,
-                _notificationConfig.OneBotUserId,
-                _notificationConfig.OneBotGroupId,
-                _notificationConfig.OneBotToken
-            ));
-    }
-
-    /// <summary>
-    ///     初始化企业微信通知器
-    /// </summary>
-    private void InitializeWorkWeixinNotifier()
-    {
-        if (_notificationConfig?.WorkweixinNotificationEnabled == true)
-        {
-            _notifierManager.RegisterNotifier(new WorkWeixinNotifier(
-                _notifyHttpClient,
-                _notificationConfig.WorkweixinWebhookUrl
-            ));
-        }
-    }
-
-    /// <summary>
-    ///     初始化WebSocket通知器
-    /// </summary>
-    private void InitializeWebSocketNotifier()
-    {
-        if (_notificationConfig?.WebSocketNotificationEnabled == true)
-        {
-            var jsonSerializerOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-            };
-
-            _notifierManager.RegisterNotifier(new WebSocketNotifier(
-                _notificationConfig.WebSocketEndpoint,
-                jsonSerializerOptions,
-                _webSocketCts ?? new CancellationTokenSource()
-            ));
-        }
-    }
-
-    /// <summary>
-    ///     初始化Bark通知器
-    /// </summary>
-    private void InitializeBarkNotifier()
-    {
-        if (_notificationConfig?.BarkNotificationEnabled == true)
-        {
-            _notifierManager.RegisterNotifier(new BarkNotifier(
-                _httpClientFactory.CreateClient(HttpClientNames.Notification),
-                _notificationConfig.BarkDeviceKeys,
-                _notificationConfig.BarkApiEndpoint,
-                _notificationConfig.BarkGroup,
-                _notificationConfig.BarkSound,
-                _notificationConfig.BarkIcon
-            ));
         }
     }
 
@@ -258,148 +161,6 @@ public class NotificationService : IHostedService, IDisposable, INotificationHub
                 _notificationConfig.ToEmail
             ));
         }
-    }
-
-    /// <summary>
-    ///     初始化钉钉通知器
-    /// </summary>
-    private void InitializeDingDingNotifier()
-    {
-        if (_notificationConfig?.DingDingwebhookNotificationEnabled == true &&
-            !string.IsNullOrEmpty(_notificationConfig.DingdingWebhookUrl) &&
-            !string.IsNullOrEmpty(_notificationConfig.DingDingSecret))
-        {
-            _notifierManager.RegisterNotifier(new DingDingWebhook(
-                _notifyHttpClient,
-                _notificationConfig.DingdingWebhookUrl,
-                _notificationConfig.DingDingSecret
-            ));
-        }
-    }
-
-    /// <summary>
-    ///     初始化Telegram通知器
-    /// </summary>
-    private void InitializeTelegramNotifier()
-    {
-        if (_notificationConfig?.TelegramNotificationEnabled == true)
-        {
-            // 启用 Telegram 独立代理时由通知器自建带代理的客户端，否则使用跟随全局网络设置的共享客户端
-            _notifierManager.RegisterNotifier(new TelegramNotifier(
-                _notificationConfig.TelegramProxyEnabled ? null : _notifyHttpClient,
-                _notificationConfig.TelegramBotToken,
-                _notificationConfig.TelegramChatId,
-                _notificationConfig.TelegramApiBaseUrl,
-                _notificationConfig.TelegramProxyUrl,
-                _notificationConfig.TelegramProxyEnabled
-            ));
-        }
-    }
-
-    /// <summary>
-    ///     初始化信息推送通知器
-    /// </summary>
-    private void InitializeXxtuiNotifier()
-    {
-        if (_notificationConfig?.XxtuiNotificationEnabled != true) return;
-
-        var channels = ParseXxtuiChannels(_notificationConfig.XxtuiChannels);
-
-        _notifierManager.RegisterNotifier(new XxtuiNotifier(
-            _httpClientFactory.CreateClient(HttpClientNames.Notification),
-            _notificationConfig.XxtuiApiKey,
-            _notificationConfig.XxtuiFrom,
-            channels
-        ));
-    }
-
-    /// <summary>
-    ///     初始化 Discord 通知器。
-    ///     按配置的 Discord 通知方式二选一注册：Webhook 方式走频道 Webhook 地址，
-    ///     Bot 方式走机器人 Token + 推送目标清单。两者互斥，避免同一条通知被推送两次。
-    /// </summary>
-    private void InitializeDiscordNotifier()
-    {
-        if (_notificationConfig?.DiscordWebhookNotificationEnabled != true) return;
-
-        if (DiscordNotificationModes.IsBot(_notificationConfig.DiscordNotificationMode))
-        {
-            _notifierManager.RegisterNotifier(new DiscordBotNotifier(
-                _notifyHttpClient,
-                _notificationConfig.DiscordBotToken,
-                _notificationConfig.DiscordBotTargets,
-                _notificationConfig.DiscordBotMessageFormat,
-                _notificationConfig.DiscordWebhookImageEncoder
-            ));
-            return;
-        }
-
-        _notifierManager.RegisterNotifier(new DiscordWebhookNotifier(
-            _notifyHttpClient,
-            _notificationConfig.DiscordWebhookUrl,
-            _notificationConfig.DiscordWebhookUsername,
-            _notificationConfig.DiscordWebhookAvatarUrl,
-            _notificationConfig.DiscordWebhookImageEncoder
-        ));
-    }
-
-    /// <summary>
-    /// 初始化 ServerChan 通知器
-    /// </summary>
-    private void InitializeServerChanNotifier()
-    {
-        if (_notificationConfig?.ServerChanNotificationEnabled != true) return;
-
-        _notifierManager.RegisterNotifier(new ServerChanNotifier(
-            _notifyHttpClient,
-            _notificationConfig.ServerChanSendKey
-        ));
-    }
-
-    /// <summary>
-    /// 初始化 MeoW 通知器
-    /// </summary>
-    private void InitializeMeowNotifier()
-    {
-        if (_notificationConfig?.MeowNotificationEnabled != true) return;
-
-        _notifierManager.RegisterNotifier(new MeowNotifier(
-            _notifyHttpClient,
-            _notificationConfig.MeowNickname,
-            _notificationConfig.MeowTitle
-        ));
-    }
-
-    /// <summary>
-    /// 初始化 Gotify 通知器。
-    /// </summary>
-    private void InitializeGotifyNotifier()
-    {
-        if (_notificationConfig?.GotifyNotificationEnabled != true) return;
-
-        _notifierManager.RegisterNotifier(new GotifyNotifier(
-            _notifyHttpClient,
-            _notificationConfig.GotifyUrl,
-            _notificationConfig.GotifyAppToken,
-            _notificationConfig.GotifyNotifyLevel
-        ));
-    }
-
-    /// <summary>
-    ///     初始化QQ通知器
-    /// </summary>
-    private void InitializeQqNotifier()
-    {
-        if (_notificationConfig?.QqNotificationEnabled != true) return;
-
-        _notifierManager.RegisterNotifier(new QqNotifier(
-            _notifyHttpClient,
-            _notificationConfig.QqAppId,
-            _notificationConfig.QqClientSecret,
-            _notificationConfig.QqOpenId,
-            _notificationConfig.QqGroupOpenId,
-            _notificationConfig.QqMessageFormat
-        ));
     }
 
     /// <summary>
@@ -434,26 +195,6 @@ public class NotificationService : IHostedService, IDisposable, INotificationHub
             // 无法判断时默认主实例行为，避免在单实例场景误禁用
             return true;
         }
-    }
-
-    /// <summary>
-    ///     解析信息推送通知渠道配置
-    /// </summary>
-    private static XxtuiChannel[] ParseXxtuiChannels(string channelsStr)
-    {
-        if (string.IsNullOrEmpty(channelsStr)) return new[] { XxtuiChannel.WX_MP };
-
-        var channelStrings = channelsStr.Split(',');
-        var validChannels = new XxtuiChannel[channelStrings.Length];
-        var validCount = 0;
-
-        foreach (var channel in channelStrings)
-            if (Enum.TryParse<XxtuiChannel>(channel.Trim(), out var parsedChannel))
-                validChannels[validCount++] = parsedChannel;
-
-        if (validCount < channelStrings.Length) Array.Resize(ref validChannels, validCount);
-
-        return validChannels.Length > 0 ? validChannels : new[] { XxtuiChannel.WX_MP };
     }
 
     /// <summary>

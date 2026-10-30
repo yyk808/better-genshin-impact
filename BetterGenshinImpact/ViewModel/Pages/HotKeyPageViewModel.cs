@@ -20,6 +20,7 @@ using BetterGenshinImpact.GameTask.AutoPathing.Handler;
 using BetterGenshinImpact.GameTask.AutoTrackPath;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Common.BgiVision;
+using BetterGenshinImpact.GameTask.Common.Hotkeys;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.GameTask.Common.Map.Maps.Base;
 using BetterGenshinImpact.GameTask.Macro;
@@ -578,9 +579,8 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.LogBoxDisplayHotkeyType,
             (_, _) =>
             {
-                Config.MaskWindowConfig.ShowLogBox = !Config.MaskWindowConfig.ShowLogBox;
                 // 与状态窗口同步
-                Config.MaskWindowConfig.ShowStatus = Config.MaskWindowConfig.ShowLogBox;
+                HotkeyActionCatalog.ToggleLogBox(Config.MaskWindowConfig);
             }
         ));
 
@@ -591,7 +591,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.OverlayMetricsDisplayHotkeyType,
             (_, _) =>
             {
-                Config.MaskWindowConfig.ShowOverlayMetrics = !Config.MaskWindowConfig.ShowOverlayMetrics;
+                HotkeyActionCatalog.ToggleOverlayMetrics(Config.MaskWindowConfig);
             }
         ));
 
@@ -602,8 +602,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.AutoPickEnabledHotkeyType,
             (_, _) =>
             {
-                Config.AutoPickConfig.Enabled = !Config.AutoPickConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "自动拾取", ToChinese(Config.AutoPickConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.AutoPickEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(autoPickEnabledHotKeySettingModel);
@@ -615,8 +614,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.AutoSkipEnabledHotkeyType,
             (_, _) =>
             {
-                Config.AutoSkipConfig.Enabled = !Config.AutoSkipConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "自动剧情", ToChinese(Config.AutoSkipConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.AutoSkipEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(autoSkipEnabledHotKeySettingModel);
@@ -628,8 +626,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.AutoSkipHangoutEnabledHotkeyType,
             (_, _) =>
             {
-                Config.AutoSkipConfig.AutoHangoutEventEnabled = !Config.AutoSkipConfig.AutoHangoutEventEnabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "自动邀约", ToChinese(Config.AutoSkipConfig.AutoHangoutEventEnabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.AutoSkipHangoutEnabledHotkey));
             }
         ));
 
@@ -640,8 +637,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.AutoFishingEnabledHotkeyType,
             (_, _) =>
             {
-                Config.AutoFishingConfig.Enabled = !Config.AutoFishingConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "自动钓鱼", ToChinese(Config.AutoFishingConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.AutoFishingEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(autoFishingEnabledHotKeySettingModel);
@@ -653,8 +649,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.QuickTeleportEnabledHotkeyType,
             (_, _) =>
             {
-                Config.QuickTeleportConfig.Enabled = !Config.QuickTeleportConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "快速传送", ToChinese(Config.QuickTeleportConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.QuickTeleportEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(quickTeleportEnabledHotKeySettingModel);
@@ -666,8 +661,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.SkillCdEnabledHotkeyType,
             (_, _) =>
             {
-                Config.SkillCdConfig.Enabled = !Config.SkillCdConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "冷却提示", ToChinese(Config.SkillCdConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.SkillCdEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(skillCdEnabledHotKeySettingModel);
@@ -689,8 +683,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.MapMaskEnabledHotkeyType,
             (_, _) =>
             {
-                Config.MapMaskConfig.Enabled = !Config.MapMaskConfig.Enabled;
-                _logger.LogInformation("切换{Name}状态为[{Enabled}]", "地图遮罩", ToChinese(Config.MapMaskConfig.Enabled));
+                ToggleRealtime(nameof(Config.HotKeyConfig.MapMaskEnabledHotkey));
             }
         );
         timerDirectory.Children.Add(mapMaskEnabledHotKeySettingModel);
@@ -841,15 +834,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
                     return;
                 }
 
-                using var capture = runtime.CaptureToRectArea();
-                if (Bv.ClickConfirmButton(capture))
-                {
-                    TaskControl.Logger.LogInformation("触发快捷点击原神内{Btn}按钮：成功", "确认");
-                }
-                else
-                {
-                    TaskControl.Logger.LogInformation("触发快捷点击原神内{Btn}按钮：未找到按钮图片", "确认");
-                }
+                HotkeyActionCatalog.ClickGenshinButton(runtime, true);
             },
             true
         ));
@@ -866,15 +851,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
                     return;
                 }
 
-                using var capture = runtime.CaptureToRectArea();
-                if (Bv.ClickCancelButton(capture))
-                {
-                    TaskControl.Logger.LogInformation("触发快捷点击原神内{Btn}按钮：成功", "取消");
-                }
-                else
-                {
-                    TaskControl.Logger.LogInformation("触发快捷点击原神内{Btn}按钮：未找到按钮图片", "取消");
-                }
+                HotkeyActionCatalog.ClickGenshinButton(runtime, false);
             },
             true
         ));
@@ -1258,8 +1235,9 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
         });
     }
 
-    private string ToChinese(bool enabled)
+    /// <summary>切换“实时任务”分组中的开关（实现见 Core 的 HotkeyActionCatalog）</summary>
+    private void ToggleRealtime(string hotkeyProperty)
     {
-        return enabled.ToChinese();
+        HotkeyActionCatalog.Toggle(HotkeyActionCatalog.RealtimeToggles.First(t => t.HotkeyProperty == hotkeyProperty), Config, _logger);
     }
 }

@@ -70,6 +70,7 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
 
         Items.Add(new("OpenCV", "版本", SafeOpenCvVersion()));
         Items.Add(new("OpenCV", "原生库", FindNative("libOpenCvSharpExtern.so")));
+        Items.Add(new("OpenCV", "特征匹配（地图追踪）", SafeFeatureMatching()));
         Items.Add(new("OpenCV", "模块自检", OpenCvCheckText));
         Items.Add(new("界面", "中文字体", FontInfo.CjkFamily ?? "未找到（请安装 Noto Sans CJK SC 或文泉驿字体）"));
         Items.Add(new("界面", "默认字体", FontManager.Current.DefaultFontFamily.Name));
@@ -109,6 +110,20 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
         catch (Exception e)
         {
             return "无法加载：" + e.Message;
+        }
+    }
+
+    private static string SafeFeatureMatching()
+    {
+        try
+        {
+            return OpenCvCapabilities.FeatureMatchingAvailable
+                ? "可用（完整构建）"
+                : $"不可用：精简构建缺少 features2d（{OpenCvCapabilities.FeatureMatchingDetail}），地图追踪 / 传送 / 一条龙中依赖大地图的任务无法运行。{OpenCvCapabilities.BuildHint}";
+        }
+        catch (Exception e)
+        {
+            return "探测失败：" + e.Message;
         }
     }
 
