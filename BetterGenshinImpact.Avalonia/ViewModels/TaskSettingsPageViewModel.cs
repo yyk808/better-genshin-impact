@@ -12,6 +12,7 @@ using BetterGenshinImpact.GameTask.AutoMusicGame;
 using BetterGenshinImpact.GameTask.AutoStygianOnslaught;
 using BetterGenshinImpact.GameTask.AutoWood;
 using BetterGenshinImpact.GameTask.GetGridIcons;
+using BetterGenshinImpact.GameTask.OneDragon;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using BetterGenshinImpact.GameTask.UseRedeemCode;
@@ -124,6 +125,9 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
 
     public List<string> TcgStrategies { get; }
 
+    /// <summary>一条龙页面提供的一条龙参数（WPF 中由 OneDragonFlowViewModel.CreateOneDragonParam 提供）</summary>
+    public Func<object?>? OneDragonParamProvider { get; set; }
+
     public InventoryCountComparisonTarget[] InventoryTargets { get; } = Enum.GetValues<InventoryCountComparisonTarget>();
 
     /// <summary>启动或停止独立任务；与 WPF 的单实例行为相同：空闲则启动，运行中（同一任务）则停止</summary>
@@ -192,7 +196,10 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
         object? param;
         try
         {
-            param = SoloTaskParamFactory.Create(taskId, Config, _registry, this);
+            // 一条龙的配置、"从此执行"标记由一条龙页面维护
+            param = taskId == OneDragonTask.TaskId && OneDragonParamProvider is { } oneDragon
+                ? oneDragon()
+                : SoloTaskParamFactory.Create(taskId, Config, _registry, this);
         }
         catch (Exception e)
         {

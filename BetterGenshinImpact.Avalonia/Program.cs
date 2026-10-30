@@ -9,7 +9,9 @@ using BetterGenshinImpact.Avalonia;
 using BetterGenshinImpact.Avalonia.Services;
 using BetterGenshinImpact.Avalonia.ViewModels;
 using BetterGenshinImpact.Avalonia.Views;
+using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.Host.Common;
+using Microsoft.Extensions.DependencyInjection;
 using BetterGenshinImpact.Platform;
 using Serilog;
 
@@ -62,12 +64,15 @@ internal static class AvaloniaHostProgram
         UiHost.Dispatcher = new AvaloniaUiDispatcher();
         UiHost.Dialogs = new AvaloniaDialogService(() => window, (kind, message) => viewModel?.ShowToast(kind, message));
         UiHost.Clipboard = new AvaloniaClipboard(() => window);
+        UiHost.Lifetime = new AvaloniaAppLifetime(desktop);
 
         GameHost? host = null;
         string? hostError = null;
         try
         {
-            host = GameHost.Create(options.Host, log);
+            // 独立任务页提供脚本与一条龙解析战斗策略时用到的设置（ITaskSettingsSource，WPF 中为 TaskSettingsPageViewModel）
+            host = GameHost.Create(options.Host, log,
+                services => services.AddSingleton<ITaskSettingsSource>(_ => viewModel!.Tasks));
         }
         catch (Exception e)
         {
@@ -143,7 +148,7 @@ internal static class AvaloniaHostProgram
             Directory.CreateDirectory(dir);
             // 先让触发器跑一会儿，日志面板里能看到拾取 / 剧情的记录
             await Task.Delay(total / 2);
-            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("启动", "avalonia-home.png") })
+            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("一条龙", "avalonia-onedragon.png"), ("启动", "avalonia-home.png") })
             {
                 viewModel.Navigate(page);
                 await Task.Delay(600);
@@ -360,6 +365,12 @@ internal static class AvaloniaHostProgram
 #pragma warning restore CS0618
         log.Information("界面截图：{Path}", path);
     }
+}
+
+/// <summary>一条龙完成后“关闭软件”等：在 UI 线程关闭桌面应用</summary>
+internal sealed class AvaloniaAppLifetime(IClassicDesktopStyleApplicationLifetime desktop) : IAppLifetime
+{
+    public void Shutdown() => Dispatcher.UIThread.Post(() => desktop.Shutdown());
 }
 
 internal sealed record AvaloniaOptions(

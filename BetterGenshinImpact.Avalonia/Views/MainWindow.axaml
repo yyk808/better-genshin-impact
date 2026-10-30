@@ -19,6 +19,9 @@
         <DataTemplate DataType="vm:TaskSettingsPageViewModel">
             <views:TaskSettingsPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:OneDragonPageViewModel">
+            <views:OneDragonPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:EnvironmentPageViewModel">
             <views:EnvironmentPage />
         </DataTemplate>

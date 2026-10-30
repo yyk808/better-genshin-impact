@@ -139,6 +139,8 @@ public sealed class GameHost : IAsyncDisposable
             PlatformHost.Use(platform);
             // 自动音游的窗口直接取色（Windows 为 GDI GetPixel）
             WindowPixelSampler.Current = new X11WindowPixelSampler(options.Display);
+            // 任务暂停状态（一条龙子任务、寻路等查询；与 Windows 主程序相同使用 RunnerContext）
+            RunnerSuspend.Provider = static () => RunnerContext.Instance;
 
             // 2. 配置：User/config.json（与 Windows 主程序格式相同，防抖保存）或内存中的默认配置
             FileConfigService? fileConfig = null;
