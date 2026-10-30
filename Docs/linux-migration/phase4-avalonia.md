@@ -194,3 +194,29 @@ Host.Common 11 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 30 个。
 
 Core 978 个，主项目 759 个（移入 `OneDragonTask`、`OneDragonTaskItem`、`IScriptService`、`ScriptService`；新增 `SoloTaskParamFactory`、`ScriptGroupSchedule`）；
 Host.Common 12 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 36 个。
+
+## 里程碑 30：X11 前台检测与窗口激活；一条龙第一个子任务
+
+### 前台检测与激活（`Platform.Linux`）
+
+- 有无窗口管理器：`_NET_SUPPORTING_WM_CHECK` 指向的窗口上同一属性指向自身时认为有窗口管理器。
+- 有窗口管理器：前台为 `_NET_ACTIVE_WINDOW`（与目标窗口直接相等或沿父窗口上溯到同一顶层窗口）；激活发 `_NET_ACTIVE_WINDOW` 客户端消息（来源 2），超时后再 `XSetInputFocus`。
+- 没有窗口管理器：前台用 `XGetInputFocus`，沿父窗口上溯到根窗口的子窗口后比较；激活用 `XMapRaised` + `XRaiseWindow` + `XSetInputFocus(RevertToParent)`。
+  枚举窗口时没有 `WM_STATE`（只有窗口管理器会设置），改为接受带 `WM_CLASS` 且 `map_state` 为可见的顶层窗口。
+- `IsForeground`、`GetForegroundWindow` 都走上面的判断；`ForegroundFallbackInputChannel` 的前台判断随之生效（e2e / keystate / rawmouse 无回归）。
+- `PlatformGameSystemControl.GetGenshinGameProcessNameList` 与 Win32 宿主一致：已绑定游戏窗口时返回该窗口自己的进程名，
+  `IsOperable()`（`CheckAndActivateGameWindow` 使用）因此能识别 Wine / Proton 或测试窗口。Windows 宿主不变。
+- 更正里程碑 29 的记录：当时一条龙暂停的原因不是“没有窗口管理器”，而是前台进程名（测试窗口的进程）不在候选进程名列表里，`IsOperable()` 判为不可操作。
+
+### 验证
+
+- 两个测试窗口交替激活：有窗口管理器（xfwm4）与没有窗口管理器的显示上，激活均成功（无窗口管理器时 1–2 ms），`IsForeground` 与前台窗口一致，测试窗口收到焦点进出事件。
+- 一条龙（默认配置）在两种显示上：
+  - 空白画面：“领取邮件”回主界面时按 Esc 多次（识别不到主界面），之后“没有邮件奖励”；进入第 2 个子任务后停止，以 Cancelled 结束，没有仍按住的键。
+  - 用模板拼出的主界面 / 派蒙菜单 / 邮件页三张画面（输入后切到下一张）：Esc → 识别邮件图标并点击 → 识别“全部领取”并点击 → 回到主界面，日志“邮件：全部领取”，第 1 个子任务完整执行。
+    第 2 个子任务“合成树脂”因窗口 1600x900 小于 1920x1080（地图追踪要求）失败；3、4 因配置未选秘境 / 首领跳过；5 “幽境危战”状态机在主界面重试 5 次后失败；停止后没有仍按住的键。
+- 回归：Core 单测 275 / 6（无回归），主项目单测 833 / 243 / 12，X11 e2e PASS 16 SKIP 1，keystate / rawmouse FAIL 0；Wine e2e 一次 `move_click` 未收到点击（FAIL 1），单独重跑两次均 PASS 17。
+
+### 文件数（口径同上）
+
+Core 978 个，主项目 759 个（本里程碑前半部分未移动文件）。
