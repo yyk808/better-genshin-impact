@@ -277,6 +277,7 @@ public partial class App : Application
                 services.AddView<MacroSettingsPage, MacroSettingsPageViewModel>();
                 services.AddView<CommonSettingsPage, CommonSettingsPageViewModel>();
                 services.AddView<TaskSettingsPage, TaskSettingsPageViewModel>();
+                services.AddSingleton<ITaskSettingsSource>(sp => sp.GetRequiredService<TaskSettingsPageViewModel>());
                 services.AddView<HotKeyPage, HotKeyPageViewModel>();
                 services.AddView<NotificationSettingsPage, NotificationSettingsPageViewModel>();
                 services.AddView<KeyMouseRecordPage, KeyMouseRecordPageViewModel>();

@@ -54,7 +54,7 @@ using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace BetterGenshinImpact.ViewModel.Pages;
 
-public partial class TaskSettingsPageViewModel : ViewModel
+public partial class TaskSettingsPageViewModel : ViewModel, ITaskSettingsSource
 {
     public AllConfig Config { get; set; }
 

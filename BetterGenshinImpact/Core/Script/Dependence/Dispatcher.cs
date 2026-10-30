@@ -13,7 +13,6 @@ using BetterGenshinImpact.GameTask.AutoWood;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.GameTask.Model.GameUI;
 using BetterGenshinImpact.Helpers;
-using BetterGenshinImpact.ViewModel.Pages;
 using Microsoft.ClearScript;
 using Microsoft.Extensions.Logging;
 using System;
@@ -166,7 +165,7 @@ public class Dispatcher
             throw new ArgumentNullException(nameof(soloTask), "独立任务对象不能为空");
         }
 
-        var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
+        var taskSettingsPageViewModel = CoreServices.GetService<ITaskSettingsSource>();
         if (taskSettingsPageViewModel == null)
         {
             throw new ArgumentNullException(nameof(taskSettingsPageViewModel), "内部视图模型对象为空");

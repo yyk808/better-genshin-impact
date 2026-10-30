@@ -9,7 +9,6 @@ using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Service;
 using Vanara.PInvoke;
 using BetterGenshinImpact.GameTask.AutoFishing;
-using BetterGenshinImpact.ViewModel.Pages;
 using System;
 using System.Threading;
 using BetterGenshinImpact.GameTask.AutoPathing;
@@ -554,7 +553,7 @@ public class Genshin
     public async Task AutoFishing(int fishingTimePolicy = 0)
     {
         using var scriptOperation = ScriptHostOperations.Enter();
-        var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
+        var taskSettingsPageViewModel = CoreServices.GetService<ITaskSettingsSource>();
         if (taskSettingsPageViewModel == null)
         {
             throw new ArgumentNullException(nameof(taskSettingsPageViewModel), "内部视图模型对象为空");
