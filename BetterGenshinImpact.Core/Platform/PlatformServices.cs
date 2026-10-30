@@ -48,6 +48,9 @@ public interface IPlatformServices : IPlatformProbe, IDisposable
     /// <summary>按进程名 / 窗口类查找游戏窗口</summary>
     IGameWindowFinder GameWindows { get; }
 
+    /// <summary>当前用户注册表（只读）：Windows 为 HKCU，Linux 为 Wine 前缀的 user.reg</summary>
+    IUserRegistry UserRegistry { get; }
+
     /// <summary>系统（物理）键鼠状态</summary>
     IKeyStateProvider KeyState { get; }
 

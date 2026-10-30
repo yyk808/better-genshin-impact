@@ -22,6 +22,8 @@ public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureMode
 
     public IKeyStateProvider KeyState => Win32KeyStateProvider.Instance;
 
+    public IUserRegistry UserRegistry => Win32UserRegistry.Instance;
+
     /// <summary>安装低级键鼠钩子；须在有消息循环的线程（UI 线程）上调用</summary>
     public IGlobalInputHook CreateGlobalInputHook() => new Win32GlobalInputHook();
 

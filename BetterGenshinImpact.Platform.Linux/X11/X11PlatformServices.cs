@@ -14,9 +14,11 @@ public sealed class X11PlatformServices : IPlatformServices
     private readonly Lazy<X11KeyStateProvider> _keyState;
 
     /// <param name="display">X 显示名，为 null 时使用 $DISPLAY</param>
-    public X11PlatformServices(string? display = null)
+    /// <param name="winePrefix">游戏所在的 Wine 前缀，为 null 时取 $WINEPREFIX，再退回 ~/.wine</param>
+    public X11PlatformServices(string? display = null, string? winePrefix = null)
     {
         _display = display;
+        UserRegistry = new WinePrefixUserRegistry(winePrefix);
         _wm = new(() => new X11WindowManager(new X11Connection(display)));
         _hotkeys = new(() => new X11HotkeyService(display));
         _keyState = new(() => new X11KeyStateProvider(new X11Connection(display), ownsConnection: true));
@@ -30,6 +32,9 @@ public sealed class X11PlatformServices : IPlatformServices
 
     /// <summary>按进程名 / WM_CLASS 在 _NET_CLIENT_LIST 中查找游戏窗口</summary>
     public IGameWindowFinder GameWindows => new WindowManagerGameWindowFinder(Windows);
+
+    /// <summary>Wine 前缀 user.reg 中的当前用户注册表（只读）</summary>
+    public IUserRegistry UserRegistry { get; }
 
     /// <summary>XQueryKeymap / XQueryPointer（独立连接，线程安全）</summary>
     public IKeyStateProvider KeyState => _keyState.Value;
