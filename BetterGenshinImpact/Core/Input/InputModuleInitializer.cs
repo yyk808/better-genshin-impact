@@ -30,6 +30,8 @@ internal static class InputModuleInitializer
         BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.Factory = static () => new BetterGenshinImpact.GameTask.Music.Service.MusicPlayerInputHook();
         BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.ModifierKeys = static () => (BetterGenshinImpact.Core.Input.WinFormsKeys)System.Windows.Forms.Control.ModifierKeys;
         BetterGenshinImpact.GameTask.AutoMusicGame.WindowPixelSampler.Current = BetterGenshinImpact.GameTask.AutoMusicGame.GdiWindowPixelSampler.Instance;
+        BetterGenshinImpact.GameTask.QuestVoice.Features.Audio.QuestVoiceAudioHost.OutputFactory = static () => new NAudio.Wave.WasapiOut();
+        BetterGenshinImpact.GameTask.QuestVoice.Features.Audio.QuestVoiceAudioHost.Mp3ReaderFactory = static input => new NAudio.Wave.Mp3FileReader(input);
         BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeView.Current = BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeWindowService.Instance;
         BetterGenshinImpact.GameTask.HotkeyHoldState.Query = BetterGenshinImpact.Model.HoldHotkeyQuery.IsHotkeyPressed;
         BetterGenshinImpact.GameTask.RunnerSuspend.Provider = static () => BetterGenshinImpact.GameTask.RunnerContext.Instance;

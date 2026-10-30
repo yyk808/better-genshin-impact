@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using BetterGenshinImpact.GameTask.QuestVoice.Core.Tts;
+using BetterGenshinImpact.GameTask.QuestVoice.Features.Audio;
 using NAudio.Wave;
 
 namespace BetterGenshinImpact.GameTask.QuestVoice.Features.Tts;
@@ -22,7 +23,7 @@ public sealed class TtsAudioDecoder
         try
         {
             using var input = new MemoryStream(bytes, writable: false);
-            using var reader = new Mp3FileReader(input);
+            using var reader = QuestVoiceAudioHost.Mp3ReaderFactory(input);
             using var output = new MemoryStream();
             using (var writer = new WaveFileWriter(output, reader.WaveFormat))
             {

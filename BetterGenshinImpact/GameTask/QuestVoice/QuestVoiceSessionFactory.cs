@@ -261,7 +261,7 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
         var metrics = Metrics = new QuestVoiceMetrics();
         var ocr = new QuestVoiceOcrEngine(() => new Rec(BgiOnnxModel.PaddleOcrRecV6, PaddleOcrService.PaddleOcrModelType.V6.RecLabel(),
             OcrVersionConfig.PpOcrV6, onnxSessions), onnxSessions.Runtime.OcrDescription, metrics);
-        var player = new WasapiAudioPlayer(() => new WasapiOut());
+        var player = new WasapiAudioPlayer(QuestVoiceAudioHost.OutputFactory);
         try
         {
             var catalog = new SceneCatalog();
