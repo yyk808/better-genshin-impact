@@ -32,6 +32,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj"/>
+        <ProjectReference Include="..\..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj"/>
     </ItemGroup>
 
 </Project>
