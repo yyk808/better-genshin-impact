@@ -32,7 +32,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 3. ✅ **键状态与录制**（里程碑 2，`RawInputMonitor` 相对鼠标与 Wine 轮询未动）：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
 4. **音游输入**：`KeyInputTransports`（直接 SendInput / PostMessage）改为走 `IInputChannel`。
 5. ✅ **热键**（里程碑 3；UI 的 `HotKey` 模型仍用 WPF `Key`，配置文本格式不变，Core 用 `HotkeyText` 解析）：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
-6. **UI 线程与对话框**：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
+6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. **`System.Drawing`**：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
 9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。

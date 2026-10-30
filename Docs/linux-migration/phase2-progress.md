@@ -98,3 +98,26 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 （中文键名、二进制多行 GENERAL_DATA、DWORD/QWORD/扩展字符串/多字符串/默认值）；主项目单测 785 / 118 / 5，无退化；
 端到端 X11 16 PASS / 1 SKIP，Wine 第一次运行 16 PASS / 1 WARN（锁定视角相对移动少计 1 条原始输入，与本次改动无关），
 重跑两次均为 17 PASS。
+
+## 里程碑 5：UI 线程 / 消息框 / 剪贴板服务
+
+- Core（`Platform/UiServices.cs`）
+  - `IUiDispatcher`（`CheckAccess` / `Invoke` / `Post` / `InvokeAsync`）、`IDialogService`（消息框 `Show` / `ShowAsync` 与轻提示 `Toast`，
+    `Error` / `Warning` / `Information` 等扩展方法的默认标题与 `ThemedMessageBox` 相同）、`IClipboardService`（文本剪贴板）。
+  - `UiHost`：供不经依赖注入创建的任务代码使用的静态入口。未设置时为无界面实现（`InlineUiDispatcher` 直接在当前线程执行，
+    `HeadlessDialogService` 只发出事件并返回 `None`，`InMemoryClipboard` 为进程内存），Core 单测和命令行宿主可直接使用。
+- Platform.Linux：`CommandLineClipboard`，按会话选择 `wl-copy` / `wl-paste`（Wayland）或 `xclip` / `xsel`（X11），找不到工具时退回进程内剪贴板。
+  Avalonia 宿主应改用 `TopLevel.Clipboard`。
+- 主项目：`Service/Ui` 中的 `WpfUiDispatcher`、`WpfDialogService`（包装 `ThemedMessageBox` 与 Wpf.Ui.Violeta 的 `Toast`）、
+  `WpfClipboardService`（在 UI 线程上访问剪贴板）。`App.OnStartup` 最先设置 `UiHost`，同时注册到 DI。
+- 迁移的调用方：`GameRuntimeService`（UI 线程判断与切换）、`Win32RuntimeProvider`、`SystemControl.StartFromLocalAsync`、`TaskRunner`、
+  `AutoSkipTrigger`、`AutoPickTrigger`、`ScriptParser`（七圣召唤）、`ComboCombatTaskFactory`、`AutoDomainTask.TrainingGuide`、`OneDragonTask`、
+  `LogParse`、`TravelsDiaryDetailManager`、`KeyMouseRecordService`、`GlobalKeyMouseRecord`、兑换码（`UseRedemptionCodeTask`、`RedeemCodeManager`）、
+  脚本引擎的 `GlobalMethod.InputText` 与 `ScriptRepoUpdater`。消息文本、标题、是否切到 UI 线程都与原来相同。
+- 未迁移（与 WPF 窗口直接相关，随 Avalonia 宿主处理）：`WebPageRuntimeProvider`、`PathRecorder`、`AutoComboTreeWindowService`、
+  `RepoWebBridge`、`ScriptRepoUpdater` 中打开窗口的部分、`OneDragonTask` / `SystemControl` 中的退出程序、`ImageRegionReferenceSearchHelper` /
+  `MatchTemplateHelper` 中的 `Application.Current is App` 判断（用于取日志），以及 View / ViewModel 中的用法。
+
+验证：编译 0 错误；Core 单测 82 个通过（新增 UI 服务与命令行剪贴板测试，后者用脚本模拟剪贴板工具）；主项目单测 785 / 118 / 5，无退化；
+端到端 X11 16 PASS / 1 SKIP，Wine 第一次 16 PASS / 1 WARN（同里程碑 4 的锁定视角相对移动偶发），重跑 17 PASS；`keystate` 0 FAIL。
+
