@@ -185,3 +185,18 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 测试素材缺失，以及 `CombatStrategyResolverTests` 期望 Windows 路径分隔符。代码未改，Windows 上不受影响。
 端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；keystate 0 FAIL。
 
+
+## 里程碑 7c：遮罩绘制模型去 WPF 并移入 Core（第三批）
+
+- 新增平台无关的 `MaskColor` / `MaskPoint` / `MaskRect`（`Core/Mask/MaskGeometry.cs`）。`MaskRect` 与 WPF `Rect` 一样拒绝负宽高并抛出 `ArgumentException`。
+- 遮罩绘制板及相关接口、绘制模型、样式与 OpenCV 转换（共 7 个文件）移入 Core。原来的 WPF `Rect` / `Point` / `Color` 字段改为上面的新类型。
+- WPF 端新增 `MaskWpfConversions`，只在渲染层（`MaskWindowDrawingLayer`、`MaskWindowViewModel`、`SkillCdOverlayRenderer`）转换回 WPF 类型。
+  画笔缓存改用 `MaskColor` 作键；`MaskRect` 不会是 WPF 的 Empty 矩形，所以去掉了相应判断。绘制结果与原来相同。
+- 留在主项目：`IMaskWindowHost`、`IMaskWindowMapState` 与 `MaskWindowMapState`（仍使用 WPF `Rect`，属于宿主侧，移植到 Avalonia 时再处理）。
+- 再次运行批量搬迁后，没有新的文件可以移入 Core。阻碍集中在 `Region` 及其子类：
+  `Region.Click` / `Move` 直接调用 `User32.GetCursorPos` 与 `DesktopRegion`（Win32 输入），`ImageRegion` 用 ImageSharp 缓存图像。
+  它们被识别、`Bv` 和几乎所有任务引用，下一步需要先把 `Region` 的输入改为经 `IInputChannel`。
+- 测试：新增 `MaskDrawingModelTests`（`MaskRect` 校验、`FromPen` 转换、绘制板分组与版本），在 Linux 上原生运行。
+
+验证：编译 0 错误；Core 单测 236 个，230 通过，6 个失败，与之前相同（都是缺素材的钓鱼截图测试）；
+主单测 825 通过 / 207 失败 / 12 跳过，与 7b 基线逐个用例比较，无退化、无缺失；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；keystate 0 FAIL。

@@ -35,7 +35,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
-9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中：里程碑 7a–7c 已移入识别基础、配置 / 任务模型、遮罩绘制模型，Core 共 345 个源文件；剩余主要阻碍是 `Region` 的点击 / 移动直接调用 Win32 与 `DesktopRegion`、`ImageRegion` 依赖 ImageSharp 缓存、`Bv` / 任务依赖 `Simulation` 与 `GameRuntime`、脚本引擎依赖 ClearScript 原生库。）
 
 验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。
 
