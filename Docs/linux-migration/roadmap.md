@@ -29,7 +29,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 
 1. ✅ **平台服务注册**（里程碑 1）：在 DI 中注册 `IPlatformServices`（Windows: `Win32PlatformServices`；Wine 下仍用 Win32 实现），`Win32RuntimeProvider` 改为通过 `IWindowManager` 查找、激活窗口。
 2. ✅ **`SystemControl` 拆分**（里程碑 1）：找窗迁到 `IGameWindowFinder`，Win32 窗口函数迁到 `Platform.Windows` 的 `Win32WindowOps`，进程名 / 启动参数迁到 Core；剩余调用方逐步改用 `IPlatformWindow`。
-3. **键状态与录制**：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
+3. ✅ **键状态与录制**（里程碑 2，`RawInputMonitor` 相对鼠标与 Wine 轮询未动）：`Simulation.IsKeyDown`、`RawInputMonitor`、`MouseKeyMonitor`、`KeyMouseMacroPlayer`、`GlobalKeyMouseRecord` 抽象为 `IGlobalInputHook` + `IInputChannel.IsKeyDown`。
 4. **音游输入**：`KeyInputTransports`（直接 SendInput / PostMessage）改为走 `IInputChannel`。
 5. **热键**：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
 6. **UI 线程与对话框**：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。

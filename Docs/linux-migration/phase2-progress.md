@@ -40,3 +40,25 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 验证：编译 0 错误；主项目单测 785 通过 / 118 失败 / 5 跳过（第一阶段基线 776 / 127 / 5，无退化；
 多出的 9 个通过来自修正了上面的构建环境变量问题，失败的均为依赖 Windows 环境的用例）；
 端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP，且 `WindowManagerGameWindowFinder` 在两个假游戏上都找到了同一窗口。
+
+## 里程碑 2：系统键状态与全局键鼠监听抽象
+
+- Core
+  - `IKeyStateProvider`（系统 / 物理键鼠状态：`IsKeyDown`、`GetPressedKeys`、`GetCursorPosition`），相当于 GetAsyncKeyState。
+  - `IGlobalInputHook`（全局键鼠监听，不拦截）与平台无关的事件参数 `GlobalKeyEventArgs` / `GlobalMouseEventArgs`。
+  - `PollingGlobalInputHook`：轮询 `IKeyStateProvider` 产生按下 / 抬起 / 移动事件（左右修饰键优先、修饰键先于普通键），
+    没有系统钩子的平台使用；观察不到滚轮。
+  - `KeyModifierHelper.MouseButtonName`：与 WinForms `MouseButtons.ToString()` 相同的按钮名，录制脚本格式不变。
+  - `IPlatformServices.KeyState`、`CreateGlobalInputHook()`。
+- Platform.Windows：`Win32KeyStateProvider`（GetAsyncKeyState）、`Win32GlobalInputHook`（包装 MouseKeyHook 的低级钩子，
+  事件线程与原来相同）、`Win32KeyConvert`（Keys / MouseButtons ↔ GameKey）。MouseKeyHook 包引用从主项目移到 Platform.Windows。
+- Platform.Linux：`X11KeyStateProvider`（XQueryKeymap + XQueryPointer，按当前键盘映射建立 keycode → GameKey 反查表）；
+  `CreateGlobalInputHook()` 返回基于它的轮询监听。
+- 主项目
+  - 直接调用 `GetAsyncKeyState` 的 5 处（技能 CD、自动钓鱼输入检查、引导窗口、音游覆盖层、相对鼠标消息处理）改为 `IPlatformServices.KeyState`。
+  - `MouseKeyMonitor.GlobalHook` 改为 `IGlobalInputHook`（由平台服务创建）；键鼠录制（`GlobalKeyMouseRecord` / `KeyMouseRecorder`）、
+    鼠标热键（`MouseHook`）、脚本 `KeyMouseHook` 改用平台无关事件。热键与脚本回调拿到的键名仍是 WinForms `Keys` 名称，行为不变。
+  - Wine 专用的轮询（`WinePlatformAddon`）与相对鼠标 Raw Input（`RawInputMonitor`）保持原样，留待后续。
+
+验证：编译 0 错误；Core 单测 33 个通过；主项目单测 785 / 118 / 5，无退化；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；
+新增驱动检查 `keystate`：在 Xvfb 上用 XTest 注入 Shift+F、右键、移动，`X11KeyStateProvider` 与轮询监听全部检测正确。
