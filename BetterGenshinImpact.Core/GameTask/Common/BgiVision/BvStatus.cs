@@ -2,7 +2,6 @@ using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.GameTask.AutoFight.Assets;
 using BetterGenshinImpact.GameTask.Common.Element.Assets;
 using BetterGenshinImpact.GameTask.Model.Area;
-using BetterGenshinImpact.GameTask.QuickTeleport.Assets;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Helpers;
 using Microsoft.Extensions.Localization;

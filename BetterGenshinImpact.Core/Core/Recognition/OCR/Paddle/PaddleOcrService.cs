@@ -9,7 +9,6 @@ using BetterGenshinImpact.Core.Recognition.OCR.Engine;
 using BetterGenshinImpact.Core.Recognition.ONNX;
 using BetterGenshinImpact.GameTask.Common.BgiVision;
 using OpenCvSharp;
-using OpenCvSharp.Extensions;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using Size = OpenCvSharp.Size;

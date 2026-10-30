@@ -4,7 +4,6 @@ using BetterGenshinImpact.GameTask.Model.Assets;
 using BetterGenshinImpact.GameTask.Model.Area;
 using BetterGenshinImpact.Helpers;
 using OpenCvSharp;
-using Vanara.PInvoke;
 using Microsoft.Extensions.Logging;
 
 namespace BetterGenshinImpact.GameTask.AutoPick.Assets;

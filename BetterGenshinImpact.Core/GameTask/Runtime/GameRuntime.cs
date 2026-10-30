@@ -1,7 +1,6 @@
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask.Model;
-using Fischless.GameCapture;
 using System;
 using System.Threading;
 

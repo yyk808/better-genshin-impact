@@ -1,6 +1,5 @@
 ﻿using BetterGenshinImpact.GameTask.Model.Area;
 using OpenCvSharp;
-using Vanara.PInvoke;
 using Size = System.Drawing.Size;
 
 namespace BetterGenshinImpact.GameTask.Model

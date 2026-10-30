@@ -10,7 +10,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Vanara.PInvoke;
 using Size = OpenCvSharp.Size;
 
 namespace BetterGenshinImpact.GameTask.Common;
