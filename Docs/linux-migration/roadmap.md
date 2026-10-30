@@ -35,7 +35,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
-9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，按 git 跟踪的 `.cs` 统计，Core 共 972 个，主项目剩 763 个。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，按 git 跟踪的 `.cs` 统计，Core 共 978 个，主项目剩 759 个。
    - 里程碑 7a–9 已移入识别基础、配置根与全部配置、服务基础设施，以及识别核心：`Region` / `ImageRegion`、OCR / ONNX / YOLO、`Bv`、`GameRuntime`。
    - `Region` 的点击 / 移动已改走 `PlatformHost` + `IInputChannel`。
    - ClearScript 的 Linux 原生包（`Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5）已实测可用。
@@ -63,7 +63,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 
 1. ✅ 新建 `BetterGenshinImpact.Avalonia`（`net10.0`，Avalonia 12）宿主：DI（与无界面宿主共用 `Host.Common` 的 `GameHost`）、日志面板、MainWindow 外壳（Avalonia 自带 Fluent 主题，样式仿原版 NavigationView / CardControl）、`UiHost` 的 Avalonia 实现（里程碑 26）。
 2. 首批页面：首页（启动截图器）、实时触发设置、遮罩 MaskWindow → 在 Linux 上跑通“启动截图 → 自动拾取 / 自动剧情”。（首页与实时触发已完成并在假游戏上跑通拾取 / 剧情；里程碑 27 补全首页的截图模式、手动选择窗口、同时启动游戏，并实现 Linux 上的配置持久化 `User/config.json`（与 Windows 格式相同）；遮罩窗口（透明、置顶、SHAPE 点击穿透）与识别框 / 日志框绘制已完成，截图改用 Composite 窗口图像避免截到遮罩（里程碑 28）；HTML 遮罩待 WebView）
-3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。
+3. 按页面逐个迁移：独立任务 → 一条龙 → 脚本 / JS → 地图追踪 → 热键 → 其它设置页。ViewModel（CommunityToolkit.Mvvm）大部分可复用。（里程碑 29：独立任务页与一条龙页主体已完成，执行走 Core 的 `SoloTaskExecutionService` / `OneDragonTask`；各任务的详细设置界面待迁移）
 4. WebView2 相关（云原神、HTML 遮罩、脚本设置页）最后迁移，Linux 用 Avalonia NativeWebView（WebKitGTK）。
 5. WPF UI 在过渡期保留，Windows 版可以先继续使用。
 

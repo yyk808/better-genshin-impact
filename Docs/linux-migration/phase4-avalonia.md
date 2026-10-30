@@ -153,3 +153,44 @@ Avalonia 宿主 `.cs` 与 `.axaml` 共 29 个（含 `.axaml` 视图 8 个）；P
 
 Core 972 个，主项目 763 个（本里程碑未移动文件；Core 只改了 `RecognitionObject`（调试开关，默认关闭）和 `ImageRegion` 的绘制判断）；
 Host.Common 11 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 30 个。
+
+## 里程碑 29：独立任务页、一条龙页
+
+### 独立任务页（对照 WPF `TaskSettingsPage`）
+
+- 参数生成抽到 Core：`SoloTaskParamFactory.Create(taskId, config, registry, inputs)`（原 `TaskSettingsPageViewModel.CreateSoloTaskParam`），
+  页面临时输入经 `ISoloTaskParamInputs`（继承已有的 `ITaskSettingsSource`）提供；七圣召唤 / 战斗策略检查移到 `TaskStrategyLookup`，
+  失败原因经回调提示。WPF 的 ViewModel 改为委托：提示仍是原来的 `Toast`（战斗策略仍经 `UIDispatcherHelper.Invoke`），文案不变。
+- `Host.Common` 注册 `SoloTaskRegistry`（扫描 Core；一条龙移入 Core 后也在其中）、`SoloTaskExecutionService`、`AddLocalization()`（参数基类需要 `IStringLocalizer<T>`）、
+  空实现的 `ISoloTaskNotificationSuppressor`、`IScriptService`；设置 `RunnerSuspend.Provider` 与 X11 版窗口取色 `X11WindowPixelSampler`（自动音游，1x1 `XGetImage`，失败时按“无音符”处理）。
+- Avalonia 独立任务页：与 WPF 相同的卡片顺序、标题与说明；每个卡片有启动/停止按钮（运行中变为红色“停止”）和关键参数
+  （伐木次数 / 每日上限、战斗策略、秘境次数与队伍、首领 / 幽境策略、七圣召唤策略、钓鱼截图、音游取色方式、兑换码文本框、背包分类、分解星级），
+  其余参数使用配置文件中的值。页面上没有、但注册为独立任务的（领取邮件等）按注册表分组列在后面。
+- 启动 / 停止直接调用 `SoloTaskExecutionService`（单实例，与 WPF 单实例时相同：空闲则启动，运行中则停止）；执行层是 Core 的 `TaskRunner`
+  （任务信号量、触发器暂停、结束时 `InputHub.ReleaseAll()`）。启动前先 `Flush` 配置，执行层从配置文件读取最新配置。
+- 兑换码在卡片上的多行文本框输入（WPF 为弹出输入框）。
+
+### 一条龙
+
+- 依赖拆分（WPF 行为不变）：
+  - `OneDragonTaskItem` 移入 Core：去掉没有赋值过的 `StatusColor`（WPF 页面上的圆点直接用 `Gray`，与原默认值相同）和未使用的 `ViewModel` 属性；
+    战斗策略经 `ITaskSettingsSource` 解析（WPF 中注册的就是 `TaskSettingsPageViewModel`）。
+  - `ScriptControlViewModel.GetNextProjects` / `SetProjectNextFlagFromSchedule` → Core `ScriptGroupSchedule`（ViewModel 委托，仍读写全局配置根）。
+  - `IScriptService` / `ScriptService` 移入 Core（命名空间不变）。
+  - 新增 `UiHost.Lifetime`（`IAppLifetime`），一条龙“关闭软件”经此调用；WPF 实现 `WpfAppLifetime` 与原来的 `Application.Current.Shutdown()` 调用相同。
+  - `OneDragonTask` 移入 Core。
+- Avalonia 一条龙页：选择 `User/OneDragon/*.json` 配置（没有时新建“默认配置”，内置任务全部启用）、任务开关（立即保存）、“从此执行”、完成后操作、启动 / 停止；
+  参数生成与 WPF `CreateOneDragonParam` 相同（保存配置、读取并清除“从此执行”标记）。各任务的详细设置、增删排序任务与配置的界面尚未迁移。
+
+### 验证
+
+- 无人值守参数 `--solo-task 任务标识 [--solo-stop-after 秒]`：切到独立任务页，点击该任务的启动按钮，到时点击停止并等待结束（截图 `avalonia-solo-running.png` / `avalonia-solo-stopped.png`）。
+- 自动音游（假游戏底部按键位颜色 B<220，所有键位立即按住）：6 个键 A S D J K L 按下约 4.4 秒；停止后 5 ms 内全部抬起，假游戏日志中没有仍按住的键；任务结果为 Cancelled。
+- 一条龙（默认配置）：执行到“领取邮件”，停止后任务以 Cancelled 结束，没有仍按住的键。假游戏所在显示没有窗口管理器，前台检测认为游戏不在前台，子任务在等待焦点时被取消（与 Windows 上游戏失去焦点时相同的暂停逻辑）。
+- 原版 WPF（Wine）与 Avalonia 独立任务页对照截图。
+- 回归：Core 单测 275 通过（新增 `SoloTaskParamFactoryTests` 6 个；6 个既有失败不变），主项目单测 833 / 243 / 12 与基线相同，Wine e2e PASS 17，X11 PASS 16 SKIP 1，keystate / rawmouse FAIL 0。
+
+### 文件数（口径同上）
+
+Core 978 个，主项目 759 个（移入 `OneDragonTask`、`OneDragonTaskItem`、`IScriptService`、`ScriptService`；新增 `SoloTaskParamFactory`、`ScriptGroupSchedule`）；
+Host.Common 12 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 36 个。

@@ -16,7 +16,8 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 | 日志面板 | Serilog 日志实时显示，可切换调试日志、复制（经 `UiHost.Clipboard`）、清空、收起 |
 | `UiHost` | `AvaloniaUiDispatcher`（`Dispatcher.UIThread`）、`AvaloniaDialogService`（模态消息框 + 窗口内轻提示）、`AvaloniaClipboard`（`TopLevel.Clipboard`） |
 
-其余导航项（独立任务、任务计划、一条龙、全自动、设置）目前是说明页。
+“独立任务”页列出独立任务卡片（关键参数、启动/停止），“一条龙”页可选择配置、开关任务并启动/停止（详细设置界面尚未迁移）。
+其余导航项（任务计划、全自动、设置）目前是说明页。
 
 实时触发页直接绑定 Core 的 `AllConfig`，与 WPF 的 `TriggerSettingsPageViewModel` 绑定的是同一批配置属性；
 触发器每帧读取 `IsEnabledByConfig`，开关立即生效。
@@ -77,3 +78,4 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--mask` / `--no-mask` | 打开 / 关闭遮罩窗口（透明、置顶、点击穿透，显示识别框和日志框；需要合成器；启用时截图默认改用 `CompositeWindow`） |
 | `--mask-recognition` | 遮罩上显示全部识别结果（调试） |
 | `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |
+| `--solo-task 任务标识` / `--solo-stop-after 秒` | 无人值守：在独立任务页启动该任务，到时停止并等待结束（并截图） |
