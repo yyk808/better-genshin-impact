@@ -35,11 +35,12 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 6. ✅ **UI 线程与对话框**（里程碑 5；与 WPF 窗口直接相关的部分留给 Avalonia 宿主）：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. ✅ **`System.Drawing`**（里程碑 6；Primitives 中的跨平台类型保留，GDI+ 只剩两处调试图标注）：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
 8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
-9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，Core 共 614 个源文件。
+9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。（进行中，Core 共 723 个源文件，主项目剩 988 个。
    - 里程碑 7a–9 已移入识别基础、配置根与全部配置、服务基础设施，以及识别核心：`Region` / `ImageRegion`、OCR / ONNX / YOLO、`Bv`、`GameRuntime`。
    - `Region` 的点击 / 移动已改走 `PlatformHost` + `IInputChannel`。
    - ClearScript 的 Linux 原生包（`Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5）已实测可用。
-   - 剩余的是任务层的界面引用，以及键鼠钩子和 `WebpageWindow`，见 phase2-progress.md 里程碑 9。）
+   - 里程碑 10–13 解开了任务层的界面映射、键鼠钩子、WPF 颜色、网页窗口和 Win32 `RECT` 引用，并把第一批 106 个任务层文件移入 Core。
+   - 剩余约 134 个任务层文件，阻碍见 phase2-progress.md 里程碑 13。）
 
 验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。
 

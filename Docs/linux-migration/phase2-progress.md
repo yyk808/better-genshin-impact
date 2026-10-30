@@ -269,3 +269,68 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 - `PathExecutor` / `AssertUtils` 调用 `SystemControl.GetGameScreenRect`（返回 Win32 `RECT`）。
 - `TaskTriggerDispatcher` 与 `GameTaskManager.CreateTriggers` 属于宿主编排，计划留在宿主侧。
 - 尚未开始：音游输入（`KeyInputTransports` 直接调用 SendInput / PostMessage）与 `RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的抽象。
+
+## 里程碑 10：修复 8b 引入的递归，独立任务的界面映射移出任务类
+
+- **缺陷修复**：8b 的提交 06af6dcb 把 `SystemControl.` 批量改成 `GameSystem.` 时误改了 `SystemControlAdapter` 本身，使适配器转发回 `GameSystem`，造成无限递归（运行到获取窗口 / 截图区域时栈溢出）。8b–9 的验证没有覆盖到这条调用路径。
+  - 1648020f 恢复适配器转发到 `SystemControl`。
+  - 新增单测 `SystemControlAdapterTests`：扫描适配器方法的 IL，断言不调用 `GameSystem` / `IGameSystemControl`，并且至少调用一次 `SystemControl`。已确认重新注入该缺陷时测试失败。
+  - 复查了其他批量改写（`ConfigJson`、`TriggerDispatcher`、`GameTaskAssets` 等），没有类似的自我转发。
+- `IGameSystemControl` 增加 `GetGameScreenSize`，返回 `PixelSize`。`PathExecutor`、`AssertUtils`、AutoBoss / Duel / AutoDomain / AutoStygianOnslaught 不再使用 Win32 `RECT`。
+- 新增程序集级 `SoloTaskSettingsMapAttribute(taskType, viewType, viewModelType)`：
+  - 8 个独立任务的界面映射集中写在主程序的 `View/Pages/SoloTaskSettings/SoloTaskSettingsMappings.cs`，任务类不再引用界面类型。
+  - `SoloTaskRegistry` 合并各程序集的映射，重复的映射直接报错。
+
+## 里程碑 11：键鼠钩子、WPF 颜色、网页窗口、Win32 鼠标事件与任务解耦
+
+- 快捷传送等用到的“热键是否按住”改经 `HotkeyHoldState.Query`（Core）查询。WinForms 键鼠钩子的逻辑原样移到主程序的 `HoldHotkeyQuery`。
+- 新增 `MaskColorParser.ParseRgbaHex`（Core，有单测）。`OverlayStyleHelper` 委托给它，`SkillCdOverlayRenderer` 改用 `MaskColor`。
+- 脚本仓库渠道列表抽为 `ScriptRepoChannels.All`，路径 JSON 选项抽为 `PathingJson.Options`，两者都与原静态成员是同一实例。`ScriptRepoUpdater` / `PathRecorder` 打开网页窗口的部分留在主程序。
+- 钓鱼行为用布尔量 `_leftButtonDown` 记录左键状态，不再使用 `MOUSEEVENTF` 枚举。
+
+## 里程碑 12：任务设置、全局输入钩子、连招颜色与 E 技能视图模型
+
+- 新增 `ITaskSettingsSource`（伐木轮数 / 每日上限、按键截图开关、七圣召唤与战斗策略路径），由 `TaskSettingsPageViewModel` 实现。脚本的 `Dispatcher` / `Genshin` 改经服务获取，不再直接引用页面视图模型。
+- 新增 `SharedGlobalInputHook`。`MouseKeyMonitor` 与 `KeyMouseHook` 共享同一个钩子实例，释放路径不变。`KeyMouseHook` 改用 `GameSystem.GetCaptureRect`（新增，返回 `PixelRect`）。
+- `MaskColorParser` 增加 `ColorTextConverter`：Windows 由 WPF `ColorConverter` 提供，未设置时按十六进制解析。`AutoComboRunTask` 改用 `MaskColor`。
+- `ESkillClassifyViewModel` 与 `ESkillClassifyResult` 移入 Core。
+- Core 引用 CsTrees.MEAI 1.0.2、Microsoft.Extensions.AI 10.6.0、Microsoft.Extensions.AI.OpenAI 10.6.0、Anthropic 12.53.0。`Microsoft.Extensions.Logging.Abstractions` 升到 10.0.12，与主程序已解析的版本一致。
+
+## 里程碑 13：任务层第一批 106 个文件移入 Core
+
+- 自动连招行为树浮窗改经 `IAutoComboTreeView`（`AutoComboTreeView.Current`，默认是空实现）显示和隐藏，`AutoComboTreeWindowService` 实现该接口。
+- 移入的主要文件组如下，翻译资源（`.resx`）与对应的类一起移动：
+  - 通用 Job 任务（领取纪行 / 历练点奖励等）
+  - 钓鱼行为树与模型
+  - 脚本仓库存储与脚本依赖（`Core/Script/Repositories`、`Core/Script/Dependence`）
+  - 剧情语音检测（`AutoSkip/Audio`）、自动拾取 / 剧情触发器
+  - 连招建树（`AutoCombo/ComboBuild`）、`ITaskTrigger` / `ITriggerDispatcher` / `ITaskSettingsSource` / `HotkeyHoldState`
+  - 技能 CD 遮罩、路径模型、`AssertUtils`、`GameScreenshotService` 等
+
+验证（10–13 每个推送点）：
+
+- 编译 0 错误。
+- Core 单测 244 个：238 通过，6 失败，与 7b 基线相比无退化。失败的仍是原有的缺素材钓鱼截图测试；新增了 `MaskColorParser` 的测试。
+- 主单测 1088 个：827 通过 / 249 失败 / 12 跳过，与里程碑 9 逐个用例比较无退化、无缺失。新增了 `SystemControlAdapterTests`。
+- 端到端：Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate 0 FAIL。
+
+### 剩余阻碍（主程序中约 134 个任务层文件）
+
+里程碑 9 列出的阻碍已全部解开。剩余文件的外部引用如下：
+
+- `HtmlMaskWindow`（约 15 处）
+- WinForms `MouseButtons` / `Keys`（约 14 处）
+- `ClickExtension` / `Point.Click`（约 16 处）
+- 直接调用 `Kernel32`（约 10 处）、`User32`（4 处），以及 `Win32KeyConvert`
+- `InventoryCountComparisonTask` 使用 GDI+ 绘图（`Font` / `Brush` / `StringFormat` / `ToBitmap`）
+- `CaptureModes`、`DefaultTcgConfig`
+- `TargetItemCatalog` 通过 `typeof().Assembly` 读取嵌入资源
+- `HungarianAlgorithm`、`TxtCombatTaskFactory` / `KeyMouseCombatTaskFactory`
+- `FileFormatException`、`WhereNotNull`
+
+以下部分计划留在宿主侧：
+
+- 宿主编排：`TaskTriggerDispatcher`
+- `GameRuntimeService`、`InstanceService`（Pulonia 远程）、`OverlayMetricsService`、`IMaskWindowHost`
+
+尚未开始：音游输入（`KeyInputTransports`）与 `RawInputMonitor` / `RelativeMouseInputMonitorFactory` 的抽象。
