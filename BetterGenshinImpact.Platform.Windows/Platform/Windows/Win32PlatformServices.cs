@@ -20,6 +20,11 @@ public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureMode
 
     public IGameWindowFinder GameWindows { get; } = new Win32GameWindowFinder(logger);
 
+    public IKeyStateProvider KeyState => Win32KeyStateProvider.Instance;
+
+    /// <summary>安装低级键鼠钩子；须在有消息循环的线程（UI 线程）上调用</summary>
+    public IGlobalInputHook CreateGlobalInputHook() => new Win32GlobalInputHook();
+
     /// <summary>按方式名创建截图器；方式名无效时抛 <see cref="ArgumentException"/>（与 CaptureModeExtensions.ToCaptureMode 一致）</summary>
     public IGameCapture CreateCapture(string? method = null) =>
         GameCaptureFactory.Create(method is null ? captureMode : method.ToCaptureMode());
@@ -34,6 +39,7 @@ public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureMode
             ["wine"] = Win32Environment.WineVersion ?? "no",
             ["captureMode"] = captureMode.ToString(),
             ["input"] = "SendInput + PostMessage",
+            ["inputHook"] = "LowLevel hook (MouseKeyHook)",
         };
         return new PlatformProbeResult(Win32Environment.Kind, items);
     }

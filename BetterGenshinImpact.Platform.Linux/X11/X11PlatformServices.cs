@@ -11,6 +11,7 @@ public sealed class X11PlatformServices : IPlatformServices
     private readonly string? _display;
     private readonly Lazy<X11WindowManager> _wm;
     private readonly Lazy<X11HotkeyService> _hotkeys;
+    private readonly Lazy<X11KeyStateProvider> _keyState;
 
     /// <param name="display">X 显示名，为 null 时使用 $DISPLAY</param>
     public X11PlatformServices(string? display = null)
@@ -18,6 +19,7 @@ public sealed class X11PlatformServices : IPlatformServices
         _display = display;
         _wm = new(() => new X11WindowManager(new X11Connection(display)));
         _hotkeys = new(() => new X11HotkeyService(display));
+        _keyState = new(() => new X11KeyStateProvider(new X11Connection(display), ownsConnection: true));
     }
 
     public string Name => "X11";
@@ -28,6 +30,15 @@ public sealed class X11PlatformServices : IPlatformServices
 
     /// <summary>按进程名 / WM_CLASS 在 _NET_CLIENT_LIST 中查找游戏窗口</summary>
     public IGameWindowFinder GameWindows => new WindowManagerGameWindowFinder(Windows);
+
+    /// <summary>XQueryKeymap / XQueryPointer（独立连接，线程安全）</summary>
+    public IKeyStateProvider KeyState => _keyState.Value;
+
+    /// <summary>
+    /// 轮询键状态的全局监听（独立连接）。X11 没有不抢占输入的低级钩子；XInput2 原始事件 / XRecord 版本见路线图
+    /// </summary>
+    public IGlobalInputHook CreateGlobalInputHook() =>
+        new PollingGlobalInputHook(new X11KeyStateProvider(new X11Connection(_display), ownsConnection: true), ownsState: true);
 
     /// <summary>新建截图器（独立连接，Dispose 时关闭）</summary>
     /// <param name="method"><see cref="X11CaptureMode"/> 名称，null 或无法识别时为 ShmRoot</param>
@@ -72,6 +83,7 @@ public sealed class X11PlatformServices : IPlatformServices
     public void Dispose()
     {
         if (_hotkeys.IsValueCreated) _hotkeys.Value.Dispose();
+        if (_keyState.IsValueCreated) _keyState.Value.Dispose();
         if (_wm.IsValueCreated) _wm.Value.Dispose();
     }
 }

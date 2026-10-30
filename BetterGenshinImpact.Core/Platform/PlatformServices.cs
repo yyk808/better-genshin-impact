@@ -48,6 +48,12 @@ public interface IPlatformServices : IPlatformProbe, IDisposable
     /// <summary>按进程名 / 窗口类查找游戏窗口</summary>
     IGameWindowFinder GameWindows { get; }
 
+    /// <summary>系统（物理）键鼠状态</summary>
+    IKeyStateProvider KeyState { get; }
+
+    /// <summary>创建全局键鼠监听。Windows 实现须在 UI 线程上调用</summary>
+    IGlobalInputHook CreateGlobalInputHook();
+
     /// <summary>创建截图器（未 Start）</summary>
     /// <param name="method">截图方式名（Windows：BitBlt / DwmGetDxSharedSurface / WindowsGraphicsCapture…；X11：ShmRoot / GetImageWindow…）；null 为平台默认</param>
     IGameCapture CreateCapture(string? method = null);
