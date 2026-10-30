@@ -4,6 +4,8 @@ using BetterGenshinImpact.GameTask.AutoFight;
 using BetterGenshinImpact.Service.I18n;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using Fischless.HotkeyCapture;
 using System;
 using System.ComponentModel;
@@ -78,9 +80,9 @@ public partial class HotKeySettingModel : ObservableObject
     [ObservableProperty] private bool _switchHotkeyTypeEnabled;
 
     /// <summary>
-    /// 全局热键配置
+    /// 全局热键注册（<see cref="IHotkeyService.Register"/> 的返回值，Dispose 即注销）
     /// </summary>
-    public HotkeyHook? GlobalRegisterHook { get; set; }
+    public IDisposable? GlobalRegisterHook { get; set; }
 
     /// <summary>
     /// 键盘监听配置
@@ -130,16 +132,19 @@ public partial class HotKeySettingModel : ObservableObject
                     throw new InvalidOperationException("此快捷键已由其他功能或任务计划使用。");
                 if (HotKeyType == HotKeyTypeEnum.GlobalRegister)
                 {
+                    // 键名仍按 WinForms Keys 解析（与以前注册的 VK 完全相同，解析失败同样抛异常），再交给平台热键服务注册
                     Hotkey hotkey = new(HotKey.ToString());
+                    var gesture = new HotkeyGesture(Win32KeyConvert.ToGameKey(hotkey.Key), ToKeyModifiers(hotkey));
+                    var pressedArgs = new KeyPressedEventArgs(hotkey.ModifierKey, hotkey.Key);
                     GlobalRegisterHook?.Dispose();
-                    GlobalRegisterHook = new HotkeyHook();
-                    if (OnKeyPressAction != null)
+                    GlobalRegisterHook = null;
+                    GlobalRegisterHook = SystemControl.Platform.Hotkeys.Register(gesture, _ =>
                     {
-                        GlobalRegisterHook.KeyPressed -= OnKeyPressed;
-                        GlobalRegisterHook.KeyPressed += OnKeyPressed;
-                    }
-                    GlobalRegisterHook.RegisterHotKey(SuppressRepeat
-                        ? hotkey.ModifierKey | User32.HotKeyModifiers.MOD_NOREPEAT : hotkey.ModifierKey, hotkey.Key);
+                        if (OnKeyPressAction != null)
+                        {
+                            OnKeyPressed(this, pressedArgs);
+                        }
+                    }, SuppressRepeat);
                 }
                 else
                 {
@@ -214,6 +219,12 @@ public partial class HotKeySettingModel : ObservableObject
             HotKey = HotKey.None;
         }
     }
+
+    private static KeyModifiers ToKeyModifiers(Hotkey hotkey) =>
+        (hotkey.Windows ? KeyModifiers.Super : KeyModifiers.None) |
+        (hotkey.Control ? KeyModifiers.Control : KeyModifiers.None) |
+        (hotkey.Shift ? KeyModifiers.Shift : KeyModifiers.None) |
+        (hotkey.Alt ? KeyModifiers.Alt : KeyModifiers.None);
 
     /// <summary>按实际监听规则比较冲突；单键监听不检查修饰键，因此也与同主键的全局组合键冲突。</summary>
     public static bool AreConflicting(HotKey first, HotKeyTypeEnum firstType, HotKey second, HotKeyTypeEnum secondType)
