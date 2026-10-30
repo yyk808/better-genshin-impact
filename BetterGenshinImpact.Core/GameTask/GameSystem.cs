@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.GameTask.Runtime;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,9 @@ public interface IGameSystemControl
     string? GetActiveProcessName();
 
     Process? GetProcessByHandle(nint hWnd);
+
+    /// <summary>游戏本身的分辨率（窗口客户区大小）</summary>
+    PixelSize GetGameScreenSize(nint hWnd);
 
     void ActivateWindow(nint hWnd);
 
@@ -76,6 +80,8 @@ public static class GameSystem
     public static string? GetActiveProcessName() => Control.GetActiveProcessName();
 
     public static Process? GetProcessByHandle(nint hWnd) => Control.GetProcessByHandle(hWnd);
+
+    public static PixelSize GetGameScreenSize(nint hWnd) => Control.GetGameScreenSize(hWnd);
 
     public static void ActivateWindow(nint hWnd) => Control.ActivateWindow(hWnd);
 

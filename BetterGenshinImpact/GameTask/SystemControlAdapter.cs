@@ -10,35 +10,41 @@ public sealed class SystemControlAdapter : IGameSystemControl
 {
     public static SystemControlAdapter Instance { get; } = new();
 
-    public IPlatformServices Platform => GameSystem.Platform;
+    public IPlatformServices Platform => SystemControl.Platform;
 
-    public List<string> GetGenshinGameProcessNameList(IGameWindow? boundWindow) => GameSystem.GetGenshinGameProcessNameList(boundWindow);
+    public List<string> GetGenshinGameProcessNameList(IGameWindow? boundWindow) => SystemControl.GetGenshinGameProcessNameList(boundWindow);
 
-    public GameWindowSearch GetGameWindowSearch() => GameSystem.GetGameWindowSearch();
+    public GameWindowSearch GetGameWindowSearch() => SystemControl.GetGameWindowSearch();
 
-    public nint FindGenshinImpactHandle() => GameSystem.FindGenshinImpactHandle();
+    public nint FindGenshinImpactHandle() => SystemControl.FindGenshinImpactHandle();
 
-    public Task<nint> StartFromLocalAsync(string path) => GameSystem.StartFromLocalAsync(path);
+    public Task<nint> StartFromLocalAsync(string path) => SystemControl.StartFromLocalAsync(path);
 
-    public string GetActiveByProcess() => GameSystem.GetActiveByProcess();
+    public string GetActiveByProcess() => SystemControl.GetActiveByProcess();
 
-    public bool IsGameForeground(IGameWindow? window) => GameSystem.IsGameForeground(window);
+    public bool IsGameForeground(IGameWindow? window) => SystemControl.IsGameForeground(window);
 
-    public string? GetActiveProcessName() => GameSystem.GetActiveProcessName();
+    public string? GetActiveProcessName() => SystemControl.GetActiveProcessName();
 
-    public Process? GetProcessByHandle(nint hWnd) => GameSystem.GetProcessByHandle(hWnd);
+    public Process? GetProcessByHandle(nint hWnd) => SystemControl.GetProcessByHandle(hWnd);
 
-    public void ActivateWindow(nint hWnd) => GameSystem.ActivateWindow(hWnd);
+    public PixelSize GetGameScreenSize(nint hWnd)
+    {
+        var rect = SystemControl.GetGameScreenRect(hWnd);
+        return new PixelSize(rect.Width, rect.Height);
+    }
 
-    public void FocusWindow(nint hWnd) => GameSystem.FocusWindow(hWnd);
+    public void ActivateWindow(nint hWnd) => SystemControl.ActivateWindow(hWnd);
 
-    public void MinimizeAndActivateWindow(nint hWnd) => GameSystem.MinimizeAndActivateWindow(hWnd);
+    public void FocusWindow(nint hWnd) => SystemControl.FocusWindow(hWnd);
 
-    public void RestoreWindow(nint hWnd) => GameSystem.RestoreWindow(hWnd);
+    public void MinimizeAndActivateWindow(nint hWnd) => SystemControl.MinimizeAndActivateWindow(hWnd);
 
-    public void CloseGame() => GameSystem.CloseGame();
+    public void RestoreWindow(nint hWnd) => SystemControl.RestoreWindow(hWnd);
 
-    public void CloseGameProcesses(IGameWindow? boundWindow) => GameSystem.CloseGameProcesses(boundWindow);
+    public void CloseGame() => SystemControl.CloseGame();
 
-    public void Shutdown() => GameSystem.Shutdown();
+    public void CloseGameProcesses(IGameWindow? boundWindow) => SystemControl.CloseGameProcesses(boundWindow);
+
+    public void Shutdown() => SystemControl.Shutdown();
 }
