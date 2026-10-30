@@ -5,7 +5,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:dd="urn:gong-wpf-dragdrop"
                  xmlns:controls="clr-namespace:BetterGenshinImpact.View.Controls"
-                 xmlns:local="clr-namespace:BetterGenshinImpact.Model"
+                 xmlns:local="clr-namespace:BetterGenshinImpact.Model;assembly=BetterGenshinImpact.Core"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:view="clr-namespace:BetterGenshinImpact.ViewModel.Pages.View"

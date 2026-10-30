@@ -9,22 +9,10 @@ using Serilog;
 
 namespace BetterGenshinImpact.Core.Recognition.ONNX;
 
-/// <summary>
-/// 主程序按推理类型选定原生运行库，在任何 ONNX 原生调用之前创建一次。
-/// 运行中的进程不切换、不卸载已选中的运行库。
-/// </summary>
-public interface IOnnxRuntimeSelection
-{
-    InferenceDeviceType InferenceDevice { get; }
-    string RuntimeDirectory { get; }
-    string StatusText { get; }
-    string FailureReason { get; }
-}
-
 public sealed class OnnxRuntimeLoader : IOnnxRuntimeSelection
 {
     // 原生库必须与编译时引用的托管 ONNX Runtime 主次修订版一致，不再另外维护版本号。
-    public static string RequiredVersion { get; } = GetRequiredVersion();
+    public static string RequiredVersion => OnnxRuntimeVersion.Required;
     private IntPtr _libraryHandle;
     private readonly Func<string, IntPtr> _loadLibrary;
     private readonly Func<IntPtr, string> _readRuntimeVersion;
@@ -173,13 +161,6 @@ public sealed class OnnxRuntimeLoader : IOnnxRuntimeSelection
         // OrtApiBase 依次包含 GetApi 和 GetVersionString 两个函数指针。
         var getVersion = Marshal.GetDelegateForFunctionPointer<OrtGetVersionString>(Marshal.ReadIntPtr(apiBase, IntPtr.Size));
         return Marshal.PtrToStringUTF8(getVersion()) ?? throw new InvalidDataException("无法读取原生运行库版本。");
-    }
-
-    private static string GetRequiredVersion()
-    {
-        var version = typeof(InferenceSession).Assembly.GetName().Version
-                      ?? throw new InvalidOperationException("无法读取编译时 ONNX Runtime 版本。");
-        return version.ToString(3);
     }
 
     private bool TryDeletePlugin(string directory)

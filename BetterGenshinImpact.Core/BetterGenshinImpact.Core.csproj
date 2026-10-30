@@ -35,6 +35,9 @@
 		<PackageReference Include="YoloSharp" Version="6.0.3" />
 		<!-- 简繁转换（纯托管），I18nService 使用，版本与主项目一致 -->
 		<PackageReference Include="OpenccNetLib" Version="1.7.0" />
+		<!-- 版本号比较（Global）与 Serilog 静态日志（部分识别 / 配置代码直接使用），版本与主项目解析结果一致 -->
+		<PackageReference Include="Semver" Version="3.0.0" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
 		<!-- 任务的翻译资源（IStringLocalizer<T> 按 T 所在程序集查找 .resx，任务类与其 .resx 一起移入 Core） -->
 		<PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.12" />
 	</ItemGroup>

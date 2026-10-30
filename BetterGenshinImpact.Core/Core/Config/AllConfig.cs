@@ -12,7 +12,6 @@ using BetterGenshinImpact.GameTask.AutoMusicGame;
 using BetterGenshinImpact.GameTask.QuickTeleport;
 using BetterGenshinImpact.Service.Notification;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Fischless.GameCapture;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

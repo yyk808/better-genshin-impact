@@ -34,6 +34,17 @@ public static class PlatformHost
         set => _screen = value ?? throw new ArgumentNullException(nameof(value));
     }
 
+    private static Func<bool> _isMicaBackdropSupported = static () => false;
+
+    /// <summary>
+    /// 系统是否支持 Mica 窗口材质（决定默认主题）。Windows 主程序设置为 OsVersionHelper.IsWindows11_22523_OrGreater（首次调用时才求值）；其它平台为 false
+    /// </summary>
+    public static Func<bool> IsMicaBackdropSupported
+    {
+        get => _isMicaBackdropSupported;
+        set => _isMicaBackdropSupported = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>用一个平台服务集合设置全部入口</summary>
     public static void Use(IPlatformServices platform)
     {

@@ -66,7 +66,7 @@ public sealed class OnnxRuntimeInstaller : IOnnxRuntimeInstaller, IDisposable
                 InferenceDeviceType.OpenVINO => "Intel.ML.OnnxRuntime.OpenVino",
                 _ => "Microsoft.ML.OnnxRuntime.Gpu.Windows"
             };
-            var packages = new List<RuntimeDownloadPackage> { await GetNugetPackageAsync(id, OnnxRuntimeLoader.RequiredVersion, token) };
+            var packages = new List<RuntimeDownloadPackage> { await GetNugetPackageAsync(id, OnnxRuntimeVersion.Required, token) };
             if (engine == InferenceDeviceType.DirectML) packages.Add(await GetNugetPackageAsync("Microsoft.AI.DirectML", "1.15.4", token));
             return packages;
         }

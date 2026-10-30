@@ -31,7 +31,7 @@ public sealed record ResolvedInferenceRuntime(
         EnableModelCache, PaddleOcrCpu);
 
     private string CacheFingerprint => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-        $"engine-cache-v1|{Engine}|{Device.Id}|{OnnxRuntimeLoader.RequiredVersion}|CUDA12.8|cuDNN9.8|TensorRT10.8")));
+        $"engine-cache-v1|{Engine}|{Device.Id}|{OnnxRuntimeVersion.Required}|CUDA12.8|cuDNN9.8|TensorRT10.8")));
 
     public string GetCachePath(BgiOnnxModel model)
         => GetCachePathForModel(model.ModalPath, ModelCacheDirectory);
@@ -76,7 +76,7 @@ public static class InferenceRuntimeFingerprint
     public static string Compute(InferenceDeviceType engine, string deviceId, bool cpuOcr, int cpuThreads,
         bool enableModelCache, PaddleOcrCpuOptions paddleOcrCpu)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            $"{engine}|{deviceId}|{cpuOcr}|{cpuThreads}|{enableModelCache}|{OnnxRuntimeLoader.RequiredVersion}{paddleOcrCpu.SignatureSuffix}")));
+            $"{engine}|{deviceId}|{cpuOcr}|{cpuThreads}|{enableModelCache}|{OnnxRuntimeVersion.Required}{paddleOcrCpu.SignatureSuffix}")));
 }
 
 public static class InferenceTestImages

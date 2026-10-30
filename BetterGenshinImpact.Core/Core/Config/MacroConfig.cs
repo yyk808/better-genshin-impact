@@ -1,5 +1,4 @@
 ﻿using BetterGenshinImpact.GameTask.AutoFight;
-using BetterGenshinImpact.GameTask.QuickClaimReward;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 

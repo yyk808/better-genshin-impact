@@ -24,5 +24,6 @@ internal static class InputModuleInitializer
         InputHub.DefaultBackendFactory ??= static () => new Win32InputBackend(IntPtr.Zero);
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;
+        PlatformHost.IsMicaBackdropSupported = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_22523_OrGreater;
     }
 }
