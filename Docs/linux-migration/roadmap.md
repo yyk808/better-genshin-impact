@@ -34,7 +34,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
 5. ✅ **热键**（里程碑 3；UI 的 `HotKey` 模型仍用 WPF `Key`，配置文本格式不变，Core 用 `HotkeyText` 解析）：`HotkeyHolder` 改用 `IHotkeyService`（`Win32HotkeyService` 已就绪），热键配置类型从 WinForms `Keys` 迁到 `HotkeyGesture`。
 6. **UI 线程与对话框**：`Dispatcher` / `Application.Current` → `IUiDispatcher`；`MessageBox` → `IDialogService`；剪贴板、打开链接 → 对应服务。
 7. **`System.Drawing`**：业务代码中的 `Rectangle`/`Point`/`Bitmap` 换成 OpenCvSharp 或 Core 中的几何类型。
-8. **注册表**：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
+8. ✅ **注册表**（里程碑 4，只读部分；写注册表留待 Linux 宿主）：原神分辨率 / HDR / 安装路径读取抽象为 `IGameSettingsStore`（Linux 实现解析 Wine 前缀的 `user.reg`）。
 9. 每完成一组就把对应代码从主项目移入 Core，直到识别、任务、脚本引擎都在 Core 中。
 
 验收：Core 中包含识别（OpenCV / ONNX / OCR）、脚本引擎、主要 GameTask；单元测试中平台无关部分在 Linux 原生运行通过。

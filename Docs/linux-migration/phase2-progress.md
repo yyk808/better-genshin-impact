@@ -78,3 +78,23 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 
 验证：编译 0 错误；Core 单测 56 个通过（含全部 WPF 键名的往返校验）；主项目单测 785 / 118 / 5，无退化；
 端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；驱动 `keystate` 检查中，X11 普通热键按住 1.5 秒触发 22 次，noRepeat 热键只触发 1 次。
+
+## 里程碑 4：注册表 / 游戏设置服务（Linux 读 Wine 前缀 user.reg）
+
+- Core
+  - `IUserRegistry` / `IRegistryKey`：当前用户注册表的只读访问，值类型与 `Microsoft.Win32.RegistryKey.GetValue` 一致。
+  - `WineRegistryFile`：Wine 注册表文件解析器（键名 / 字符串转义、`\x539f` 形式的非 ASCII 字符、`dword:`、`hex:` 多行续行、
+    `hex(b):` QWORD、`str(2)`/`str(7)` 扩展字符串与多字符串、`@` 默认值）。
+  - `WinePrefixUserRegistry`：读取 `<WINEPREFIX>/user.reg`，文件修改后自动重新解析。
+  - `Genshin.Settings.GenshinSettingsStore` / `IGameSettingsStore`：原主程序 `GenshinRegistry` 的区服判断与开键逻辑迁入
+    （运行中进程 → 配置的游戏路径 → 注册表是否存在，规则不变；游戏路径也接受 Linux 路径）。`GenshinRegistryType` 一并迁入（命名空间不变）。
+  - `IPlatformServices.UserRegistry`：Windows 为 `Win32UserRegistry`（HKCU），X11 为 Wine 前缀（构造参数或 `$WINEPREFIX`，默认 `~/.wine`）。
+- 主项目：`GenshinRegistry.GetRegistryKey` 改为经平台注册表 + `GenshinSettingsStore`，返回 `IRegistryKey`；
+  `SettingsContainer`（GENERAL_DATA / 键位映射）、`ResolutionSettings`、`GenshinGameSettings` 随之改用 `IRegistryKey`，读取结果不变。
+- 未迁移：写注册表的部分（原神 HDR 自动关闭、URL 协议注册、通知抑制等）仍直接用 Win32 注册表；
+  Linux 上写 Wine 注册表应通过 `wine reg`（wineserver 运行时直接改文件会被覆盖），留待 Linux 宿主实现。
+
+验证：编译 0 错误；Core 单测 75 个通过，其中注册表测试数据由 Wine 11 的 `reg add` 实际写出
+（中文键名、二进制多行 GENERAL_DATA、DWORD/QWORD/扩展字符串/多字符串/默认值）；主项目单测 785 / 118 / 5，无退化；
+端到端 X11 16 PASS / 1 SKIP，Wine 第一次运行 16 PASS / 1 WARN（锁定视角相对移动少计 1 条原始输入，与本次改动无关），
+重跑两次均为 17 PASS。
