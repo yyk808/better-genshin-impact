@@ -80,4 +80,67 @@ public static class ScriptGroupSchedule
 
         return group.Projects.Select(g => g).ToList();
     }
+    /// <summary>
+    /// 取本次要执行的配置组：有“下次从此组执行”标记时从标记组开始（并清除标记与配置根中的组名），否则全部执行
+    /// </summary>
+    public static List<ScriptGroup> GetNextScriptGroups(List<ScriptGroup> groups, AllConfig rootConfig)
+    {
+        if (groups.Where(g => g.NextFlag).Count() > 0)
+        {
+            List<ScriptGroup> ng = new();
+            bool start = false;
+            foreach (var group in groups)
+            {
+                if (group.NextFlag)
+                {
+                    start = true;
+                    group.NextFlag = false;
+                    rootConfig.NextScriptGroupName = String.Empty;
+                }
+
+                if (start)
+                {
+                    ng.Add(group);
+                }
+            }
+
+            return ng;
+        }
+
+        return groups;
+    }
+
+    /// <summary>把配置组标记为“下次从此组执行”（item 为 null 时只清除标记）</summary>
+    public static void SetGroupNextFlag(IEnumerable<ScriptGroup> groups, ScriptGroup? item, AllConfig rootConfig)
+    {
+        foreach (var scriptGroup in groups)
+        {
+            scriptGroup.NextFlag = false;
+        }
+
+        if (item != null)
+        {
+            item.NextFlag = true;
+            rootConfig.NextScriptGroupName = item.Name;
+        }
+    }
+
+    /// <summary>把配置组内的项目标记为“下次从此执行”（写入配置根的 NextScheduledTask）</summary>
+    public static void SetProjectNextFlag(ScriptGroup group, ScriptGroupProject item, AllConfig rootConfig)
+    {
+        List<ValueTuple<string, int, string, string>> nextScheduledTask = rootConfig.NextScheduledTask;
+        var nst = nextScheduledTask.Find(item2 => item2.Item1 == group.Name);
+        if (nst != default)
+        {
+            nextScheduledTask.Remove(nst);
+        }
+
+        nextScheduledTask.Add((group.Name, item.Index, item.FolderName, item.Name));
+        foreach (var item1 in group.Projects)
+        {
+            item1.NextFlag = false;
+        }
+
+        item.NextFlag = true;
+    }
 }

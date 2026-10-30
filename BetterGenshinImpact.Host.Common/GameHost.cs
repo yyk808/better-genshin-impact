@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.GameTask.AutoMusicGame;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
@@ -129,6 +130,16 @@ public sealed class GameHost : IAsyncDisposable
 
         log.Information("素材目录：{Path}", Global.StartUpPath);
 
+        // 任务的调试截图等直接写入 log 子目录（Windows 版由日志文件创建该目录；这里日志可能写在别处），启动时先建好
+        try
+        {
+            Directory.CreateDirectory(Global.Absolute("log"));
+        }
+        catch (Exception e)
+        {
+            log.Warning("创建 log 目录失败：{Message}", e.Message);
+        }
+
         // 1. 平台服务：X11 找窗 / 截图 / XTest 输入
         var platform = new X11PlatformServices(options.Display);
         try
@@ -250,9 +261,13 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<InferenceRuntimeService>();
             services.AddSingleton<BgiOnnxFactory>();
             services.AddSingleton<OcrFactory>();
+            // 服务器时间（月卡判断、按服务器日期的执行周期等使用，与 WPF 相同）
+            services.AddSingleton(TimeProvider.System);
+            services.AddSingleton<IServerTimeProvider, ServerTimeProvider>();
             configureServices?.Invoke(services);
             var provider = services.BuildServiceProvider();
             CoreServices.SetProvider(() => provider);
+            ServerTimeHelper.Initialize(provider.GetRequiredService<IServerTimeProvider>());
             // 输入通道的“不支持的操作已忽略 / 已跳过”告警写进日志。
             // 先取出记录器：停止截图器时仍在执行的一帧可能在服务容器释放后才发出告警
             var inputLogger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");

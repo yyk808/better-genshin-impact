@@ -566,16 +566,7 @@ public partial class ScriptControlViewModel : ViewModel
     [RelayCommand]
     public void AddScriptGroupNextFlag(ScriptGroup? item)
     {
-        foreach (var scriptGroup in ScriptGroups)
-        {
-            scriptGroup.NextFlag = false;
-        }
-
-        if (item != null)
-        {
-            item.NextFlag = true;
-            _config.NextScriptGroupName = item.Name;
-        }
+        ScriptGroupSchedule.SetGroupNextFlag(ScriptGroups, item, _config);
     }
 
     [RelayCommand]
@@ -1568,20 +1559,7 @@ public partial class ScriptControlViewModel : ViewModel
             return;
         }
 
-        List<ValueTuple<string, int, string, string>> nextScheduledTask = _config.NextScheduledTask;
-        var nst = nextScheduledTask.Find(item2 => item2.Item1 == SelectedScriptGroup?.Name);
-        if (nst != default)
-        {
-            nextScheduledTask.Remove(nst);
-        }
-
-        nextScheduledTask.Add((SelectedScriptGroup?.Name ?? "", item.Index, item.FolderName, item.Name));
-        foreach (var item1 in SelectedScriptGroup?.Projects ?? [])
-        {
-            item1.NextFlag = false;
-        }
-
-        item.NextFlag = true;
+        ScriptGroupSchedule.SetProjectNextFlag(SelectedScriptGroup, item, _config);
     }
 
     public static async Task ShowEditWindowAsync(ScriptGroupProject project)
@@ -1862,13 +1840,7 @@ public partial class ScriptControlViewModel : ViewModel
     /// </summary>
     private void SaveScriptGroupFile(ScriptGroup scriptGroup)
     {
-        if (!Directory.Exists(ScriptGroupPath))
-        {
-            Directory.CreateDirectory(ScriptGroupPath);
-        }
-
-        var file = Path.Combine(ScriptGroupPath, $"{scriptGroup.Name}.json");
-        scriptGroup.WriteToFileAtomically(file);
+        ScriptGroupStore.Save(scriptGroup);
     }
 
     private void WriteScriptGroup(ScriptGroup scriptGroup)
@@ -1905,36 +1877,17 @@ public partial class ScriptControlViewModel : ViewModel
             }
 
             ScriptGroups.Clear();
-            var files = Directory.GetFiles(ScriptGroupPath, "*.json");
-            List<ScriptGroup> groups = [];
-            foreach (var file in files)
+            var groups = ScriptGroupStore.ReadAll(_config, (_, e) =>
             {
-                try
-                {
-                    var json = File.ReadAllText(file);
-                    var group = ScriptGroup.FromJson(json);
-                    SetProjectNextFlagFromSchedule(group);
-                    if (group.Name == _config.NextScriptGroupName)
-                    {
-                        group.NextFlag = true;
-                    }
-                    groups.Add(group);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogDebug(e, "读取单个配置组配置时失败");
-                    _snackbarService.Show(
-                        "读取配置组配置失败",
-                        "读取配置组配置失败:" + e.Message,
-                        ControlAppearance.Danger,
-                        null,
-                        TimeSpan.FromSeconds(3)
-                    );
-                }
-            }
-
-            // 按index排序
-            groups.Sort((a, b) => a.Index.CompareTo(b.Index));
+                _logger.LogDebug(e, "读取单个配置组配置时失败");
+                _snackbarService.Show(
+                    "读取配置组配置失败",
+                    "读取配置组配置失败:" + e.Message,
+                    ControlAppearance.Danger,
+                    null,
+                    TimeSpan.FromSeconds(3)
+                );
+            });
             foreach (var group in groups)
             {
                 ScriptGroups.Add(group);
@@ -2051,31 +2004,10 @@ public partial class ScriptControlViewModel : ViewModel
         WriteScriptGroup(SelectedScriptGroup);
     }
 
+    /// <summary>按“下次从此组执行”标记取本次要执行的配置组（实现见 Core 的 ScriptGroupSchedule）</summary>
     public static List<ScriptGroup> GetNextScriptGroups(List<ScriptGroup> groups)
     {
-        if (groups.Where(g => g.NextFlag).Count() > 0)
-        {
-            List<ScriptGroup> ng = new();
-            bool start = false;
-            foreach (var group in groups)
-            {
-                if (group.NextFlag)
-                {
-                    start = true;
-                    group.NextFlag = false;
-                    RootConfig.NextScriptGroupName = String.Empty;
-                }
-
-                if (start)
-                {
-                    ng.Add(group);
-                }
-            }
-
-            return ng;
-        }
-
-        return groups;
+        return ScriptGroupSchedule.GetNextScriptGroups(groups, RootConfig);
     }
 
     /// <summary>按“下次从此执行”标记取本次要执行的项目（实现见 Core 的 ScriptGroupSchedule）</summary>
@@ -2277,23 +2209,8 @@ public partial class ScriptControlViewModel : ViewModel
     /// <param name="scriptGroups">要执行的配置组</param>
     /// <param name="loop">是否循环执行</param>
     /// <param name="ct">所属顶层任务的取消令牌</param>
-    private async Task StartGroupsCore(GameRuntime runtime, List<ScriptGroup> scriptGroups, bool loop, CancellationToken ct)
+    private Task StartGroupsCore(GameRuntime runtime, List<ScriptGroup> scriptGroups, bool loop, CancellationToken ct)
     {
-        while (true)
-        {
-            ct.ThrowIfCancellationRequested();
-            var sg = GetNextScriptGroups(scriptGroups);
-            foreach (var scriptGroup in sg)
-            {
-                ct.ThrowIfCancellationRequested();
-                await _scriptService.RunMulti(runtime, GetNextProjects(scriptGroup), scriptGroup.Name, ct);
-                await Task.Delay(2000, ct);
-            }
-
-            if (!loop)
-            {
-                return;
-            }
-        }
+        return ScriptGroupRunner.RunGroupsAsync(_scriptService, runtime, scriptGroups, loop, RootConfig, ct);
     }
 }
