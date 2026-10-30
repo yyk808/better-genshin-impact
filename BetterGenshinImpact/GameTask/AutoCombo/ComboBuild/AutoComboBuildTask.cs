@@ -1,3 +1,4 @@
+using BetterGenshinImpact.GameTask.AutoCombo;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoCombo.ComboRun;
 using BetterGenshinImpact.GameTask.AutoFight.Model;
@@ -157,7 +158,7 @@ public class AutoComboBuildTask : ISoloTask<NoParam, NoData>
     public static async Task<ComboTreeSession> BuildComboTreeAsync(Avatar[] avatars, AutoComboBuildConfig config, ILogger logger, CancellationToken ct)
     {
         // 展示行为树浮窗：建树过程（含 LLM 多轮 preview）实时可见
-        AutoComboTreeWindowService.Instance.Show();
+        AutoComboTreeView.Current.Show();
         AutoComboTreeViewModel.Instance.Clear();
         var avatarNames = avatars.Select(a => a.Name).ToList();
         AutoComboBuildBuilder? builder = null;
@@ -258,7 +259,7 @@ public class AutoComboBuildTask : ISoloTask<NoParam, NoData>
         }
         finally
         {
-            AutoComboTreeWindowService.Instance.Hide();
+            AutoComboTreeView.Current.Hide();
         }
     }
 

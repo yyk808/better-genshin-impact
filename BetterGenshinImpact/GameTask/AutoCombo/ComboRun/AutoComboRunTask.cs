@@ -1,3 +1,4 @@
+using BetterGenshinImpact.GameTask.AutoCombo;
 using BetterGenshinImpact.Core.Drawing;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoFight;
@@ -166,7 +167,7 @@ public class AutoComboRunTask : ISoloTask<AutoFightParam, NoData>
         }, overlayCts.Token);
 
         // 行为树与并发循环均已就绪，进入正式运行段：显示浮窗
-        AutoComboTreeWindowService.Instance.Show();
+        AutoComboTreeView.Current.Show();
 
         // E 技能识别结果显示：订阅 VM 通知，运行期间 Avatar 分类结果自动渲染到遮罩
         ESkillClassifyViewModel.Instance.PropertyChanged += OnESkillClassifyResultChanged;
@@ -207,7 +208,7 @@ public class AutoComboRunTask : ISoloTask<AutoFightParam, NoData>
         finally
         {
             // 暂停/结束时隐藏浮窗，下次启动由 RunAsync 重新显示
-            AutoComboTreeWindowService.Instance.Hide();
+            AutoComboTreeView.Current.Hide();
 
             // 停止 E 技能识别结果显示并清除残留绘制内容
             ESkillClassifyViewModel.Instance.PropertyChanged -= OnESkillClassifyResultChanged;

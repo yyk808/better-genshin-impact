@@ -7,7 +7,7 @@ namespace BetterGenshinImpact.GameTask.AutoCombo;
 /// <summary>
 /// 自动连招行为树浮窗显隐服务：持有浮窗单例并管理其生命周期（重建、Show/Hide）
 /// </summary>
-public class AutoComboTreeWindowService : Singleton<AutoComboTreeWindowService>
+public class AutoComboTreeWindowService : Singleton<AutoComboTreeWindowService>, IAutoComboTreeView
 {
     private AutoComboTreeWindow? _window;
 
