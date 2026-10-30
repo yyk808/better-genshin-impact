@@ -174,7 +174,7 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
   `SoloTaskRegistry` 扫描主程序集中带 `[SoloTaskInfo]` 的任务，这些任务都依赖 `GameRuntime`，仍在主项目，注册结果不变。
 - XAML：6 个页面引用了已移入 Core 的枚举 / 类型（`CrosshairType`、`AutoPickMode`、`DamageNumberRecognitionMode`、`QuestVoiceStageState`、
   `SkillCdRule`、`AutoComboLlmProvider` 等），其 xmlns 补上 `assembly=BetterGenshinImpact.Core`。
-- 测试：12 个只依赖 Core 的测试文件从主单测移入 Core.UnitTest（钓鱼图像识别、RodNet、OCR 后处理、树脂规划 / 执行 / 旧配置映射、
+- 测试：10 个只依赖 Core 的测试文件从主单测移入 Core.UnitTest（钓鱼图像识别、RodNet、OCR 后处理、树脂规划 / 执行 / 旧配置映射、
   剧情语音文本比较与控制器、`GameTaskWait` 等）；`FakeLogger`、`FakeInputChannel` 两个测试替身以源码链接方式共用。
 
 验证：编译 0 错误；Core 单测 233 个，227 通过、6 失败——这 6 个是钓鱼截图测试，测试素材在未初始化的 Assets 子模块中，搬迁前在主单测中同样失败。
