@@ -54,6 +54,9 @@ public interface IPlatformServices : IPlatformProbe, IDisposable
     /// <summary>系统（物理）键鼠状态</summary>
     IKeyStateProvider KeyState { get; }
 
+    /// <summary>屏幕信息（主屏幕分辨率）</summary>
+    IScreenInfo Screen { get; }
+
     /// <summary>创建全局键鼠监听。Windows 实现须在 UI 线程上调用</summary>
     IGlobalInputHook CreateGlobalInputHook();
 

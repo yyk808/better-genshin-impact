@@ -39,6 +39,9 @@ public sealed class X11PlatformServices : IPlatformServices
     /// <summary>XQueryKeymap / XQueryPointer（独立连接，线程安全）</summary>
     public IKeyStateProvider KeyState => _keyState.Value;
 
+    /// <summary>默认屏幕的大小（每次新建连接读取，分辨率变化后立即生效）</summary>
+    public IScreenInfo Screen => new X11ScreenInfo(_display);
+
     /// <summary>
     /// 轮询键状态的全局监听（独立连接）。X11 没有不抢占输入的低级钩子；XInput2 原始事件 / XRecord 版本见路线图
     /// </summary>
