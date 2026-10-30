@@ -62,3 +62,19 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 
 验证：编译 0 错误；Core 单测 33 个通过；主项目单测 785 / 118 / 5，无退化；端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；
 新增驱动检查 `keystate`：在 Xvfb 上用 XTest 注入 Shift+F、右键、移动，`X11KeyStateProvider` 与轮询监听全部检测正确。
+
+## 里程碑 3：热键走平台热键服务；快捷键配置文本的平台无关解析
+
+- Core
+  - `IHotkeyService.Register(..., noRepeat)`：按住不放不重复触发（Windows `MOD_NOREPEAT`；X11 开启可检测的自动重复，按 KeyRelease 判断）。
+  - `WpfKeyNames`：WPF `Key` 名称（含别名）↔ VK 对照表。表由 `KeyInterop` 在 Wine 中实测生成（`WpfKeyNames.g.cs`），不依赖 WPF。
+  - `HotkeyText`：快捷键配置文本（`"Ctrl + Shift + F11"`、`"XButton1"`、`"< None >"`）的解析与格式化，
+    规则与主程序 `Model.HotKey` 相同；`ToGesture()` 得到可注册的 `HotkeyGesture`。Linux 版用它读取现有配置。
+- 主项目：`HotKeySettingModel` 的“全局热键”改为经 `IPlatformServices.Hotkeys` 注册（`GlobalRegisterHook` 变为注册句柄）。
+  键名仍先按原来的 WinForms `Keys` 规则解析，注册的 VK、修饰键、`MOD_NOREPEAT`、失败时的异常与提示都与原来相同。
+  “键鼠监听”类型的热键已在里程碑 2 改走 `IGlobalInputHook`。
+- 发现的现有问题（未改变，保持 Windows 行为）：WPF 键名中有 37 个无法按 WinForms `Keys` 解析（如 `OemPlus`、`OemComma`、
+  `LeftShift`），这些键设为“全局热键”时注册会失败。`HotkeyText` 能正确解析它们，Avalonia 版不受影响。
+
+验证：编译 0 错误；Core 单测 56 个通过（含全部 WPF 键名的往返校验）；主项目单测 785 / 118 / 5，无退化；
+端到端 Wine 17 PASS、X11 16 PASS / 1 SKIP；驱动 `keystate` 检查中，X11 普通热键按住 1.5 秒触发 22 次，noRepeat 热键只触发 1 次。
