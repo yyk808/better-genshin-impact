@@ -63,11 +63,26 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
             _executor.RunCompleted += (_, e) => Dispatcher.UIThread.Post(() => OnRunCompleted(e));
         }
 
+        // 与 WPF 独立任务页相同的卡片顺序与说明；页面上没有的独立任务（热键、一条龙中使用）按注册表分组列在后面
         var descriptors = _registry?.GetByScope(SoloTaskScopes.Standalone).OrderBy(d => d.Order).ToList() ?? [];
-        foreach (var group in descriptors.GroupBy(d => d.Group))
+        var pageCards = PageTasks
+            .Select(t => descriptors.FirstOrDefault(d => d.TaskId == t.TaskId) is { } d ? new SoloTaskCardViewModel(this, d, t.Title, t.Description) : null)
+            .OfType<SoloTaskCardViewModel>()
+            .ToList();
+        if (pageCards.Count > 0)
         {
-            var cards = group.Select(d => _cards[d.TaskId] = new SoloTaskCardViewModel(this, d)).ToList();
-            Groups.Add(new SoloTaskGroupViewModel(group.Key, cards));
+            Groups.Add(new SoloTaskGroupViewModel("", pageCards));
+        }
+
+        foreach (var group in descriptors.Where(d => PageTasks.All(t => t.TaskId != d.TaskId)).GroupBy(d => d.Group))
+        {
+            Groups.Add(new SoloTaskGroupViewModel($"{group.Key}（WPF 版在热键或一条龙中使用）",
+                group.Select(d => new SoloTaskCardViewModel(this, d, d.DisplayName, d.Description)).ToList()));
+        }
+
+        foreach (var card in Groups.SelectMany(g => g.Tasks))
+        {
+            _cards[card.TaskId] = card;
         }
 
         FightStrategies = LoadStrategyNames(@"User\AutoFight", [CombatStrategyResolver.AutoSelectName]);
@@ -75,6 +90,28 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
     }
 
     public override string Title => "独立任务";
+
+    /// <summary>WPF 独立任务页（TaskSettingsPage.xaml）上的卡片：顺序、标题与说明</summary>
+    private static readonly (string TaskId, string Title, string Description)[] PageTasks =
+    [
+        ("auto_genius_invokation", "自动七圣召唤", "全自动打牌"),
+        ("auto_wood", "自动伐木", "装备「王树瑞佑」，通过循环重启游戏刷新并收集木材"),
+        ("auto_fight", "自动战斗", "自动执行选择的战斗策略"),
+        ("auto_domain", "自动秘境", "基于钟离的自动循环刷本"),
+        ("auto_boss", "自动首领讨伐", "自动传送、战斗并领取奖励"),
+        ("auto_stygian_onslaught", "自动幽境危战", "自动传送并进入幽境危战"),
+        ("auto_fishing", "全自动钓鱼（单个鱼塘）", "不要携带跟宠！在出现钓鱼F按钮的位置启动本任务"),
+        ("auto_ley_line_outcrop", "自动地脉花", "自动定位并刷取地脉花"),
+        ("auto_music_game", "【乐曲】 演奏单个乐曲", "进入演奏界面使用，下落模式必须选择垂落模式"),
+        ("auto_album", "【专辑】 全自动完成整个专辑", "进入专辑界面使用，自动演奏未完成乐曲"),
+        ("auto_cook", "自动烹饪", "在手动烹饪界面运行，自动识别并点击结束烹饪"),
+        ("auto_combo_build", "自动连招（实验）", ""),
+        ("auto_artifact_salvage", "自动分解圣遗物", "指定匹配表达式逐一筛选分解，支持5星圣遗物"),
+        ("redeem_code", "自动使用兑换码", "自动使用输入的兑换码"),
+        ("get_grid_icons", "截取物品图标（开发者）", "须要打开设置-启用保存截图功能"),
+        ("grid_icons_accuracy_test", "测试识别效果", "请先将游戏界面切换至待测试分类界面"),
+        ("inventory_count_comparison", "数量 OCR 测试", "将数量OCR结果截图保存至本地"),
+    ];
 
     public AllConfig Config { get; }
 
@@ -247,6 +284,8 @@ public sealed class SoloTaskGroupViewModel(string name, List<SoloTaskCardViewMod
 {
     public string Name => name;
 
+    public bool HasName => !string.IsNullOrEmpty(name);
+
     public List<SoloTaskCardViewModel> Tasks => tasks;
 }
 
@@ -260,21 +299,23 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private bool _canInteract = true;
 
-    public SoloTaskCardViewModel(TaskSettingsPageViewModel page, SoloTaskDescriptor descriptor)
+    public SoloTaskCardViewModel(TaskSettingsPageViewModel page, SoloTaskDescriptor descriptor, string title, string description)
     {
         _page = page;
         _descriptor = descriptor;
+        DisplayName = title;
+        Description = description;
     }
 
     public TaskSettingsPageViewModel Page => _page;
 
     public string TaskId => _descriptor.TaskId;
 
-    public string DisplayName => _descriptor.DisplayName;
+    public string DisplayName { get; }
 
-    public string Description => _descriptor.Description;
+    public string Description { get; }
 
-    public bool HasDescription => !string.IsNullOrWhiteSpace(_descriptor.Description);
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
 
     // 各任务的参数区（其余配置项尚未迁移，使用配置文件中的值）
     public bool IsWood => TaskId == AutoWoodTask.TaskId;

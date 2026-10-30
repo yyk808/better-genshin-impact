@@ -33,7 +33,7 @@
                 <Button DockPanel.Dock="Right" Content="停止当前任务" Command="{Binding StopCommand}"
                         IsEnabled="{Binding IsTaskActive}" VerticalAlignment="Center" />
                 <StackPanel>
-                    <TextBlock Classes="pageTitle" Text="独立任务" FontSize="20" />
+                    <TextBlock Classes="pageTitle" Text="独立任务设置" FontSize="20" />
                     <TextBlock Classes="desc" Text="{Binding StatusText, StringFormat='状态：{0}'}" Margin="0,2,0,8" />
                 </StackPanel>
             </DockPanel>
@@ -44,7 +44,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:SoloTaskGroupViewModel">
                         <StackPanel>
-                            <TextBlock Classes="section" Text="{Binding Name}" />
+                            <TextBlock Classes="section" Text="{Binding Name}" IsVisible="{Binding HasName}" />
                             <ItemsControl ItemsSource="{Binding Tasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SoloTaskCardViewModel">
