@@ -262,7 +262,7 @@ public sealed class GameRuntimeService : IGameRuntimeHost
         var inputAttached = false;
         try
         {
-            InputHub.Attach(runtime.Input);
+            InputHub.Attach(runtime.Input, () => runtime.Window.IsForeground);
             inputAttached = true;
             _dispatcher.Start(runtime, _configService.Get().TriggerInterval);
         }

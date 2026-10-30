@@ -55,14 +55,18 @@ public static class InputHub
 
     public static IInputChannel Foreground => Backend.Foreground;
 
+    private static Func<bool>? _isGameForeground;
+
     /// <summary>
-    /// 没有后台通道的后端（Linux 原生）下 <see cref="Background"/> 返回的通道：忽略操作并限频告警
+    /// 没有后台通道的后端（Linux 原生）下 <see cref="Background"/> 返回的通道：
+    /// 游戏窗口在前台时改走前台通道，不在前台（或未绑定运行环境）时跳过并限频告警
     /// </summary>
-    private static readonly IInputChannel NoBackground = new UnsupportedInputChannel("当前输入后端没有后台通道");
+    private static readonly IInputChannel NoBackground = new ForegroundFallbackInputChannel(
+        () => Foreground, () => Volatile.Read(ref _isGameForeground)?.Invoke() == true);
 
     /// <summary>
     /// 后台通道。WebSdk / Gamepad 后端下与 <see cref="Foreground"/> 相同；
-    /// 后端没有后台通道时（<see cref="IInputBackend.Background"/> 为 null）返回一个忽略操作并告警的通道，
+    /// 后端没有后台通道时（<see cref="IInputBackend.Background"/> 为 null）返回 <see cref="ForegroundFallbackInputChannel"/>。
     /// Win32 后端始终有后台通道，行为不变
     /// </summary>
     public static IInputChannel Background => Backend.Background ?? NoBackground;
@@ -72,11 +76,18 @@ public static class InputHub
     /// 只在没有任务运行时调用。
     /// (a,b)、c、d 之间的切换都通过它完成
     /// </summary>
-    public static void Attach(IInputBackend backend)
+    public static void Attach(IInputBackend backend) => Attach(backend, null);
+
+    /// <summary>
+    /// 同 <see cref="Attach(IInputBackend)"/>，并记录判断游戏窗口是否在前台的方法，
+    /// 供没有后台通道的后端决定后台输入能否改走前台通道
+    /// </summary>
+    public static void Attach(IInputBackend backend, Func<bool>? isGameForeground)
     {
         ArgumentNullException.ThrowIfNull(backend);
         lock (AttachLock)
         {
+            Volatile.Write(ref _isGameForeground, isGameForeground);
             var old = _backend;
             if (ReferenceEquals(old, backend))
             {

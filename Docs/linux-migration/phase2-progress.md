@@ -558,11 +558,49 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 两次运行的帧调度异常都是 0 次。
 
+## 里程碑 25：后台输入改走前台、自行编译 OpenCvSharpExtern
+
+### 没有后台通道时的后台输入
+
+- 新增 `ForegroundFallbackInputChannel`。后端没有后台通道时（Linux 原生），`InputHub.Background` 返回它：
+  - 游戏窗口在前台：改走前台通道，此时与后台输入效果相同；
+  - 不在前台，或没有绑定运行环境：跳过并限频告警，不把输入发给其它窗口；
+  - 抬起类操作只补发给经本通道按下过的键 / 按钮，切到后台后不会留下一直按着的键。
+- 判断“是否在前台”的方法由 `GameRuntimeService` 绑定时经 `InputHub.Attach(backend, isGameForeground)` 传入。
+- Win32 后端始终有后台通道，Windows 行为不变。
+- 不实现 XSendEvent。
+- 单测：`ForegroundFallbackInputChannelTests`（前台转发、后台跳过、切到后台后补发抬起）。
+- 假游戏剧情场景：自动剧情先按空格，再点击感叹号选项，假游戏 JSONL 都收到了。
+
+### 自行编译的 OpenCvSharpExtern
+
+- 构建脚本：`Build/Linux/build-opencvsharp.sh`，说明见 `Build/Linux/README.md`。
+  - 版本：OpenCV 4.11.0 + contrib，OpenCvSharpExtern 源码标签 4.11.0.20250507，与托管包对齐。
+  - OpenCV 静态编译，第三方库和 libstdc++ 静态链接，只依赖 glibc 2.27+，不依赖 tesseract / ffmpeg / gtk。
+  - 没有 apt 时用 micromamba 安装 conda-forge 的 gcc 13 / cmake / ninja。
+- 导出检查：产物的 OpenCvSharp 导出函数覆盖官方 4.11 linux-x64 包的全部 2763 个 API 导出。
+- BGI 用到的模块（rg 确认）：
+  - SIFT、SURF（xfeatures2d，nonfree）、FlannBasedMatcher / BFMatcher、`FindHomography`（calib3d）：大地图特征匹配；
+  - `CvDnn.BlobFromImage`：OCR；
+  - `ConnectedComponentsWithStats`、`PhaseCorrelate`。
+  - `Cv2.ImShow` 只出现在测试 / 调试代码中，构建不含界面后端。
+- 引用方式：
+  - 无界面宿主用构建属性 `OpenCvSharpExternPath` 引用本地产物，默认是仓库根目录的 `opencv-build/out/libOpenCvSharpExtern.so`，已加入 .gitignore；
+  - 找不到时退回 Sdcb 精简构建；
+  - .so 不进 git。
+- 自检：`bgi-headless --check-opencv`。
+
+| 原生库 | SIFT 匹配 | SURF 匹配 | dnn | 连通域 | 相位相关 |
+| --- | --- | --- | --- | --- | --- |
+| 自行编译（4.11.0） | 通过，偏差 0.00 px | 通过，偏差 0.01 px | 通过 | 通过 | 通过 |
+| Sdcb 精简构建 4.13 | `EntryPointNotFound features2d_SIFT_create` | `EntryPointNotFound xfeatures2d_SURF_create` | 通过 | 通过 | 通过 |
+
+用自行编译的原生库重跑假游戏拾取 / 剧情场景，结果与之前一致，帧调度异常 0 次。
+
 ### 剩余步骤
 
-1. 剧情的“快速跳过对话”按空格走 `InputHub.Background`。X11 后端没有后台通道，目前忽略并告警，日志里是 `不支持的输入操作已忽略：…按下 VK_SPACE`。需要决定 Linux 下是改走前台通道（游戏在前台时等价），还是实现后台通道（例如 XSendEvent）。
-2. OpenCvSharp 完整原生库：需要不依赖 Ubuntu 22.04 系统库的完整构建，补上 features2d 等模块。
-3. 后续 Avalonia 宿主复用本宿主的启动代码（DI、平台初始化、推理、触发器）。
+1. 后续 Avalonia 宿主复用本宿主的启动代码（DI、平台初始化、推理、触发器）。
+2. 发布流程：在 CI 中运行 `build-opencvsharp.sh`，把产物随 Linux 包发布。
 
 ### 剩余（主程序中的任务层文件）
 

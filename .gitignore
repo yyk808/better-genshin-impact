@@ -17,6 +17,10 @@ Build/*
 !Build/Scripts/
 Build/Scripts/*
 !Build/Scripts/i18n-sync.ps1
+!Build/Linux/
+!Build/Linux/**
+# Build/Linux/build-opencvsharp.sh 的默认工作目录（源码、中间文件与 libOpenCvSharpExtern.so，不提交）
+opencv-build/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

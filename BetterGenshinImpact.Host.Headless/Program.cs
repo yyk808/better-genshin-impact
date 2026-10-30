@@ -21,6 +21,7 @@ using Serilog.Events;
 // 用法：bgi-headless [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact]
 //                    [--seconds 30] [--interval 50] [--frames 截图目录] [--no-pick] [--no-skip] [--log 日志文件]
 //                    [--auto-enter | --no-auto-enter]
+//        bgi-headless --check-opencv    # 只检查 OpenCvSharpExtern 原生库的模块（特征匹配、dnn 等）
 var options = HeadlessOptions.Parse(args);
 
 var loggerConfiguration = new LoggerConfiguration()
@@ -45,6 +46,12 @@ try
     }
 
     log.Information("素材目录：{Path}", Global.StartUpPath);
+
+    if (options.CheckOpenCv)
+    {
+        // 只检查 OpenCvSharpExtern 的模块是否齐全（大地图特征匹配、dnn 等），不连接 X 服务器
+        return OpenCvSelfCheck.Run(log) ? 0 : 3;
+    }
 
     // 1. 平台服务：X11 找窗 / 截图 / XTest 输入
     using var platform = new X11PlatformServices(options.Display);
@@ -235,7 +242,8 @@ internal sealed record HeadlessOptions(
     bool Pick,
     bool Skip,
     string? LogFile,
-    bool? AutoEnterGame)
+    bool? AutoEnterGame,
+    bool CheckOpenCv)
 {
     public static HeadlessOptions Parse(string[] args)
     {
@@ -244,6 +252,7 @@ internal sealed record HeadlessOptions(
         int seconds = 30, interval = 50;
         bool pick = true, skip = true;
         bool? autoEnter = null;
+        var checkOpenCv = false;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -260,10 +269,11 @@ internal sealed record HeadlessOptions(
                 case "--log": logFile = Next(); break;
                 case "--auto-enter": autoEnter = true; break;
                 case "--no-auto-enter": autoEnter = false; break;
+                case "--check-opencv": checkOpenCv = true; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new HeadlessOptions(display, assets, names, seconds, interval, frames, pick, skip, logFile, autoEnter);
+        return new HeadlessOptions(display, assets, names, seconds, interval, frames, pick, skip, logFile, autoEnter, checkOpenCv);
     }
 }
