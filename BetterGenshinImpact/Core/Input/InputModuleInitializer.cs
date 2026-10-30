@@ -27,6 +27,9 @@ internal static class InputModuleInitializer
         BetterGenshinImpact.GameTask.GameSystem.Control = BetterGenshinImpact.GameTask.SystemControlAdapter.Instance;
         BetterGenshinImpact.Core.Mask.MaskColorParser.ColorTextConverter = static text =>
             BetterGenshinImpact.Core.Mask.MaskWpfConversions.ToMaskColor((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(text));
+        BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.Factory = static () => new BetterGenshinImpact.GameTask.Music.Service.MusicPlayerInputHook();
+        BetterGenshinImpact.GameTask.Music.Service.MusicPlayerKeyHook.ModifierKeys = static () => (BetterGenshinImpact.Core.Input.WinFormsKeys)System.Windows.Forms.Control.ModifierKeys;
+        BetterGenshinImpact.GameTask.AutoMusicGame.WindowPixelSampler.Current = BetterGenshinImpact.GameTask.AutoMusicGame.GdiWindowPixelSampler.Instance;
         BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeView.Current = BetterGenshinImpact.GameTask.AutoCombo.AutoComboTreeWindowService.Instance;
         BetterGenshinImpact.GameTask.HotkeyHoldState.Query = BetterGenshinImpact.Model.HoldHotkeyQuery.IsHotkeyPressed;
         BetterGenshinImpact.GameTask.RunnerSuspend.Provider = static () => BetterGenshinImpact.GameTask.RunnerContext.Instance;

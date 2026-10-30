@@ -11,7 +11,6 @@ using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.Helpers;
-using Vanara.PInvoke;
 using static BetterGenshinImpact.GameTask.Common.TaskControl;
 
 namespace BetterGenshinImpact.GameTask.AutoMusicGame;
@@ -159,9 +158,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
             await Task.Delay(5, ct);
             // Stopwatch sw = new();
             // sw.Start();
-            var hdc = User32.GetDC(_hWnd);
-            var c = Gdi32.GetPixel(hdc, point.X, point.Y);
-            Gdi32.DeleteDC(hdc);
+            var c = GetPixel(point.X, point.Y);
 
             if (c.B < 220)
             {
@@ -169,9 +166,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
                 while (!ct.IsCancellationRequested)
                 {
                     await Task.Delay(5, ct);
-                    hdc = User32.GetDC(_hWnd);
-                    c = Gdi32.GetPixel(hdc, point.X, point.Y);
-                    Gdi32.DeleteDC(hdc);
+                    c = GetPixel(point.X, point.Y);
                     if (c.B >= 220)
                     {
                         break;
@@ -341,13 +336,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
     //     }
     // }
 
-    private COLORREF GetPixel(int x, int y)
-    {
-        var hdc = User32.GetDC(_hWnd);
-        var c = Gdi32.GetPixel(hdc, x, y);
-        Gdi32.DeleteDC(hdc);
-        return c;
-    }
+    private WindowPixelColor GetPixel(int x, int y) => WindowPixelSampler.Current.GetPixel(_hWnd, x, y);
 
 
     private void KeyUp(GameKey key)

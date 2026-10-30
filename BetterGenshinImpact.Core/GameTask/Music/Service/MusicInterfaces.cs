@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
 
 namespace BetterGenshinImpact.GameTask.Music.Service;
 
@@ -35,7 +34,8 @@ public sealed class MusicScoreParseFailedEventArgs(string filePath, string error
 
 public interface IMusicCoverService
 {
-    Task<ImageSource?> GetCoverAsync(string songName, CancellationToken cancellationToken);
+    /// <summary>返回宿主平台的图像对象（Windows 下为 WPF ImageSource），找不到时返回 null。</summary>
+    Task<object?> GetCoverAsync(string songName, CancellationToken cancellationToken);
 }
 
 public interface IInstrumentProfileService

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask.Music.Model;
@@ -84,7 +84,7 @@ public sealed class MusicGuidedSession : IDisposable
     private readonly HashSet<char> _keySet;
     private readonly MusicGuidedSessionOptions _options;
 
-    private MusicPlayerInputHook? _hook;
+    private IMusicPlayerKeyHook? _hook;
     private int _segmentIndex;
     private int _pressIndex;
 
@@ -202,7 +202,7 @@ public sealed class MusicGuidedSession : IDisposable
             LoadSegmentLocked(0);
         }
 
-        _hook = new MusicPlayerInputHook();
+        _hook = MusicPlayerKeyHook.Factory();
         _hook.KeyPressed += OnKeyPressed;
         _hook.KeyReleased += OnKeyReleased;
         if (!_hook.Start())
@@ -517,7 +517,7 @@ public sealed class MusicGuidedSession : IDisposable
             return true;
         }
 
-        var rect = SystemControl.GetCaptureRect(handle);
+        var rect = GameSystem.GetCaptureRect(handle);
         if (rect.Width <= 0 || rect.Height <= 0)
         {
             return true;
@@ -699,11 +699,11 @@ public sealed class MusicGuidedSession : IDisposable
         return handle != nint.Zero ? handle : GameSystem.FindGenshinImpactHandle();
     }
 
-    private void OnKeyPressed(Keys key)
+    private void OnKeyPressed(WinFormsKeys key)
     {
         // Ctrl / Alt 组合键是覆盖层自己的功能键（Ctrl+R 重新识别、Ctrl+方向键现场微调），
         // 带着它们按下的字母不是琴键，不能拿去判定。
-        if ((Control.ModifierKeys & (Keys.Control | Keys.Alt)) != 0)
+        if ((MusicPlayerKeyHook.ModifierKeys() & (WinFormsKeys.Control | WinFormsKeys.Alt)) != 0)
         {
             return;
         }
@@ -739,7 +739,7 @@ public sealed class MusicGuidedSession : IDisposable
         }
     }
 
-    private void OnKeyReleased(Keys key)
+    private void OnKeyReleased(WinFormsKeys key)
     {
         var pianoKey = ToPianoKey(key);
         if (pianoKey == null)
@@ -962,14 +962,14 @@ public sealed class MusicGuidedSession : IDisposable
         return result;
     }
 
-    private static char? ToPianoKey(Keys key)
+    private static char? ToPianoKey(WinFormsKeys key)
     {
-        if (key < Keys.A || key > Keys.Z)
+        if (key < WinFormsKeys.A || key > WinFormsKeys.Z)
         {
             return null;
         }
 
-        return (char)('A' + (key - Keys.A));
+        return (char)('A' + (key - WinFormsKeys.A));
     }
 
     private void ThrowIfDisposed()

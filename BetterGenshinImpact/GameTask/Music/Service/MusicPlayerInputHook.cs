@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using BetterGenshinImpact.Core.Input;
 
 namespace BetterGenshinImpact.GameTask.Music.Service;
 
@@ -22,7 +23,7 @@ namespace BetterGenshinImpact.GameTask.Music.Service;
 /// 钩子的 P/Invoke 自己声明（而不是用 Vanara 的 SetWindowsHookEx），
 /// 是为了让回调委托的类型在本项目里确定可见，避免依赖第三方库的委托名称。
 /// </summary>
-public sealed class MusicPlayerInputHook : IDisposable
+public sealed class MusicPlayerInputHook : IMusicPlayerKeyHook
 {
     private const int WhKeyboardLl = 13;
     private const int WmKeyDown = 0x0100;
@@ -51,10 +52,10 @@ public sealed class MusicPlayerInputHook : IDisposable
     private bool _disposed;
 
     /// <summary>玩家按下了一个键（已经过滤掉自动重复与注入事件）</summary>
-    public event Action<Keys>? KeyPressed;
+    public event Action<WinFormsKeys>? KeyPressed;
 
     /// <summary>玩家松开了一个键</summary>
-    public event Action<Keys>? KeyReleased;
+    public event Action<WinFormsKeys>? KeyReleased;
 
     /// <summary>钩子是否已经安装成功</summary>
     public bool IsRunning => _hook != 0;
@@ -153,7 +154,7 @@ public sealed class MusicPlayerInputHook : IDisposable
 
             if (isFirstPress)
             {
-                RaiseSafely(KeyPressed, key);
+                RaiseSafely(KeyPressed, (WinFormsKeys)key);
             }
         }
         else
@@ -166,7 +167,7 @@ public sealed class MusicPlayerInputHook : IDisposable
 
             if (wasPressed)
             {
-                RaiseSafely(KeyReleased, key);
+                RaiseSafely(KeyReleased, (WinFormsKeys)key);
             }
         }
 
@@ -174,7 +175,7 @@ public sealed class MusicPlayerInputHook : IDisposable
         return CallNextHookEx(nint.Zero, nCode, wParam, lParam);
     }
 
-    private static void RaiseSafely(Action<Keys>? handler, Keys key)
+    private static void RaiseSafely(Action<WinFormsKeys>? handler, WinFormsKeys key)
     {
         if (handler == null)
         {
@@ -185,7 +186,7 @@ public sealed class MusicPlayerInputHook : IDisposable
         {
             try
             {
-                ((Action<Keys>)callback)(key);
+                ((Action<WinFormsKeys>)callback)(key);
             }
             catch
             {

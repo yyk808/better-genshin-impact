@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using System.Windows.Media;
 
 namespace BetterGenshinImpact.GameTask.Music.Model;
 
@@ -150,7 +149,8 @@ public partial class PerformanceScore : ObservableObject
     private int _mappedNoteCount;
 
     [ObservableProperty]
-    private ImageSource? _artwork;
+    /// <summary>封面图像（宿主平台的图像对象，Windows 下为 WPF ImageSource），由 IMusicCoverService 提供。</summary>
+    private object? _artwork;
 
     public bool IsValid => string.IsNullOrEmpty(Error);
 

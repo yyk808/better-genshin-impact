@@ -32,7 +32,7 @@ public sealed class MusicCoverService : IMusicCoverService
         _httpClient = httpClientFactory.CreateClient(HttpClientNames.Images);
     }
 
-    public async Task<ImageSource?> GetCoverAsync(string songName, CancellationToken cancellationToken)
+    public async Task<object?> GetCoverAsync(string songName, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(songName))
         {
