@@ -10,9 +10,19 @@ public partial class MaskWindow : Window
         InitializeComponent();
     }
 
+    public MaskDrawingLayer DrawingLayer => Drawing;
+
     public void SetStatus(string text, double height)
     {
         StatusText.Text = text;
         Canvas.SetTop(StatusBox, Math.Max(0, height - 60));
+    }
+
+    /// <summary>日志框：显示最近几行日志，为空时隐藏</summary>
+    public void SetLog(string? text, double height)
+    {
+        LogBox.IsVisible = !string.IsNullOrEmpty(text);
+        LogText.Text = text;
+        Canvas.SetTop(LogBox, Math.Max(0, height * 0.62));
     }
 }

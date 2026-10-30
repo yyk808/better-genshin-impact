@@ -97,6 +97,9 @@ public sealed class GameHost : IAsyncDisposable
 
     public TaskTriggerDispatcher Dispatcher { get; }
 
+    /// <summary>遮罩绘制内容（识别框、文字）的快照来源</summary>
+    public IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot> MaskDrawing => _provider.GetRequiredService<IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>>();
+
     public GameRuntimeService RuntimeService { get; }
 
     public InferenceRuntimeService Inference => _provider.GetRequiredService<InferenceRuntimeService>();
@@ -141,7 +144,7 @@ public sealed class GameHost : IAsyncDisposable
 
             void ApplyOverrides(AllConfig c)
             {
-                // 命令行覆盖（之后的任意改动保存时会一并写回）
+                // 命令行覆盖与强制 CPU 推理：只在本次运行有效，保存时写回文件原值（见 RuntimeOverrides）
                 if (options.Pick is { } pick) c.AutoPickConfig.Enabled = pick;
                 if (options.Skip is { } skip) c.AutoSkipConfig.Enabled = skip;
                 if (options.IntervalMs is { } interval) c.TriggerInterval = interval;
@@ -177,9 +180,21 @@ public sealed class GameHost : IAsyncDisposable
                 log.Information("配置：只在内存中（不读写配置文件）");
             }
 
-            if (options.CaptureMode is { } captureMode)
+            // Linux 宿主设置的命令行覆盖：只在本次运行有效，不写回 linux-host.json
+            void ApplyLinuxOverrides(LinuxHostConfig c)
             {
-                linuxConfig.CaptureMode = captureMode;
+                if (options.CaptureMode is { } captureMode) c.CaptureMode = captureMode;
+                if (options.MaskWindow is { } mask) c.MaskWindowEnabled = mask;
+                if (options.MaskDrawAllRecognition is { } drawAll) c.MaskDrawAllRecognition = drawAll;
+            }
+
+            if (linuxConfigStore is not null)
+            {
+                linuxConfigStore.ApplyRuntimeOverride(ApplyLinuxOverrides);
+            }
+            else
+            {
+                ApplyLinuxOverrides(linuxConfig);
             }
 
             var manualWindow = new ManualWindowSelection(platform);
@@ -193,7 +208,10 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton(config);
             services.AddSingleton<IOverlayMetricsSink>(NullOverlayMetricsSink.Instance);
             services.AddSingleton<IGameWindowStateSink>(NullGameWindowStateSink.Instance);
-            services.AddSingleton<IMaskWindowDrawingBoard>(NullMaskWindowDrawingBoard.Instance);
+            // 遮罩绘制：识别框、文字等写入绘制板，Avalonia 遮罩窗口读取快照绘制（无界面宿主没有遮罩，只是不读取）
+            services.AddSingleton<MaskWindowDrawingBoard>();
+            services.AddSingleton<IMaskWindowDrawingBoard>(sp => sp.GetRequiredService<MaskWindowDrawingBoard>());
+            services.AddSingleton<IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>>(sp => sp.GetRequiredService<MaskWindowDrawingBoard>());
             services.AddSingleton<IMaskWindowMapState, MaskWindowMapState>();
             services.AddSingleton<TaskStopService>();
             services.AddSingleton<TaskTriggerDispatcher>();

@@ -136,4 +136,60 @@ public sealed class HostConfigTests : IDisposable
         Assert.Throws<FormatException>(() => GameLauncher.ParseEnvironment("NOEQUALS"));
         Assert.Throws<InvalidOperationException>(() => GameLauncher.BuildCommand(new LinuxHostConfig { LaunchCommand = "wine {game}" }));
     }
+
+    [Fact]
+    public void RuntimeOverridesAreNotWrittenBack()
+    {
+        var config = new AllConfig();
+        config.TriggerInterval = 77;
+        var fileJson = JsonSerializer.Serialize(config, ConfigJson.Options);
+
+        // 命令行覆盖：关闭拾取、改间隔
+        var overrides = new RuntimeOverrides();
+        config.AutoPickConfig.Enabled = false;
+        config.TriggerInterval = 30;
+        overrides.Record(fileJson, JsonSerializer.Serialize(config, ConfigJson.Options));
+        Assert.Equal(2, overrides.Count);
+        Assert.Contains("autoPickConfig.enabled", overrides.Paths);
+
+        // 只有覆盖、没有其它改动：保存结果与文件原内容完全相同（格式也相同）
+        Assert.Equal(fileJson, overrides.Apply(JsonSerializer.Serialize(config, ConfigJson.Options), ConfigJson.Options));
+
+        // 之后在界面上改了别的设置和被覆盖的间隔：这些改动照常保存，仍等于覆盖值的拾取开关写回原值
+        config.AutoSkipConfig.ClickChatOption = "随机选择选项";
+        config.TriggerInterval = 60;
+        var saved = JsonSerializer.Deserialize<AllConfig>(
+            overrides.Apply(JsonSerializer.Serialize(config, ConfigJson.Options), ConfigJson.Options), ConfigJson.Options)!;
+        Assert.True(saved.AutoPickConfig.Enabled);
+        Assert.Equal(60, saved.TriggerInterval);
+        Assert.Equal("随机选择选项", saved.AutoSkipConfig.ClickChatOption);
+    }
+
+    [Fact]
+    public void LinuxHostRuntimeOverrideKeepsFileValue()
+    {
+        var path = Path.Combine(_dir, "linux-host.json");
+        using (var store = new LinuxHostConfigStore(path, Log))
+        {
+            store.Config.CaptureMode = "GetImageRoot";
+            store.Store.SaveNow();
+        }
+
+        using (var store = new LinuxHostConfigStore(path, Log))
+        {
+            store.ApplyRuntimeOverride(c =>
+            {
+                c.CaptureMode = "CompositeWindow";
+                c.MaskWindowEnabled = true;
+            });
+            Assert.Equal("CompositeWindow", store.Config.CaptureMode);
+            store.Config.LaunchTimeoutSeconds = 30;
+            store.Store.SaveNow();
+        }
+
+        var saved = JsonSerializer.Deserialize<LinuxHostConfig>(File.ReadAllText(path), ConfigJson.Options)!;
+        Assert.Equal("GetImageRoot", saved.CaptureMode);
+        Assert.False(saved.MaskWindowEnabled);
+        Assert.Equal(30, saved.LaunchTimeoutSeconds);
+    }
 }

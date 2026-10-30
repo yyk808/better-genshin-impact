@@ -83,7 +83,15 @@
                         <StackPanel>
                             <TextBlock Text="遮罩窗口（预览）" />
                             <TextBlock Classes="desc" TextWrapping="Wrap"
-                                       Text="透明、置顶、点击穿透，跟随游戏画面。屏幕区域截图会把遮罩内容一起截进去，目前只在左下角显示状态" />
+                                       Text="透明、置顶、点击穿透，跟随游戏画面，显示识别框、日志框和状态；需要合成器。启用后截图默认改用 Composite 窗口图像，不会截到遮罩" />
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel IsVisible="{Binding LinuxConfig.MaskWindowEnabled}">
+                        <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding LinuxConfig.MaskDrawAllRecognition}" OnContent="" OffContent="" />
+                        <StackPanel>
+                            <TextBlock Text="遮罩上显示全部识别结果（调试）" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap"
+                                       Text="所有有名称的识别对象匹配成功时都画框（如拾取的 F 键），而不只是任务要求绘制的那些" />
                         </StackPanel>
                     </DockPanel>
                     <TextBlock Classes="desc" Text="{Binding ConfigFileText}" />

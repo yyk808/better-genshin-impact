@@ -26,6 +26,8 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 - `User/config.json`：与 Windows 主程序格式相同，两边可以互相拷贝；改动后 500 ms 防抖写入（临时文件 + 改名），退出时写完。
 - `User/linux-host.json`：Linux 专有设置（截图方式、同时启动游戏的命令、游戏路径、工作目录、环境变量、等待超时、遮罩窗口开关）。
 
+命令行开关和 Linux 上强制 CPU 推理只在本次运行有效，保存时写回文件原值（界面上改过的设置照常保存）。
+
 `User` 目录在素材目录下（`--assets`），也可以用 `--config 文件` 指定，`linux-host.json` 放在同一目录。
 
 ## 主题选择
@@ -61,10 +63,10 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--assets 目录` | 素材 / 模型 / User 目录的根目录 |
 | `--process 名称,名称` | 游戏进程名，默认 `YuanShen,GenshinImpact` |
 | `--interval 毫秒` | 触发器间隔，默认 50 |
-| `--pick` / `--no-pick`、`--skip` / `--no-skip` | 打开 / 关闭自动拾取、自动剧情（覆盖配置文件，之后保存时写回） |
+| `--pick` / `--no-pick`、`--skip` / `--no-skip` | 打开 / 关闭自动拾取、自动剧情（只在本次运行有效，不写回配置文件，下同） |
 | `--config 文件` | 配置文件路径，默认 `<素材目录>/User/config.json` |
 | `--no-save-config` | 不读写配置文件，只用内存中的默认配置 |
-| `--capture 方式` | 截图方式：`ShmRoot`（默认）、`GetImageRoot`、`GetImageWindow` |
+| `--capture 方式` | 截图方式：`ShmRoot`（默认）、`GetImageRoot`、`GetImageWindow`、`CompositeWindow`（Composite 窗口图像，不受遮挡和遮罩影响） |
 | `--auto-enter` / `--no-auto-enter` | 自动开门初始开关 |
 | `--log 文件` | 同时写日志文件 |
 | `--page 页面名` | 启动后切换到指定页面（如 `实时触发`） |
@@ -72,5 +74,6 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--screenshots 目录` | 无人值守：运行一段时间后依次切换页面保存界面截图 |
 | `--exit-after 秒` | 无人值守：到时退出 |
 | `--ui-selftest` | `UiHost` 自检：后台线程调度、剪贴板读回、配置防抖保存、轻提示、消息框 |
-| `--mask` / `--no-mask` | 打开 / 关闭遮罩窗口（透明、置顶、点击穿透；需要合成器，预览） |
+| `--mask` / `--no-mask` | 打开 / 关闭遮罩窗口（透明、置顶、点击穿透，显示识别框和日志框；需要合成器；启用时截图默认改用 `CompositeWindow`） |
+| `--mask-recognition` | 遮罩上显示全部识别结果（调试） |
 | `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |

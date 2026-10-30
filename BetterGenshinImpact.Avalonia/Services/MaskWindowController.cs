@@ -1,5 +1,8 @@
 using Avalonia;
+using Avalonia.Media;
 using Avalonia.Threading;
+using BetterGenshinImpact.Core.Mask;
+using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Avalonia.Views;
 using BetterGenshinImpact.Host.Common;
 using BetterGenshinImpact.Platform.Linux.X11;
@@ -27,6 +30,69 @@ public sealed class MaskWindowController : IDisposable
         _log = log;
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => Update());
         _timer.Start();
+
+        // 配置里的颜色是 WPF 颜色文本（颜色名或 #AARRGGBB），用 Avalonia 的解析（语义相同）
+        MaskColorParser.ColorTextConverter ??= text =>
+        {
+            var c = Color.Parse(text);
+            return MaskColor.FromArgb(c.A, c.R, c.G, c.B);
+        };
+
+        // 绘制板可在任意线程变化，合并到 UI 线程上刷新
+        host.MaskDrawing.Changed += OnDrawingChanged;
+    }
+
+    private int _drawingQueued;
+    private bool _drawingLogged;
+
+    private void OnDrawingChanged()
+    {
+        if (Interlocked.Exchange(ref _drawingQueued, 1) == 0)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                Volatile.Write(ref _drawingQueued, 0);
+                RefreshDrawing();
+            }, DispatcherPriority.Render);
+        }
+    }
+
+    /// <summary>最近一次绘制的图形数（用于验证）</summary>
+    public int DrawnShapes => _window?.DrawingLayer.LastShapeCount ?? 0;
+
+    /// <summary>当前绘制快照中的分组名（用于验证）</summary>
+    public IReadOnlyList<string> DrawingGroups => _host.MaskDrawing.Current.Entries.Select(e => e.Group.Name).ToList();
+
+    private void RefreshDrawing()
+    {
+        if (_window is not { IsVisible: true } window || _lastRect.Width <= 0)
+        {
+            return;
+        }
+
+        var config = _host.Config.MaskWindowConfig;
+        window.DrawingLayer.Update(_host.MaskDrawing.Current, CreateStyle(config, _lastRect.Width / 1920d),
+            config.DisplayRecognitionResultsOnMask, _lastRect.Size);
+    }
+
+    /// <summary>由 MaskWindowConfig 的 Recognition* 配置合成绘制样式（同 WPF MaskWindowViewModel.CreateDrawingStyle）</summary>
+    private static MaskWindowDrawingStyle CreateStyle(Core.Config.MaskWindowConfig config, double scaleTo1080P) =>
+        new(config.RecognitionUseDrawableStyle,
+            new MaskWindowDrawingStroke(ParseColor(config.RecognitionRectStrokeColor, MaskColor.Red), Math.Max(0, config.RecognitionRectStrokeThickness)),
+            new MaskWindowDrawingStroke(ParseColor(config.RecognitionLineStrokeColor, MaskColor.Red), Math.Max(0, config.RecognitionLineStrokeThickness)),
+            ParseColor(config.RecognitionTextColor, MaskColor.Black),
+            Math.Max(1, config.RecognitionTextFontSize) * scaleTo1080P);
+
+    private static MaskColor ParseColor(string? text, MaskColor fallback)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(text) ? fallback : MaskColorParser.ConvertFromString(text);
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
     }
 
     /// <summary>遮罩窗口的 X11 窗口号（未显示时为 0），用于验证</summary>
@@ -40,6 +106,8 @@ public sealed class MaskWindowController : IDisposable
     {
         try
         {
+            // 调试：遮罩上显示全部识别结果
+            RecognitionObject.ForceDrawOnWindow = Wanted && _host.LinuxConfig.MaskDrawAllRecognition;
             if (!Wanted)
             {
                 Hide();
@@ -71,6 +139,14 @@ public sealed class MaskWindowController : IDisposable
             }
 
             _window.SetStatus($"BetterGI · 已处理 {_host.FramesProcessed} 帧", _window.Height);
+            _window.SetLog(_host.Config.MaskWindowConfig.ShowLogBox ? RecentLog() : null, _window.Height);
+            RefreshDrawing();
+            if (!_drawingLogged && DrawnShapes > 0)
+            {
+                _drawingLogged = true;
+                _log.Information("遮罩绘制：{Count} 个图形，分组 {Groups}", DrawnShapes, string.Join("、", DrawingGroups));
+            }
+
             if (!_window.IsVisible)
             {
                 _window.Show();
@@ -81,6 +157,25 @@ public sealed class MaskWindowController : IDisposable
         {
             _log.Debug(e, "更新遮罩窗口失败");
         }
+    }
+
+    /// <summary>日志框内容：最近 6 行信息及以上级别的日志（时间 + 消息）</summary>
+    private static string RecentLog()
+    {
+        var lines = UiLogSink.Instance.Lines;
+        var start = Math.Max(0, lines.Count - 6);
+        var text = new System.Text.StringBuilder();
+        for (var i = start; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            text.Append(line.Time.ToString("HH:mm:ss")).Append(' ').Append(line.Message.Replace('\n', ' '));
+            if (i < lines.Count - 1)
+            {
+                text.Append('\n');
+            }
+        }
+
+        return text.ToString();
     }
 
     private void OnOpened()
@@ -118,6 +213,8 @@ public sealed class MaskWindowController : IDisposable
 
     public void Dispose()
     {
+        _host.MaskDrawing.Changed -= OnDrawingChanged;
+        RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();
         _window?.Close();
         _window = null;

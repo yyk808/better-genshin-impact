@@ -42,6 +42,11 @@ public sealed partial class LinuxHostConfig : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _maskWindowEnabled;
 
+    /// <summary>
+    /// 遮罩上显示全部识别结果（调试）：所有有名称的识别对象匹配成功时都画框，而不只是业务代码要求绘制的那些
+    /// </summary>
+    [ObservableProperty] private bool _maskDrawAllRecognition;
+
     /// <summary>预置的启动命令（界面下拉框用）</summary>
     [JsonIgnore]
     public static IReadOnlyList<LaunchPreset> Presets { get; } =
@@ -79,7 +84,7 @@ public sealed class LinuxHostConfigStore : IDisposable
         }
 
         Config = config ?? new LinuxHostConfig();
-        _store = new JsonFileStore(path, () => JsonSerializer.Serialize(Config, ConfigJson.Options), log);
+        _store = new JsonFileStore(path, () => Overrides.Apply(JsonSerializer.Serialize(Config, ConfigJson.Options), ConfigJson.Options), log);
         Config.PropertyChanged += OnChanged;
         if (config is null)
         {
@@ -91,6 +96,17 @@ public sealed class LinuxHostConfigStore : IDisposable
     public LinuxHostConfig Config { get; }
 
     public JsonFileStore Store => _store;
+
+    /// <summary>运行时覆盖（命令行开关），保存时写回文件原值</summary>
+    public RuntimeOverrides Overrides { get; } = new();
+
+    /// <summary>应用只在本次运行有效的修改（如命令行 --capture、--mask）</summary>
+    public void ApplyRuntimeOverride(Action<LinuxHostConfig> apply)
+    {
+        var before = JsonSerializer.Serialize(Config, ConfigJson.Options);
+        apply(Config);
+        Overrides.Record(before, JsonSerializer.Serialize(Config, ConfigJson.Options));
+    }
 
     private void OnChanged(object? sender, PropertyChangedEventArgs e) => _store.RequestSave();
 

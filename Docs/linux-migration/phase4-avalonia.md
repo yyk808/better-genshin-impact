@@ -62,7 +62,7 @@ Core 972 个，主项目 763 个（本里程碑未移动 Core / 主项目文件�
   不往 `AllConfig` 里加字段，`config.json` 保持与 Windows 一致。
 - 两个宿主共用：Avalonia 宿主默认读写配置文件（`--no-save-config` 关闭）；无界面宿主默认只用内存中的默认配置
   （测试结果可重复），`--save-config` 或 `--config 文件` 打开。命令行开关（`--no-pick`、`--interval` 等）在读取后应用，
-  之后保存时会一起写回。
+  之后保存时会一起写回（里程碑 28 改为只在本次运行有效，见下文）。
 - 首次运行（文件不存在）立即写出默认配置，方便查看和编辑。
 
 ### 启动页补全（Avalonia）
@@ -104,3 +104,52 @@ Core 972 个，主项目 763 个（本里程碑未移动 Core / 主项目文件�
 
 Core 972 个，主项目 763 个（本里程碑未移动文件；Core 只改了 `PlatformRuntimeProvider`，Windows 不使用）；Host.Common 10 个；
 Avalonia 宿主 `.cs` 与 `.axaml` 共 29 个（含 `.axaml` 视图 8 个）；Platform.Linux 新增 `X11Overlay.cs`。
+
+## 里程碑 28：Composite 窗口截图、遮罩绘制、运行时覆盖不写回
+
+### Composite 窗口截图（`X11CaptureMode.CompositeWindow`）
+
+- 首次截图时以自动模式重定向游戏窗口（`XCompositeRedirectWindow(..., CompositeRedirectAutomatic)`，屏幕显示不变），
+  之后每帧 `XCompositeNameWindowPixmap` 取窗口的离屏 pixmap，用 MIT-SHM 读取（失败退回 `XGetImage`），读完立即 `XFreePixmap`。
+  读到的是窗口本身（含子窗口）的内容：被其它窗口挡住、被遮罩覆盖时仍是游戏画面，也不含窗口管理器的边框。
+- 窗口大小变化、最小化后恢复（取消映射再映射后旧 pixmap 不再更新）：每帧重新取 pixmap，SHM 图像按窗口大小和深度重建。
+- Wine 窗口：捕获的是 Wine 的顶层 X 窗口，子窗口的内容包含在其 pixmap 中；窗口已被别的客户端（如 Wine 自己）手动重定向时
+  重定向请求会失败，但仍可直接取 pixmap。
+- 回退：X 服务器没有 Composite 扩展或缺少 `libXcomposite.so.1` 时直接用 MIT-SHM 屏幕区域；窗口未映射时该帧为空，
+  连续失败 40 次回退 MIT-SHM 屏幕区域（`LastFallbackReason` 记录原因）。
+- 启用遮罩且截图方式是默认的 MIT-SHM 屏幕区域时，自动改用 Composite 窗口图像（`GameHost.EffectiveCaptureMode`）；启动页也可直接选择。
+- 验证：
+  - 遮罩 + 无合成器：遮罩透明部分在屏幕上是黑色、完全盖住游戏，截图器拿到的仍是干净的游戏画面，拾取正常（里程碑 27 用屏幕区域截图时拾取停止）；
+  - 遮罩 + picom：同上，截图器画面里没有遮罩上的识别框、日志框、状态文字（红色像素：屏幕 208 个，截图器画面 0 个）；
+  - 无界面宿主 `--capture CompositeWindow`：另一个窗口盖在游戏上、途中把游戏窗口从 1600×900 改成 1280×720，
+    截图器画面始终是游戏本身，尺寸随之变为 1280×720；
+  - Wine 下的假游戏（`FakeGame.Win.exe`）被另一个窗口遮挡时，截图器画面完整。
+
+### 遮罩绘制
+
+- 宿主注册 Core 的 `MaskWindowDrawingBoard`（`IMaskWindowDrawingBoard` + `IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>`），
+  替换原来的空实现；业务代码（`Region.DrawSelf`、`DrawingBoard.Set` 等）写入的识别框、线、文字由 Avalonia 遮罩绘制。
+- `MaskDrawingLayer`（对应 WPF 的 `MaskWindowDrawingLayer`）：渲染快照，坐标从捕获像素按 层宽度 / 捕获宽度 换算；
+  `Recognition` 分组受“在遮罩上显示识别结果”控制；统一样式由 `MaskWindowConfig.Recognition*` 合成（与 WPF 相同，颜色文本用 Avalonia 解析）。
+  绘制板变化在任意线程触发，合并后在 UI 线程刷新。
+- 日志框：最近 6 行信息日志（受 `MaskWindowConfig.ShowLogBox` 控制），状态文字在左下角。
+- 调试开关“遮罩上显示全部识别结果”（`linux-host.json` 的 `maskDrawAllRecognition`，命令行 `--mask-recognition`）：
+  打开 Core 的进程级开关 `RecognitionObject.ForceDrawOnWindow`，所有有名称的识别对象匹配成功时都画框（例如拾取的 F 键）。
+  默认关闭，Windows 主程序不设置，行为不变。
+- 脚本 HTML 遮罩（`IHtmlMaskWindowHost`）依赖 WebView，Linux 上仍是“不支持”的默认实现，留到 WebView 迁移时处理。
+- 验证（假游戏 + picom + `--mask-recognition`）：拾取时 F 键周围出现红框，日志框显示最近的日志；截图器画面不含这些内容；拾取持续进行。
+
+### 运行时覆盖不写回（`RuntimeOverrides`）
+
+- 读取配置后应用的命令行开关（`--pick` / `--no-pick`、`--skip` / `--no-skip`、`--interval`、`--auto-enter`）和 Linux 上强制 CPU 推理，
+  记录覆盖前后序列化结果中变化的节点；保存时仍等于覆盖值的节点换回文件原值，用户之后在界面上改过的照常保存。
+  没有其它改动时，保存结果与原文件逐字节相同。
+- `linux-host.json` 同样处理：`--capture`、`--mask` / `--no-mask`、`--mask-recognition` 只在本次运行有效。
+- 验证：拿 Windows 生成的 `config.json`，以 `--no-pick --interval 30 --capture GetImageRoot --mask` 启动，日志列出两个覆盖节点；
+  界面自检改动配置并防抖保存后，文件内容与原文件完全相同，`linux-host.json` 保持默认截图方式和遮罩开关。
+- 新增单测 2 个（`RuntimeOverridesAreNotWrittenBack`、`LinuxHostRuntimeOverrideKeepsFileValue`）。
+
+### 文件数（口径同上）
+
+Core 972 个，主项目 763 个（本里程碑未移动文件；Core 只改了 `RecognitionObject`（调试开关，默认关闭）和 `ImageRegion` 的绘制判断）；
+Host.Common 11 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 30 个。

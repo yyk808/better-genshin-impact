@@ -182,7 +182,7 @@ public class ImageRegion : Region
                             bestMatch.Location.Y + effectiveRegionOfInterest.Y, effectiveTemplate.Width,
                             effectiveTemplate.Height);
                         newRa.MatchScore = bestMatch.Score;
-                        if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                        if (ro.ShouldDrawOnWindow)
                         {
                             newRa.DrawSelf(ro.Name, ro.DrawOnWindowPen);
                         }
@@ -192,7 +192,7 @@ public class ImageRegion : Region
                     }
                     else
                     {
-                        if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                        if (ro.ShouldDrawOnWindow)
                         {
                             DrawingBoard.Clear(ro.Name);
                         }
@@ -277,7 +277,7 @@ public class ImageRegion : Region
                 && (ro.OneContainMatchText.Count == 0 || successOneContain))
             {
                 var newRa = Derive(effectiveRegionOfInterest);
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     // 画出OCR识别到的区域
                     var drawList = result.Regions.Select(item =>
@@ -291,7 +291,7 @@ public class ImageRegion : Region
             }
             else
             {
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     DrawingBoard.Clear(ro.Name);
                 }
@@ -332,7 +332,7 @@ public class ImageRegion : Region
 
             if (!string.IsNullOrEmpty(text))
             {
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     // 画出OCR识别到的区域
                     var drawList = result.Regions.Select(item =>
@@ -357,7 +357,7 @@ public class ImageRegion : Region
             }
             else
             {
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     DrawingBoard.Clear(ro.Name);
                 }
@@ -448,7 +448,7 @@ public class ImageRegion : Region
                             return region;
                         }).ToList();
 
-                        if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                        if (ro.ShouldDrawOnWindow)
                         {
                             DrawingBoard.Set(ro.Name,
                                 resRaList.Select(ra => ra.SelfToMaskWindowDrawingRect()).ToList());
@@ -459,7 +459,7 @@ public class ImageRegion : Region
                     }
                     else
                     {
-                        if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                        if (ro.ShouldDrawOnWindow)
                         {
                             DrawingBoard.Clear(ro.Name);
                         }
@@ -518,7 +518,7 @@ public class ImageRegion : Region
 
             if (resRaList.Count > 0)
             {
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     // 画出OCR识别到的区域
                     var drawList = resRaList.Select(item => item.SelfToMaskWindowDrawingRect(ro.DrawOnWindowPen)).ToList();
@@ -530,7 +530,7 @@ public class ImageRegion : Region
             }
             else
             {
-                if (ro.DrawOnWindow && !string.IsNullOrEmpty(ro.Name))
+                if (ro.ShouldDrawOnWindow)
                 {
                     DrawingBoard.Clear(ro.Name);
                 }

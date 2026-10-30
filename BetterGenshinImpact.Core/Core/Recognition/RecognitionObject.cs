@@ -96,6 +96,15 @@ public class RecognitionObject
     public bool DrawOnWindow { get; set; } = false;
 
     /// <summary>
+    ///     调试：把所有有名称的识别对象都当作 <see cref="DrawOnWindow"/> 为 true 处理（遮罩上显示全部识别结果）。
+    ///     进程级开关，默认 false；目前只有 Linux 宿主按设置打开，Windows 主程序不设置，行为不变。
+    /// </summary>
+    public static bool ForceDrawOnWindow { get; set; }
+
+    /// <summary>本对象匹配成功时是否绘制（<see cref="DrawOnWindow"/> 或调试开关 <see cref="ForceDrawOnWindow"/>）</summary>
+    internal bool ShouldDrawOnWindow => (DrawOnWindow || ForceDrawOnWindow) && !string.IsNullOrEmpty(Name);
+
+    /// <summary>
     ///     DrawOnWindow 为 true 时，绘制的矩形框的颜色。可选，默认红色。
     /// </summary>
     public DrawPen DrawOnWindowPen = new(Color.Red, 2);

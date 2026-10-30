@@ -23,8 +23,11 @@ public sealed class FileConfigService : IConfigService, IDisposable
     public FileConfigService(string path, ILogger log)
     {
         _log = log;
-        _store = new JsonFileStore(path, () => JsonSerializer.Serialize(_config!, ConfigJson.Options), log);
+        _store = new JsonFileStore(path, () => Overrides.Apply(JsonSerializer.Serialize(_config!, ConfigJson.Options), ConfigJson.Options), log);
     }
+
+    /// <summary>运行时覆盖（<see cref="Load"/> 的 beforeTracking 所做的修改），保存时写回文件原值</summary>
+    public RuntimeOverrides Overrides { get; } = new();
 
     public string FilePath => _store.FilePath;
 
@@ -36,6 +39,7 @@ public sealed class FileConfigService : IConfigService, IDisposable
     /// <summary>
     /// 取得全局配置实例（首次调用时从文件读取并开始追踪改动）。
     /// <paramref name="beforeTracking"/> 在开始追踪前执行，用于应用命令行覆盖等不应写回文件的修改
+    /// （登记到 <see cref="Overrides"/>，保存时写回文件原值）
     /// </summary>
     public AllConfig Get() => Load(null);
 
@@ -46,7 +50,16 @@ public sealed class FileConfigService : IConfigService, IDisposable
             if (_config is null)
             {
                 _config = Read();
-                beforeTracking?.Invoke(_config);
+                if (beforeTracking is not null)
+                {
+                    var before = JsonSerializer.Serialize(_config, ConfigJson.Options);
+                    beforeTracking(_config);
+                    Overrides.Record(before, JsonSerializer.Serialize(_config, ConfigJson.Options));
+                    if (Overrides.Count > 0)
+                    {
+                        _log.Information("本次运行的覆盖（不写回配置文件）：{Paths}", string.Join("，", Overrides.Paths));
+                    }
+                }
                 ConfigHost.Config = _config;
                 _config.OnAnyChangedAction = _store.RequestSave;
                 _config.InitEvent();

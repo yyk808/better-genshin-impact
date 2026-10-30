@@ -33,12 +33,19 @@ public sealed record GameHostOptions
     /// <summary>自动开门（自动进入游戏）；为空时沿用配置默认值</summary>
     public bool? AutoEnterGame { get; init; }
 
-    /// <summary>截图方式（ShmRoot / GetImageRoot / GetImageWindow），为空时用 linux-host.json 中的设置</summary>
+    /// <summary>截图方式（ShmRoot / GetImageRoot / GetImageWindow / CompositeWindow），为空时用 linux-host.json 中的设置</summary>
     public string? CaptureMode { get; init; }
+
+    /// <summary>遮罩窗口开关；为空时用 linux-host.json 中的设置</summary>
+    public bool? MaskWindow { get; init; }
+
+    /// <summary>遮罩上显示全部识别结果（调试）；为空时用 linux-host.json 中的设置</summary>
+    public bool? MaskDrawAllRecognition { get; init; }
 
     /// <summary>
     /// 解析宿主共用的命令行参数（--display、--assets、--process、--interval、--pick / --no-pick、--skip / --no-skip、
-    /// --auto-enter / --no-auto-enter、--config 文件、--save-config / --no-save-config、--capture 截图方式）；
+    /// --auto-enter / --no-auto-enter、--config 文件、--save-config / --no-save-config、--capture 截图方式、--mask / --no-mask、--mask-recognition）。
+    /// 这些开关只在本次运行有效，不写回配置文件；
     /// 不认识的参数返回 null，由宿主自己处理
     /// </summary>
     public GameHostOptions? Apply(string argument, Func<string> nextValue) => argument switch
@@ -55,6 +62,9 @@ public sealed record GameHostOptions
         "--save-config" => this with { PersistConfig = true },
         "--no-save-config" => this with { PersistConfig = false },
         "--capture" => this with { CaptureMode = nextValue() },
+        "--mask" => this with { MaskWindow = true },
+        "--no-mask" => this with { MaskWindow = false },
+        "--mask-recognition" => this with { MaskDrawAllRecognition = true },
         "--auto-enter" => this with { AutoEnterGame = true },
         "--no-auto-enter" => this with { AutoEnterGame = false },
         _ => null,
