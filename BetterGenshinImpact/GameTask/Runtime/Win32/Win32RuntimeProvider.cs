@@ -41,7 +41,7 @@ public sealed class Win32RuntimeProvider(
             {
                 if (string.IsNullOrEmpty(startConfig.InstallPath))
                 {
-                    await ThemedMessageBox.ErrorAsync("没有找到原神的安装路径");
+                    await UiHost.Dialogs.ErrorAsync("没有找到原神的安装路径");
                     return null;
                 }
 
@@ -55,7 +55,7 @@ public sealed class Win32RuntimeProvider(
 
             if (hWnd == IntPtr.Zero)
             {
-                await ThemedMessageBox.ErrorAsync("未找到原神窗口，请先启动原神！");
+                await UiHost.Dialogs.ErrorAsync("未找到原神窗口，请先启动原神！");
                 return null;
             }
         }

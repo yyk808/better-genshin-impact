@@ -1,4 +1,5 @@
-﻿using BetterGenshinImpact.Core.Config;
+﻿using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoFight.Config;
 using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Config;
 using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Model;
@@ -132,7 +133,7 @@ public class ScriptParser
         catch (System.Exception ex)
         {
             MyLogger.LogError($"解析脚本错误，行号：{i + 1}，错误信息：{ex}");
-            ThemedMessageBox.Error($"解析脚本错误，行号：{i + 1}，错误信息：{ex}", "策略解析失败");
+            UiHost.Dialogs.Error($"解析脚本错误，行号：{i + 1}，错误信息：{ex}", "策略解析失败");
             return default!;
         }
 

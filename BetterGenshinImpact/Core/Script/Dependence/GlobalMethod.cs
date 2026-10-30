@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.GameTask;
@@ -253,7 +254,7 @@ public class GlobalMethod
         try
         {
             // 将要输入的文本复制到剪贴板
-            UIDispatcherHelper.Invoke(() => Clipboard.SetDataObject(text));
+            UiHost.Clipboard.SetText(text);
 
             // 通过剪贴板 + Ctrl+V 输入文字，只面向键鼠后端。
             // 手柄场景用不到文字输入，这里不做手柄适配；将来如果需要，请单独实现，不要依赖 Ctrl 的映射。
@@ -275,7 +276,7 @@ public class GlobalMethod
             // // 恢复原始剪贴板内容
             // if (!string.IsNullOrEmpty(originalClipboardText))
             // {
-            //     UIDispatcherHelper.Invoke(() => Clipboard.SetDataObject(originalClipboardText));
+            //     UiHost.Clipboard.SetText(originalClipboardText);
             // }
         }
     }

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using System;
 using System.IO;
 using System.Text;
@@ -48,7 +49,7 @@ public sealed class KeyMouseRecordService
         {
             if (_runtimeService.Current is not { IsStopping: false } runtime)
             {
-                UIDispatcherHelper.Invoke(() => Toast.Warning("请先在启动页，启动截图器再使用本功能"));
+                UiHost.Dispatcher.Invoke(() => UiHost.Dialogs.Toast(DialogKind.Warning, "请先在启动页，启动截图器再使用本功能"));
                 return false;
             }
             var root = Path.GetFullPath(Global.Absolute(@"User\KeyMouseScript"));
@@ -66,7 +67,7 @@ public sealed class KeyMouseRecordService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "启动键鼠录制失败");
-            UIDispatcherHelper.Invoke(() => Toast.Error($"启动录制失败：{ex.Message}"));
+            UiHost.Dispatcher.Invoke(() => UiHost.Dialogs.Toast(DialogKind.Error, $"启动录制失败：{ex.Message}"));
             return false;
         }
         finally
@@ -94,13 +95,13 @@ public sealed class KeyMouseRecordService
             File.WriteAllText(path, macro, new UTF8Encoding(false));
             object? requester = null;
             _requester?.TryGetTarget(out requester);
-            UIDispatcherHelper.Invoke(() => WeakReferenceMessenger.Default.Send(new KeyMouseRecordSavedMessage(path, requester)));
+            UiHost.Dispatcher.Invoke(() => WeakReferenceMessenger.Default.Send(new KeyMouseRecordSavedMessage(path, requester)));
             return path;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "停止录制或保存文件失败");
-            UIDispatcherHelper.Invoke(() => Toast.Error($"保存录制失败：{ex.Message}"));
+            UiHost.Dispatcher.Invoke(() => UiHost.Dialogs.Toast(DialogKind.Error, $"保存录制失败：{ex.Message}"));
             return null;
         }
         finally
@@ -115,5 +116,5 @@ public sealed class KeyMouseRecordService
 
     /// <summary>把热键线程上的状态通知切回 UI 线程。</summary>
     private void BroadcastState()
-        => UIDispatcherHelper.Invoke(() => WeakReferenceMessenger.Default.Send(new KeyMouseRecordStateChangedMessage(IsRecording)));
+        => UiHost.Dispatcher.Invoke(() => WeakReferenceMessenger.Default.Send(new KeyMouseRecordStateChangedMessage(IsRecording)));
 }

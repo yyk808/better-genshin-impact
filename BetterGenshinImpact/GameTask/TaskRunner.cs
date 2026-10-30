@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Script;
 using BetterGenshinImpact.GameTask.AutoGeniusInvokation.Exception;
@@ -391,7 +392,7 @@ public class TaskRunner
         }
 
         // 未找到窗口、用户取消等原因已由启动流程提示，这里直接结束任务，不再空等
-        UIDispatcherHelper.Invoke(() => { Toast.Warning("请先在启动页，启动截图器再使用本功能"); });
+        UiHost.Dispatcher.Invoke(() => { UiHost.Dialogs.Toast(DialogKind.Warning, "请先在启动页，启动截图器再使用本功能"); });
         throw new NormalEndException("截图器未启动");
     }
 

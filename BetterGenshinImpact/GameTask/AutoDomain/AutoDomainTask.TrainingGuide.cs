@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -708,7 +709,7 @@ public partial class AutoDomainTask
                 ? $"培养计划：{family}已按预算刷取 {plan.KnownResinSpent} 体，请手动核实库存"
                 : $"培养计划：{family}已满足需求（含可合成），库存/目标（高→低）：{DescribeGuideInventory(plan)}";
         }
-        UIDispatcherHelper.BeginInvoke(() => Toast.Information(message.TrimEnd()));
+        UiHost.Dispatcher.Post(() => UiHost.Dialogs.Toast(DialogKind.Information, message.TrimEnd()));
     }
 
     /// <summary>按剩余需求与可用库存选择本轮消耗：60 为浓缩树脂，40/20 为原粹树脂；0 表示没有可用组合。</summary>

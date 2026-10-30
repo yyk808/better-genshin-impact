@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Input.Backends.Win32;
 using BetterGenshinImpact.GameTask.Runtime.WebPage;
@@ -116,10 +117,10 @@ public sealed class GameRuntimeService
     public Task<GameRuntime?> StartAsync(CancellationToken ct = default)
     {
         var stopVersion = Interlocked.Read(ref _stopVersion);
-        var uiDispatcher = Application.Current.Dispatcher;
+        var uiDispatcher = UiHost.Dispatcher;
         return uiDispatcher.CheckAccess()
             ? StartCoreAsync(ct, stopVersion)
-            : uiDispatcher.InvokeAsync(() => StartCoreAsync(ct, stopVersion)).Task.Unwrap();
+            : uiDispatcher.InvokeAsync(() => StartCoreAsync(ct, stopVersion)).Unwrap();
     }
 
     /// <summary>
@@ -129,7 +130,10 @@ public sealed class GameRuntimeService
     public bool Start(GameRuntime runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
-        Application.Current.Dispatcher.VerifyAccess();
+        if (!UiHost.Dispatcher.CheckAccess())
+        {
+            throw new InvalidOperationException("调用线程无法访问此对象，因为另一个线程拥有该对象。");
+        }
 
         if (IsRunning || !_stopTask.IsCompleted || _startLock.CurrentCount == 0 || !CheckTriggerInterval())
         {
@@ -148,10 +152,10 @@ public sealed class GameRuntimeService
     public Task StopAsync()
     {
         Interlocked.Increment(ref _stopVersion);
-        var uiDispatcher = Application.Current.Dispatcher;
+        var uiDispatcher = UiHost.Dispatcher;
         return uiDispatcher.CheckAccess()
             ? QueueStopAsync()
-            : uiDispatcher.InvokeAsync(QueueStopAsync).Task.Unwrap();
+            : uiDispatcher.InvokeAsync(QueueStopAsync).Unwrap();
     }
 
     private Task QueueStopAsync()
@@ -326,7 +330,7 @@ public sealed class GameRuntimeService
             return true;
         }
 
-        ThemedMessageBox.Error("触发器触发频率必须大于0");
+        UiHost.Dialogs.Error("触发器触发频率必须大于0");
         return false;
     }
 

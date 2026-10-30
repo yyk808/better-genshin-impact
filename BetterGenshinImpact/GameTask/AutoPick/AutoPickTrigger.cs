@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Recognition;
@@ -238,7 +239,7 @@ public partial class AutoPickTrigger : ITaskTrigger
     /// </summary>
     private static void ShowListReadError()
     {
-        UIDispatcherHelper.BeginInvoke(() => ThemedMessageBox.Error("读取拾取名单配置失败，请确认修改后的名单内容格式是否正确！"));
+        UiHost.Dispatcher.Post(() => UiHost.Dialogs.Error("读取拾取名单配置失败，请确认修改后的名单内容格式是否正确！"));
     }
 
     private HashSet<string> ReadJson(string jsonFilePath)

@@ -61,7 +61,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
     {
         if (Status != KeyMouseRecorderStatus.Stop)
         {
-            Toast.Warning("已经在录制状态，请不要重复启动录制功能");
+            UiHost.Dialogs.Toast(DialogKind.Warning, "已经在录制状态，请不要重复启动录制功能");
             return false;
         }
 
@@ -120,7 +120,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
 
             Status = KeyMouseRecorderStatus.Stop;
             _logger.LogError(ex, "启动键鼠录制失败，相对鼠标捕获方式：{InputType}", inputType);
-            await ThemedMessageBox.ErrorAsync(
+            await UiHost.Dialogs.ErrorAsync(
                 $"启动键鼠录制失败：{ex.Message}",
                 "键鼠录制启动失败");
             return false;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BetterGenshinImpact.Platform;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -131,7 +132,7 @@ public class UseRedemptionCodeTask : ISoloTask<UseRedemptionCodeParam, NoData>
         finally
         {
             // 清空剪贴板
-            UIDispatcherHelper.Invoke(Clipboard.Clear);
+            UiHost.Clipboard.Clear();
             // 返回主界面
             await new ReturnMainUiTask(_runtime).Start(ct);
         }
@@ -165,7 +166,7 @@ public class UseRedemptionCodeTask : ISoloTask<UseRedemptionCodeParam, NoData>
         
         _logger.LogInformation("输入兑换码: {Code}", redeemCode.Code);
         // 将要输入的文本复制到剪贴板
-        UIDispatcherHelper.Invoke(() => Clipboard.SetDataObject(redeemCode.Code));
+        UiHost.Clipboard.SetText(redeemCode.Code);
         // 粘贴兑换码
         await page.GetByText("粘贴").WithRoi(captureRect.CutRight(0.5)).Click();
         // 点击兑换

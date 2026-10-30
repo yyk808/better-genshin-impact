@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -75,7 +76,7 @@ public class RedeemCodeManager
             return;
         }
 
-        Clipboard.Clear();
+        UiHost.Clipboard.Clear();
         // 任务在拿到本轮运行环境之后才构造
         await new TaskRunner().RunSoloTaskAsync(rt => new UseRedemptionCodeTask(rt), new UseRedemptionCodeParam { Codes = codes });
     }

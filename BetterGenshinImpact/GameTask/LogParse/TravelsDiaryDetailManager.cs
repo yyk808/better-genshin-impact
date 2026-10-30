@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -81,7 +82,7 @@ public class TravelsDiaryDetailManager
         }
         catch (NoLoginException)
         {
-            Toast.Warning("cookie 未登录或已失效，请重新获取后重试");
+            UiHost.Dialogs.Toast(DialogKind.Warning, "cookie 未登录或已失效，请重新获取后重试");
 
             throw;
         }
@@ -139,7 +140,7 @@ public class TravelsDiaryDetailManager
                 {
                     var _temp2 = await ys.GetTravelsDiaryDetailAsync(gameInfo, cookie, month.month, 2);
                     writeFile(tddfile, _temp2);
-                    Toast.Information($"{month.year}_{month.month}数据获取成功！");
+                    UiHost.Dialogs.Toast(DialogKind.Information, $"{month.year}_{month.month}数据获取成功！");
 
                 }
                 /*else
@@ -151,7 +152,7 @@ public class TravelsDiaryDetailManager
         }
         catch (NoLoginException e)
         {
-            Toast.Warning("token未登录，请重新登录获取，此次将不新最新数据！");
+            UiHost.Dialogs.Toast(DialogKind.Warning, "token未登录，请重新登录获取，此次将不新最新数据！");
 
 
         }

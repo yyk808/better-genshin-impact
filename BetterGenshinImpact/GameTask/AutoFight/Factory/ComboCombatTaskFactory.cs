@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.GameTask.AutoFight.Strategy;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoCombo.ComboRun;
@@ -29,9 +30,9 @@ public class ComboCombatTaskFactory : ICombatTaskFactory
         if (session == null)
         {
             // 与 TaskRunner.Init 的用户指导型错误处理一致：弹 Toast 提示 + 抛异常中断任务
-            UIDispatcherHelper.Invoke(() =>
+            UiHost.Dispatcher.Invoke(() =>
             {
-                Toast.Warning("尚未构建行为树，请先运行一次自动连招任务完成建树");
+                UiHost.Dialogs.Toast(DialogKind.Warning, "尚未构建行为树，请先运行一次自动连招任务完成建树");
             });
             throw new Exception("尚未构建行为树，请先运行一次自动连招任务完成建树");
         }

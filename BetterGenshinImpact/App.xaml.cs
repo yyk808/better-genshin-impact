@@ -360,6 +360,10 @@ public partial class App : Application
                 services.AddSingleton<BetterGenshinImpact.Platform.IPlatformServices>(sp =>
                     new BetterGenshinImpact.Platform.Windows.Win32PlatformServices(
                         logger: sp.GetRequiredService<ILogger<BetterGenshinImpact.GameTask.SystemControl>>()));
+                // UI 服务（UI 线程调度、消息框/Toast、剪贴板），同时由 OnStartup 设置到 UiHost 供任务代码使用
+                services.AddSingleton<BetterGenshinImpact.Platform.IUiDispatcher, BetterGenshinImpact.Service.Ui.WpfUiDispatcher>();
+                services.AddSingleton<BetterGenshinImpact.Platform.IDialogService, BetterGenshinImpact.Service.Ui.WpfDialogService>();
+                services.AddSingleton<BetterGenshinImpact.Platform.IClipboardService, BetterGenshinImpact.Service.Ui.WpfClipboardService>();
                 // 游戏运行环境：按实例类型选定 Provider，见 Docs/design/game-runtime.md
                 services.AddSingleton<Win32RuntimeProvider>();
                 services.AddSingleton<IGameRuntimeProvider>(sp => sp.GetRequiredService<Win32RuntimeProvider>());
@@ -511,6 +515,10 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
+        // UI 服务的 WPF 实现（任务代码经 UiHost 访问，见 Docs/linux-migration/phase2-progress.md）
+        BetterGenshinImpact.Platform.UiHost.Dispatcher = new BetterGenshinImpact.Service.Ui.WpfUiDispatcher();
+        BetterGenshinImpact.Platform.UiHost.Dialogs = new BetterGenshinImpact.Service.Ui.WpfDialogService();
+        BetterGenshinImpact.Platform.UiHost.Clipboard = new BetterGenshinImpact.Service.Ui.WpfClipboardService();
         // Wine 平台适配
         WinePlatformAddon.ApplyApplicationConfig();
         base.OnStartup(e);

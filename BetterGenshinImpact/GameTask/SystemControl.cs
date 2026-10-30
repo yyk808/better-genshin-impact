@@ -96,7 +96,7 @@ public class SystemControl
     {
         if (!File.Exists(path))
         {
-            await ThemedMessageBox.ErrorAsync($"原神启动路径 {path} 不存在，请前往 启动——同时启动原神——原神安装路径 重新进行配置！");
+            await UiHost.Dialogs.ErrorAsync($"原神启动路径 {path} 不存在，请前往 启动——同时启动原神——原神安装路径 重新进行配置！");
             return IntPtr.Zero;
         }
 
