@@ -30,6 +30,12 @@ public static class InputHub
         set => Volatile.Write(ref _defaultBackendFactory, value);
     }
 
+    /// <summary>
+    /// 新建一个默认后端（解绑运行环境后换回它）。Windows 主程序下为未绑定窗口的 Win32 后端，与迁移前相同
+    /// </summary>
+    public static IInputBackend CreateDefaultBackend() =>
+        DefaultBackendFactory?.Invoke() ?? new UnsupportedInputBackend("未设置输入后端");
+
     public static IInputBackend Backend
     {
         get
@@ -42,7 +48,7 @@ public static class InputHub
 
             lock (AttachLock)
             {
-                return _backend ??= DefaultBackendFactory?.Invoke() ?? new UnsupportedInputBackend("未设置输入后端");
+                return _backend ??= CreateDefaultBackend();
             }
         }
     }

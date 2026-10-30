@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -376,7 +377,22 @@ public partial class App : Application
                 services.AddSingleton<IGameRuntimeProvider>(sp => sp.GetRequiredService<WebPageRuntimeProvider>());
                 services.AddTransient<CloudWebHostWindow>();
                 services.AddSingleton<Func<CloudWebHostWindow>>(sp => () => sp.GetRequiredService<CloudWebHostWindow>());
-                services.AddSingleton<GameRuntimeService>();
+                services.AddSingleton<GameRuntimeService>(sp =>
+                {
+                    // 由实例类型决定使用哪个运行环境，进程内不变
+                    var expectedKind = sp.GetRequiredService<InstanceBootstrap>().Context.InstanceType == BetterGiInstanceType.WebView
+                        ? GameRuntimeKind.WebPage
+                        : GameRuntimeKind.Win32Window;
+                    var provider = sp.GetServices<IGameRuntimeProvider>().FirstOrDefault(p => p.Kind == expectedKind)
+                                   ?? throw new InvalidOperationException($"未注册 {expectedKind} 运行环境");
+                    var service = ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, provider);
+                    if (provider is WebPageRuntimeProvider webPageProvider)
+                    {
+                        webPageProvider.StopCaptureBeforeCloseAsync = service.StopAsync;
+                    }
+
+                    return service;
+                });
                 services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
                 services.AddSingleton<BetterGenshinImpact.Core.Recorder.KeyMouseRecordService>();
                 // 云原神网页版实例：实例名存储与启动器（Primary 首页的管理窗口使用）

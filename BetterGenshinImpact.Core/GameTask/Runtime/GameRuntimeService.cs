@@ -1,11 +1,8 @@
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Input;
-using BetterGenshinImpact.Core.Input.Backends.Win32;
-using BetterGenshinImpact.GameTask.Runtime.WebPage;
 using BetterGenshinImpact.Service;
 using BetterGenshinImpact.Service.Instance;
 using BetterGenshinImpact.Service.Interface;
-using BetterGenshinImpact.View.Windows;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -37,9 +34,9 @@ public sealed class GameRuntimeService : IGameRuntimeHost
     private Task _stopTask = Task.CompletedTask;
     private long _stopVersion;
 
+    /// <param name="provider">本进程使用的运行环境提供者，由宿主按实例类型选定（Windows 主程序见 App 的注册）</param>
     public GameRuntimeService(
-        IEnumerable<IGameRuntimeProvider> providers,
-        InstanceBootstrap bootstrap,
+        IGameRuntimeProvider provider,
         TaskTriggerDispatcher dispatcher,
         IConfigService configService,
         ILogger<GameRuntimeService> logger,
@@ -50,16 +47,7 @@ public sealed class GameRuntimeService : IGameRuntimeHost
         _logger = logger;
         _taskStopService = taskStopService;
 
-        var registered = providers.ToList();
-        var expectedKind = bootstrap.Context.InstanceType == BetterGiInstanceType.WebView
-            ? GameRuntimeKind.WebPage
-            : GameRuntimeKind.Win32Window;
-        _provider = registered.FirstOrDefault(p => p.Kind == expectedKind)
-                    ?? throw new InvalidOperationException($"未注册 {expectedKind} 运行环境");
-        if (_provider is WebPageRuntimeProvider webPageProvider)
-        {
-            webPageProvider.StopCaptureBeforeCloseAsync = StopAsync;
-        }
+        _provider = provider;
 
         _dispatcher.UiTaskStopTickEvent += OnRuntimeLost;
     }
@@ -196,7 +184,7 @@ public sealed class GameRuntimeService : IGameRuntimeHost
         _taskStopService.StopAll(TaskStopReason.RuntimeStopped); // 取消依赖当前运行环境的任务
         _dispatcher.Stop();
         ReleaseInputBeforeDetach();
-        InputHub.Attach(new Win32InputBackend(IntPtr.Zero));
+        InputHub.Attach(InputHub.CreateDefaultBackend());
         // 绘制内容和地图点位状态都以这次运行环境为坐标，解绑后不再有意义
         runtime.MaskWindowDrawingBoard.ClearAll();
         runtime.MaskWindowMapState.Reset();
@@ -284,7 +272,7 @@ public sealed class GameRuntimeService : IGameRuntimeHost
             if (inputAttached)
             {
                 ReleaseInputBeforeDetach();
-                InputHub.Attach(new Win32InputBackend(IntPtr.Zero));
+                InputHub.Attach(InputHub.CreateDefaultBackend());
             }
             else
             {
