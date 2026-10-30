@@ -73,6 +73,8 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
     {
         lock (_c.Gate)
         {
+            // 解绑时触发器线程可能还在发键：连接已关闭则忽略
+            if (_c.IsDisposed) return;
             var code = KeyMap.ToKeyCode(_c.Display, k);
             if (code == 0)
             {
@@ -89,11 +91,15 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
 
     protected override void OnKeyUp(GameKey key) => Key(key, false);
 
+    /// <summary>按下与抬起在同一把锁内完成：解绑时关闭连接会等这次按键结束，不会留下一直按着的键</summary>
     protected override void OnKeyPress(GameKey key)
     {
-        Key(key, true);
-        Thread.Sleep(PressHoldMs);
-        Key(key, false);
+        lock (_c.Gate)
+        {
+            Key(key, true);
+            Thread.Sleep(PressHoldMs);
+            Key(key, false);
+        }
     }
 
     private static uint XButton(InputMouseButton b) => b switch
@@ -109,6 +115,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
     {
         lock (_c.Gate)
         {
+            if (_c.IsDisposed) return;
             XTestFakeButtonEvent(_c.Display, btn, down, 0);
             XFlush(_c.Display);
         }
@@ -118,15 +125,19 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
 
     protected override void OnMouseClick(InputMouseButton button)
     {
-        Button(XButton(button), true);
-        Thread.Sleep(PressHoldMs);
-        Button(XButton(button), false);
+        lock (_c.Gate)
+        {
+            Button(XButton(button), true);
+            Thread.Sleep(PressHoldMs);
+            Button(XButton(button), false);
+        }
     }
 
     protected override void OnMoveBy(int dx, int dy)
     {
         lock (_c.Gate)
         {
+            if (_c.IsDisposed) return;
             XTestFakeRelativeMotionEvent(_c.Display, dx, dy, 0);
             XFlush(_c.Display);
         }
@@ -138,6 +149,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
         int w, h;
         lock (_c.Gate)
         {
+            if (_c.IsDisposed) return;
             w = XDisplayWidth(_c.Display, _c.Screen);
             h = XDisplayHeight(_c.Display, _c.Screen);
         }
@@ -149,6 +161,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
     {
         lock (_c.Gate)
         {
+            if (_c.IsDisposed) return;
             XTestFakeMotionEvent(_c.Display, -1, screenX, screenY, 0);
             XFlush(_c.Display);
         }
@@ -171,6 +184,7 @@ public sealed unsafe class XTestInputChannel : InputChannelBase
     {
         lock (_c.Gate)
         {
+            if (_c.IsDisposed) return false;
             if (key is GameKey.VK_LBUTTON or GameKey.VK_RBUTTON or GameKey.VK_MBUTTON)
             {
                 XQueryPointer(_c.Display, _c.Root, out _, out _, out _, out _, out _, out _, out var mask);

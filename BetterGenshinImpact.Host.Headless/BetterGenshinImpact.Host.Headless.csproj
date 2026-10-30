@@ -29,8 +29,13 @@
 		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-		<!-- OpenCvSharp 的 Linux native 运行时。官方 linux-x64 包依赖系统的 libtesseract.so.4，这里用不依赖 tesseract 的精简构建（core / imgproc / imgcodecs 等） -->
-		<PackageReference Include="Sdcb.OpenCvSharp4.mini.runtime.ubuntu.22.04-x64" Version="4.11.0.35" />
+		<!-- OpenCvSharp 的 Linux native 运行时（libOpenCvSharpExtern.so）。
+		     官方 OpenCvSharp4.official.runtime.linux-x64 依赖 Ubuntu 22.04 的 tesseract / ffmpeg / gtk2 等系统库，其它发行版上加载失败；
+		     这里用不依赖系统库的 Sdcb 精简构建。4.11 的精简构建缺少 dnn（OCR 预处理用到 CvDnn.BlobFromImage），4.13 的包含 dnn。
+		     精简构建不含 features2d / calib3d / ximgproc / photo / video 等模块，大地图特征匹配等功能暂不可用 -->
+		<PackageReference Include="Sdcb.OpenCvSharp4.mini.runtime.linux-x64" Version="4.13.0.45" />
+		<!-- ONNX Runtime 原生库（linux-x64 为 libonnxruntime.so，CPU 推理），版本与 Core 的 Microsoft.ML.OnnxRuntime.Managed 一致 -->
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.21.0" />
 	</ItemGroup>
 
 </Project>

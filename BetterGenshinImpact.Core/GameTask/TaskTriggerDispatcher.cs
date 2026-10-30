@@ -365,6 +365,26 @@ namespace BetterGenshinImpact.GameTask
             Stop();
         }
 
+        /// <summary>
+        /// 每帧调度中未处理异常的观察者（例如无界面宿主写日志）。只观察，异常照常抛出：
+        /// 计时器回调中的异常仍由 System.Timers.Timer 吞掉，与未设置时行为一致
+        /// </summary>
+        public Action<Exception>? TickExceptionObserver { get; set; }
+
+        private bool ObserveTickException(Exception exception)
+        {
+            try
+            {
+                TickExceptionObserver?.Invoke(exception);
+            }
+            catch
+            {
+                // 观察者自身的异常不能替换原异常
+            }
+
+            return false;
+        }
+
         public void Tick(object? sender, EventArgs e)
         {
             var hasLock = false;
@@ -589,6 +609,10 @@ namespace BetterGenshinImpact.GameTask
                 }
 
                 speedTimer.DebugPrint();
+            }
+            catch (Exception exception) when (ObserveTickException(exception))
+            {
+                // 过滤器总是返回 false，不会进入这里
             }
             finally
             {

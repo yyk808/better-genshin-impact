@@ -14,4 +14,9 @@ public enum GameRuntimeKind
     /// WebView2 承载的云原神网页版
     /// </summary>
     WebPage,
+
+    /// <summary>
+    /// 经平台服务（IPlatformServices）找到的本机游戏窗口，例如 Linux X11 上的原神窗口
+    /// </summary>
+    PlatformWindow,
 }

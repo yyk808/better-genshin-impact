@@ -113,6 +113,8 @@ public sealed unsafe class X11Capture : IGameCapture
         if (rect.IsEmpty) return null;
         lock (_c.Gate)
         {
+            // 停止 / 释放与截图线程并发时，连接可能已关闭
+            if (_c.IsDisposed) return null;
             if (_mode == X11CaptureMode.ShmRoot)
             {
                 var f = CaptureShm(rect);
@@ -235,7 +237,10 @@ public sealed unsafe class X11Capture : IGameCapture
     public void Stop()
     {
         _target = null;
-        lock (_c.Gate) FreeShm();
+        lock (_c.Gate)
+        {
+            if (!_c.IsDisposed) FreeShm();
+        }
     }
 
     public void Dispose()

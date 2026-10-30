@@ -24,7 +24,7 @@ public sealed class PlatformRuntimeProvider(
     string? captureMethod = null)
     : IGameRuntimeProvider
 {
-    public GameRuntimeKind Kind => GameRuntimeKind.Win32Window;
+    public GameRuntimeKind Kind => GameRuntimeKind.PlatformWindow;
 
     public Task<GameRuntime?> AcquireAsync(CancellationToken ct)
     {
@@ -57,8 +57,8 @@ public sealed class PlatformRuntimeProvider(
             var systemInfo = new SystemInfo(window.Viewport, maskWindowDrawingBoard);
             capture = platform.CreateCapture(captureMethod);
             capture.Start(window, GameCaptureSettings.From(configService.Get()));
-            logger.LogInformation("已绑定游戏窗口：{Title}（{Class}，进程 {Pid}），画面 {Rect}",
-                window.Title, window.ClassName, window.ProcessId, window.Viewport.ScreenRect);
+            logger.LogInformation("已绑定游戏窗口（{Platform}）：{Title}（{Class}，进程 {Pid}），画面 {Rect}",
+                platform.Name, window.Title, window.ClassName, window.ProcessId, window.Viewport.ScreenRect);
             return new GameRuntime(Kind, window, capture, platform.CreateInput(window), systemInfo,
                 maskWindowDrawingBoard, maskWindowMapState);
         }

@@ -519,10 +519,50 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 运行结果（X11 假游戏，窗口 1600x900）：找到并绑定窗口，截图器按 50 ms 间隔运行，6 秒处理约 120 帧；同步执行的首帧调度没有异常（触发器“自动拾取”“自动剧情”启用）。
 
+## 里程碑 24：无界面宿主接入 OCR / ONNX，假游戏验证拾取与剧情
+
+- 推理：
+  - Core 新增 `CpuOnnxRuntimeSelection`（`IOnnxRuntimeSelection`，只用 CPU 和随程序发布的 onnxruntime 原生库）与 `CpuInferenceDeviceDiscovery`（只提供 CPU 设备）。Windows 主程序仍用 `OnnxRuntimeLoader` / `InferenceDeviceDiscovery`。
+  - 无界面宿主注册 `InferenceRuntimeService`、`InferenceModelDiagnostics`、`BgiOnnxFactory`、`OcrFactory`，启动前 `InitializeAsync`，并引用 `Microsoft.ML.OnnxRuntime` 1.21.0（linux-x64 为 `libonnxruntime.so`）。
+  - OpenCvSharp 原生库改为 `Sdcb.OpenCvSharp4.mini.runtime.linux-x64` 4.13.0.45：
+    - 4.11 的精简构建缺少 dnn，而 OCR 预处理要用 `CvDnn.BlobFromImage`；
+    - 官方 linux-x64 包依赖 Ubuntu 22.04 的 tesseract / ffmpeg / gtk2 等系统库。
+    - 精简构建不含 features2d / calib3d / ximgproc / photo / video 等模块，大地图特征匹配等功能暂不可用。
+- 每帧异常：
+  - `TaskTriggerDispatcher` 新增 `TickExceptionObserver`，用异常过滤器观察每帧调度中未处理的异常。
+  - 只观察、不捕获，异常照常抛出（仍由计时器吞掉），未设置时行为不变。
+  - 无界面宿主把异常写进日志：同一异常第一次记完整堆栈，之后每 100 次记一条计数。
+  - 输入通道的“不支持的操作已忽略”告警（`InputChannelBase.LoggerFactory`）也写进日志。
+- 运行环境种类：新增 `GameRuntimeKind.PlatformWindow`，`PlatformRuntimeProvider` 使用它，日志显示为 `PlatformWindow`，不再显示 `Win32Window`。绑定日志带上平台名（如 X11）。
+- 自动开门恢复可配置：默认沿用配置默认值（开启），`--auto-enter` / `--no-auto-enter` 可以覆盖。
+- X11 平台修正：
+  - `X11Connection.Dispose` 可重复调用。解绑时输入后端会被释放两次，第二次关闭同一个 Display 会导致进程崩溃（段错误）。
+  - XTest 输入与 X11 截图在连接关闭后忽略操作。
+  - `KeyPress` / `Click` 的按下与抬起放在同一把锁里，关闭连接会等这次按键结束，避免留下一直按着的键。
+
+### 假游戏验证（本机测试工程，不提交）
+
+- 假游戏新增三项功能：
+  - `--image <BGRA 文件>`：叠加显示画面；
+  - `--image-only`：只显示画面，不绘制状态条码和文字；
+  - `--image-advance-on-input`：收到按键或点击后切到下一张，模拟拾取后提示消失、对话推进。
+- 画面用 BGI 的 Assets 模板拼出：
+  - 拾取：`AutoPick/F.png` 加物品名“甜甜花”（白名单模式默认列表中的物品）；
+  - 剧情：左上角 `AutoSkip/disabled_ui.png`（剧情播放中标志）加右侧 `icon_exclamation.png` 选项。
+- 结果（X11 假游戏 1600x900，6 秒，`--no-auto-enter`）：
+
+| 场景 | 宿主日志 | 假游戏 JSONL |
+| --- | --- | --- |
+| 拾取 | `交互或拾取：甜甜花` | 1 次 F 键（XTest 核心事件 + XI2 原始事件），随后画面切到空场景 |
+| 剧情 | `自动剧情：点击感叹号选项` | 1 次左键点击，窗口坐标 (1095,545)，正是感叹号中心；随后画面切到空场景 |
+
+两次运行的帧调度异常都是 0 次。
+
 ### 剩余步骤
 
-1. 在无界面宿主中注册 OCR 与 ONNX 推理：`OcrFactory`、`BgiOnnxFactory`、`InferenceRuntimeService`，需要 Linux 版 `IOnnxRuntimeSelection`（Windows 的 `OnnxRuntimeLoader` 在主程序中）和 Linux 的 onnxruntime 原生库。自动拾取识别到 F 键后要 OCR 物品名，没有 OCR 时会抛异常（计时器回调中的异常被吞掉，需在宿主中记录）。
-2. 假游戏显示指定图片（本机测试工程，不提交），用 BGI 素材拼出拾取提示和剧情对话画面，确认 F 键和点击都能收到。
+1. 剧情的“快速跳过对话”按空格走 `InputHub.Background`。X11 后端没有后台通道，目前忽略并告警，日志里是 `不支持的输入操作已忽略：…按下 VK_SPACE`。需要决定 Linux 下是改走前台通道（游戏在前台时等价），还是实现后台通道（例如 XSendEvent）。
+2. OpenCvSharp 完整原生库：需要不依赖 Ubuntu 22.04 系统库的完整构建，补上 features2d 等模块。
+3. 后续 Avalonia 宿主复用本宿主的启动代码（DI、平台初始化、推理、触发器）。
 
 ### 剩余（主程序中的任务层文件）
 

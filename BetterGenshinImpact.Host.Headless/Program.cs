@@ -1,6 +1,10 @@
 using BetterGenshinImpact;
 using BetterGenshinImpact.Core.Config;
+using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Mask;
+using BetterGenshinImpact.Core.Recognition.OCR;
+using BetterGenshinImpact.Core.Recognition.ONNX;
+using BetterGenshinImpact.GameTask.Common;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Host.Headless;
@@ -16,6 +20,7 @@ using Serilog.Events;
 
 // 用法：bgi-headless [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact]
 //                    [--seconds 30] [--interval 50] [--frames 截图目录] [--no-pick] [--no-skip] [--log 日志文件]
+//                    [--auto-enter | --no-auto-enter]
 var options = HeadlessOptions.Parse(args);
 
 var loggerConfiguration = new LoggerConfiguration()
@@ -53,8 +58,19 @@ try
     config.AutoPickConfig.Enabled = options.Pick;
     config.AutoSkipConfig.Enabled = options.Skip;
     config.TriggerInterval = options.IntervalMs;
-    // 自动开门（自动进入游戏）每帧都要 OCR；无界面宿主尚未注册 OCR / ONNX 推理服务，先关闭
-    config.GenshinStartConfig.AutoEnterGameEnabled = false;
+    if (options.AutoEnterGame is { } autoEnter)
+    {
+        // 自动开门（自动进入游戏）：默认沿用配置默认值，可用 --auto-enter / --no-auto-enter 覆盖
+        config.GenshinStartConfig.AutoEnterGameEnabled = autoEnter;
+    }
+
+    // 推理：只用 CPU 和随程序发布的 onnxruntime 原生库
+    config.HardwareAccelerationConfig ??= new();
+    var inferenceStartupStatus = InferenceRuntimeService.PrepareStartup(config.HardwareAccelerationConfig);
+    if (config.HardwareAccelerationConfig.InferenceDevice != InferenceDeviceType.Cpu)
+    {
+        config.HardwareAccelerationConfig.SwitchToCpu();
+    }
     var configService = new HeadlessConfigService(config);
 
     // 3. 依赖注入
@@ -74,11 +90,46 @@ try
         (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames))));
     services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
     services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
+    // OCR / ONNX 推理（CPU）
+    services.AddSingleton(inferenceStartupStatus);
+    services.AddSingleton<IOnnxRuntimeSelection>(new CpuOnnxRuntimeSelection(AppContext.BaseDirectory));
+    services.AddSingleton<IInferenceDeviceDiscovery, CpuInferenceDeviceDiscovery>();
+    services.AddSingleton<IInferenceBenchmarkLeaseProvider>(sp => new InferenceBenchmarkCoordinator(
+        TaskControl.TaskSemaphore, () => sp.GetRequiredService<TaskTriggerDispatcher>().PauseForInference()));
+    services.AddSingleton<InferenceModelDiagnostics>();
+    services.AddSingleton<IInferenceModelDiagnostics>(sp => sp.GetRequiredService<InferenceModelDiagnostics>());
+    services.AddSingleton<InferenceRuntimeService>();
+    services.AddSingleton<BgiOnnxFactory>();
+    services.AddSingleton<OcrFactory>();
     await using var provider = services.BuildServiceProvider();
     CoreServices.SetProvider(() => provider);
+    // 输入通道的“不支持的操作已忽略”告警（例如 X11 没有后台通道）写进日志
+    InputChannelBase.LoggerFactory = () => provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
+
+    var inference = provider.GetRequiredService<InferenceRuntimeService>();
+    await inference.InitializeAsync();
+    log.Information("推理：{Engine}，设备 {Device}，运行库目录 {Dir}{Message}", inference.Current.Engine,
+        inference.Current.Device.Name, inference.Current.RuntimeDirectory,
+        string.IsNullOrEmpty(inference.StartupMessage) ? "" : "，" + inference.StartupMessage);
 
     // 4. 启动截图器（找窗 → 截图 → 输入 → 触发器调度）
     var dispatcher = provider.GetRequiredService<TaskTriggerDispatcher>();
+    // 计时器回调中的异常会被 System.Timers.Timer 吞掉：经观察者写进日志。
+    // 同一异常（类型 + 消息 + 抛出位置）第一次记录完整堆栈，之后每 100 次记一条计数
+    var tickErrors = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+    dispatcher.TickExceptionObserver = ex =>
+    {
+        var key = $"{ex.GetType().FullName}|{ex.Message}|{ex.TargetSite}";
+        var count = tickErrors.AddOrUpdate(key, 1, (_, c) => c + 1);
+        if (count == 1)
+        {
+            log.Error(ex, "帧调度异常");
+        }
+        else if (count % 100 == 0)
+        {
+            log.Warning("帧调度异常已重复 {Count} 次：{Type}: {Message}", count, ex.GetType().Name, ex.Message);
+        }
+    };
     var frames = 0L;
     var savedFirst = false;
     Mat? lastFrame = null;
@@ -160,7 +211,8 @@ try
         }
     }
 
-    log.Information("截图器已停止，共处理 {Frames} 帧（{Seconds} 秒）", Interlocked.Read(ref frames), options.Seconds);
+    log.Information("截图器已停止，共处理 {Frames} 帧（{Seconds} 秒），帧调度异常 {Errors} 次",
+        Interlocked.Read(ref frames), options.Seconds, tickErrors.Values.Sum());
     return 0;
 }
 catch (Exception e)
@@ -182,7 +234,8 @@ internal sealed record HeadlessOptions(
     string? FramesDirectory,
     bool Pick,
     bool Skip,
-    string? LogFile)
+    string? LogFile,
+    bool? AutoEnterGame)
 {
     public static HeadlessOptions Parse(string[] args)
     {
@@ -190,6 +243,7 @@ internal sealed record HeadlessOptions(
         IReadOnlyList<string> names = ["YuanShen", "GenshinImpact"];
         int seconds = 30, interval = 50;
         bool pick = true, skip = true;
+        bool? autoEnter = null;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -204,10 +258,12 @@ internal sealed record HeadlessOptions(
                 case "--no-pick": pick = false; break;
                 case "--no-skip": skip = false; break;
                 case "--log": logFile = Next(); break;
+                case "--auto-enter": autoEnter = true; break;
+                case "--no-auto-enter": autoEnter = false; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new HeadlessOptions(display, assets, names, seconds, interval, frames, pick, skip, logFile);
+        return new HeadlessOptions(display, assets, names, seconds, interval, frames, pick, skip, logFile, autoEnter);
     }
 }

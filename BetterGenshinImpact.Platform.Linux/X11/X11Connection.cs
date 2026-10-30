@@ -71,5 +71,17 @@ public sealed unsafe class X11Connection : IDisposable
         return Encoding.UTF8.GetString(b).TrimEnd('\0');
     }
 
-    public void Dispose() { lock (Gate) XCloseDisplay(Display); }
+    /// <summary>连接已关闭。持有 <see cref="Gate"/> 时检查，关闭后不能再用 <see cref="Display"/> 调用 Xlib</summary>
+    public bool IsDisposed { get; private set; }
+
+    /// <summary>关闭连接。可重复调用：运行环境解绑时输入后端可能被释放两次，第二次不能再关同一个 Display</summary>
+    public void Dispose()
+    {
+        lock (Gate)
+        {
+            if (IsDisposed) return;
+            IsDisposed = true;
+            XCloseDisplay(Display);
+        }
+    }
 }
