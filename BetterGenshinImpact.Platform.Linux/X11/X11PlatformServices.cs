@@ -26,8 +26,16 @@ public sealed class X11PlatformServices : IPlatformServices
 
     public IHotkeyService Hotkeys => _hotkeys.Value;
 
+    /// <summary>按进程名 / WM_CLASS 在 _NET_CLIENT_LIST 中查找游戏窗口</summary>
+    public IGameWindowFinder GameWindows => new WindowManagerGameWindowFinder(Windows);
+
     /// <summary>新建截图器（独立连接，Dispose 时关闭）</summary>
-    public IGameCapture CreateCapture() => new X11Capture(new X11Connection(_display), ownsConnection: true);
+    /// <param name="method"><see cref="X11CaptureMode"/> 名称，null 或无法识别时为 ShmRoot</param>
+    public IGameCapture CreateCapture(string? method = null)
+    {
+        var mode = method != null && Enum.TryParse<X11CaptureMode>(method, true, out var m) ? m : X11CaptureMode.ShmRoot;
+        return new X11Capture(new X11Connection(_display), ownsConnection: true, mode);
+    }
 
     /// <summary>
     /// 新建 XTest 输入后端（独立连接，Dispose 时关闭）。

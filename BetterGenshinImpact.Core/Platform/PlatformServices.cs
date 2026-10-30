@@ -45,8 +45,12 @@ public interface IPlatformServices : IPlatformProbe, IDisposable
 
     IHotkeyService Hotkeys { get; }
 
-    /// <summary>创建默认截图器（未 Start）</summary>
-    IGameCapture CreateCapture();
+    /// <summary>按进程名 / 窗口类查找游戏窗口</summary>
+    IGameWindowFinder GameWindows { get; }
+
+    /// <summary>创建截图器（未 Start）</summary>
+    /// <param name="method">截图方式名（Windows：BitBlt / DwmGetDxSharedSurface / WindowsGraphicsCapture…；X11：ShmRoot / GetImageWindow…）；null 为平台默认</param>
+    IGameCapture CreateCapture(string? method = null);
 
     /// <summary>创建绑定到 <paramref name="window"/> 的输入后端。<see cref="IInputBackend.Background"/> 可能为 null</summary>
     IInputBackend CreateInput(IPlatformWindow window);

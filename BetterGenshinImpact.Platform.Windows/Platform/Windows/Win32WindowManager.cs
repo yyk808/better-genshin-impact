@@ -24,7 +24,7 @@ public sealed class Win32WindowManager : IWindowManager
 
     public IReadOnlyList<IPlatformWindow> FindWindows(WindowQuery query) =>
         EnumerateWindows()
-            .Where(w => query.Matches(w.Title, w.ClassName, w.ProcessId, (w as Win32PlatformWindow)?.ProcessName))
+            .Where(w => query.Matches(w.Title, w.ClassName, w.ProcessId, w.ProcessName))
             .ToList();
 
     public IPlatformWindow? GetForegroundWindow()

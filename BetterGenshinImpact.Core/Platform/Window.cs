@@ -34,6 +34,12 @@ public interface IPlatformWindow : IDisposable
     string Title { get; }
 
     /// <summary>
+    /// 所属进程名。Win32 为 Process.ProcessName（不含扩展名）；X11 为 /proc/pid/cmdline 中的程序文件名（Wine 下带 .exe，如 YuanShen.exe）。
+    /// 进程已退出或未知时为空字符串
+    /// </summary>
+    string ProcessName => string.Empty;
+
+    /// <summary>
     /// 窗口类：Win32 为窗口类名（原神为 UnityWndClass）；X11 为 WM_CLASS "instance/class"。
     /// Wine 窗口在 X11 侧看不到 Win32 类名，WM_CLASS 是小写 exe 名（如 yuanshen.exe）
     /// </summary>

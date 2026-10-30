@@ -57,8 +57,8 @@ public class Win32PlatformWindow : IPlatformWindow
         remove { }
     }
 
-    /// <summary>进程名（不含扩展名）；进程已退出时为 null</summary>
-    public string? ProcessName
+    /// <summary>进程名（不含扩展名）；进程已退出时为空字符串</summary>
+    public string ProcessName
     {
         get
         {
@@ -69,7 +69,7 @@ public class Win32PlatformWindow : IPlatformWindow
             }
             catch
             {
-                return null;
+                return string.Empty;
             }
         }
     }

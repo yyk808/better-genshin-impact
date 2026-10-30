@@ -1,13 +1,16 @@
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Input.Backends.Win32;
 using Fischless.GameCapture;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
 namespace BetterGenshinImpact.Platform.Windows;
 
 /// <summary>Windows（含 Wine 中运行的 Windows 版）平台服务集合</summary>
-public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureModes.BitBlt) : IPlatformServices
+/// <param name="captureMode">CreateCapture 未指定方式时使用的截图方式</param>
+/// <param name="logger">窗口查找日志</param>
+public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureModes.BitBlt, ILogger? logger = null) : IPlatformServices
 {
     public string Name => Win32Environment.IsRunningOnWine ? $"Win32 (Wine {Win32Environment.WineVersion})" : "Win32";
 
@@ -15,7 +18,11 @@ public sealed class Win32PlatformServices(CaptureModes captureMode = CaptureMode
 
     public IHotkeyService Hotkeys { get; } = new Win32HotkeyService();
 
-    public IGameCapture CreateCapture() => GameCaptureFactory.Create(captureMode);
+    public IGameWindowFinder GameWindows { get; } = new Win32GameWindowFinder(logger);
+
+    /// <summary>按方式名创建截图器；方式名无效时抛 <see cref="ArgumentException"/>（与 CaptureModeExtensions.ToCaptureMode 一致）</summary>
+    public IGameCapture CreateCapture(string? method = null) =>
+        GameCaptureFactory.Create(method is null ? captureMode : method.ToCaptureMode());
 
     public IInputBackend CreateInput(IPlatformWindow window) => new Win32InputBackend(window.Handle);
 
