@@ -100,7 +100,7 @@ public class PathingTask
     /// <returns>路线要求的 BetterGI 版本高于当前版本时返回 null</returns>
     public static PathingTask? BuildFromJson(string json, string logicalPath)
     {
-        var task = JsonSerializer.Deserialize<PathingTask>(json, PathRecorder.JsonOptions) ?? throw new Exception("Failed to deserialize PathingTask");
+        var task = JsonSerializer.Deserialize<PathingTask>(json, PathingJson.Options) ?? throw new Exception("Failed to deserialize PathingTask");
         task.FileName = Path.GetFileName(logicalPath);
         task.FullPath = logicalPath;
         //添加区分怪物拾取标志
@@ -121,13 +121,13 @@ public class PathingTask
 
     public static PathingTask BuildFromJson(string json)
     {
-        var task = JsonSerializer.Deserialize<PathingTask>(json, PathRecorder.JsonOptions) ?? throw new Exception("Failed to deserialize PathingTask");
+        var task = JsonSerializer.Deserialize<PathingTask>(json, PathingJson.Options) ?? throw new Exception("Failed to deserialize PathingTask");
         return task;
     }
 
     public void SaveToFile(string filePath)
     {
-        var json = JsonSerializer.Serialize(this, PathRecorder.JsonOptions);
+        var json = JsonSerializer.Serialize(this, PathingJson.Options);
         File.WriteAllText(filePath, json, new UTF8Encoding(false));
     }
 }

@@ -590,12 +590,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
     /// <summary>
     /// 渠道名称到URL的映射
     /// </summary>
-    public static readonly Dictionary<string, string> RepoChannels = new()
-    {
-        { "CNB", "https://cnb.cool/bettergi/bettergi-scripts-list" },
-        // { "GitCode", "https://gitcode.com/huiyadanli/bettergi-scripts-list" },  // 由于 10MB限制，下掉
-        { "GitHub", "https://github.com/babalae/bettergi-scripts-list" },
-    };
+    public static Dictionary<string, string> RepoChannels => ScriptRepoChannels.All;
 
     /// <summary>
     /// 根据用户配置中的渠道名称解析仓库URL

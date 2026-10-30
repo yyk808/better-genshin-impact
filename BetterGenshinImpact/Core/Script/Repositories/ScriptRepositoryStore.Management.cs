@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Script;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -34,7 +35,7 @@ public sealed partial class ScriptRepositoryStore
     private ScriptRepositoryRegistration CreateOfficialRegistration() => new()
     {
         Id = OfficialRepositoryId, Name = "官方脚本仓库", Kind = "official", Directory = OfficialDirectory,
-        Remotes = ScriptRepoUpdater.RepoChannels.Select(pair => new ScriptRepositoryRemote
+        Remotes = ScriptRepoChannels.All.Select(pair => new ScriptRepositoryRemote
             { Id = pair.Key, Name = pair.Key, Url = pair.Value }).ToArray(), Branch = "release"
     };
 
