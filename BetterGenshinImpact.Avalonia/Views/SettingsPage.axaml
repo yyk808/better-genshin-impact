@@ -1,0 +1,466 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SettingsPage"
+             x:DataType="vm:SettingsPageViewModel">
+    <TabControl SelectedIndex="{Binding SelectedTab}" Padding="0">
+        <TabItem Header="通用">
+            <ScrollViewer>
+                <StackPanel Margin="20,4,20,16" Spacing="0">
+                    <TextBlock Classes="section" Text="软件设置" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ComboBox Width="160" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="原神游戏语言" />
+                                <TextBlock Classes="desc" Text="Game Language，影响 OCR 识别时使用的文字" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="开发者功能" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用保存截图功能" />
+                                <TextBlock Classes="desc" Text="可以通过快捷键保存截图，文件保存在 log/screenshot" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotUidCoverEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="截图遮盖UID" />
+                                <TextBlock Classes="desc" Text="生成的截图会遮盖右下角的UID区域" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.RewardRecognitionScreenshotEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="保存奖励识别截图" />
+                                <TextBlock Classes="desc" Text="保存奖励识别的调试图片到 log/RewardRecognition" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="通用功能设置" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ComboBox Width="160" ItemsSource="{Binding MapMatchingMethods}" SelectedItem="{Binding Config.PathingConditionConfig.MapMatchingMethod}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="地图追踪优先使用的特征匹配方式" />
+                                <TextBlock Classes="desc" Text="影响所有地图追踪功能，重启后生效" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapZoomEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="地图移动过程中是否缩放地图" />
+                                <TextBlock Classes="desc" Text="建议开启，关闭该设置可能在运行部分脚本时发生错误" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapDragUseRelativeMove}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="地图拖动使用相对鼠标移动" />
+                                <TextBlock Classes="desc" Text="用于兼容性测试，关闭时使用绝对坐标移动，通常更稳定" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.IsReviveInNearestStatueOfTheSeven}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="是否就近七天神像恢复血量" />
+                                <TextBlock Classes="desc" Text="启用后将自动选择最近的七天神像，忽略指定位置" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="其他设置" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.RestoreFocusOnLostEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="失去焦点自动恢复" />
+                                <TextBlock Classes="desc" Text="任务执行中游戏窗口失去焦点时尝试重新激活（关闭时暂停并提示）" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.WindowClassDetectPreferred}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="优先使用窗口类名查找游戏窗口" />
+                                <TextBlock Classes="desc" Text="找窗时先按 UnityWndClass 类名匹配" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ComboBox Width="160" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding Config.OtherConfig.ServerTimeZoneOffset}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="服务器时区" />
+                                <TextBlock Classes="desc" Text="用于判断每日刷新、月卡等（亚服 / 国服 UTC+8，欧服 UTC+1，美服 UTC-5）" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.DetailedErrorLogs}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="详细错误日志" />
+                                <TextBlock Classes="desc" Text="任务出错时在日志中输出完整堆栈" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        <TabItem Header="遮罩">
+            <ScrollViewer>
+                <StackPanel Margin="20,4,20,16" Spacing="0">
+                    <TextBlock Classes="section" Text="遮罩" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.MaskEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用遮罩窗口" />
+                                <TextBlock Classes="desc" Text="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.DisplayRecognitionResultsOnMask}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="在遮罩上显示识别结果" />
+                                <TextBlock Classes="desc" Text="显示识别框与文字" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.ShowLogBox}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="显示日志窗口" />
+                                <TextBlock Classes="desc" Text="遮罩左下角的日志" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.ShowStatus}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="显示状态" />
+                                <TextBlock Classes="desc" Text="遮罩上的实时任务状态" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.ShowFps}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="显示帧率" />
+                                <TextBlock Classes="desc" Text="遮罩上显示截图帧率" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.UidCoverEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用UID遮盖" />
+                                <TextBlock Classes="desc" Text="遮盖右下角的UID区域" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="准星" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.CrosshairEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用准星" />
+                                <TextBlock Classes="desc" Text="在遮罩窗口中心显示准星" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Width="160" Text="{Binding Config.MaskWindowConfig.CrosshairColor}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="准星颜色" />
+                                <TextBlock Classes="desc" Text="#RRGGBB" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <NumericUpDown Width="160" Minimum="1" Maximum="20" Value="{Binding Config.MaskWindowConfig.CrosshairLineWidth}" FormatString="0" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="线宽" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <NumericUpDown Width="160" Minimum="4" Maximum="200" Value="{Binding Config.MaskWindowConfig.CrosshairSize}" FormatString="0" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="大小" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <NumericUpDown Width="160" Minimum="0" Maximum="100" Value="{Binding Config.MaskWindowConfig.CrosshairGap}" FormatString="0" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="中心点间隔" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        <TabItem Header="快捷键">
+            <ScrollViewer>
+                <StackPanel Margin="20,4,20,16" Spacing="0">
+                    <DockPanel Margin="0,4,0,8">
+                        <Button DockPanel.Dock="Right" Content="重新注册" Command="{Binding RegisterHotkeysCommand}" />
+                        <StackPanel>
+                            <TextBlock Classes="desc" Text="{Binding HotkeyStatus}" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap"
+                                       Text="点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除），写法与 Windows 版相同。Linux 上经 X11 XGrabKey 注册为全局热键（注册期间该组合键不会传给游戏）；目前实现了启动停止、停止 / 暂停任务、自动拾取 / 剧情开关、一条龙，其余只保存绑定。" />
+                        </StackPanel>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Hotkeys}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HotkeyItemViewModel">
+                                <Border Classes="row">
+                                    <Grid ColumnDefinitions="90,*,110,230,60">
+                                        <TextBlock Grid.Column="0" Classes="desc" Text="{Binding Group}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" />
+                                            <TextBlock Classes="desc" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center"
+                                                   Text="{Binding IsSupported, Converter={x:Static vm:SettingsConverters.Supported}}" />
+                                        <Button Grid.Column="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="8,3"
+                                                Content="{Binding DisplayValue}" Classes.accent="{Binding IsRecording}"
+                                                Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).StartRecordCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <Button Grid.Column="4" Content="清除" Padding="8,3" Margin="6,0,0,0"
+                                                Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ClearHotkeyCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        <TabItem Header="通知">
+            <ScrollViewer>
+                <StackPanel Margin="20,4,20,16" Spacing="0">
+                    <TextBlock Classes="section" Text="通知" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.JsNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="JS 脚本通知" />
+                                <TextBlock Classes="desc" Text="允许 JS 脚本发送通知" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.IncludeScreenShot}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="通知包含截图" />
+                                <TextBlock Classes="desc" Text="通知中附带游戏截图" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.DragonEndSummaryEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="一条龙结束汇总" />
+                                <TextBlock Classes="desc" Text="一条龙结束时发送执行汇总" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Width="280" Text="{Binding Config.NotificationConfig.NotificationEventSubscribe}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="事件订阅" />
+                                <TextBlock Classes="desc" Text="需要通知的事件，逗号分隔，留空为全部" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="Webhook" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.WebhookEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用 Webhook" />
+                                <TextBlock Classes="desc" Text="向指定地址 POST 通知 JSON" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Width="360" Text="{Binding Config.NotificationConfig.WebhookEndpoint}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Webhook 地址" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="其他通道" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.FeishuNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="飞书" />
+                                <TextBlock Classes="desc" Text="Webhook 地址填在配置文件 / Windows 版" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.DingDingwebhookNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="钉钉" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.BarkNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Bark" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.EmailNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="邮件" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.OneBotNotificationEnabled}" OnContent="" OffContent="" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="OneBot" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        <TabItem Header="关于">
+            <ScrollViewer>
+                <StackPanel Margin="20,4,20,16" Spacing="0">
+                    <TextBlock Classes="section" Text="关于 BetterGI" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="title" Text="BetterGI · 更好的原神（Linux · Avalonia 预览）" />
+                            <TextBlock Classes="desc" Text="{Binding Version, StringFormat='版本：{0}'}" />
+                            <TextBlock Classes="desc" Text="{Binding Runtime, StringFormat='运行时：{0}'}" />
+                            <TextBlock Classes="desc" Text="{Binding DisplayName, StringFormat='X 显示：{0}'}" />
+                            <TextBlock Classes="desc" Text="{Binding AssetsDirectory, StringFormat='素材目录：{0}'}" TextWrapping="Wrap" />
+                            <TextBlock Classes="desc" Text="{Binding ConfigFile, StringFormat='配置文件：{0}'}" TextWrapping="Wrap" />
+                            <TextBlock Classes="desc" Text="项目主页：https://github.com/babalae/better-genshin-impact　文档：https://bettergi.com" TextWrapping="Wrap" />
+                            <TextBlock Classes="desc" Text="本软件开源、免费，仅供学习交流使用。" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
+</UserControl>

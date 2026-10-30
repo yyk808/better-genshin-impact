@@ -19,7 +19,7 @@ using Serilog;
 //                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
 //                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask] [--mask-recognition]
-//                    [--solo-task 任务标识] [--solo-stop-after 秒]
+//                    [--solo-task 任务标识] [--solo-stop-after 秒] [--script-group 配置组名称] [--script-stop-after 秒]
 // --auto-start / --screenshots / --exit-after 用于无人值守验证：启动后自动启动截图器，
 // 按页面保存界面截图（启动、实时触发、环境），到时退出
 internal static class AvaloniaHostProgram
@@ -93,6 +93,8 @@ internal static class AvaloniaHostProgram
         desktop.Exit += (_, _) =>
         {
             mask?.Dispose();
+            // 注销快捷键（X11 XGrabKey），再释放平台连接
+            viewModel?.Settings.Dispose();
             if (host is not null)
             {
                 // 退出时（关闭主窗口或 Shutdown）停止截图器并释放平台连接（X11），避免输入线程使用已关闭的连接
@@ -125,6 +127,11 @@ internal static class AvaloniaHostProgram
                 await RunSoloTaskUnattendedAsync(window, viewModel, soloTaskId, options.SoloStopAfterSeconds, options.ScreenshotDirectory, log);
             }
 
+            if (options.ScriptGroup is { } scriptGroup && host is not null)
+            {
+                await RunScriptGroupUnattendedAsync(window, viewModel, scriptGroup, options.ScriptStopAfterSeconds, options.ScreenshotDirectory, log);
+            }
+
             if (options.UiSelfTest)
             {
                 await UiSelfTestAsync(desktop, log, options.ScreenshotDirectory);
@@ -148,13 +155,32 @@ internal static class AvaloniaHostProgram
             Directory.CreateDirectory(dir);
             // 先让触发器跑一会儿，日志面板里能看到拾取 / 剧情的记录
             await Task.Delay(total / 2);
-            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("一条龙", "avalonia-onedragon.png"), ("启动", "avalonia-home.png") })
+            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("一条龙", "avalonia-onedragon.png"), ("全自动", "avalonia-auto.png"), ("设置", "avalonia-settings.png"), ("启动", "avalonia-home.png") })
             {
                 viewModel.Navigate(page);
                 await Task.Delay(600);
                 SaveScreenshot(window, Path.Combine(dir, file), log);
             }
 
+            // 全自动、设置页的各个标签
+            viewModel.Navigate("全自动");
+            foreach (var (tab, file) in new[] { (1, "avalonia-auto-js.png"), (2, "avalonia-auto-pathing.png"), (3, "avalonia-auto-record.png"), (0, "avalonia-auto.png") })
+            {
+                viewModel.Auto.SelectedTab = tab;
+                await Task.Delay(500);
+                SaveScreenshot(window, Path.Combine(dir, file), log);
+            }
+
+            viewModel.Navigate("设置");
+            foreach (var (tab, file) in new[] { (1, "avalonia-settings-mask.png"), (2, "avalonia-settings-hotkey.png"), (3, "avalonia-settings-notify.png"), (4, "avalonia-settings-about.png"), (0, "avalonia-settings.png") })
+            {
+                viewModel.Settings.SelectedTab = tab;
+                await Task.Delay(500);
+                SaveScreenshot(window, Path.Combine(dir, file), log);
+            }
+
+            viewModel.Navigate("启动");
+            await Task.Delay(300);
             // 启动页下半部分：收起日志、展开“同时启动原神”，滚动到底部
             viewModel.IsLogExpanded = false;
             foreach (var expander in window.GetVisualDescendants().OfType<Expander>())
@@ -284,6 +310,53 @@ internal static class AvaloniaHostProgram
         }
     }
 
+    /// <summary>无人值守：切到任务计划页，选中配置组并点击运行；到时（大于 0 时）点击停止，等待结束</summary>
+    private static async Task RunScriptGroupUnattendedAsync(MainWindow window, MainWindowViewModel viewModel, string groupName, int stopAfterSeconds,
+        string? dir, ILogger log)
+    {
+        viewModel.Navigate("全自动");
+        viewModel.Auto.SelectedTab = 0;
+        var page = viewModel.ScriptControl;
+        page.Reload();
+        var group = page.ScriptGroups.FirstOrDefault(g => g.Name == groupName);
+        if (group is null)
+        {
+            log.Warning("任务计划页没有配置组 {Name}", groupName);
+            return;
+        }
+
+        page.SelectedScriptGroup = group;
+        await Task.Delay(500);
+        log.Information("无人值守：运行配置组 {Name}，{Seconds} 秒后停止", groupName, stopAfterSeconds);
+        var run = page.StartScriptGroup();
+        var waited = 0;
+        while (!run.IsCompleted && (stopAfterSeconds <= 0 || waited < stopAfterSeconds * 10))
+        {
+            await Task.Delay(100);
+            waited++;
+        }
+
+        if (dir is not null)
+        {
+            Directory.CreateDirectory(dir);
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-script-running.png"), log);
+        }
+
+        if (!run.IsCompleted)
+        {
+            log.Information("无人值守：停止配置组，当前状态 {Status}", page.StatusText);
+            page.Stop();
+        }
+
+        await run;
+        log.Information("无人值守：配置组已结束，状态 {Status}", page.StatusText);
+        await Task.Delay(300);
+        if (dir is not null)
+        {
+            SaveScreenshot(window, Path.Combine(dir, "avalonia-script-stopped.png"), log);
+        }
+    }
+
     private static async Task ScrollIntoViewAsync(MainWindow window, object dataContext)
     {
         var target = window.GetVisualDescendants().OfType<Expander>().FirstOrDefault(e => ReferenceEquals(e.DataContext, dataContext));
@@ -383,7 +456,9 @@ internal sealed record AvaloniaOptions(
     bool UiSelfTest,
     string? SelectWindowTitle,
     string? SoloTaskId = null,
-    int SoloStopAfterSeconds = 4)
+    int SoloStopAfterSeconds = 4,
+    string? ScriptGroup = null,
+    int ScriptStopAfterSeconds = 0)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -396,6 +471,8 @@ internal sealed record AvaloniaOptions(
         int? exitAfter = null;
         string? soloTask = null;
         var soloStopAfter = 4;
+        string? scriptGroup = null;
+        var scriptStopAfter = 0;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -416,10 +493,13 @@ internal sealed record AvaloniaOptions(
                 case "--select-window": selectWindow = Next(); break;
                 case "--solo-task": soloTask = Next(); break;
                 case "--solo-stop-after": soloStopAfter = int.Parse(Next()); break;
+                case "--script-group": scriptGroup = Next(); break;
+                case "--script-stop-after": scriptStopAfter = int.Parse(Next()); break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
-        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter);
+        return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
+            scriptStopAfter);
     }
 }

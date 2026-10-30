@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:grp="using:BetterGenshinImpact.Core.Script.Group"
+             x:Class="BetterGenshinImpact.Avalonia.Views.ScriptControlPage"
+             x:DataType="vm:ScriptControlPageViewModel">
+    <Grid ColumnDefinitions="240,*" Margin="20,16,20,12">
+        <!-- 左侧：配置组列表 -->
+        <DockPanel Grid.Column="0" Margin="0,0,16,0">
+            <TextBlock DockPanel.Dock="Top" Classes="pageTitle" Text="配置组" FontSize="20" Margin="4,0,0,8" />
+            <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="新增" Margin="6,0,0,0" Command="{Binding AddScriptGroupCommand}" />
+                    <TextBox Watermark="新配置组名称" Text="{Binding NewGroupName}" />
+                </DockPanel>
+                <WrapPanel>
+                    <Button Content="↑" Padding="10,3" Margin="0,0,4,4" Command="{Binding MoveGroupCommand}" CommandParameter="up" ToolTip.Tip="上移" />
+                    <Button Content="↓" Padding="10,3" Margin="0,0,4,4" Command="{Binding MoveGroupCommand}" CommandParameter="down" ToolTip.Tip="下移" />
+                    <Button Content="删除组" Padding="10,3" Margin="0,0,4,4" Command="{Binding DeleteScriptGroupCommand}" CommandParameter="{Binding SelectedScriptGroup}" />
+                    <Button Content="刷新" Padding="10,3" Margin="0,0,4,4" Command="{Binding ReloadCommand}" />
+                </WrapPanel>
+                <Button Content="连续任务从此开始执行" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Command="{Binding SetGroupNextCommand}" CommandParameter="{Binding SelectedScriptGroup}" />
+                <Button Classes="accent" Content="连续执行" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Command="{Binding StartAllGroupsCommand}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding ScriptGroups}" SelectedItem="{Binding SelectedScriptGroup}" Background="Transparent">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="grp:ScriptGroup">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="▶" Foreground="#4CC2FF" IsVisible="{Binding NextFlag}"
+                                       ToolTip.Tip="连续任务从此开始执行" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Name}" Margin="4,2" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- 右侧：配置组内项目 -->
+        <DockPanel Grid.Column="1">
+            <StackPanel DockPanel.Dock="Top" Spacing="4">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button Classes="accent" Content="运行" MinWidth="72" HorizontalContentAlignment="Center"
+                                Command="{Binding StartScriptGroupCommand}" IsEnabled="{Binding HasSelectedGroup}"
+                                IsVisible="{Binding !IsRunning}" />
+                        <Button Classes="danger" Content="停止" MinWidth="72" HorizontalContentAlignment="Center"
+                                Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Classes="pageTitle" Text="{Binding SelectedGroupTitle}" FontSize="20" />
+                        <TextBlock Classes="desc" Text="{Binding StatusText, StringFormat='状态：{0}'}" />
+                    </StackPanel>
+                </DockPanel>
+                <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,2,0,6"
+                           Text="配置组保存在 User/ScriptGroup（与 Windows 版共用）。可以添加键鼠脚本与 Shell；JS 脚本、地图追踪任务的选择面板，项目的通用设置与配置组设置尚未迁移（文件中已有的项目照常执行）。" />
+                <Border Classes="card" IsVisible="{Binding HasSelectedGroup}">
+                    <StackPanel Spacing="8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="键鼠脚本" Width="72" VerticalAlignment="Center" />
+                            <Button DockPanel.Dock="Right" Content="添加" Margin="6,0,0,0" Command="{Binding AddKmScriptCommand}" />
+                            <ComboBox ItemsSource="{Binding KmScripts}" SelectedItem="{Binding SelectedKmScript}" HorizontalAlignment="Stretch"
+                                      PlaceholderText="User/KeyMouseScript 下没有脚本" />
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="Shell" Width="72" VerticalAlignment="Center" />
+                            <Button DockPanel.Dock="Right" Content="添加" Margin="6,0,0,0" Command="{Binding AddShellCommand}" />
+                            <TextBox Watermark="命令" Text="{Binding NewShellCommand}" />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Content="任务倒序排列" Padding="10,3" Command="{Binding ReverseProjectsCommand}" />
+                            <Button Content="清空" Padding="10,3" Command="{Binding ClearProjectsCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Grid ColumnDefinitions="40,*,110,90,220" Margin="12,8,12,2" IsVisible="{Binding HasSelectedGroup}">
+                    <TextBlock Grid.Column="0" Classes="desc" Text="#" />
+                    <TextBlock Grid.Column="1" Classes="desc" Text="名称" />
+                    <TextBlock Grid.Column="2" Classes="desc" Text="类型" />
+                    <TextBlock Grid.Column="3" Classes="desc" Text="启用状态" />
+                </Grid>
+            </StackPanel>
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding SelectedScriptGroup.Projects}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="grp:ScriptGroupProject">
+                            <Border Classes="row">
+                                <Grid ColumnDefinitions="40,*,110,90,220">
+                                    <TextBlock Grid.Column="0" Text="{Binding Index}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding FolderName}" />
+                                        <TextBlock Text="▶ 下次从这里开始" Foreground="#4CC2FF" IsVisible="{Binding NextFlag}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding TypeDesc}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="3" Content="{Binding StatusDesc}" Padding="8,2"
+                                            Command="{Binding $parent[ItemsControl].((vm:ScriptControlPageViewModel)DataContext).ToggleProjectEnabledCommand}"
+                                            CommandParameter="{Binding}" />
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                                        <Button Content="从此执行" Padding="8,2"
+                                                Command="{Binding $parent[ItemsControl].((vm:ScriptControlPageViewModel)DataContext).SetProjectNextCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <Button Content="移除" Padding="8,2"
+                                                Command="{Binding $parent[ItemsControl].((vm:ScriptControlPageViewModel)DataContext).DeleteProjectCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>

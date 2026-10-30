@@ -20,6 +20,24 @@
         <Setter Property="Padding" Value="16,12" />
         <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
+    <!-- 列表行（任务计划的项目列表等） -->
+    <Style Selector="Border.row">
+        <Setter Property="Background" Value="{StaticResource BgiCardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BgiCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Margin" Value="0,0,0,3" />
+    </Style>
+    <Style Selector="TabControl > TabItem, TabItem">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Padding" Value="12,4" />
+    </Style>
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="#C42B1C" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
     <Style Selector="Border.subcard">
         <Setter Property="Background" Value="#262626" />
         <Setter Property="BorderBrush" Value="{StaticResource BgiCardBorderBrush}" />

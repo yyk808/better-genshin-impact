@@ -40,19 +40,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Environment = new EnvironmentPageViewModel(host, hostError, log);
         Tasks = new TaskSettingsPageViewModel(host, log);
         OneDragon = new OneDragonPageViewModel(host, Tasks, log);
+        ScriptControl = new ScriptControlPageViewModel(host, log);
+        Auto = new AutoPageViewModel(host, ScriptControl, log);
+        Settings = new SettingsPageViewModel(host, log,
+            () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
+            () => Tasks.ToggleAsync(BetterGenshinImpact.GameTask.OneDragon.OneDragonTask.TaskId));
         NavItems =
         [
             new("启动", IconHome, Home),
             new("实时触发", IconBolt, Trigger),
             new("独立任务", IconTask, Tasks),
-            new("任务计划", IconCalendar, Placeholder("任务计划")),
+            new("任务计划", IconCalendar, new PlaceholderPageViewModel("任务计划",
+                "Windows 版的“任务计划”是新的计划系统（计划、执行记录、路线 CD、触发方式），尚未迁移到 Avalonia 宿主。" +
+                "配置组（调度器）在“全自动 → 调度器”中，与 Windows 版共用 User/ScriptGroup。")),
             new("一条龙", IconDragon, OneDragon),
-            new("全自动", IconAuto, Placeholder("全自动")),
+            new("全自动", IconAuto, Auto),
         ];
         FooterItems =
         [
             new("环境", IconChip, Environment),
-            new("设置", IconSettings, Placeholder("设置")),
+            new("设置", IconSettings, Settings),
         ];
         _selectedNav = NavItems[0];
         _currentPage = Home;
@@ -70,6 +77,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public TaskSettingsPageViewModel Tasks { get; }
 
     public OneDragonPageViewModel OneDragon { get; }
+
+    public ScriptControlPageViewModel ScriptControl { get; }
+
+    public AutoPageViewModel Auto { get; }
+
+    public SettingsPageViewModel Settings { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 
