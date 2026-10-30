@@ -13,6 +13,14 @@ namespace BetterGenshinImpact.Core.Input.Backends.Win32;
 /// </summary>
 internal sealed class PostMessageChannel : InputChannelBase
 {
+    /// <summary>
+    /// PostMessage 后台输入：不需要前台（必要时先投递 WM_ACTIVATE），没有原始输入，不支持相对移动
+    /// </summary>
+    public override InputCapabilities Capabilities { get; } = new(
+        RequiresForeground: false,
+        SupportsRelativeMotion: false,
+        SupportsKeyStateQuery: false);
+
     private readonly IntPtr _hWnd;
     private readonly PostMessageSimulator? _simulator;
 
@@ -27,7 +35,7 @@ internal sealed class PostMessageChannel : InputChannelBase
         _simulator = hWnd == IntPtr.Zero ? null : new PostMessageSimulator(hWnd);
     }
 
-    protected override void OnKeyDown(User32.VK key)
+    protected override void OnKeyDown(GameKey key)
     {
         if (TryPrepare("按键"))
         {
@@ -35,7 +43,7 @@ internal sealed class PostMessageChannel : InputChannelBase
         }
     }
 
-    protected override void OnKeyUp(User32.VK key)
+    protected override void OnKeyUp(GameKey key)
     {
         if (TryPrepare("按键"))
         {
@@ -43,7 +51,7 @@ internal sealed class PostMessageChannel : InputChannelBase
         }
     }
 
-    protected override void OnKeyPress(User32.VK key)
+    protected override void OnKeyPress(GameKey key)
     {
         if (TryPrepare("按键"))
         {

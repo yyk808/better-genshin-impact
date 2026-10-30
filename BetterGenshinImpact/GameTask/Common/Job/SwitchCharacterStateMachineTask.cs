@@ -1462,7 +1462,7 @@ public sealed class SwitchCharacterStateMachineTask : StateMachineBase<SwitchCha
         }
         finally
         {
-            InputHub.Foreground.Keyboard.KeyPress(Vanara.PInvoke.User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         }
 
         var returned = await NewRetry.WaitForAction(_runtime, () =>

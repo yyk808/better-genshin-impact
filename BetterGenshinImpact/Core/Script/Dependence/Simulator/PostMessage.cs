@@ -33,7 +33,7 @@ public class PostMessage
         Channel.Mouse.LeftButtonClick();
     }
 
-    private static User32.VK ToVk(string key)
+    private static GameKey ToVk(string key)
     {
         try
         {

@@ -82,7 +82,7 @@
 //         Simulation.SendInput.Mouse.MoveMouseBy(CharMovingUnit, 0);
 //         Sleep(500);
 //
-//         Simulation.SendInput.Keyboard.KeyDown(User32.VK.VK_W).Sleep(100).KeyUp(User32.VK.VK_W);
+//         Simulation.SendInput.Keyboard.KeyDown(GameKey.VK_W).Sleep(100).KeyUp(GameKey.VK_W);
 //         Sleep(1000);
 //
 //         var ms2 = directInputMonitor.GetMouseState();

@@ -19,6 +19,11 @@ public enum InputBackendKind
     /// 手柄（预留）
     /// </summary>
     Gamepad,
+
+    /// <summary>
+    /// Linux X11 / XWayland：XTest 前台输入，没有后台通道
+    /// </summary>
+    X11,
 }
 
 /// <summary>

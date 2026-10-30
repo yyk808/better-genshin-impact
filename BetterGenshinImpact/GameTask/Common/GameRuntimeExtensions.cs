@@ -194,7 +194,7 @@ public static class GameRuntimeExtensions
                     autoPickStopped = true;
                     // 使快捷键本身释放
                     wait.Sleep(300);
-                    foreach (User32.VK key in Enum.GetValues(typeof(User32.VK)))
+                    foreach (GameKey key in Enum.GetValues(typeof(GameKey)))
                     {
                         wait.ThrowIfStopped();
                         // 检查键是否被按下
@@ -309,7 +309,7 @@ public static class GameRuntimeExtensions
     /// <summary>
     /// 查询按键是否处于按下状态
     /// </summary>
-    private static bool IsKeyPressed(User32.VK key)
+    private static bool IsKeyPressed(GameKey key)
     {
         // 检查高位是否为 1（表示按键被按下）
         return (User32.GetAsyncKeyState((int)key) & 0x8000) != 0;

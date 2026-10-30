@@ -17,7 +17,7 @@ public class SystemInfoTests
     {
         var systemInfo = new SystemInfo(CreateViewport(1920, 1200, 1.25f));
 
-        systemInfo.CaptureAreaRect = new RECT(100, 200, 2020, 1280);
+        systemInfo.CaptureAreaRect = PixelRect.FromLTRB(100, 200, 2020, 1280);
 
         Assert.Equal(100, systemInfo.CaptureAreaRect.X);
         Assert.Equal(200, systemInfo.CaptureAreaRect.Y);
@@ -57,7 +57,7 @@ public class SystemInfoTests
     {
         var systemInfo = new SystemInfo(CreateViewport(1920, 1080));
 
-        systemInfo.CaptureAreaRect = new RECT(0, 0, width, height);
+        systemInfo.CaptureAreaRect = new PixelRect(0, 0, width, height);
 
         Assert.Equal(expectedScaleTo1080P, systemInfo.ScaleTo1080PRatio, 10);
         Assert.Equal(expectedAssetScale, systemInfo.AssetScale, 10);
@@ -75,6 +75,6 @@ public class SystemInfoTests
     /// <returns>测试用游戏画面区域</returns>
     private static GameViewport CreateViewport(int width, int height, float dpiScale = 1f)
     {
-        return new GameViewport(new RECT(0, 0, width, height), dpiScale);
+        return new GameViewport(new PixelRect(0, 0, width, height), dpiScale);
     }
 }

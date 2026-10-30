@@ -243,7 +243,7 @@ public class OneKeyClaimRewardTask : Singleton<OneKeyClaimRewardTask>
                 continue;
             }
 
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             Logger.LogInformation("一键领取奖励：检测到“点击空白区域继续”，已按 ESC");
             await Delay(220, ct);
             return;

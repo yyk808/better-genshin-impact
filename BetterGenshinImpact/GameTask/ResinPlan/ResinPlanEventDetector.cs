@@ -220,7 +220,7 @@ public sealed class ResinPlanEventDetector
     /// <param name="ct">取消令牌。</param>
     private async Task ScrollToTopAsync(CancellationToken ct)
     {
-        InputHub.Foreground.Keyboard.KeyDown(User32.VK.VK_W);
+        InputHub.Foreground.Keyboard.KeyDown(GameKey.VK_W);
         try
         {
             await _runtime.Delay(ScrollToTopMs, ct);
@@ -228,7 +228,7 @@ public sealed class ResinPlanEventDetector
         finally
         {
             // 取消时也要松开按键，避免回到主界面后角色一直前进
-            InputHub.Foreground.Keyboard.KeyUp(User32.VK.VK_W);
+            InputHub.Foreground.Keyboard.KeyUp(GameKey.VK_W);
         }
 
         await _runtime.Delay(500, ct);
@@ -326,7 +326,7 @@ public sealed class ResinPlanEventDetector
 
         for (var step = 0; !opened && step < MaxStepDown; step++)
         {
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_S);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_S);
             await _runtime.Delay(400, ct);
             opened = ContainsText(DetailTitleRoi, keywords);
         }

@@ -33,7 +33,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoArtifactSalvageTests
         /// </summary>
         private static GameRuntime CreateRuntime()
         {
-            return TestGameRuntime.Create(new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, 1920, 1080), 1));
+            return TestGameRuntime.Create(new FakeSystemInfo(new PixelRect(0, 0, 1920, 1080), 1));
         }
 
         [Theory(Skip = "该测试类暂不执行。")]

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BetterGenshinImpact.GameTask.QuestVoice.Core.Ocr;
 using OpenCvSharp;
 using SkiaSharp;
+using PixelRect = BetterGenshinImpact.GameTask.QuestVoice.Core.Ocr.PixelRect;
 
 namespace BetterGenshinImpact.GameTask.QuestVoice.Features.Ocr;
 

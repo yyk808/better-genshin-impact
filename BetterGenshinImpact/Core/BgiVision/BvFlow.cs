@@ -505,7 +505,7 @@ internal sealed class BvFlowServices
     public required Func<int, Task> Delay { get; set; }
     public required Func<long> GetTimestamp { get; set; }
     public required Func<long, double> GetElapsedMilliseconds { get; set; }
-    public required Action<Vanara.PInvoke.User32.VK> KeyPress { get; set; }
+    public required Action<GameKey> KeyPress { get; set; }
     public required Action<double, double> LeftClick { get; set; }
     public required Action<double, double> RightClick { get; set; }
     public required Action<double, double> MiddleClick { get; set; }

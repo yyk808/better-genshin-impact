@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		平台无关的核心类库（纯 net10.0，不带 -windows）。
+		第一阶段：平台抽象层（键码、几何类型、窗口/截图/输入/热键接口）与输入通道基类。
+		约束：这里不能引用任何 Windows 专属的包或 API（Vanara、WPF、WinForms、System.Drawing.Common 等），
+		Linux 上不加 EnableWindowsTargeting 也必须能编译。
+	-->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>BetterGenshinImpact</RootNamespace>
+		<AssemblyName>BetterGenshinImpact.Core</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<LangVersion>14.0</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Platforms>x64</Platforms>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- 只引用托管包；OpenCvSharp4 的 native 运行时由宿主（Windows/Linux）按 RID 自行引用 -->
+		<PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+	</ItemGroup>
+
+</Project>

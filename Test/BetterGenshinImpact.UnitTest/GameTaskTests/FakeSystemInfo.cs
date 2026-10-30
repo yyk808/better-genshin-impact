@@ -13,7 +13,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
 {
     internal class FakeSystemInfo : ISystemInfo
     {
-        public FakeSystemInfo(RECT gameScreenSize, double assetScale)
+        public FakeSystemInfo(PixelRect gameScreenSize, double assetScale)
         {
             DesktopRectArea = new(gameScreenSize.Width, gameScreenSize.Height);
 
@@ -30,7 +30,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
 
         public System.Drawing.Size DisplaySize => throw new NotImplementedException();
 
-        public RECT GameScreenSize { get; }
+        public PixelRect GameScreenSize { get; }
 
         public double AssetScale { get; } = 1;
 
@@ -38,7 +38,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
 
         public double ScaleTo1080PRatio { get; }
 
-        public RECT CaptureAreaRect { get ; set ; }
+        public PixelRect CaptureAreaRect { get ; set ; }
         public Rect ScaleMax1080PCaptureRect { get; set; } = new Rect(0, 0, 1920, 1080);
 
         public DesktopRegion DesktopRectArea { get; set; }

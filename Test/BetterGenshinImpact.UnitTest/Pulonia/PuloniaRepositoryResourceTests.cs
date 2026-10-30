@@ -232,7 +232,7 @@ public sealed class PuloniaRepositoryResourceTests : IDisposable
         Assert.Equal("// 初始版本", File.ReadAllText(Path.Combine(restored.Path, "main.js")));
         Assert.Equal("// 旧公共包", File.ReadAllText(Path.Combine(restored.Path, "packages", "shared.js")));
         using var context = new ScriptRepositoryResourceContext(await store.OpenApprovedAsync(reference));
-        var host = new AutoPathingScript(TestGameRuntime.Create(new FakeSystemInfo(new RECT(0, 0, 1920, 1080), 1)), new AllConfig(),
+        var host = new AutoPathingScript(TestGameRuntime.Create(new FakeSystemInfo(new PixelRect(0, 0, 1920, 1080), 1)), new AllConfig(),
             restored.Path, null, CancellationToken.None, context);
         Assert.Equal("{\"route\":1}", host.ReadTextSync("路线.json"));
         Assert.True(host.IsFile("路线.json"));

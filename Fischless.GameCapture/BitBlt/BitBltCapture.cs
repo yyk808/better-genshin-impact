@@ -7,12 +7,14 @@ namespace Fischless.GameCapture.BitBlt;
 
 public class BitBltCapture : IGameCapture
 {
+    public CaptureCapabilities Capabilities { get; } = new("BitBlt", CanCaptureOccluded: false);
+
     public bool IsCapturing { get; private set; }
     private readonly Stopwatch _sizeCheckTimer = new();
     private readonly ReaderWriterLockSlim _lockSlim = new();
     private volatile nint _hWnd; // 需要加锁
     private BitBltSession? _session; // 需要加锁
-    private RECT? _captureRect;
+    private PixelRect? _captureRect;
 
     private volatile bool _lastCaptureFailed;
 
@@ -24,8 +26,11 @@ public class BitBltCapture : IGameCapture
 
     public GameCaptureFrame? Capture() => Capture(false);
 
-    public void Start(nint hWnd, Dictionary<string, object>? settings = null)
+    public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        var hWnd = window.Handle;
+
         if (settings == null || !settings.TryGetValue("autoFixWin11BitBlt", out var value)) return;
         if (value is true)
         {
@@ -93,7 +98,7 @@ public class BitBltCapture : IGameCapture
             var top = windowRect.Top + windowRect.Height - clientRect.Height;
             var right = left + clientRect.Width;
             var bottom = top + clientRect.Height;
-            _captureRect = new RECT(left, top, right, bottom);
+            _captureRect = PixelRect.FromLTRB(left, top, right, bottom);
 
             if (_session != null)
             {

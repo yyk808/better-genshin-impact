@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <Using Include="Xunit"/>
+        <Using Include="BetterGenshinImpact.Platform"/>
     </ItemGroup>
 
     <ItemGroup>

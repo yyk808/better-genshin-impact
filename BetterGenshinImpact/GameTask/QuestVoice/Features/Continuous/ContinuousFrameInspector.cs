@@ -15,6 +15,7 @@ using BetterGenshinImpact.GameTask.QuestVoice.Features.Ocr;
 using Serilog;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Diagnostics;
 using SkiaSharp;
+using PixelRect = BetterGenshinImpact.GameTask.QuestVoice.Core.Ocr.PixelRect;
 
 namespace BetterGenshinImpact.GameTask.QuestVoice.Features.Continuous;
 

@@ -50,7 +50,7 @@ public class EClassifyTests(ITestOutputHelper output)
         Assert.True(mat.Width == 1920 && mat.Height == 1080,
             $"截图必须是 1920x1080，实际：{mat.Width}x{mat.Height}");
 
-        var systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+        var systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
         // 桌面 -> 游戏捕获区域 -> 1080P 区域
         var gameCaptureRegion = systemInfo.DesktopRectArea.Derive(mat, systemInfo.CaptureAreaRect.X, systemInfo.CaptureAreaRect.Y);
         var imageRegion = gameCaptureRegion.DeriveTo1080P();

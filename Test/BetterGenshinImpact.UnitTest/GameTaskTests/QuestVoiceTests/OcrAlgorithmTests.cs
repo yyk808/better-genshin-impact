@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using BetterGenshinImpact.GameTask.QuestVoice.Core.Ocr;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Ocr;
 using Xunit;
+using PixelRect = BetterGenshinImpact.GameTask.QuestVoice.Core.Ocr.PixelRect;
 
 namespace BetterGenshinImpact.UnitTest.GameTaskTests.QuestVoiceTests;
 

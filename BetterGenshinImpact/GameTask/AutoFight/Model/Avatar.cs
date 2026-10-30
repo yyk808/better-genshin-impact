@@ -189,7 +189,7 @@ public class Avatar
         {
             Logger.LogWarning("检测到复苏界面，存在角色被击败，前往七天神像复活");
             // 先打开地图
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE); // NOTE: 此处按下Esc是为了关闭复苏界面，无需改键
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE); // NOTE: 此处按下Esc是为了关闭复苏界面，无需改键
             runtime.Sleep(600, ct);
             TpForRecover(runtime, config, ct, new RetryException("检测到复苏界面，存在角色被击败，前往七天神像复活"));
         }
@@ -941,7 +941,7 @@ public class Avatar
             return;
         }
 
-        User32.VK vk = User32.VK.VK_NONAME;
+        GameKey vk = GameKey.VK_NONAME;
         if (key == "w")
         {
             vk = GIActions.MoveForward.ToActionKey().ToVK();
@@ -959,7 +959,7 @@ public class Avatar
             vk = GIActions.MoveRight.ToActionKey().ToVK();
         }
 
-        if (vk == User32.VK.VK_NONAME)
+        if (vk == GameKey.VK_NONAME)
         {
             return;
         }

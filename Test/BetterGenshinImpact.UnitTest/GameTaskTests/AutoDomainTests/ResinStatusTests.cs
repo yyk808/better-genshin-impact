@@ -34,7 +34,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoDomainTests
             //
             Mat mat = new Mat(@$"..\..\..\Assets\{screenshot1080p}");
             var imageRegion = new ImageRegion(mat, 0, 0, converter: new ScaleConverter(1d));
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             //
             var result = ResinStatus.RecogniseFromRegion(imageRegion, systemInfo, this.paddle.Get(version: ocrVersion));

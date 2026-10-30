@@ -40,6 +40,16 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
             public nint Handle => 0;
 
             /// <summary>
+            /// 没有真实窗口
+            /// </summary>
+            public string Title => "FakeGameWindow";
+
+            /// <summary>
+            /// 没有真实窗口
+            /// </summary>
+            public string ClassName => "FakeGameWindow";
+
+            /// <summary>
             /// 当前测试进程
             /// </summary>
             public int ProcessId => Environment.ProcessId;
@@ -77,6 +87,13 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
             }
 
             /// <summary>
+            /// 无操作
+            /// </summary>
+            public void RequestClose()
+            {
+            }
+
+            /// <summary>
             /// 画面区域不会变化，不触发事件
             /// </summary>
             public event EventHandler? ViewportChanged
@@ -106,7 +123,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests
             /// <summary>
             /// 无操作
             /// </summary>
-            public void Start(nint hWnd, Dictionary<string, object>? settings = null)
+            public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
             {
             }
 

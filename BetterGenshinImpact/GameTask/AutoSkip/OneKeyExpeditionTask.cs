@@ -60,7 +60,7 @@ public class OneKeyExpeditionTask(GameRuntime runtime)
 
                     // 3.退出派遣页面 ESC
                     _runtime.Sleep(500);
-                    InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+                    InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                     Logger.LogInformation("探索派遣：{Text}", "完成");
                     break;
                 }

@@ -1713,7 +1713,7 @@ public class AutoLeyLineOutcropTask : ISoloTask<AutoLeyLineOutcropParam, ResinCl
             }
 
             InputHub.Foreground.SimulateAction(GIActions.MoveForward, KeyType.KeyUp);
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_X);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_X);
             await _runtime.Delay(500, _ct);
             InputHub.Foreground.SimulateAction(GIActions.MoveBackward, KeyType.KeyDown);
             await _runtime.Delay(1000, _ct);
@@ -2294,7 +2294,7 @@ public class AutoLeyLineOutcropTask : ISoloTask<AutoLeyLineOutcropParam, ResinCl
                 return;
             }
 
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             await _runtime.Delay(800, _ct);
         }
     }

@@ -250,7 +250,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
             if (timeProvider.GetLocalNow() >= chooseBaitUIOpenWaitEndTime)
             {
                 logger.LogWarning("没有找到目标鱼饵");
-                input.Keyboard.KeyPress(VK.VK_ESCAPE);
+                input.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                 ChooseBaitUIOpening.Set(false);
                 logger.LogInformation("退出换饵界面");
 
@@ -362,7 +362,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
         {
             // todo 这个方案不能令人满意，应该是底层做一个事件监听来记录被点击，底层向上暴露一个和Timer用起来差不多的东西，它应该有个开始记录方法、有个获取从开始到目前是否被点击的方法
             // 但说到底，检查是否鼠标被干扰，不是一个必选的方法。做一个精确度高的图形检测方案，来检测当前位于哪个步骤，会更好。
-            if (!input.IsKeyDown(VK.VK_LBUTTON))
+            if (!input.IsKeyDown(GameKey.VK_LBUTTON))
             {
                 logger.LogWarning("检测到当前鼠标左键状态不符合要求，可能受到干扰，退出任务");
                 Abort.Set(true);

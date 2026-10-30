@@ -745,7 +745,7 @@ internal sealed class CharacterDevelopmentStateMachineTask : StateMachineBase<Ch
     [StateHandler(CharacterDevelopmentState.SelectedCharacter, RetryTimeout = 12000, RetryInterval = 300, TransitionTimeout = 5000)]
     private Task<StateHandlerResult> HandleSelectedCharacter(BvPage page)
     {
-        InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         _workflowState = CharacterDevelopmentState.SwitchCategory;
         return Task.FromResult(StateHandlerResult.Success);
     }
@@ -873,7 +873,7 @@ internal sealed class CharacterDevelopmentStateMachineTask : StateMachineBase<Ch
                 throw new InvalidOperationException("未能完整识别普通攻击、元素战技和元素爆发三个天赋。");
             }
 
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             _workflowState = CharacterDevelopmentState.SwitchCategory;
         }
 

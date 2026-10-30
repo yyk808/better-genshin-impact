@@ -21,7 +21,7 @@ public partial class SharedSurfaceCapture : IGameCapture
 
     // 截图区域
     private ResourceRegion? _region;
-    private RECT? _captureRect;
+    private PixelRect? _captureRect;
 
     // 暂存贴图
     private Texture2D? _stagingTexture;
@@ -29,6 +29,8 @@ public partial class SharedSurfaceCapture : IGameCapture
     // Surface 大小
     private int _surfaceWidth;
     private int _surfaceHeight;
+
+    public CaptureCapabilities Capabilities { get; } = new("DwmGetDxSharedSurface", CanCaptureOccluded: true);
 
     public bool IsCapturing { get; private set; }
 
@@ -42,8 +44,11 @@ public partial class SharedSurfaceCapture : IGameCapture
         GC.SuppressFinalize(this);
     }
 
-    public void Start(nint hWnd, Dictionary<string, object>? settings = null)
+    public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        var hWnd = window.Handle;
+
         _hWnd = hWnd;
         User32.ShowWindow(hWnd, ShowWindowCommand.SW_RESTORE);
         (_region, _captureRect) = GetGameScreenInfo(hWnd);
@@ -57,7 +62,7 @@ public partial class SharedSurfaceCapture : IGameCapture
     /// </summary>
     /// <param name="hWnd"></param>
     /// <returns></returns>
-    private static (ResourceRegion? Region, RECT? CaptureRect) GetGameScreenInfo(nint hWnd)
+    private static (ResourceRegion? Region, PixelRect? CaptureRect) GetGameScreenInfo(nint hWnd)
     {
         var exStyle = User32.GetWindowLong(hWnd, User32.WindowLongFlags.GWL_EXSTYLE);
         if ((exStyle & (int)User32.WindowStylesEx.WS_EX_TOPMOST) != 0)
@@ -83,7 +88,7 @@ public partial class SharedSurfaceCapture : IGameCapture
         var right = left + clientRect.Width;
         var bottom = top + clientRect.Height;
 
-        return (region, new RECT(left, top, right, bottom));
+        return (region, PixelRect.FromLTRB(left, top, right, bottom));
     }
 
     public GameCaptureFrame? Capture()

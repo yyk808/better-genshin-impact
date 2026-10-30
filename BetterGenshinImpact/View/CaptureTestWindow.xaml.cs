@@ -10,6 +10,7 @@ using BetterGenshinImpact.Helpers.Extensions;
 using BetterGenshinImpact.Service;
 using Wpf.Ui.Violeta.Controls;
 using Size = OpenCvSharp.Size;
+using BetterGenshinImpact.Platform.Windows;
 
 namespace BetterGenshinImpact.View;
 
@@ -50,7 +51,7 @@ public partial class CaptureTestWindow
         _capture = GameCaptureFactory.Create(captureMode);
         //_capture.IsClientEnabled = true;
         // 测试窗口由调用方直接 new，没有注入入口，暂时读配置根（见 task-context-removal.md 第 5 节）
-        _capture.Start(hWnd,
+        _capture.Start(new Win32PlatformWindow(hWnd),
             new Dictionary<string, object>()
             {
                 { "autoFixWin11BitBlt", OsVersionHelper.IsWindows11 && ConfigService.Config!.AutoFixWin11BitBlt }

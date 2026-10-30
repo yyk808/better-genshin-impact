@@ -1,6 +1,4 @@
 using BetterGenshinImpact.Core.Input;
-using BetterGenshinImpact.Core.Simulator.Extensions;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
 {
@@ -13,9 +11,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
 
         public IMouseInput Mouse => this;
 
-        public IInputChannel SimulateAction(GIActions action, KeyType type = KeyType.KeyPress) => this;
-
-        public bool IsKeyDown(User32.VK key) => false;
+        public bool IsKeyDown(GameKey key) => false;
 
         IInputChannel IInputChannel.Sleep(int ms) => this;
 
@@ -23,17 +19,19 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
         {
         }
 
-        public IKeyboardInput KeyDown(User32.VK key) => this;
+        public IKeyboardInput KeyDown(GameKey key) => this;
 
-        public IKeyboardInput KeyUp(User32.VK key) => this;
+        public IKeyboardInput KeyUp(GameKey key) => this;
 
-        public IKeyboardInput KeyPress(User32.VK key) => this;
+        public IKeyboardInput KeyPress(GameKey key) => this;
 
         IKeyboardInput IKeyboardInput.Sleep(int ms) => this;
 
         public IMouseInput MoveMouseBy(int dx, int dy) => this;
 
         public IMouseInput MoveMouseTo(double absX, double absY) => this;
+
+        public IMouseInput MoveMouseToPixel(int screenX, int screenY) => this;
 
         public IMouseInput LeftButtonDown() => this;
 

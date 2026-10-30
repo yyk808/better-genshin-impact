@@ -26,11 +26,11 @@ public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
     // TODO(云原神网页版)：滚轮的方向和步长尚未实测，暂按 Windows 的 120/格 透传。
     private const int WheelDeltaPerClick = 120;
 
-    private readonly Func<RECT> _canvasRect;
+    private readonly Func<PixelRect> _canvasRect;
 
     /// <param name="sdk">SDK 调用桥，由宿主持有并释放</param>
     /// <param name="canvasRect">游戏画面在屏幕上的物理像素矩形，应与截图区域一致</param>
-    public WebSdkInputBackend(IWebInputBridge sdk, Func<RECT> canvasRect)
+    public WebSdkInputBackend(IWebInputBridge sdk, Func<PixelRect> canvasRect)
     {
         Sdk = sdk ?? throw new ArgumentNullException(nameof(sdk));
         _canvasRect = canvasRect ?? throw new ArgumentNullException(nameof(canvasRect));
@@ -49,11 +49,11 @@ public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
 
     #region 原子操作
 
-    protected override void OnKeyDown(User32.VK key) => InvokeKey("keyDown", key);
+    protected override void OnKeyDown(GameKey key) => InvokeKey("keyDown", key);
 
-    protected override void OnKeyUp(User32.VK key) => InvokeKey("keyUp", key);
+    protected override void OnKeyUp(GameKey key) => InvokeKey("keyUp", key);
 
-    protected override void OnKeyPress(User32.VK key) => InvokeKey("tapKey", key);
+    protected override void OnKeyPress(GameKey key) => InvokeKey("tapKey", key);
 
     protected override void OnMouseButton(InputMouseButton button, bool down)
     {
@@ -124,7 +124,7 @@ public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
     {
     }
 
-    private void InvokeKey(string method, User32.VK key)
+    private void InvokeKey(string method, GameKey key)
     {
         if (WebKeyCodes.TryGetCode(key, out var code))
         {

@@ -56,27 +56,27 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
     }
 
 
-    // private readonly ConcurrentDictionary<User32.VK, int> _keyX = new()
+    // private readonly ConcurrentDictionary<GameKey, int> _keyX = new()
     // {
-    //     [User32.VK.VK_A] = 417,
-    //     [User32.VK.VK_S] = 632,
-    //     [User32.VK.VK_D] = 846,
-    //     [User32.VK.VK_J] = 1065,
-    //     [User32.VK.VK_K] = 1282,
-    //     [User32.VK.VK_L] = 1500
+    //     [GameKey.VK_A] = 417,
+    //     [GameKey.VK_S] = 632,
+    //     [GameKey.VK_D] = 846,
+    //     [GameKey.VK_J] = 1065,
+    //     [GameKey.VK_K] = 1282,
+    //     [GameKey.VK_L] = 1500
     // };
     //
     // private readonly int _keyY = 916;
 
 
-    private readonly ConcurrentDictionary<User32.VK, int> _keyX = new()
+    private readonly ConcurrentDictionary<GameKey, int> _keyX = new()
     {
-        [User32.VK.VK_A] = 417,
-        [User32.VK.VK_S] = 628,
-        [User32.VK.VK_D] = 844,
-        [User32.VK.VK_J] = 1061,
-        [User32.VK.VK_K] = 1277,
-        [User32.VK.VK_L] = 1493
+        [GameKey.VK_A] = 417,
+        [GameKey.VK_S] = 628,
+        [GameKey.VK_D] = 844,
+        [GameKey.VK_J] = 1061,
+        [GameKey.VK_K] = 1277,
+        [GameKey.VK_L] = 1493
     };
 
     private readonly int _keyY = 921;
@@ -125,7 +125,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
                 // 注意：CaptureToRectArea 返回的 SrcMat 在采集宽度大于 1920 时已归一化为 1920x1080，
                 // 坐标必须停留在 assetScale 缩放空间，不能再用 ConvertPositionToGameCaptureRegion
                 // 换算回原始采集分辨率（否则 2K/4K 下全部越界、按键被跳过）
-                var keys = new List<(User32.VK Key, int X, int Y)>();
+                var keys = new List<(GameKey Key, int X, int Y)>();
                 foreach (var keyValuePair in _keyX)
                 {
                     keys.Add((keyValuePair.Key, (int)(keyValuePair.Value * assetScale), (int)(_keyY * assetScale)));
@@ -152,7 +152,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
         }
     }
 
-    private async Task DoWhitePressWin32(CancellationToken ct, User32.VK key, Point point)
+    private async Task DoWhitePressWin32(CancellationToken ct, GameKey key, Point point)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -192,13 +192,13 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
     ///     各键的按下状态机（最短按压 minHoldMs，防止连点抖动）。
     /// </summary>
     private async Task DoWhitePressPipeline(CancellationToken ct,
-        IReadOnlyList<(User32.VK Key, int X, int Y)> keys)
+        IReadOnlyList<(GameKey Key, int X, int Y)> keys)
     {
         const int minHoldMs = 80;
         var states = new bool[keys.Count];
         var pressTicks = new long[keys.Count];
 
-        void SampleKey(int i, (User32.VK Key, int X, int Y) key, Mat mat)
+        void SampleKey(int i, (GameKey Key, int X, int Y) key, Mat mat)
         {
             var px = key.X;
             var py = key.Y;
@@ -235,7 +235,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
         }
     }
 
-    // private async Task DoWhitePressWin32Default(CancellationToken ct, User32.VK key, Point point)
+    // private async Task DoWhitePressWin32Default(CancellationToken ct, GameKey key, Point point)
     // {
     //     while (!ct.IsCancellationRequested)
     //     {
@@ -265,7 +265,7 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
     //     }
     // }
 
-    // private async Task DoWhitePressWin32Default(CancellationToken ct, User32.VK key, Point point)
+    // private async Task DoWhitePressWin32Default(CancellationToken ct, GameKey key, Point point)
     // {
     //     while (!ct.IsCancellationRequested)
     //     {
@@ -350,12 +350,12 @@ public class AutoMusicGameTask : ISoloTask<AutoMusicGameParam, NoData>
     }
 
 
-    private void KeyUp(User32.VK key)
+    private void KeyUp(GameKey key)
     {
         InputHub.Foreground.Keyboard.KeyUp(key);
     }
 
-    private void KeyDown(User32.VK key)
+    private void KeyDown(GameKey key)
     {
         InputHub.Foreground.Keyboard.KeyDown(key);
     }

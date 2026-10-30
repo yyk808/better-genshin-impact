@@ -54,7 +54,7 @@ public partial class AutoComboTreeWindow : Window
             return;
         }
 
-        PositionNearGame(runtime.SystemInfo.CaptureAreaRect, runtime.Window.Handle);
+        PositionNearGame(runtime.SystemInfo.CaptureAreaRect.ToRECT(), runtime.Window.Handle);
         // 定位成功后淡入显示，保证窗口从可见那一刻起就在正确位置
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120)));
     }

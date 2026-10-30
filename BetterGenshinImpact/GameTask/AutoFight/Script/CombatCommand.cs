@@ -314,7 +314,7 @@ public class CombatCommand
     {
         try
         {
-            if (User32Helper.ToVk(key) != User32.VK.VK_E) return;
+            if (User32Helper.ToVk(key) != GameKey.VK_E) return;
         }
         catch
         {

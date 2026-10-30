@@ -58,7 +58,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
 
     private readonly Login3rdParty _login3rdParty;
 
-    // private VK _zKey = VK.VK_Z;
+    // private GameKey _zKey = GameKey.VK_Z;
 
     /// <summary>
     /// 本次运行的伐木参数，在 <see cref="RunAsync"/> 开头赋值
@@ -542,11 +542,11 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
     private void PressEsc(WoodTaskParam taskParam)
     {
         SystemControl.FocusWindow(_runtime.Window.Handle);
-        InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         // if (_config.AutoWoodConfig.PressTwoEscEnabled)
         // {
         //     Sleep(1500, _cts);
-        //     InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+        //     InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         // }
         Debug.WriteLine("[AutoWood] Esc");
         _runtime.Sleep(800, _ct);
@@ -560,7 +560,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
                 using var ra = contentRegion.Find(GetRecognitionObject("MenuBag", contentRegion));
                 if (ra.IsEmpty())
                 {
-                    InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+                    InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                     throw new RetryException("未检测到弹出菜单");
                 }
             }, TimeSpan.FromSeconds(1.2), 5);

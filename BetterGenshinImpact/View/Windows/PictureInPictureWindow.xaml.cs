@@ -82,7 +82,7 @@ public partial class PictureInPictureWindow : Window
                 _cacheSize = mat.Size();
                 if (!_initializedPosition && runtime != null)
                 {
-                    PositionNearGame(runtime.SystemInfo.CaptureAreaRect, runtime.Window.Handle);
+                    PositionNearGame(runtime.SystemInfo.CaptureAreaRect.ToRECT(), runtime.Window.Handle);
                     _initializedPosition = true;
                 }
             }
@@ -130,7 +130,7 @@ public partial class PictureInPictureWindow : Window
                 // 截图器已停止时没有游戏区域可参考，留到下次有运行环境时再定位
                 if (!_initializedPosition && CurrentRuntime is { } runtime)
                 {
-                    PositionNearGame(runtime.SystemInfo.CaptureAreaRect, runtime.Window.Handle);
+                    PositionNearGame(runtime.SystemInfo.CaptureAreaRect.ToRECT(), runtime.Window.Handle);
                     _initializedPosition = true;
                 }
             }

@@ -34,7 +34,7 @@ public partial class MouseKeyMonitor : IDisposable
 
     private Keys _pickUpKey = Keys.F;
 
-    private User32.VK _pickUpKeyCode = User32.VK.VK_F;
+    private GameKey _pickUpKeyCode = GameKey.VK_F;
 
     //private readonly Random _random = new();
 
@@ -45,7 +45,7 @@ public partial class MouseKeyMonitor : IDisposable
 
     private Keys _releaseControlKey = Keys.Space;
 
-    private User32.VK _releaseControlKeyCode = User32.VK.VK_SPACE;
+    private GameKey _releaseControlKeyCode = GameKey.VK_SPACE;
 
     private DateTime _firstFKeyDownTime = DateTime.MaxValue;
 

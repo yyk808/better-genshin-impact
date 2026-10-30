@@ -1849,9 +1849,9 @@ public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
 
     private async Task ExitDomain()
     {
-        InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         await _runtime.Delay(500, _ct);
-        InputHub.Foreground.Keyboard.KeyPress(VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         await _runtime.Delay(800, _ct);
         using var capture = _runtime.CaptureToRectArea();
         Bv.ClickBlackConfirmButton(capture);

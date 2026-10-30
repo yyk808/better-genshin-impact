@@ -89,7 +89,7 @@ public class UseRedemptionCodeTask : ISoloTask<UseRedemptionCodeParam, NoData>
 
             _logger.LogInformation("使用兑换码: {Msg}", "打开设置");
             // 按ESC键打开菜单
-            page.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            page.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             // 等待ESC后菜单出现
             await page.Locator(new BvImage(_runtime, "UseRedeemCode:esc_return_button.png")).WaitFor();
             // 点击设置按钮

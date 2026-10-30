@@ -59,6 +59,13 @@ public static class CommonExtension
         return new Point(rectangle.X + rectangle.Width / 2, rectangle.Y + rectangle.Height / 2);
     }
 
+    public static Point GetCenterPoint(this PixelRect rectangle)
+    {
+        if (rectangle.IsEmpty) throw new ArgumentException("rectangle is empty");
+
+        return new Point(rectangle.X + rectangle.Width / 2, rectangle.Y + rectangle.Height / 2);
+    }
+
     public static Point GetCenterPoint(this Rect rectangle)
     {
         if (rectangle == default) throw new ArgumentException("rectangle is empty");

@@ -9,6 +9,7 @@ using BetterGenshinImpact.GameTask.Music.Model;
 using BetterGenshinImpact.GameTask.Runtime;
 using Fischless.GameCapture;
 using OpenCvSharp;
+using BetterGenshinImpact.Platform.Windows;
 
 namespace BetterGenshinImpact.GameTask.Music.Service;
 
@@ -490,7 +491,7 @@ public sealed class MusicGuidedSession : IDisposable
         var capture = GameCaptureFactory.Create(mode);
         try
         {
-            capture.Start(gameHandle, GameCaptureSettings.From(config));
+            capture.Start(new Win32PlatformWindow(gameHandle), GameCaptureSettings.From(config));
             var frame = capture.Capture()?.Frame;
             return frame == null || frame.Empty() ? null : frame.Clone();
         }

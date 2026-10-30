@@ -136,7 +136,7 @@ public class SwitchPartyTask
             Logger.LogInformation("当前队伍[{Name}]即为目标队伍，无需切换", currTeamName);
             if (isInPartyViewUi)
             {
-                InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                 await _runtime.Delay(500, ct);
                 await _returnMainUiTask.Start(ct);
             }

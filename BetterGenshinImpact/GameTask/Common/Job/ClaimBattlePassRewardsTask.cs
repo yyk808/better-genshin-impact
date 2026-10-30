@@ -95,7 +95,7 @@ public class ClaimBattlePassRewardsTask : ISoloTask<NoParam, NoData>
             using var primogem = ra.Find(ElementRecognition.Get("Primogem", ra));
             if (primogem.IsExist())
             {
-                InputHub.Background.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                InputHub.Background.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             }
         }
         _runtime.GameRegion1080PPosClick(858, 45);
@@ -130,7 +130,7 @@ public class ClaimBattlePassRewardsTask : ISoloTask<NoParam, NoData>
 
             if (ra2.Find(ElementRecognition.Get("Primogem", ra2)).IsExist())
             {
-                InputHub.Background.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                InputHub.Background.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             }
 
             return true;

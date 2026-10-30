@@ -36,9 +36,9 @@ internal sealed class GamepadChannel : InputChannelBase
 {
     private const string NotImplemented = "手柄后端未实现";
 
-    protected override void OnKeyDown(User32.VK key) => WarnUnsupported(NotImplemented);
+    protected override void OnKeyDown(GameKey key) => WarnUnsupported(NotImplemented);
 
-    protected override void OnKeyUp(User32.VK key) => WarnUnsupported(NotImplemented);
+    protected override void OnKeyUp(GameKey key) => WarnUnsupported(NotImplemented);
 
     protected override void OnMouseButton(InputMouseButton button, bool down) => WarnUnsupported(NotImplemented);
 
@@ -51,7 +51,7 @@ internal sealed class GamepadChannel : InputChannelBase
     /// <summary>
     /// 未实现时没有真正按下的键
     /// </summary>
-    public override bool IsKeyDown(User32.VK key) => false;
+    public override bool IsKeyDown(GameKey key) => false;
 
     public override void ReleaseAll() => TakePressedKeys();
 }

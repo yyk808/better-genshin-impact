@@ -32,10 +32,12 @@ public class GraphicsCaptureV2(bool captureHdr = false) : IGameCapture
     private GraphicsCaptureSession? _captureSession;
     private IDirect3DDevice? _d3dDevice;
 
+    public CaptureCapabilities Capabilities { get; } = new("WindowsGraphicsCaptureV2", CanCaptureOccluded: true);
+
     public bool IsCapturing { get; private set; }
 
     private ResourceRegion? _region;
-    private RECT? _captureRect;
+    private PixelRect? _captureRect;
 
     // HDR 相关
     private bool _isHdrEnabled = captureHdr;
@@ -266,8 +268,11 @@ public class GraphicsCaptureV2(bool captureHdr = false) : IGameCapture
         GC.SuppressFinalize(this);
     }
 
-    public void Start(nint hWnd, Dictionary<string, object>? settings = null)
+    public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        var hWnd = window.Handle;
+
             // 全程持锁，防并发双 Start 泄漏 framepool/session（Monitor 可重入，内部 Stop 安全）
         lock (_lock)
         {
@@ -418,7 +423,7 @@ public class GraphicsCaptureV2(bool captureHdr = false) : IGameCapture
         }
     }
 
-    private static (ResourceRegion? Region, RECT? CaptureRect) GetGameScreenInfo(nint hWnd)
+    private static (ResourceRegion? Region, PixelRect? CaptureRect) GetGameScreenInfo(nint hWnd)
     {
         var exStyle = User32.GetWindowLong(hWnd, User32.WindowLongFlags.GWL_EXSTYLE);
         if ((exStyle & (int)User32.WindowStylesEx.WS_EX_TOPMOST) != 0)
@@ -445,7 +450,7 @@ public class GraphicsCaptureV2(bool captureHdr = false) : IGameCapture
         var right = left + clientRect.Width;
         var bottom = top + clientRect.Height;
 
-        return (region, new RECT(left, top, right, bottom));
+        return (region, PixelRect.FromLTRB(left, top, right, bottom));
     }
 
     private Texture2D ProcessHdrTexture(Texture2D hdrTexture)
@@ -770,7 +775,7 @@ public class GraphicsCaptureV2(bool captureHdr = false) : IGameCapture
             // 阶段1（持 _lock）：状态校验、无新到达判定、GPU 打包 BGR24 + 拷入 staging buffer（同 tick）。
             // 临界区仅命令提交
             SharpDX.Direct3D11.Device? d3dDevice = null;
-            RECT? rect;
+            PixelRect? rect;
             long frameTs;
             int gpuW = 0;
             int gpuH = 0;

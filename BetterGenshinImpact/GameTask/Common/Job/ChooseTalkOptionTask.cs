@@ -75,7 +75,7 @@ public partial class ChooseTalkOptionTask
             var optionRegions = RecognizeOption(region, ct);
             if (optionRegions == null)
             {
-                InputHub.Background.Keyboard.KeyPress(User32.VK.VK_SPACE);
+                InputHub.Background.Keyboard.KeyPress(GameKey.VK_SPACE);
                 await _runtime.Delay(500, ct);
                 continue; // retry
             }
@@ -153,7 +153,7 @@ public partial class ChooseTalkOptionTask
             }
             else if (Bv.IsInTalkUi(region))
             {
-                InputHub.Background.Keyboard.KeyPress(User32.VK.VK_SPACE);
+                InputHub.Background.Keyboard.KeyPress(GameKey.VK_SPACE);
             }
 
             await _runtime.Delay(500, ct);
@@ -178,7 +178,7 @@ public partial class ChooseTalkOptionTask
                 }
                 else
                 {
-                    InputHub.Background.Keyboard.KeyPress(User32.VK.VK_SPACE);
+                    InputHub.Background.Keyboard.KeyPress(GameKey.VK_SPACE);
                 }
             }
             else if (Bv.IsInMainUi(region))

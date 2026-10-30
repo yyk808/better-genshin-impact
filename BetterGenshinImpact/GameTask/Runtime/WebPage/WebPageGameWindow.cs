@@ -33,7 +33,7 @@ public sealed class WebPageGameWindow : Win32GameWindow
     /// <summary>
     /// WebView2 页面固定以 100% 渲染，云端输入坐标不随宿主显示器的 DPI 缩放。
     /// </summary>
-    public override GameViewport Viewport => new(SystemControl.GetCaptureRect(Handle), 1f);
+    public override GameViewport Viewport => new(SystemControl.GetCaptureRect(Handle).ToPixelRect(), 1f);
 
     /// <summary>
     /// 输入经 RTC 发往云端，不需要前台：失焦后任务继续运行

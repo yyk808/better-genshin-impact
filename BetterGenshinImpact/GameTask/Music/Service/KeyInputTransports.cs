@@ -55,40 +55,40 @@ public abstract class KeyInputTransportBase : IKeyInputTransport
         }
     }
 
-    protected abstract void SendKeyDown(User32.VK key);
+    protected abstract void SendKeyDown(GameKey key);
 
-    protected abstract void SendKeyUp(User32.VK key);
+    protected abstract void SendKeyUp(GameKey key);
 
-    private static User32.VK ToVirtualKey(char key)
+    private static GameKey ToVirtualKey(char key)
     {
         return key switch
         {
-            'A' => User32.VK.VK_A,
-            'B' => User32.VK.VK_B,
-            'C' => User32.VK.VK_C,
-            'D' => User32.VK.VK_D,
-            'E' => User32.VK.VK_E,
-            'F' => User32.VK.VK_F,
-            'G' => User32.VK.VK_G,
-            'H' => User32.VK.VK_H,
-            'I' => User32.VK.VK_I,
-            'J' => User32.VK.VK_J,
-            'K' => User32.VK.VK_K,
-            'L' => User32.VK.VK_L,
-            'M' => User32.VK.VK_M,
-            'N' => User32.VK.VK_N,
-            'O' => User32.VK.VK_O,
-            'P' => User32.VK.VK_P,
-            'Q' => User32.VK.VK_Q,
-            'R' => User32.VK.VK_R,
-            'S' => User32.VK.VK_S,
-            'T' => User32.VK.VK_T,
-            'U' => User32.VK.VK_U,
-            'V' => User32.VK.VK_V,
-            'W' => User32.VK.VK_W,
-            'X' => User32.VK.VK_X,
-            'Y' => User32.VK.VK_Y,
-            'Z' => User32.VK.VK_Z,
+            'A' => GameKey.VK_A,
+            'B' => GameKey.VK_B,
+            'C' => GameKey.VK_C,
+            'D' => GameKey.VK_D,
+            'E' => GameKey.VK_E,
+            'F' => GameKey.VK_F,
+            'G' => GameKey.VK_G,
+            'H' => GameKey.VK_H,
+            'I' => GameKey.VK_I,
+            'J' => GameKey.VK_J,
+            'K' => GameKey.VK_K,
+            'L' => GameKey.VK_L,
+            'M' => GameKey.VK_M,
+            'N' => GameKey.VK_N,
+            'O' => GameKey.VK_O,
+            'P' => GameKey.VK_P,
+            'Q' => GameKey.VK_Q,
+            'R' => GameKey.VK_R,
+            'S' => GameKey.VK_S,
+            'T' => GameKey.VK_T,
+            'U' => GameKey.VK_U,
+            'V' => GameKey.VK_V,
+            'W' => GameKey.VK_W,
+            'X' => GameKey.VK_X,
+            'Y' => GameKey.VK_Y,
+            'Z' => GameKey.VK_Z,
             _ => throw new ArgumentOutOfRangeException(nameof(key), key, "不支持的原琴按键")
         };
     }
@@ -101,12 +101,12 @@ public sealed class PostMessageKeyInputTransport : KeyInputTransportBase
 {
     public override MusicInputMode Mode => MusicInputMode.BackgroundPostMessage;
 
-    protected override void SendKeyDown(User32.VK key)
+    protected override void SendKeyDown(GameKey key)
     {
         InputHub.Background.Keyboard.KeyDown(key);
     }
 
-    protected override void SendKeyUp(User32.VK key)
+    protected override void SendKeyUp(GameKey key)
     {
         InputHub.Background.Keyboard.KeyUp(key);
     }
@@ -119,12 +119,12 @@ public sealed class SendInputKeyInputTransport : KeyInputTransportBase
 {
     public override MusicInputMode Mode => MusicInputMode.ForegroundSendInput;
 
-    protected override void SendKeyDown(User32.VK key)
+    protected override void SendKeyDown(GameKey key)
     {
         InputHub.Foreground.Keyboard.KeyDown(key);
     }
 
-    protected override void SendKeyUp(User32.VK key)
+    protected override void SendKeyUp(GameKey key)
     {
         InputHub.Foreground.Keyboard.KeyUp(key);
     }

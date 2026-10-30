@@ -15,7 +15,7 @@ namespace BetterGenshinImpact.GameTask.Model
         /// <summary>
         /// 游戏窗口内分辨率
         /// </summary>
-        public RECT GameScreenSize { get; }
+        public PixelRect GameScreenSize { get; }
 
         /// <summary>
         /// 以1080P为标准的素材缩放比例,不会大于1
@@ -38,7 +38,7 @@ namespace BetterGenshinImpact.GameTask.Model
         /// 捕获窗口区域 和实际游戏画面一致
         /// CaptureAreaRect = GameScreenSize or GameWindowRect
         /// </summary>
-        public RECT CaptureAreaRect { get; set; }
+        public PixelRect CaptureAreaRect { get; set; }
 
         /// <summary>
         /// 捕获窗口区域 大于1080P则为1920x1080

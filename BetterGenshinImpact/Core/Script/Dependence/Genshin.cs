@@ -28,7 +28,7 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 
 public class Genshin
 {
-    private RECT captureAreaRect;
+    private PixelRect captureAreaRect;
     private readonly ILogger<Genshin> _logger = App.GetLogger<Genshin>();
 
     /// <summary>

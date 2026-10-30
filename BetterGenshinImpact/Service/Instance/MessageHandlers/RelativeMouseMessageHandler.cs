@@ -522,11 +522,11 @@ internal sealed class RelativeMouseMessageHandler
     private static bool IsAltPressed()
     {
         // 轮询异步键态，避免注册进程级键盘 Raw Input 后覆盖 RDP ActiveX 的输入目标。
-        return IsKeyPressed(User32.VK.VK_LMENU)
-               || IsKeyPressed(User32.VK.VK_RMENU);
+        return IsKeyPressed(GameKey.VK_LMENU)
+               || IsKeyPressed(GameKey.VK_RMENU);
     }
 
-    private static bool IsKeyPressed(User32.VK key)
+    private static bool IsKeyPressed(GameKey key)
     {
         return (User32.GetAsyncKeyState((int)key) & 0x8000) != 0;
     }

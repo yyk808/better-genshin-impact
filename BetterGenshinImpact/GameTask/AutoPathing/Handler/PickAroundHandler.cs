@@ -67,7 +67,7 @@ public class PickAroundHandler(GameRuntime runtime) : IActionHandler
         await _runtime.Delay(200, _ct);
     }
 
-    public async Task MoveAfterTurn(User32.VK vk, int ms = 0)
+    public async Task MoveAfterTurn(GameKey vk, int ms = 0)
     {
         InputHub.Foreground.Keyboard.KeyPress(vk);
         await _runtime.Delay(200, _ct);

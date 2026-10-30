@@ -332,7 +332,7 @@ public partial class PathExecutor
                 finally
                 {
                     // 不管咋样，松开所有按键
-                    InputHub.Foreground.Keyboard.KeyUp(User32.VK.VK_W);
+                    InputHub.Foreground.Keyboard.KeyUp(GameKey.VK_W);
                     InputHub.Foreground.Mouse.RightButtonUp();
                     InputHub.Foreground.SimulateAction(GIActions.NormalAttack, KeyType.KeyUp);
                 }
@@ -1161,7 +1161,7 @@ public partial class PathExecutor
             InputHub.Foreground.SimulateAction(GIActions.MoveForward, KeyType.KeyDown);
             Thread.Sleep(60);
             InputHub.Foreground.SimulateAction(GIActions.MoveForward, KeyType.KeyUp);
-            // InputHub.Foreground.Keyboard.KeyDown(User32.VK.VK_W).Sleep(60).KeyUp(User32.VK.VK_W);
+            // InputHub.Foreground.Keyboard.KeyDown(GameKey.VK_W).Sleep(60).KeyUp(GameKey.VK_W);
             await _runtime.Delay(20, ct);
         }
 
@@ -1363,7 +1363,7 @@ public partial class PathExecutor
                     Logger.LogInformation(@$"地图中心点识别失败！");
                 }
                
-                InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                 //Bv.IsInMainUi(imageRegion);
                 await WaitForCloseMap(10,200);
                 DateTime end = DateTime.Now;
@@ -1425,7 +1425,7 @@ public partial class PathExecutor
             }
 
             Logger.LogInformation("检测到其他界面，使用ESC关闭界面");
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             await _runtime.Delay(1000, ct); // 等待界面关闭
         }
 

@@ -27,7 +27,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
             Mat mat = new Mat(@$"..\..\..\Assets\AutoFishing\202509141339218213_ChooseBait.png");
             var imageRegion = new ImageRegion(mat, 0, 0, new DesktopRegion(), converter: new ScaleConverter(1d));
 
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             //
             ChooseBait sut = new ChooseBait("-", new FakeLogger(), systemInfo, new FakeInputChannel(), itemRecognizer, new Blackboard());
@@ -55,7 +55,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
             Mat mat = new Mat(@$"..\..\..\Assets\AutoFishing\{screenshot1080p}");
             var imageRegion = new ImageRegion(mat, 0, 0, new DesktopRegion(), converter: new ScaleConverter(1d));
 
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             CsTrees.Blackboard.Blackboard blackboard = new CsTrees.Blackboard.Blackboard();
             var access = blackboard.GrantWrite<Fishpond>(null!, "Fishpond");
@@ -96,7 +96,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
             Mat mat = new Mat(@$"..\..\..\Assets\AutoFishing\{screenshot1080p}");
             var imageRegion = new ImageRegion(mat, 0, 0, new DesktopRegion(), converter: new ScaleConverter(1d));
 
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             CsTrees.Blackboard.Blackboard blackboard = new CsTrees.Blackboard.Blackboard();
             var fishpondAccess = blackboard.GrantWrite<Fishpond>(null!, "Fishpond");
@@ -159,7 +159,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
             Mat mat = new Mat(@$"..\..\..\Assets\AutoFishing\20250226161354285_ChooseBait_Succeeded.png");
             var imageRegion = new ImageRegion(mat, 0, 0, new DesktopRegion(), converter: new ScaleConverter(1d));
 
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             CsTrees.Blackboard.Blackboard blackboard = new CsTrees.Blackboard.Blackboard();
             var fishpondAccess = blackboard.GrantWrite<Fishpond>(null!, "Fishpond");
@@ -279,7 +279,7 @@ namespace BetterGenshinImpact.UnitTest.GameTaskTests.AutoFishingTests
             Mat mat = new Mat(@$"..\..\..\Assets\AutoFishing\20250226161354285_ChooseBait_Succeeded.png");
             var imageRegion = new ImageRegion(mat, 0, 0, new DesktopRegion(), converter: new ScaleConverter(1d));
 
-            FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+            FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
 
             CsTrees.Blackboard.Blackboard blackboard = new CsTrees.Blackboard.Blackboard();
             var fishpondAccess = blackboard.GrantWrite<Fishpond>(null!, "Fishpond");

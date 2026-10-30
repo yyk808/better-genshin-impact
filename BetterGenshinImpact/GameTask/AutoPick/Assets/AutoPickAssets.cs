@@ -15,7 +15,7 @@ public sealed class AutoPickAssets
         static key => new AutoPickAssets(key.CaptureSize, key.PickKey));
     private readonly ILogger<AutoPickAssets> _logger = App.GetLogger<AutoPickAssets>();
 
-    public User32.VK PickVk { get; private set; } = User32.VK.VK_F;
+    public GameKey PickVk { get; private set; } = GameKey.VK_F;
     public RecognitionObject PickRo { get; private set; }
     public RecognitionObject ChatPickRo { get; private set; }
 

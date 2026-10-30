@@ -134,7 +134,7 @@ public class GoToAdventurersGuildTask
             await _chooseTalkOptionTask.SelectLastOptionUntilEnd(ct, null, 3); // 点几下
             await Bv.WaitUntilFound(_runtime, ElementRecognition.Get("PaimonMenu", _runtime.SystemInfo), ct);
             await _runtime.Delay(500, ct);
-            InputHub.Background.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Background.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             await new ReturnMainUiTask(_runtime).Start(ct);
 
             // 结束后重新打开

@@ -1632,7 +1632,7 @@ public class AutoBossTask : ISoloTask<AutoBossParam, ResinClaimData>
                 return;
             }
 
-            page.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            page.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             await page.Wait(300);
         }
 

@@ -81,11 +81,11 @@ public class KeyMouseMacroPlayer
             switch (e.Type)
             {
                 case MacroEventType.KeyDown:
-                    input.Keyboard.KeyDown((User32.VK)e.KeyCode!);
+                    input.Keyboard.KeyDown((GameKey)e.KeyCode!);
                     break;
 
                 case MacroEventType.KeyUp:
-                    input.Keyboard.KeyUp((User32.VK)e.KeyCode!);
+                    input.Keyboard.KeyUp((GameKey)e.KeyCode!);
                     break;
 
                 case MacroEventType.MouseDown:

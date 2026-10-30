@@ -125,7 +125,7 @@ public class AutoCookTask : ISoloTask<NoParam, NoData>
                 {
                     if (currentColorCount <= peakColorCount.Value - triggerDropCount)
                     {
-                        InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_SPACE);
+                        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_SPACE);
                         _logger.LogInformation("自动烹饪：{Text}", $"烹饪条像素数量较峰值下降超过{triggerDropCount}，按下空格。峰值:{peakColorCount.Value} 当前:{currentColorCount}");
                         ResetPeakState(ref peakColorCount, ref peakCandidate, ref peakCandidateStableFrames);
                     }

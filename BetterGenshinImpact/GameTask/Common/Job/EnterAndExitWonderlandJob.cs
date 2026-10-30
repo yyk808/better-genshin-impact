@@ -31,7 +31,7 @@ public class EnterAndExitWonderlandJob(GameRuntime runtime)
         await NewRetry.WaitForElementAppear(
             _runtime,
             ElementRecognition.Get("WonderlandClose", _runtime.SystemInfo),
-            () => InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_F6),
+            () => InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_F6),
             ct,
             10,
             1000
@@ -117,7 +117,7 @@ public class EnterAndExitWonderlandJob(GameRuntime runtime)
         await NewRetry.WaitForElementAppear(
             _runtime,
             ElementRecognition.Get("BtnBackTeyvat", _runtime.SystemInfo),
-            () => InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE),
+            () => InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE),
             ct,
             20,
             800

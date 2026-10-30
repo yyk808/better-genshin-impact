@@ -81,7 +81,7 @@ public class ClaimMailRewardsTask : ISoloTask<NoParam, NoData>
                     await _runtime.Delay(200, ct);
                     // TODO 截图
 
-                    InputHub.Background.Keyboard.KeyPress(User32.VK.VK_ESCAPE); // ESC 
+                    InputHub.Background.Keyboard.KeyPress(GameKey.VK_ESCAPE); // ESC 
                     message = "已点击邮件全部领取。";
                 }
                 else

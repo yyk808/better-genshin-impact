@@ -479,7 +479,7 @@ public class AutoArtifactSalvageTask : ISoloTask<AutoArtifactSalvageTaskParam, N
         }
         else
         {
-            input.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            input.Keyboard.KeyPress(GameKey.VK_ESCAPE);
 
             if (returnToMainUi)
             {

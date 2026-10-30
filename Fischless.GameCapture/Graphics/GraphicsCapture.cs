@@ -23,10 +23,12 @@ public class GraphicsCapture(bool captureHdr = false) : IGameCapture
 
     private IDirect3DDevice? _d3dDevice;
 
+    public CaptureCapabilities Capabilities => new(_isHdrEnabled ? "WindowsGraphicsCaptureHdr" : "WindowsGraphicsCapture", CanCaptureOccluded: true, SupportsHdr: _isHdrEnabled);
+
     public bool IsCapturing { get; private set; }
 
     private ResourceRegion? _region;
-    private RECT? _captureRect;
+    private PixelRect? _captureRect;
 
     // HDR相关
     private bool _isHdrEnabled = captureHdr;
@@ -55,8 +57,11 @@ public class GraphicsCapture(bool captureHdr = false) : IGameCapture
         GC.SuppressFinalize(this);
     }
 
-    public void Start(nint hWnd, Dictionary<string, object>? settings = null)
+    public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        var hWnd = window.Handle;
+
         Stop();
         try
         {
@@ -137,7 +142,7 @@ public class GraphicsCapture(bool captureHdr = false) : IGameCapture
     /// </summary>
     /// <param name="hWnd"></param>
     /// <returns></returns>
-    private static (ResourceRegion? Region, RECT? CaptureRect) GetGameScreenInfo(nint hWnd)
+    private static (ResourceRegion? Region, PixelRect? CaptureRect) GetGameScreenInfo(nint hWnd)
     {
         var exStyle = User32.GetWindowLong(hWnd, User32.WindowLongFlags.GWL_EXSTYLE);
         if ((exStyle & (int)User32.WindowStylesEx.WS_EX_TOPMOST) != 0)
@@ -164,7 +169,7 @@ public class GraphicsCapture(bool captureHdr = false) : IGameCapture
         var right = left + clientRect.Width;
         var bottom = top + clientRect.Height;
 
-        return (region, new RECT(left, top, right, bottom));
+        return (region, PixelRect.FromLTRB(left, top, right, bottom));
     }
 
     private Texture2D ProcessHdrTexture(Texture2D hdrTexture)

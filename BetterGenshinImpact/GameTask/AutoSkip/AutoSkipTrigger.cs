@@ -336,7 +336,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
                 }
                 else
                 {
-                    InputHub.Background.Keyboard.KeyPress(User32.VK.VK_SPACE);
+                    InputHub.Background.Keyboard.KeyPress(GameKey.VK_SPACE);
                 }
             }
 
@@ -648,7 +648,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
                 var r = random.Next(0, 5);
                 for (var j = 0; j < r; j++)
                 {
-                    InputHub.Background.Keyboard.KeyPress(User32.VK.VK_S);
+                    InputHub.Background.Keyboard.KeyPress(GameKey.VK_S);
                     Thread.Sleep(100);
                 }
 
@@ -657,7 +657,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
             }
             else
             {
-                InputHub.Background.Keyboard.KeyPress(User32.VK.VK_W);
+                InputHub.Background.Keyboard.KeyPress(GameKey.VK_W);
                 Thread.Sleep(100);
                 InputHub.Background.Keyboard.KeyPress(fKey);
             }
@@ -1137,7 +1137,7 @@ public partial class AutoSkipTrigger : ITaskTrigger
 
                 if (!Bv.IsInBigMapUi(content.CaptureRectArea))
                 {
-                    InputHub.Background.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                    InputHub.Background.Keyboard.KeyPress(GameKey.VK_ESCAPE);
 
                     AutoSkipLog("关闭弹出页");
                     ResetPageCloseRecognition();

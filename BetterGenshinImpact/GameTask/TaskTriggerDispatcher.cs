@@ -101,7 +101,7 @@ namespace BetterGenshinImpact.GameTask
         private static readonly object _locker = new();
         private int _frameIndex = 0;
 
-        private RECT _gameRect = RECT.Empty;
+        private PixelRect _gameRect = PixelRect.Empty;
         private bool _prevGameActive;
 
         private DateTime _prevManualGc = DateTime.MinValue;
@@ -338,7 +338,7 @@ namespace BetterGenshinImpact.GameTask
 
             _metricsService.SetGameWindow(null);
 
-            _gameRect = RECT.Empty;
+            _gameRect = PixelRect.Empty;
             _prevGameActive = false;
             PictureInPictureService.Hide(resetManual: true);
             HtmlMaskWindow.CloseAll();
@@ -488,7 +488,7 @@ namespace BetterGenshinImpact.GameTask
                     PictureInPictureService.Hide(resetManual: true);
                     // 只上报事实，显示、置顶、跟随位置由遮罩宿主去重后决定，不会每帧切 UI 线程
                     _maskWindowHost.ReportGameWindow(new GameWindowState(true, true, false, true,
-                        window.Viewport.ScreenRect));
+                        window.Viewport.ScreenRect.ToRECT()));
 
                     _prevGameActive = active;
                     // // 移动游戏窗口的时候同步遮罩窗口的位置,此时不进行捕获
@@ -768,9 +768,9 @@ namespace BetterGenshinImpact.GameTask
             }
 
             var currentRect = runtime.Window.Viewport.ScreenRect;
-            if (_gameRect == RECT.Empty)
+            if (_gameRect == PixelRect.Empty)
             {
-                _gameRect = new RECT(currentRect);
+                _gameRect = currentRect;
                 runtime.SystemInfo.CaptureAreaRect = currentRect;
             }
             else if (_gameRect != currentRect)
@@ -790,7 +790,7 @@ namespace BetterGenshinImpact.GameTask
                     _logger.LogError("► 游戏窗口大小发生变化 {W}x{H}->{CW}x{CH}, 无需重新启动截图器。", _gameRect.Width, _gameRect.Height, currentRect.Width, currentRect.Height);
                 }
 
-                _gameRect = new RECT(currentRect);
+                _gameRect = currentRect;
                 runtime.SystemInfo.CaptureAreaRect = currentRect;
                 // 遮罩和 HTML 遮罩的位置由遮罩宿主统一跟随
                 var window = runtime.Window;
@@ -800,14 +800,14 @@ namespace BetterGenshinImpact.GameTask
                     active,
                     window.IsMinimized,
                     active || IsForegroundOwnedByBetterGiOrGame(window),
-                    currentRect));
+                    currentRect.ToRECT()));
                 return true;
             }
 
             return false;
         }
 
-        private bool SizeIsZero(RECT rect)
+        private bool SizeIsZero(PixelRect rect)
         {
             return rect.Width == 0 || rect.Height == 0;
         }

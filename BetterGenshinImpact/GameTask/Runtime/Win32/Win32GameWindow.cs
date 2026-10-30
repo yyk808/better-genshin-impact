@@ -1,4 +1,5 @@
 using BetterGenshinImpact.Helpers;
+using BetterGenshinImpact.Platform.Windows;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -64,7 +65,11 @@ public class Win32GameWindow : IGameWindow
     /// </summary>
     public string ProcessName { get; }
 
-    public virtual GameViewport Viewport => new(SystemControl.GetCaptureRect(Handle), DpiHelper.GetScale(Handle).Y);
+    public string Title => Win32PlatformWindow.GetTitle(Handle);
+
+    public string ClassName => Win32PlatformWindow.GetClassName(Handle);
+
+    public virtual GameViewport Viewport => new(SystemControl.GetCaptureRect(Handle).ToPixelRect(), DpiHelper.GetScale(Handle).Y);
 
     public virtual bool IsAlive
     {
@@ -93,6 +98,11 @@ public class Win32GameWindow : IGameWindow
     public virtual bool RequiresForeground => true;
 
     public virtual void Activate() => SystemControl.ActivateWindow(Handle);
+
+    /// <summary>
+    /// 投递 WM_CLOSE，请求窗口自行关闭（不强制结束进程；强制结束见 SystemControl.CloseGameProcesses）
+    /// </summary>
+    public virtual void RequestClose() => User32.PostMessage(Handle, User32.WindowMessage.WM_CLOSE, 0, 0);
 
     public event EventHandler? ViewportChanged;
 

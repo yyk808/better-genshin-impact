@@ -54,7 +54,7 @@ public class ReturnMainUiTask(GameRuntime runtime) : ISoloTask<NoParam, NoData>
 
         for (var i = 0; i < 8; i++)
         {
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
             await _runtime.Delay(900, ct);
 
             var region = _runtime.CaptureToRectArea();
@@ -81,8 +81,8 @@ public class ReturnMainUiTask(GameRuntime runtime) : ISoloTask<NoParam, NoData>
             }
         }
         await _runtime.Delay(500, ct);
-        InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_RETURN);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_RETURN);
         await _runtime.Delay(500, ct);
-        InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
     }
 }

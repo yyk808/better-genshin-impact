@@ -68,7 +68,7 @@ public class SetTimeTask
         int m = hour * 60 + minute - h * 60;
         h = ((h % 24) + 24) % 24;
         Logger.LogInformation($"设置时间到 {h} 点 {m} 分");
-        InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+        InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         await _runtime.Delay(800, ct);
         _runtime.GameRegion1080PPosClick(50, 700);
         await _runtime.Delay(900, ct);

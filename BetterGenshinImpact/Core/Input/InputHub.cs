@@ -26,9 +26,16 @@ public static class InputHub
     public static IInputChannel Foreground => Backend.Foreground;
 
     /// <summary>
-    /// 后台通道。WebSdk / Gamepad 后端下与 <see cref="Foreground"/> 相同
+    /// 没有后台通道的后端（Linux 原生）下 <see cref="Background"/> 返回的通道：忽略操作并限频告警
     /// </summary>
-    public static IInputChannel Background => Backend.Background;
+    private static readonly IInputChannel NoBackground = new UnsupportedInputChannel("当前输入后端没有后台通道");
+
+    /// <summary>
+    /// 后台通道。WebSdk / Gamepad 后端下与 <see cref="Foreground"/> 相同；
+    /// 后端没有后台通道时（<see cref="IInputBackend.Background"/> 为 null）返回一个忽略操作并告警的通道，
+    /// Win32 后端始终有后台通道，行为不变
+    /// </summary>
+    public static IInputChannel Background => Backend.Background ?? NoBackground;
 
     /// <summary>
     /// 替换当前后端并释放旧后端。按键释放由停止流程显式处理，避免绑定新后端时释放全局按键。

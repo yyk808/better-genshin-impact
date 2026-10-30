@@ -46,7 +46,7 @@ public class PartyAvatarInitTests
     {
         //
         Mat mat = new Mat(@$"..\..\..\Assets\{screenshot1080P}");
-        FakeSystemInfo systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+        FakeSystemInfo systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
         // 桌面 -> 游戏捕获区域 -> 1080P区域
         var gameCaptureRegion = systemInfo.DesktopRectArea.Derive(mat, systemInfo.CaptureAreaRect.X, systemInfo.CaptureAreaRect.Y);
         var imageRegion = gameCaptureRegion.DeriveTo1080P();
@@ -81,7 +81,7 @@ public class PartyAvatarInitTests
     // {
     //     //
     //     Mat mat = new Mat(@$"..\..\..\Assets\{screenshot1080P}");
-    //     var systemInfo = new FakeSystemInfo(new Vanara.PInvoke.RECT(0, 0, mat.Width, mat.Height), 1);
+    //     var systemInfo = new FakeSystemInfo(new PixelRect(0, 0, mat.Width, mat.Height), 1);
     //     var runtime = TestGameRuntime.Create(systemInfo);
     //     // 桌面 -> 游戏捕获区域 -> 1080P区域
     //     var gameCaptureRegion = systemInfo.DesktopRectArea.Derive(mat, systemInfo.CaptureAreaRect.X, systemInfo.CaptureAreaRect.Y);

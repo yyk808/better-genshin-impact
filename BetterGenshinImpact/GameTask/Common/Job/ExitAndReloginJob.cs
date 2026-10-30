@@ -52,7 +52,7 @@ public class ExitAndReloginJob
         await NewRetry.WaitForElementAppear(
             _runtime,
             GetAutoWoodRecognitionObject("MenuBag"),
-            () => InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE),
+            () => InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE),
             ct,
             10,
             1200

@@ -14,7 +14,7 @@ public class KeyMouseScript
     /// <summary>
     /// 转换原始脚本为适应当前分辨率的脚本
     /// </summary>
-    public void Adapt(RECT captureRect, double dpiScale)
+    public void Adapt(PixelRect captureRect, double dpiScale)
     {
         foreach (var macroEvent in MacroEvents)
         {

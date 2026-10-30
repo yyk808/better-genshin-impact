@@ -379,7 +379,7 @@ public class SkillCdTrigger : ITaskTrigger
         int pressedIndex = -1;
         for (int i = 0; i < 4; i++)
         {
-            short keyState = User32.GetAsyncKeyState((int)(User32.VK.VK_1 + (byte)i));
+            short keyState = User32.GetAsyncKeyState((int)(GameKey.VK_1 + (byte)i));
             bool isDown = (keyState & 0x8000) != 0;
             if (isDown && !_prevKeys[i]) pressedIndex = i;
             _prevKeys[i] = isDown;

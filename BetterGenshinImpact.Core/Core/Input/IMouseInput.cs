@@ -16,6 +16,13 @@ public interface IMouseInput
     /// </summary>
     IMouseInput MoveMouseTo(double absX, double absY);
 
+    /// <summary>
+    /// 绝对定位，参数为虚拟桌面上的物理像素坐标（跨平台推荐写法）。
+    /// Win32 后端换算成主屏幕 0~65535 归一化坐标后与 <see cref="MoveMouseTo"/> 走同一条 SendInput 路径。
+    /// 注意 Wine 下绝对移动会被游戏当成视角转动，见 <see cref="BetterGenshinImpact.Platform.InputCapabilities.AbsoluteMoveAffectsCamera"/>
+    /// </summary>
+    IMouseInput MoveMouseToPixel(int screenX, int screenY);
+
     IMouseInput LeftButtonDown();
 
     IMouseInput LeftButtonUp();

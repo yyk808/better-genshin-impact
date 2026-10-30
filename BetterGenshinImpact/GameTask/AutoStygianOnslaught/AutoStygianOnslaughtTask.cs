@@ -523,7 +523,7 @@ public class AutoStygianOnslaughtTask : StateMachineBase<StygianState, BvPage>, 
                 ocrResult.Any(o => o.Text.Contains("已结束")))
             {
                 Logger.LogInformation($"{TaskName}：检测到紊乱爆发期已结束，按 Esc 返回主界面");
-                InputHub.Foreground.Keyboard.KeyPress(Vanara.PInvoke.User32.VK.VK_ESCAPE);
+                InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                 await _runtime.Delay(300, _ct);
                 return StateHandlerResult.SuccessTo(StygianState.MainWorld);
             }

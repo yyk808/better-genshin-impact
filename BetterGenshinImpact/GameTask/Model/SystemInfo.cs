@@ -14,7 +14,7 @@ namespace BetterGenshinImpact.GameTask.Model
         /// <summary>
         /// 当前捕获窗口区域；设置新区域时同步刷新所有分辨率派生数据
         /// </summary>
-        private RECT _captureAreaRect;
+        private PixelRect _captureAreaRect;
 
         /// <summary>
         /// 显示器分辨率 无缩放
@@ -24,7 +24,7 @@ namespace BetterGenshinImpact.GameTask.Model
         /// <summary>
         /// 游戏窗口内分辨率
         /// </summary>
-        public RECT GameScreenSize { get; private set; }
+        public PixelRect GameScreenSize { get; private set; }
 
         /// <summary>
         /// 以1080P为标准的素材缩放比例,不会大于1
@@ -47,7 +47,7 @@ namespace BetterGenshinImpact.GameTask.Model
         /// 捕获窗口区域 和实际游戏画面一致
         /// CaptureAreaRect = GameScreenSize or GameWindowRect
         /// </summary>
-        public RECT CaptureAreaRect
+        public PixelRect CaptureAreaRect
         {
             get => _captureAreaRect;
             set
@@ -89,9 +89,9 @@ namespace BetterGenshinImpact.GameTask.Model
         /// 根据当前捕获区域统一刷新游戏分辨率、素材缩放比例和归一化捕获区域
         /// </summary>
         /// <param name="captureAreaRect">当前捕获窗口区域</param>
-        private void RefreshResolutionData(RECT captureAreaRect)
+        private void RefreshResolutionData(PixelRect captureAreaRect)
         {
-            GameScreenSize = new RECT(0, 0, captureAreaRect.Width, captureAreaRect.Height);
+            GameScreenSize = new PixelRect(0, 0, captureAreaRect.Width, captureAreaRect.Height);
 
             // 0.28 改动，素材缩放比例不可以超过 1，也就是图像识别时分辨率大于 1920x1080 的情况下直接进行缩放
             // 取宽高相对于 1920x1080 的缩放比中的较小值，保持非 16:9 分辨率下的宽高比不失真

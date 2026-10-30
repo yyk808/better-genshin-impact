@@ -97,7 +97,7 @@ public class GlobalMethod
         InputHub.Foreground.Keyboard.KeyPress(KeyBindingsSettingsPageViewModel.MappingKey(ToVk(key)));
     }
 
-    private static User32.VK ToVk(string key)
+    private static GameKey ToVk(string key)
     {
         try
         {
@@ -257,11 +257,11 @@ public class GlobalMethod
 
             // 通过剪贴板 + Ctrl+V 输入文字，只面向键鼠后端。
             // 手柄场景用不到文字输入，这里不做手柄适配；将来如果需要，请单独实现，不要依赖 Ctrl 的映射。
-            InputHub.Foreground.Keyboard.KeyDown(VK.VK_CONTROL);
+            InputHub.Foreground.Keyboard.KeyDown(GameKey.VK_CONTROL);
             Thread.Sleep(20);
-            InputHub.Foreground.Keyboard.KeyPress(VK.VK_V);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_V);
             Thread.Sleep(20);
-            InputHub.Foreground.Keyboard.KeyUp(VK.VK_CONTROL);
+            InputHub.Foreground.Keyboard.KeyUp(GameKey.VK_CONTROL);
 
             // 等待一小段时间确保粘贴完成
             Thread.Sleep(100);

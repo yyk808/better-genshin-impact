@@ -174,7 +174,7 @@ public sealed class PuloniaGenshinAccountSwitcher(PuloniaTaskStore store) : IPul
                     case PuloniaGenshinAccountScreenState.AccountSelection:
                     case PuloniaGenshinAccountScreenState.AccountList:
                     case PuloniaGenshinAccountScreenState.PasswordForm: return;
-                    case PuloniaGenshinAccountScreenState.MainUi: InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE); break;
+                    case PuloniaGenshinAccountScreenState.MainUi: InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE); break;
                     case PuloniaGenshinAccountScreenState.Menu: ClickReference(frame, 50, 1025); break;
                     case PuloniaGenshinAccountScreenState.LogoutConfirmation: ClickTemplate(frame, recognition, "PrepareToLogOut"); break;
                     case PuloniaGenshinAccountScreenState.ExitAccount: ClickTemplate(frame, recognition, "Exit"); break;

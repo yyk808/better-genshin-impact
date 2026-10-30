@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Windows 平台层：用 Win32 实现 BetterGenshinImpact.Core 的平台抽象，包装现有实现
+		（Fischless.GameCapture 截图、Fischless.WindowsInput SendInput、PostMessage 后台输入、Fischless.HotkeyCapture 热键）。
+		从主程序迁入的文件保留原命名空间（BetterGenshinImpact.Core.Input.Backends.Win32 / Core.Simulator / Helpers），调用方无需改动。
+	-->
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+		<RootNamespace>BetterGenshinImpact</RootNamespace>
+		<AssemblyName>BetterGenshinImpact.Platform.Windows</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<LangVersion>14.0</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Platforms>x64</Platforms>
+		<!-- Fischless.HotkeyCapture 的 API 使用 WinForms Keys -->
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Using Include="BetterGenshinImpact.Platform" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Vanara.PInvoke.User32" Version="4.1.3" />
+		<PackageReference Include="Vanara.PInvoke.Gdi32" Version="4.1.3" />
+		<PackageReference Include="Vanara.PInvoke.SHCore" Version="4.1.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
+		<ProjectReference Include="..\Fischless.GameCapture\Fischless.GameCapture.csproj" />
+		<ProjectReference Include="..\Fischless.HotkeyCapture\Fischless.HotkeyCapture.csproj" />
+		<ProjectReference Include="..\Fischless.WindowsInput\Fischless.WindowsInput.csproj" />
+	</ItemGroup>
+
+</Project>

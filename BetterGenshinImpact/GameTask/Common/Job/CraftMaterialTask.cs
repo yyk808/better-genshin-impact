@@ -506,7 +506,7 @@ public class CraftMaterialTask
         {
             _logger.LogWarning("未拥有提供 {BonusType} 加成的角色，退出角色选择界面。", bonusType);
             await Page.Flow()
-                .Do((Action)(() => Page.Keyboard.KeyPress(Vanara.PInvoke.User32.VK.VK_ESCAPE)))
+                .Do((Action)(() => Page.Keyboard.KeyPress(GameKey.VK_ESCAPE)))
                 .UntilText("合成", Rect1080(0, 0, 300, 100))
                 .Run();
             return;

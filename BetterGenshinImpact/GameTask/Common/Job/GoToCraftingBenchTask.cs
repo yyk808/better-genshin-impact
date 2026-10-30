@@ -196,7 +196,7 @@ public class GoToCraftingBenchTask : ISoloTask<CraftCondensedResinParam, CraftCo
                 },ct,3,200); 
                 if (!condensed)
                 {
-                    InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+                    InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
                     await new ReturnMainUiTask(_runtime).Start(ct);
                     throw new Exception($"识别浓缩树脂数量失败: {condensedResinCount}");
                 }
@@ -271,7 +271,7 @@ public class GoToCraftingBenchTask : ISoloTask<CraftCondensedResinParam, CraftCo
             }
             await _runtime.Delay(1300, ct);
             // 直接ESC退出即可
-            InputHub.Foreground.Keyboard.KeyPress(User32.VK.VK_ESCAPE);
+            InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         }
         else
         {

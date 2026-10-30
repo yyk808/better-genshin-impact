@@ -21,6 +21,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{DB7D66B7
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.I18nSync", "Build\BetterGenshinImpact.I18nSync\BetterGenshinImpact.I18nSync.csproj", "{B63FC99D-3C56-4F95-A80B-8AAFD8482C76}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Core", "BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj", "{1C010891-56AD-4D83-B971-71759709CC55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterGenshinImpact.Platform.Windows", "BetterGenshinImpact.Platform.Windows\BetterGenshinImpact.Platform.Windows.csproj", "{C7B31988-1913-402A-8D56-45E7615B5647}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +89,22 @@ Global
 		{B63FC99D-3C56-4F95-A80B-8AAFD8482C76}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B63FC99D-3C56-4F95-A80B-8AAFD8482C76}.Release|x64.ActiveCfg = Release|Any CPU
 		{B63FC99D-3C56-4F95-A80B-8AAFD8482C76}.Release|x64.Build.0 = Release|Any CPU
+		{1C010891-56AD-4D83-B971-71759709CC55}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Debug|Any CPU.Build.0 = Debug|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Debug|x64.ActiveCfg = Debug|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Debug|x64.Build.0 = Debug|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Release|Any CPU.ActiveCfg = Release|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Release|Any CPU.Build.0 = Release|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Release|x64.ActiveCfg = Release|x64
+		{1C010891-56AD-4D83-B971-71759709CC55}.Release|x64.Build.0 = Release|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Debug|Any CPU.Build.0 = Debug|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Debug|x64.ActiveCfg = Debug|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Debug|x64.Build.0 = Debug|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|Any CPU.ActiveCfg = Release|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|Any CPU.Build.0 = Release|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|x64.ActiveCfg = Release|x64
+		{C7B31988-1913-402A-8D56-45E7615B5647}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

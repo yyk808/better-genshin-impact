@@ -7,7 +7,7 @@ namespace BetterGenshinImpact.Core.Simulator;
 /// <summary>
 ///     虚拟键代码
 ///     https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
-///     User32.VK.VK_SPACE 键盘空格键
+///     GameKey.VK_SPACE 键盘空格键
 /// </summary>
 public class PostMessageSimulator
 {
@@ -29,7 +29,7 @@ public class PostMessageSimulator
     ///     按键消息的 lParam：重复次数 1，扫描码按 VK 计算；扩展键带第 24 位，判断规则与前台 SendInput 通道相同（见 ExtendedKeys）；
     ///     抬起时带“之前为按下”和“状态转换”位
     /// </summary>
-    public static nint MakeKeyLParam(User32.VK vk, bool keyUp)
+    public static nint MakeKeyLParam(GameKey vk, bool keyUp)
     {
         var scan = User32.MapVirtualKey((uint)vk, 0) & 0xFFu;
         var lParam = 1u | (scan << 16);
@@ -187,7 +187,7 @@ public class PostMessageSimulator
         return this;
     }
 
-    public PostMessageSimulator KeyPress(User32.VK vk)
+    public PostMessageSimulator KeyPress(GameKey vk)
     {
         User32.PostMessage(_hWnd, User32.WindowMessage.WM_KEYDOWN, (nint)vk, MakeKeyLParam(vk, false));
         User32.PostMessage(_hWnd, User32.WindowMessage.WM_CHAR, (nint)vk, MakeKeyLParam(vk, false));
@@ -195,7 +195,7 @@ public class PostMessageSimulator
         return this;
     }
 
-    public PostMessageSimulator KeyPress(User32.VK vk, int ms)
+    public PostMessageSimulator KeyPress(GameKey vk, int ms)
     {
         User32.PostMessage(_hWnd, User32.WindowMessage.WM_KEYDOWN, (nint)vk, MakeKeyLParam(vk, false));
         Thread.Sleep(ms);
@@ -204,36 +204,36 @@ public class PostMessageSimulator
         return this;
     }
 
-    public PostMessageSimulator LongKeyPress(User32.VK vk)
+    public PostMessageSimulator LongKeyPress(GameKey vk)
     {
         return KeyPress(vk, 1000);
     }
 
-    public PostMessageSimulator KeyDown(User32.VK vk)
+    public PostMessageSimulator KeyDown(GameKey vk)
     {
         User32.PostMessage(_hWnd, User32.WindowMessage.WM_KEYDOWN, (nint)vk, MakeKeyLParam(vk, false));
         return this;
     }
 
-    public PostMessageSimulator KeyUp(User32.VK vk)
+    public PostMessageSimulator KeyUp(GameKey vk)
     {
         User32.PostMessage(_hWnd, User32.WindowMessage.WM_KEYUP, (nint)vk, MakeKeyLParam(vk, true));
         return this;
     }
 
-    public PostMessageSimulator KeyPressBackground(User32.VK vk)
+    public PostMessageSimulator KeyPressBackground(GameKey vk)
     {
         Activate();
         return KeyPress(vk);
     }
 
-    public PostMessageSimulator KeyDownBackground(User32.VK vk)
+    public PostMessageSimulator KeyDownBackground(GameKey vk)
     {
         Activate();
         return KeyDown(vk);
     }
 
-    public PostMessageSimulator KeyUpBackground(User32.VK vk)
+    public PostMessageSimulator KeyUpBackground(GameKey vk)
     {
         Activate();
         return KeyUp(vk);

@@ -85,7 +85,7 @@ public sealed class Win32RuntimeProvider(
 
             var config = configService.Get();
             capture = GameCaptureFactory.Create(GetCaptureMode(config));
-            capture.Start(hWnd, GameCaptureSettings.From(config));
+            capture.Start(window, GameCaptureSettings.From(config));
             var runtime = new GameRuntime(Kind, window, capture, new Win32InputBackend(hWnd), systemInfo,
                 maskWindowDrawingBoard, maskWindowMapState);
 

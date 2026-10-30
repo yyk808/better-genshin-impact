@@ -344,7 +344,7 @@ public class AutoTrackPathTask
         InputHub.Foreground.SimulateAction(GIActions.MoveForward, KeyType.KeyDown);
         _runtime.Sleep(100);
         InputHub.Foreground.SimulateAction(GIActions.MoveForward, KeyType.KeyUp);
-        // InputHub.Foreground.Keyboard.KeyDown(User32.VK.VK_W).Sleep(100).KeyUp(User32.VK.VK_W);
+        // InputHub.Foreground.Keyboard.KeyDown(GameKey.VK_W).Sleep(100).KeyUp(GameKey.VK_W);
         _runtime.Sleep(1000);
         var angle2 = GetCharacterOrientationAngle();
         var angleOffset = angle2 - angle1;

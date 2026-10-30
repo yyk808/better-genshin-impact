@@ -675,7 +675,7 @@ public partial class MusicGuidedWindow : Window, IMusicGuidedOverlay
         // 窗口是点击穿透的、拿不到键盘焦点，所以用异步键状态检测来支持 Esc 退出与现场微调。
         // 只在游戏处于前台时才认这些热键：切到别的程序后按 Esc / Ctrl 不该影响引导会话。
         var gameActive = IsGameActive();
-        if (gameActive && IsKeyDown((int)User32.VK.VK_ESCAPE))
+        if (gameActive && IsKeyDown((int)GameKey.VK_ESCAPE))
         {
             if (!_escapeHeld)
             {

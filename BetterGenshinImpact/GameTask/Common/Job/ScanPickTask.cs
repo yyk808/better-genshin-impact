@@ -42,7 +42,7 @@ public class ScanPickTask
     /// <summary>
     /// 构造时的捕获窗口区域快照
     /// </summary>
-    private readonly RECT _realCaptureRect;
+    private readonly PixelRect _realCaptureRect;
 
     /// <summary>
     /// 创建扫描拾取任务

@@ -8,7 +8,7 @@ namespace BetterGenshinImpact.Core.Input.Backends.WebSdk;
 /// </summary>
 public static class WebKeyCodes
 {
-    public static bool TryGetCode(User32.VK vk, out string code)
+    public static bool TryGetCode(GameKey vk, out string code)
     {
         var value = (int)vk;
         code = value switch

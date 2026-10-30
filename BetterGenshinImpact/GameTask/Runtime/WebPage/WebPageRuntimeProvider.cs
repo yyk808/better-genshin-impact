@@ -66,7 +66,7 @@ public sealed class WebPageRuntimeProvider(
             // 固定使用 WGC（GraphicsCapture），不读截图模式配置：config.json 由所有实例共享，网页版改了会影响 Primary。
             // 与 Win32 路径一样在 UI 线程上创建（帧池用 Direct3D11CaptureFramePool.Create）
             capture = new GraphicsCapture();
-            capture.Start(host.Handle, GameCaptureSettings.From(configService.Get()));
+            capture.Start(window, GameCaptureSettings.From(configService.Get()));
 
             // 输入坐标与截图使用同一块画面区域
             var input = new WebSdkInputBackend(host.Bridge!, () => window.Viewport.ScreenRect);
