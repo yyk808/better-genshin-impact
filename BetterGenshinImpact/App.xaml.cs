@@ -356,6 +356,10 @@ public partial class App : Application
                 services.AddSingleton<GameScreenshotService>();
                 services.AddSingleton<TaskStopService>();
                 services.AddSingleton<WindowsNotificationSuppressionService>();
+                // 平台服务（窗口查找、截图、输入、热键），见 Docs/linux-migration/architecture.md
+                services.AddSingleton<BetterGenshinImpact.Platform.IPlatformServices>(sp =>
+                    new BetterGenshinImpact.Platform.Windows.Win32PlatformServices(
+                        logger: sp.GetRequiredService<ILogger<BetterGenshinImpact.GameTask.SystemControl>>()));
                 // 游戏运行环境：按实例类型选定 Provider，见 Docs/design/game-runtime.md
                 services.AddSingleton<Win32RuntimeProvider>();
                 services.AddSingleton<IGameRuntimeProvider>(sp => sp.GetRequiredService<Win32RuntimeProvider>());

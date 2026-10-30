@@ -7,30 +7,35 @@ using BetterGenshinImpact.Service;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Service.Instance;
 using BetterGenshinImpact.Service.Interface;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.GameTask;
 
+/// <summary>
+/// 游戏进程与窗口相关的静态入口。
+/// 平台无关部分在 Core 的 <see cref="GenshinGameProcess"/>；找窗走 <see cref="IPlatformServices.GameWindows"/>；
+/// 按句柄操作窗口的 Win32 实现在 Platform.Windows 的 <see cref="Win32WindowOps"/>，这里保留转发以兼容现有调用
+/// </summary>
 public class SystemControl
 {
     private static readonly ILogger Logger = App.GetLogger<SystemControl>();
 
-    private const string ChildSessionGenshinStartArgs =
-        "-popupwindow -screen-width 1920 -screen-height 1080";
+    private static readonly Lazy<IPlatformServices> FallbackPlatform =
+        new(() => new Win32PlatformServices(logger: Logger));
 
-    private static readonly Regex ChildSessionOverriddenArgumentRegex = new(
-        @"(?<!\S)(?:-popupwindow|-screen-(?:width|height)(?:\s*=\s*(?:""[^""]*""|\S+)|\s+(?:""[^""]*""|(?!-)\S+))?)(?=\s|$)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    /// <summary>
+    /// 平台服务：优先取 DI 中注册的实例，宿主未建立（单元测试等）时使用本地实例
+    /// </summary>
+    public static IPlatformServices Platform => App.GetService<IPlatformServices>() ?? FallbackPlatform.Value;
 
     /// <summary>
     /// 配置根。SystemControl 是静态的 Win32 函数集合，没有创建方可以传参，暂时读静态入口（见 task-context-removal.md 第 5 节）
@@ -48,198 +53,43 @@ public class SystemControl
             return [window.ProcessName];
         }
 
-        List<string> list = ["YuanShen", "GenshinImpact", "Genshin Impact Cloud Game", "Genshin Impact Cloud"];
+        string? installPath = null;
         try
         {
-            var installPath = Config.GenshinStartConfig.InstallPath;
-            if (!string.IsNullOrEmpty(installPath))
-            {
-                var customName = Path.GetFileNameWithoutExtension(installPath);
-                if (!string.IsNullOrEmpty(customName) && !list.Contains(customName))
-                {
-                    list.Add(customName);
-                }
-            }
+            installPath = Config.GenshinStartConfig.InstallPath;
         }
         catch
         {
             /* ignore */
         }
 
-        return list;
+        return GenshinGameProcess.CandidateProcessNames(installPath);
     }
 
+    /// <summary>当前设置下的找窗条件</summary>
+    public static GameWindowSearch GetGameWindowSearch() =>
+        new(GetGenshinGameProcessNameList(null), Config.OtherConfig.WindowClassDetectPreferred);
+
+    /// <summary>
+    /// 查找游戏窗口（平台无关）。找不到返回 null，调用方负责 Dispose
+    /// </summary>
+    public static IPlatformWindow? FindGenshinImpactWindow() => Platform.GameWindows.FindGameWindow(GetGameWindowSearch());
+
+    /// <summary>
+    /// 查找游戏窗口句柄，找不到返回 0。
+    /// 其他设置“窗口类名优先检测”关闭时按进程名 + MainWindowHandle；开启后 ①按窗口类名枚举 → ②按进程枚举最大可见窗口 → ③原版方式
+    /// </summary>
     public static nint FindGenshinImpactHandle()
     {
         // 找窗时还没有运行环境，按候选进程名查找
-        var processNames = GetGenshinGameProcessNameList(null);
-
-        // 其他设置：窗口类名优先检测（默认关闭，关闭时走原始进程名+MainWindowHandle 路径）
-        // 开启后：①按窗口类名枚举 → ②按进程枚举最大可见窗口 → ③原版方式（均未命中才回退）
-        if (Config.OtherConfig.WindowClassDetectPreferred)
+        var search = GetGameWindowSearch();
+        if (Platform.GameWindows is Win32GameWindowFinder win32)
         {
-            // ①优先：按窗口类名 EnumWindows 枚举（不看标题，规避标题变化），同会话优先
-            var handle = FindWindowByUnityWndClass(processNames);
-            if (handle != 0)
-            {
-                Logger.LogInformation("[窗口检测] ①按窗口类名枚举命中，句柄={Handle}", handle);
-                return handle;
-            }
-
-            // ②次选：白名单进程拥有的可见窗口中客户区最大者，同会话优先
-            handle = FindLargestVisibleWindowByProcessName(processNames);
-            if (handle != 0)
-            {
-                Logger.LogInformation("[窗口检测] ②按进程枚举最大可见窗口命中，句柄={Handle}", handle);
-                return handle;
-            }
-
-            // 仍未命中，回退原版逻辑（进程名 + MainWindowHandle）
-            handle = FindHandleByProcessName(processNames.ToArray());
-            Logger.LogInformation("[窗口检测] 未命中，回退旧逻辑，句柄={Handle}", handle);
-            return handle;
+            return win32.FindHandle(search);
         }
 
-        return FindHandleByProcessName(processNames.ToArray());
-    }
-
-    /// <summary>
-    /// ①优先：按窗口类名 EnumWindows 枚举顶层可见窗口（不看窗口标题，规避标题变化），
-    /// 再经 GetWindowThreadProcessId 反查进程名，须在游戏进程名白名单内；
-    /// 同会话命中直接返回，否则记住第一个跨会话命中继续枚举（多开/多会话时同会话优先）
-    /// </summary>
-    private static nint FindWindowByUnityWndClass(IEnumerable<string> processNames)
-    {
-        var nameSet = new HashSet<string>(processNames, StringComparer.OrdinalIgnoreCase);
-        var currentSessionId = Process.GetCurrentProcess().SessionId;
-        nint found = 0;
-        _ = User32.EnumWindows((hWnd, lParam) =>
-        {
-            if (!User32.IsWindowVisible(hWnd))
-            {
-                return true;
-            }
-
-            var className = GetWindowClassName((nint)hWnd);
-            if (!string.Equals(className, "UnityWndClass", StringComparison.OrdinalIgnoreCase)
-                && !(className?.StartsWith("Qt", StringComparison.OrdinalIgnoreCase) == true
-                     && className.EndsWith("QWindowIcon", StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            _ = User32.GetWindowThreadProcessId(hWnd, out var pid);
-            try
-            {
-                using var p = Process.GetProcessById((int)pid);
-                if (!nameSet.Contains(p.ProcessName))
-                {
-                    return true;
-                }
-
-                if (p.SessionId == currentSessionId)
-                {
-                    // 同会话命中，直接采用
-                    found = (nint)hWnd;
-                    return false;
-                }
-            }
-            catch (ArgumentException)
-            {
-                // pid 已失效（进程已退出），跳过
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // ArgumentException 已单独接走，落到这里的多为跨会话/提权进程访问被拒
-                Logger.LogDebug(ex, "[窗口检测] ①读取窗口进程信息失败（pid={Pid}）", (int)pid);
-                return true;
-            }
-
-            // 跨会话命中：先记住，继续枚举看有没有同会话的
-            if (found == 0)
-            {
-                found = (nint)hWnd;
-            }
-
-            return true;
-        }, IntPtr.Zero);
-        return found;
-    }
-
-    /// <summary>
-    /// ②次选：对游戏进程名白名单内的所有进程（不依赖 MainWindowHandle）
-    /// EnumWindows 枚举其名下的可见顶层窗口，取客户区面积最大者；
-    /// 存在同会话进程时只在本会话窗口里选（多开/多会话时同会话优先）
-    /// </summary>
-    private static nint FindLargestVisibleWindowByProcessName(IEnumerable<string> processNames)
-    {
-        var currentSessionId = Process.GetCurrentProcess().SessionId;
-        var pidSet = new HashSet<int>();
-        var sameSessionPids = new HashSet<int>();
-        foreach (var name in processNames)
-        {
-            foreach (var p in Process.GetProcessesByName(name))
-            {
-                try
-                {
-                    pidSet.Add(p.Id);
-                    if (p.SessionId == currentSessionId)
-                    {
-                        sameSessionPids.Add(p.Id);
-                    }
-                }
-                catch (InvalidOperationException)
-                {
-                    // 进程已退出，跳过
-                }
-                finally
-                {
-                    p.Dispose();
-                }
-            }
-        }
-
-        if (pidSet.Count == 0)
-        {
-            return 0;
-        }
-
-        var effectivePids = sameSessionPids.Count > 0 ? sameSessionPids : pidSet;
-
-        nint best = 0;
-        long bestArea = -1;
-        _ = User32.EnumWindows((hWnd, lParam) =>
-        {
-            if (!User32.IsWindowVisible(hWnd))
-            {
-                return true;
-            }
-
-            _ = User32.GetWindowThreadProcessId(hWnd, out var pid);
-            if (!effectivePids.Contains((int)pid))
-            {
-                return true;
-            }
-
-            User32.GetClientRect(hWnd, out var rect);
-            var area = (long)rect.Right * rect.Bottom;
-            if (area > bestArea)
-            {
-                bestArea = area;
-                best = (nint)hWnd;
-            }
-
-            return true;
-        }, IntPtr.Zero);
-        return best;
-    }
-
-    private static string? GetWindowClassName(nint hWnd)
-    {
-        var sb = new StringBuilder(256);
-        _ = User32.GetClassName(hWnd, sb, sb.Capacity);
-        return sb.ToString();
+        using var window = Platform.GameWindows.FindGameWindow(search);
+        return window?.Handle ?? 0;
     }
 
     public static async Task<nint> StartFromLocalAsync(string path)
@@ -252,7 +102,7 @@ public class SystemControl
 
         var cfg = Config.GenshinStartConfig;
         var workdir = Path.GetDirectoryName(path) ?? "";
-        var arg = BuildGenshinStartArguments(
+        var arg = GenshinGameProcess.BuildStartArguments(
             cfg.GenshinStartArgs,
             InstanceBootstrap.Current.Context.InstanceType == BetterGiInstanceType.ChildSession);
 
@@ -294,21 +144,9 @@ public class SystemControl
         return FindGenshinImpactHandle();
     }
 
-    internal static string BuildGenshinStartArguments(string? configuredArguments, bool isChildSession)
-    {
-        var arguments = configuredArguments?.Trim() ?? string.Empty;
-        if (!isChildSession)
-        {
-            return arguments;
-        }
+    internal static string BuildGenshinStartArguments(string? configuredArguments, bool isChildSession) =>
+        GenshinGameProcess.BuildStartArguments(configuredArguments, isChildSession);
 
-        arguments = ChildSessionOverriddenArgumentRegex.Replace(arguments, string.Empty).Trim();
-        return string.IsNullOrEmpty(arguments)
-            ? ChildSessionGenshinStartArgs
-            : $"{arguments} {ChildSessionGenshinStartArgs}";
-    }
-
-    
     public static string GetActiveByProcess()
     {
         return GetActiveProcessName() ?? "Unknown";
@@ -331,134 +169,36 @@ public class SystemControl
                && GetGenshinGameProcessNameList(null).Any(p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static nint GetForegroundWindowHandle()
-    {
-        return (nint)User32.GetForegroundWindow();
-    }
+    // ---- 以下为 Win32WindowOps 的转发，行为不变 ----
 
-    public static nint FindHandleByProcessName(params string[] names)
-    {
-        var currentSessionId = Process.GetCurrentProcess().SessionId;
-        foreach (var name in names)
-        {
-            foreach (var p in Process.GetProcessesByName(name))
-            {
-                try
-                {
-                    if (p.SessionId == currentSessionId)
-                        return p.MainWindowHandle;
-                }
-                catch (InvalidOperationException)
-                {
-                    // 进程已退出，跳过
-                }
-                finally
-                {
-                    p.Dispose();
-                }
-            }
-        }
+    public static nint GetForegroundWindowHandle() => Win32WindowOps.GetForegroundWindowHandle();
 
-        return 0;
-    }
+    public static nint FindHandleByProcessName(params string[] names) => Win32GameWindowFinder.FindHandleByProcessName(names);
 
-    public static nint FindHandleByWindowName()
-    {
-        var handle = (nint)User32.FindWindow("UnityWndClass", "原神");
-        if (handle != 0)
-        {
-            return handle;
-        }
+    public static nint FindHandleByWindowName() => Win32WindowOps.FindHandleByWindowName();
 
-        handle = (nint)User32.FindWindow("UnityWndClass", "Genshin Impact");
-        if (handle != 0)
-        {
-            return handle;
-        }
+    public static string? GetActiveProcessName() => Win32WindowOps.GetActiveProcessName();
 
-        handle = (nint)User32.FindWindow("Qt5152QWindowIcon", "云·原神");
-        if (handle != 0)
-        {
-            return handle;
-        }
+    public static Process? GetProcessByHandle(nint hWnd) => Win32WindowOps.GetProcessByHandle(hWnd);
 
-        return 0;
-    }
+    /// <summary>获取窗口位置</summary>
+    public static RECT GetWindowRect(nint hWnd) => Win32WindowOps.GetWindowRect(hWnd);
 
-    public static string? GetActiveProcessName()
-    {
-        try
-        {
-            var hWnd = User32.GetForegroundWindow();
-            _ = User32.GetWindowThreadProcessId(hWnd, out var pid);
-            var p = Process.GetProcessById((int)pid);
-            return p.ProcessName;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    /// <summary>游戏本身分辨率获取</summary>
+    public static RECT GetGameScreenRect(nint hWnd) => Win32WindowOps.GetGameScreenRect(hWnd);
 
-    public static Process? GetProcessByHandle(nint hWnd)
-    {
-        try
-        {
-            _ = User32.GetWindowThreadProcessId(hWnd, out var pid);
-            var p = Process.GetProcessById((int)pid);
-            return p;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex);
-            return null;
-        }
-    }
+    /// <summary>GetWindowRect or GetGameScreenRect</summary>
+    public static RECT GetCaptureRect(nint hWnd) => Win32WindowOps.GetCaptureRect(hWnd);
 
-    /// <summary>
-    /// 获取窗口位置
-    /// </summary>
-    /// <param name="hWnd"></param>
-    /// <returns></returns>
-    public static RECT GetWindowRect(nint hWnd)
-    {
-        // User32.GetWindowRect(hWnd, out var windowRect);
-        DwmApi.DwmGetWindowAttribute<RECT>(hWnd, DwmApi.DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out var windowRect);
-        return windowRect;
-    }
+    public static void ActivateWindow(nint hWnd) => Win32WindowOps.ActivateWindow(hWnd);
 
-    /// <summary>
-    /// 游戏本身分辨率获取
-    /// </summary>
-    /// <param name="hWnd"></param>
-    /// <returns></returns>
-    public static RECT GetGameScreenRect(nint hWnd)
-    {
-        User32.GetClientRect(hWnd, out var clientRect);
-        return clientRect;
-    }
+    public static void FocusWindow(nint hWnd) => Win32WindowOps.FocusWindow(hWnd);
 
-    /// <summary>
-    /// GetWindowRect or GetGameScreenRect
-    /// </summary>
-    /// <param name="hWnd"></param>
-    /// <returns></returns>
-    public static RECT GetCaptureRect(nint hWnd)
-    {
-        var windowRect = GetWindowRect(hWnd);
-        var gameScreenRect = GetGameScreenRect(hWnd);
-        var left = windowRect.Left;
-        var top = windowRect.Top + windowRect.Height - gameScreenRect.Height;
-        var right = left + gameScreenRect.Width;
-        var bottom = top + gameScreenRect.Height;
-        return new RECT(left, top, right, bottom);
-    }
+    public static void MinimizeAndActivateWindow(nint hWnd) => Win32WindowOps.MinimizeAndActivateWindow(hWnd);
 
-    public static void ActivateWindow(nint hWnd)
-    {
-        User32.ShowWindow(hWnd, ShowWindowCommand.SW_RESTORE);
-        User32.SetForegroundWindow(hWnd);
-    }
+    public static void RestoreWindow(nint hWnd) => Win32WindowOps.RestoreWindow(hWnd);
+
+    public static bool IsFullScreenMode(IntPtr hWnd) => Win32WindowOps.IsFullScreenMode(hWnd);
 
     public static void RestartApplication(string[] newArgs, bool graceful = false)
     {
@@ -507,58 +247,6 @@ public class SystemControl
         else
             Environment.Exit(0);
     }
-    public static void FocusWindow(nint hWnd)
-    {
-        if (User32.IsWindow(hWnd))
-        {
-            _ = User32.SendMessage(hWnd, User32.WindowMessage.WM_SYSCOMMAND, User32.SysCommand.SC_RESTORE, 0);
-            _ = User32.SetForegroundWindow(hWnd);
-
-            while (User32.IsIconic(hWnd))
-            {
-                continue;
-            }
-
-            _ = User32.BringWindowToTop(hWnd);
-            _ = User32.SetActiveWindow(hWnd);
-        }
-    }
-    public static void MinimizeAndActivateWindow(nint hWnd)
-    {
-        HWND hShell = User32.FindWindow("Shell_TrayWnd", null);
-        User32.SendMessage(hShell, 0x0111, (IntPtr)419, IntPtr.Zero);
-        Thread.Sleep(500);
-        FocusWindow(hWnd);
-    }
-    public static void RestoreWindow(nint hWnd)
-    {
-        if (User32.IsWindow(hWnd))
-        {
-            _ = User32.SendMessage(hWnd, User32.WindowMessage.WM_SYSCOMMAND, User32.SysCommand.SC_RESTORE, 0);
-            _ = User32.SetForegroundWindow(hWnd);
-
-            if (User32.IsIconic(hWnd))
-            {
-                _ = User32.ShowWindow(hWnd, ShowWindowCommand.SW_RESTORE);
-            }
-
-            _ = User32.BringWindowToTop(hWnd);
-            _ = User32.SetActiveWindow(hWnd);
-        }
-    }
-
-    public static bool IsFullScreenMode(IntPtr hWnd)
-    {
-        if (hWnd == IntPtr.Zero)
-        {
-            return false;
-        }
-
-        var exStyle = User32.GetWindowLong(hWnd, User32.WindowLongFlags.GWL_EXSTYLE);
-
-        return (exStyle & (int)User32.WindowStylesEx.WS_EX_TOPMOST) != 0;
-    }
-
     // private static void StartFromLauncher(string path)
     // {
     //     // 通过launcher启动

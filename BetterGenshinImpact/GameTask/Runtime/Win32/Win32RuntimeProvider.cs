@@ -1,7 +1,7 @@
 using BetterGenshinImpact.Core.Config;
-using BetterGenshinImpact.Core.Input.Backends.Win32;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask.Model;
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Service.Interface;
 using BetterGenshinImpact.View.Windows;
 using Fischless.GameCapture;
@@ -16,6 +16,7 @@ namespace BetterGenshinImpact.GameTask.Runtime.Win32;
 /// 本机 Win32 游戏窗口的运行环境：本地原神、Windows 云原神
 /// </summary>
 public sealed class Win32RuntimeProvider(
+    IPlatformServices platform,
     IConfigService configService,
     IMaskWindowDrawingBoard maskWindowDrawingBoard,
     IMaskWindowMapState maskWindowMapState,
@@ -32,7 +33,7 @@ public sealed class Win32RuntimeProvider(
         var config = configService.Get();
         DisableGenshinHdrIfNeeded(config);
 
-        var hWnd = SystemControl.FindGenshinImpactHandle();
+        var hWnd = FindGameWindowHandle();
         if (hWnd == IntPtr.Zero)
         {
             var startConfig = config.GenshinStartConfig;
@@ -84,9 +85,9 @@ public sealed class Win32RuntimeProvider(
             var systemInfo = new SystemInfo(window.Viewport, maskWindowDrawingBoard);
 
             var config = configService.Get();
-            capture = GameCaptureFactory.Create(GetCaptureMode(config));
+            capture = platform.CreateCapture(GetCaptureMode(config).ToString());
             capture.Start(window, GameCaptureSettings.From(config));
-            var runtime = new GameRuntime(Kind, window, capture, new Win32InputBackend(hWnd), systemInfo,
+            var runtime = new GameRuntime(Kind, window, capture, platform.CreateInput(window), systemInfo,
                 maskWindowDrawingBoard, maskWindowMapState);
 
             // 自动查找、关联启动、手动选窗都经过这里；同一个游戏进程只通知一次
@@ -105,6 +106,15 @@ public sealed class Win32RuntimeProvider(
     /// 结束游戏进程：已绑定时只结束绑定窗口所属的进程名
     /// </summary>
     public void CloseGame(GameRuntime? current) => SystemControl.CloseGameProcesses(current?.Window);
+
+    /// <summary>
+    /// 经平台的游戏窗口查找器找窗，查找条件（候选进程名、窗口类名优先）来自当前设置
+    /// </summary>
+    private nint FindGameWindowHandle()
+    {
+        using var window = platform.GameWindows.FindGameWindow(SystemControl.GetGameWindowSearch());
+        return window?.Handle ?? IntPtr.Zero;
+    }
 
     private static CaptureModes GetCaptureMode(AllConfig config)
     {
