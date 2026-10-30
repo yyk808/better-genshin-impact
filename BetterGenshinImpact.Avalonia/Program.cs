@@ -161,6 +161,12 @@ internal static class AvaloniaHostProgram
             await Task.Delay(400);
             SaveScreenshot(window, Path.Combine(dir, "avalonia-home-launch.png"), log);
             viewModel.IsLogExpanded = true;
+
+            // 截图器拿到的一帧（用于核对截图内容，例如是否截到了遮罩）
+            if (viewModel.Host is { IsRunning: true } runningHost)
+            {
+                await SaveCapturedFrameAsync(runningHost, Path.Combine(dir, "capture-frame.png"), log);
+            }
         }
 
         var remaining = total - (DateTime.UtcNow - started);
@@ -258,6 +264,36 @@ internal static class AvaloniaHostProgram
         }
 
         await pick;
+    }
+
+    private static async Task SaveCapturedFrameAsync(GameHost host, string path, ILogger log)
+    {
+        var saved = new TaskCompletionSource();
+        void OnFrame(OpenCvSharp.Mat frame)
+        {
+            if (saved.Task.IsCompleted)
+            {
+                return;
+            }
+
+            OpenCvSharp.Cv2.ImWrite(path, frame);
+            saved.TrySetResult();
+        }
+
+        host.Dispatcher.FrameCaptured += OnFrame;
+        try
+        {
+            await saved.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            log.Information("截图器画面：{Path}", path);
+        }
+        catch (TimeoutException)
+        {
+            log.Warning("3 秒内没有拿到截图器画面");
+        }
+        finally
+        {
+            host.Dispatcher.FrameCaptured -= OnFrame;
+        }
     }
 
     private static void SaveScreenshot(Window window, string path, ILogger log)

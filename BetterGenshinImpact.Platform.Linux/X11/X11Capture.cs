@@ -15,6 +15,12 @@ public enum X11CaptureMode
 
     /// <summary>XGetImage 读根窗口区域</summary>
     GetImageRoot,
+
+    /// <summary>
+    /// Composite 扩展：自动模式重定向游戏窗口，每帧取窗口的离屏图像（XCompositeNameWindowPixmap）再用 MIT-SHM 读取。
+    /// 窗口被其它窗口或遮罩覆盖时仍是游戏本身的画面（相当于 Windows 上截游戏窗口而不是屏幕）；扩展不可用时回退 <see cref="ShmRoot"/>
+    /// </summary>
+    CompositeWindow,
 }
 
 /// <summary>
@@ -38,7 +44,12 @@ public sealed unsafe class X11Capture : IGameCapture
     private bool _bgra;
     private XShmSegmentInfo* _shm;
     private nint _shmImage;
-    private int _shmW, _shmH;
+    private int _shmW, _shmH, _shmDepth;
+
+    // Composite：已重定向的窗口、连续失败次数
+    private nint _redirected;
+    private int _compositeFailures;
+    private const int CompositeMaxFailures = 40;
 
     /// <param name="c">X 连接，为 null 时按 $DISPLAY 自行创建</param>
     /// <param name="ownsConnection">Dispose 时是否关闭连接；<paramref name="c"/> 为 null 时总是 true</param>
@@ -48,7 +59,31 @@ public sealed unsafe class X11Capture : IGameCapture
         _owns = c == null || ownsConnection;
         _c = c ?? new X11Connection();
         _mode = mode;
+        CheckMode();
+    }
+
+    /// <summary>所选方式需要的扩展不可用时回退</summary>
+    private void CheckMode()
+    {
+        if (_mode == X11CaptureMode.CompositeWindow && !HasComposite())
+        {
+            LastFallbackReason = "X 服务器不支持 Composite 扩展（或缺少 libXcomposite），回退 MIT-SHM 屏幕区域";
+            _mode = X11CaptureMode.ShmRoot;
+        }
+
         if (_mode == X11CaptureMode.ShmRoot && !XShmQueryExtension(_c.Display)) _mode = X11CaptureMode.GetImageRoot;
+    }
+
+    private bool HasComposite()
+    {
+        try
+        {
+            return XCompositeQueryExtension(_c.Display, out _, out _);
+        }
+        catch (DllNotFoundException)
+        {
+            return false;
+        }
     }
 
     public X11CaptureMode Mode => _mode;
@@ -61,9 +96,10 @@ public sealed unsafe class X11Capture : IGameCapture
         {
             X11CaptureMode.ShmRoot => "X11 XShmGetImage(root)",
             X11CaptureMode.GetImageWindow => "X11 XGetImage(window)",
+            X11CaptureMode.CompositeWindow => "X11 Composite(window pixmap)",
             _ => "X11 XGetImage(root)",
         },
-        CanCaptureOccluded: false, NeedsUserConsent: false, SupportsHdr: false);
+        CanCaptureOccluded: _mode == X11CaptureMode.CompositeWindow, NeedsUserConsent: false, SupportsHdr: false);
 
     public bool IsCapturing => _target != null;
 
@@ -75,7 +111,7 @@ public sealed unsafe class X11Capture : IGameCapture
             if ((settings.TryGetValue("x11CaptureMode", out var m) || settings.TryGetValue("mode", out m)) && TryParseMode(m, out var mode))
             {
                 _mode = mode;
-                if (_mode == X11CaptureMode.ShmRoot && !XShmQueryExtension(_c.Display)) _mode = X11CaptureMode.GetImageRoot;
+                CheckMode();
             }
 
             if (settings.TryGetValue("pixelFormat", out var pf) && pf is string s)
@@ -115,6 +151,13 @@ public sealed unsafe class X11Capture : IGameCapture
         {
             // 停止 / 释放与截图线程并发时，连接可能已关闭
             if (_c.IsDisposed) return null;
+            if (_mode == X11CaptureMode.CompositeWindow)
+            {
+                var f = CaptureComposite(target.Handle, rect, out var failed);
+                if (f != null || !failed) return f;
+                if (_mode == X11CaptureMode.CompositeWindow) return null;
+            }
+
             if (_mode == X11CaptureMode.ShmRoot)
             {
                 var f = CaptureShm(rect);
@@ -148,11 +191,106 @@ public sealed unsafe class X11Capture : IGameCapture
         return CopyOut(_shmImage, r);
     }
 
-    private bool AllocShm(int w, int h)
+    /// <summary>
+    /// Composite 截图：首次重定向窗口（自动模式，屏幕显示不受影响；合成器已重定向时同样可用），
+    /// 每帧重新取一次窗口的离屏 pixmap（窗口大小变化、取消映射再映射后旧 pixmap 不再更新），读完即释放。
+    /// 读的是窗口自身（含子窗口）的内容，不含窗口管理器的边框，也不含覆盖在上面的遮罩。
+    /// </summary>
+    /// <param name="failed">本帧失败（窗口未映射 / 已销毁等）；连续失败过多时回退屏幕区域截图</param>
+    private GameCaptureFrame? CaptureComposite(nint window, PixelRect rect, out bool failed)
+    {
+        failed = false;
+        if (_redirected != window)
+        {
+            ReleaseComposite();
+            LastErrorCode = 0;
+            XCompositeRedirectWindow(_c.Display, window, CompositeRedirectAutomatic);
+            XSync(_c.Display, false);
+            // BadAccess：已被别的客户端以手动模式重定向（如 Wine 自己的离屏渲染），仍可直接取 pixmap
+            _redirected = window;
+        }
+
+        LastErrorCode = 0;
+        if (XGetGeometry(_c.Display, window, out _, out _, out _, out var w, out var h, out _, out var depth) == 0 || LastErrorCode != 0)
+        {
+            return CompositeFailed("XGetGeometry 失败", out failed);
+        }
+
+        var pixmap = XCompositeNameWindowPixmap(_c.Display, window);
+        XSync(_c.Display, false);
+        if (pixmap == 0 || LastErrorCode != 0)
+        {
+            // 窗口未映射（最小化）时 BadMatch
+            return CompositeFailed($"XCompositeNameWindowPixmap 失败(err={LastErrorCode})", out failed);
+        }
+
+        try
+        {
+            var frameRect = new PixelRect(rect.X, rect.Y, (int)w, (int)h);
+            GameCaptureFrame? frame = null;
+            if (_shmImage == 0 || _shmW != (int)w || _shmH != (int)h || _shmDepth != (int)depth)
+            {
+                FreeShm();
+                if (!AllocShm((int)w, (int)h, depth)) FreeShm();
+            }
+
+            if (_shmImage != 0)
+            {
+                LastErrorCode = 0;
+                if (XShmGetImage(_c.Display, pixmap, _shmImage, 0, 0, AllPlanes))
+                {
+                    XSync(_c.Display, false);
+                    if (LastErrorCode == 0) frame = CopyOut(_shmImage, frameRect);
+                }
+            }
+
+            frame ??= CaptureGetImage(pixmap, 0, 0, (int)w, (int)h, frameRect);
+            if (frame == null)
+            {
+                return CompositeFailed($"读取窗口 pixmap 失败(err={LastErrorCode})", out failed);
+            }
+
+            _compositeFailures = 0;
+            return frame;
+        }
+        finally
+        {
+            XFreePixmap(_c.Display, pixmap);
+        }
+    }
+
+    private GameCaptureFrame? CompositeFailed(string reason, out bool failed)
+    {
+        failed = true;
+        if (++_compositeFailures >= CompositeMaxFailures)
+        {
+            LastFallbackReason = $"Composite 截图连续失败 {_compositeFailures} 次（{reason}），回退 MIT-SHM 屏幕区域";
+            ReleaseComposite();
+            FreeShm();
+            _mode = XShmQueryExtension(_c.Display) ? X11CaptureMode.ShmRoot : X11CaptureMode.GetImageRoot;
+        }
+
+        return null;
+    }
+
+    private void ReleaseComposite()
+    {
+        if (_redirected != 0)
+        {
+            LastErrorCode = 0;
+            XCompositeUnredirectWindow(_c.Display, _redirected, CompositeRedirectAutomatic);
+            XSync(_c.Display, false);
+            _redirected = 0;
+        }
+
+        _compositeFailures = 0;
+    }
+
+    private bool AllocShm(int w, int h, uint? imageDepth = null)
     {
         _shm = (XShmSegmentInfo*)NativeMemory.AllocZeroed((nuint)sizeof(XShmSegmentInfo));
         var vis = XDefaultVisual(_c.Display, _c.Screen);
-        var depth = (uint)XDefaultDepth(_c.Display, _c.Screen);
+        var depth = imageDepth ?? (uint)XDefaultDepth(_c.Display, _c.Screen);
         _shmImage = XShmCreateImage(_c.Display, vis, depth, ZPixmap, 0, _shm, (uint)w, (uint)h);
         if (_shmImage == 0) return false;
         var size = (nuint)(XImageLayout.BytesPerLine(_shmImage) * h);
@@ -173,6 +311,7 @@ public sealed unsafe class X11Capture : IGameCapture
         if (LastErrorCode != 0) return false;
         _shmW = w;
         _shmH = h;
+        _shmDepth = (int)depth;
         return true;
     }
 
@@ -239,7 +378,11 @@ public sealed unsafe class X11Capture : IGameCapture
         _target = null;
         lock (_c.Gate)
         {
-            if (!_c.IsDisposed) FreeShm();
+            if (!_c.IsDisposed)
+            {
+                ReleaseComposite();
+                FreeShm();
+            }
         }
     }
 

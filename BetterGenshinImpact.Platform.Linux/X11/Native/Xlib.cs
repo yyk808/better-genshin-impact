@@ -6,7 +6,7 @@ namespace BetterGenshinImpact.Platform.Linux.X11.Native;
 /// <summary>libX11 / libXext(MIT-SHM) / libXtst / libXi / libXfixes / libc 的最小 P/Invoke 绑定（x86_64 LP64）。</summary>
 public static unsafe partial class Xlib
 {
-    const string X11 = "libX11.so.6", Xext = "libXext.so.6", Xtst = "libXtst.so.6", Xi = "libXi.so.6", Xfixes = "libXfixes.so.3", LibC = "libc";
+    const string X11 = "libX11.so.6", Xext = "libXext.so.6", Xtst = "libXtst.so.6", Xi = "libXi.so.6", Xfixes = "libXfixes.so.3", Xcomposite = "libXcomposite.so.1", LibC = "libc";
 
     public const int KeyPress = 2, KeyRelease = 3, ButtonPress = 4, ButtonRelease = 5, MotionNotify = 6,
         FocusIn = 9, FocusOut = 10, Expose = 12, DestroyNotify = 17, UnmapNotify = 18, MapNotify = 19, ConfigureNotify = 22,
@@ -109,6 +109,14 @@ public static unsafe partial class Xlib
     [LibraryImport(Xext)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XShapeQueryExtension(nint d, out int eventBase, out int errorBase);
     [LibraryImport(X11)] public static partial nint XGetSelectionOwner(nint d, nint selection);
     [LibraryImport(Xext)] public static partial void XShapeCombineRectangles(nint d, nint w, int kind, int xOff, int yOff, nint rectangles, int count, int op, int ordering);
+
+    // Composite（窗口离屏图像：被遮挡时仍能读到窗口本身的内容）
+    public const int CompositeRedirectAutomatic = 0;
+    [LibraryImport(Xcomposite)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XCompositeQueryExtension(nint d, out int eventBase, out int errorBase);
+    [LibraryImport(Xcomposite)] public static partial void XCompositeRedirectWindow(nint d, nint w, int update);
+    [LibraryImport(Xcomposite)] public static partial void XCompositeUnredirectWindow(nint d, nint w, int update);
+    [LibraryImport(Xcomposite)] public static partial nint XCompositeNameWindowPixmap(nint d, nint w);
+    [LibraryImport(X11)] public static partial int XFreePixmap(nint d, nint pixmap);
 
     // XTEST
     [LibraryImport(Xtst)] [return: MarshalAs(UnmanagedType.Bool)] public static partial bool XTestQueryExtension(nint d, out int ev, out int err, out int major, out int minor);

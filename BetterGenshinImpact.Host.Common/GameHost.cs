@@ -77,11 +77,21 @@ public sealed class GameHost : IAsyncDisposable
     public string? LinuxConfigFilePath => _linuxConfigStore?.Store.FilePath;
 
     /// <summary>X11 可用的截图方式</summary>
+    /// <summary>
+    /// 实际使用的截图方式：启用遮罩时，屏幕区域截图会截到遮罩上画的内容，默认的 MIT-SHM 屏幕区域改用 Composite 窗口图像
+    /// （Composite 不可用时截图器自己回退）
+    /// </summary>
+    public static string EffectiveCaptureMode(LinuxHostConfig config) =>
+        config.MaskWindowEnabled && string.Equals(config.CaptureMode, "ShmRoot", StringComparison.OrdinalIgnoreCase)
+            ? "CompositeWindow"
+            : config.CaptureMode;
+
     public static IReadOnlyList<CaptureMethodInfo> CaptureMethods { get; } =
     [
         new("ShmRoot", "MIT-SHM 屏幕区域（推荐）", "XShmGetImage 截取游戏画面所在的屏幕区域，最快；游戏窗口须可见、不被遮挡（类似 Windows 的 BitBlt）"),
         new("GetImageRoot", "XGetImage 屏幕区域", "不使用共享内存，较慢；远程 X 或 MIT-SHM 不可用时使用"),
         new("GetImageWindow", "XGetImage 窗口", "直接读取窗口内容，较慢；没有合成器时被遮挡部分的内容未定义"),
+        new("CompositeWindow", "Composite 窗口图像", "读取游戏窗口的离屏图像（Composite 扩展 + MIT-SHM），被遮挡或被遮罩覆盖时仍是游戏本身的画面；启用遮罩时代替 MIT-SHM 屏幕区域"),
     ];
     public IServiceProvider Services => _provider;
 
@@ -192,7 +202,7 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton(manualWindow);
             services.AddSingleton<IGameRuntimeProvider>(sp => ActivatorUtilities.CreateInstance<PlatformRuntimeProvider>(sp,
                 (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames)),
-                (Func<string?>)(() => linuxConfig.CaptureMode),
+                (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)),
                 (Func<IPlatformWindow?>)manualWindow.Open));
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
             services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
@@ -379,6 +389,7 @@ public sealed class GameHost : IAsyncDisposable
 }
 
 /// <summary>截图方式</summary>
+/// <summary>截图方式说明</summary>
 public sealed record CaptureMethodInfo(string Id, string Name, string Description);
 
 /// <summary>可选择的顶层窗口</summary>

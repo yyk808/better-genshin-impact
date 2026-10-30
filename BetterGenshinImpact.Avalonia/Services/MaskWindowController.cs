@@ -93,7 +93,7 @@ public sealed class MaskWindowController : IDisposable
         Handle = handle.Handle;
         if (!X11Overlay.HasCompositor(_display))
         {
-            _log.Warning("没有检测到合成器（_NET_WM_CM_S0），遮罩的透明部分会显示为黑色并挡住游戏画面，屏幕区域截图也会截到黑色；请启用桌面合成（如 picom）或关闭遮罩");
+            _log.Warning("没有检测到合成器（_NET_WM_CM_S0），遮罩的透明部分会显示为黑色并挡住游戏画面（Composite 窗口截图不受影响，屏幕区域截图会截到黑色）；请启用桌面合成（如 picom）或关闭遮罩");
         }
 
         var error = X11Overlay.SetClickThrough(_display, Handle);
