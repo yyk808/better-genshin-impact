@@ -475,6 +475,40 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 验证：编译 0 错误；Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate、rawmouse 0 FAIL。
 
+## 里程碑 21：触发器调度器移入 Core
+
+`TaskTriggerDispatcher`（每帧截图并分发给触发器的循环）和创建触发器的 `GameTaskManager` 已移入 Core。为此解开了以下引用：
+
+- 前台判断：新增 `PlatformHost.ForegroundProcessId`。
+  - Windows 设为原来的 `User32.GetForegroundWindow` + `GetWindowThreadProcessId`。
+  - `PlatformHost.Use(IPlatformServices)` 改为取平台窗口管理器的前台窗口。
+- 遮罩：
+  - `GameWindowState` 移入 Core，其中 `Bounds` 改为 `PixelRect`；WPF 的 `MaskWindowHost` 比较前用 `ToRECT()` 转回，语义不变。
+  - 新增 `IGameWindowStateSink`（`IMaskWindowHost` 继承它）和空实现 `NullGameWindowStateSink`。
+  - HTML 遮罩改经 `HtmlMaskWindowHost.Current.CloseAll()`。
+- 遮罩性能指标：新增 `IOverlayMetricsSink`，由 `OverlayMetricsService` 实现，另有空实现；`DispatcherTickMetrics` 移入 Core。
+- 画中画：新增 `PictureInPictureHost.Current`，WPF 转发到 `PictureInPictureService`，默认不显示。
+- 截图：调度器本来就只用 `runtime.Capture`（`IGameCapture`），对 `Fischless.GameCapture` 的引用是多余的 using。
+- DI：调度器的构造参数改为上面两个接口，`App.xaml.cs` 增加转发注册。
+
+验证：编译 0 错误；Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate、rawmouse 0 FAIL。
+
+### 无界面宿主跑通「启动截图 → 拾取 / 剧情」的剩余步骤
+
+1. `GameRuntimeService`：
+   - 解绑时写死的 `new Win32InputBackend(IntPtr.Zero)` 改为 `InputHub.DefaultBackendFactory`；
+   - 构造函数依赖的 `InstanceBootstrap` / `WebPageRuntimeProvider` 改由主程序在注册时选择 provider；
+   - 然后移入 Core。
+2. 新增基于 `IPlatformServices` 的通用运行环境提供者：
+   - 用 `GameWindows.FindGameWindow` 找窗；
+   - 把 `IPlatformWindow` 包装为 `IGameWindow`；
+   - `CreateCapture` / `CreateInput` 分别提供截图和输入。
+3. 新增 `BetterGenshinImpact.Host.Headless`（net10.0），负责：
+   - DI 注册配置、`TaskTriggerDispatcher`、上述两个空实现；
+   - 调用 `CoreServices.SetProvider`、`PlatformHost.Use(X11PlatformServices)`，设置 `UiHost`；
+   - 启动截图器并开启拾取 / 剧情。
+4. 假游戏增加“显示指定图片”功能（本机测试工程，不提交），用 BGI 素材拼出拾取提示和剧情对话画面，用来确认 F 键和点击都能收到。
+
 ### 剩余（主程序中的任务层文件）
 
 - **一条龙**：`OneDragonTask` 依赖以下三处，需要拆成 Core 中的任务定义与界面项两部分：
