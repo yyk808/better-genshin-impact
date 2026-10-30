@@ -4,14 +4,14 @@ using OpenCvSharp;
 using OpenCvSharp.Dnn;
 using Serilog;
 
-namespace BetterGenshinImpact.Host.Headless;
+namespace BetterGenshinImpact.Host.Common;
 
 /// <summary>
 /// 检查当前加载的 OpenCvSharpExtern 是否具备 BGI 用到的模块：
 /// 大地图特征匹配（SIFT / SURF 特征 + Flann 匹配 + FindHomography）、OCR 预处理（dnn）、连通域、相位相关。
 /// 用合成纹理图做“已知位置”的匹配，结果偏差超过 2 像素视为失败
 /// </summary>
-internal static class OpenCvSelfCheck
+public static class OpenCvSelfCheck
 {
     public static bool Run(ILogger log)
     {

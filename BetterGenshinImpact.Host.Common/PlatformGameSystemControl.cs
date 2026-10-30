@@ -3,7 +3,7 @@ using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Platform;
 
-namespace BetterGenshinImpact.Host.Headless;
+namespace BetterGenshinImpact.Host.Common;
 
 /// <summary>
 /// 只依赖 <see cref="IPlatformServices"/> 的游戏系统操作（找窗、激活、取画面区域等）。
@@ -24,7 +24,7 @@ public sealed class PlatformGameSystemControl(IPlatformServices platform, IReadO
     }
 
     public Task<nint> StartFromLocalAsync(string path) =>
-        throw new PlatformNotSupportedException("无界面宿主不支持启动游戏，请先手动启动");
+        throw new PlatformNotSupportedException("当前宿主不支持启动游戏，请先手动启动");
 
     public string GetActiveByProcess() => GetActiveProcessName() ?? string.Empty;
 
@@ -78,7 +78,7 @@ public sealed class PlatformGameSystemControl(IPlatformServices platform, IReadO
 
     public void CloseGameProcesses(IGameWindow? boundWindow) => boundWindow?.RequestClose();
 
-    public void Shutdown() => throw new PlatformNotSupportedException("无界面宿主不支持关机");
+    public void Shutdown() => throw new PlatformNotSupportedException("当前宿主不支持关机");
 
     private void WithWindow(nint hWnd, Action<IPlatformWindow> action)
     {

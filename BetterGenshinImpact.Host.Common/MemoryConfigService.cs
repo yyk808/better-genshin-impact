@@ -1,14 +1,14 @@
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Service.Interface;
 
-namespace BetterGenshinImpact.Host.Headless;
+namespace BetterGenshinImpact.Host.Common;
 
-/// <summary>只在内存中保存配置的配置服务（无界面宿主不写回配置文件）</summary>
-public sealed class HeadlessConfigService : IConfigService
+/// <summary>只在内存中保存配置的配置服务（宿主暂不写回配置文件）</summary>
+public sealed class MemoryConfigService : IConfigService
 {
     private AllConfig _config;
 
-    public HeadlessConfigService(AllConfig config)
+    public MemoryConfigService(AllConfig config)
     {
         _config = config;
         ConfigHost.Config = config;
