@@ -8,7 +8,6 @@ using BetterGenshinImpact.GameTask.Model.Area;
 using BetterGenshinImpact.GameTask.Runtime;
 using Microsoft.Extensions.Logging;
 using System;
-using static Vanara.PInvoke.User32;
 
 namespace BetterGenshinImpact.GameTask.QuickSereniteaPot;
 

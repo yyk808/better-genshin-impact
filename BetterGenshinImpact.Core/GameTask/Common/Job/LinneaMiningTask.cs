@@ -17,7 +17,6 @@ using Microsoft.Extensions.Logging;
 using BetterGenshinImpact.GameTask.Model.Area;
 using BetterGenshinImpact.GameTask.Runtime;
 using OpenCvSharp;
-using Vanara.PInvoke;
 using static BetterGenshinImpact.Core.Simulator.Extensions.SimulateKeyHelper;
 using static BetterGenshinImpact.GameTask.Common.TaskControl;
 

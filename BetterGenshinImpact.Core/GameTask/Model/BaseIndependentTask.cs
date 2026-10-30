@@ -1,5 +1,4 @@
 ﻿using OpenCvSharp;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.GameTask.Model;
 

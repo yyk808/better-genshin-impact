@@ -6,7 +6,6 @@ using BetterGenshinImpact.GameTask.Runtime;
 using Microsoft.Extensions.Logging;
 using System;
 using static BetterGenshinImpact.GameTask.Common.TaskControl;
-using static Vanara.PInvoke.User32;
 
 namespace BetterGenshinImpact.GameTask.AutoSkip;
 

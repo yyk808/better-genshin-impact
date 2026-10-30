@@ -30,7 +30,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static Vanara.PInvoke.User32;
 using Color = System.Drawing.Color;
 
 namespace BetterGenshinImpact.GameTask.AutoFishing
