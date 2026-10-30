@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
-using static Vanara.PInvoke.User32;
 
 namespace BetterGenshinImpact.Model;
 

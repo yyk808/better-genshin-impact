@@ -2,7 +2,6 @@
 using BetterGenshinImpact.Core.Simulator.Extensions;
 using BetterGenshinImpact.Model;
 using System;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.GameTask.AutoTrackPath;
 
