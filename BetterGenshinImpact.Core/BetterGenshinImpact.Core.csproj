@@ -22,6 +22,13 @@
 		<!-- 只引用托管包；OpenCvSharp4 的 native 运行时由宿主（Windows/Linux）按 RID 自行引用 -->
 		<PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+		<!-- 识别 / 配置代码迁入后需要的跨平台托管包，版本与主项目一致 -->
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Clipper2" Version="2.0.0" />
+		<PackageReference Include="YamlDotNet" Version="16.3.0" />
+		<PackageReference Include="NCalc" Version="6.2.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.21.0" />
 	</ItemGroup>
 
 	<ItemGroup>
