@@ -11,6 +11,7 @@ Platform.Linux 在两个假游戏（Wine / X11 原生）上的端到端回归通
 | Core 单元测试 | `dotnet test Test/BetterGenshinImpact.Core.UnitTest`，纯 `net10.0`，Linux 原生运行 |
 | 主项目单元测试 | `BetterGenshinImpact.UnitTest` 在 Linux 上去掉 `Microsoft.WindowsDesktop.App` 框架后用 `dotnet vstest` 运行，与第一阶段基线逐条比较 |
 | 端到端 | 本机驱动程序（不入库）用 Platform.Linux 操作 Wine 中的假游戏与 X11 原生假游戏，检查找窗、截图、键鼠、热键 |
+| 文件数 | 统一按 git 跟踪的源文件统计：`git ls-files 'BetterGenshinImpact.Core/*.cs'` 与 `git ls-files 'BetterGenshinImpact/*.cs'` 的行数。里程碑 16 及以前文档中的数字用过别的口径，不能直接与之后的数字比较。 |
 
 > 注意：在 Linux 上构建时不要设置 `DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY=0`（Wine 中运行 BetterGI 时会用到）。
 > 设置后任意字符串都被当作合法文化名，MSBuild 会把 `Resources/QuestVoice/routing.example.json` 当成 `example` 文化的附属资源，
@@ -420,11 +421,54 @@ Wine 第一次 16 PASS / 1 WARN（锁定视角相对移动偶发），重跑 17 
 
 其余验证同前：编译 0 错误，Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate 0 FAIL。
 
-### 下一步计划（尚未开始）
+## 里程碑 18：音游移入 Core（15 个文件）
 
-- **音游**：封面改用平台无关的图片数据（字节或 `Mat`），WPF 侧转换为 `ImageSource`；热键改用 `WinFormsKeys` / `GameKey`；`COLORREF` 改为 RGB 结构。
+- 曲目封面：`PerformanceScore.Artwork` 和 `IMusicCoverService.GetCoverAsync` 的类型由 WPF `ImageSource` 改为 `object`（宿主平台的图像对象）。
+  - Windows 的 `MusicCoverService` 仍返回 WPF `BitmapImage`，界面绑定不变。
+  - `MusicCoverService` 本身依赖 WPF 解码，留在主程序。
+- 跟弹键盘钩子：新增 `IMusicPlayerKeyHook`（事件参数为 `WinFormsKeys`）和宿主入口 `MusicPlayerKeyHook.Factory` / `ModifierKeys`。
+  - Windows 仍为 `MusicPlayerInputHook`（`WH_KEYBOARD_LL`），只把事件参数换成数值相同的 `WinFormsKeys`；修饰键仍取 WinForms `Control.ModifierKeys`。
+  - 其它平台默认是无法启动的空实现，跟弹会提示“无法安装键盘钩子”。
+- 自动音游取色：新增 `IWindowPixelSampler` / `WindowPixelColor`（取代 `COLORREF`）。
+  - Windows 的 `GdiWindowPixelSampler` 沿用原来的 `GetDC → GetPixel → DeleteDC` 调用序列。
+  - 其它平台调用时抛出 `PlatformNotSupportedException`。
+- 移入 Core：
+  - `MusicModels`、`MusicInterfaces`；
+  - 曲谱解析、时间轴、键位布局、演奏服务、曲库、乐器切换、状态存储；
+  - `AutoMusicGameTask`、`AutoAlbumTask`、`AutoMusicGameParam`。
+- 仍留在主程序：
+  - `MusicGuidedSession`：创建截图器时用到 `GameCaptureFactory` / `Win32PlatformWindow`；
+  - `MusicCoverService`；
+  - `MusicPlayerInputHook`；
+  - `KeyInputTransports`：调用 Vanara 的 `MapVirtualKey`。
+
+验证：编译 0 错误，Core / 主单测逐项无退化；端到端 Wine 17 PASS，X11 16 PASS / 1 SKIP；keystate、rawmouse 0 FAIL。
+
+## 里程碑 19：剧情语音的音频输出与 MP3 解码抽象
+
+- 新增 `QuestVoiceAudioHost`，有两个宿主入口：
+  - `OutputFactory`：创建 NAudio `IWavePlayer`；
+  - `Mp3ReaderFactory`：从 MP3 字节流创建 PCM 读取器。
+- Windows 主程序启动时设为 `WasapiOut` 与 NAudio 的 `Mp3FileReader`（ACM），与迁移前完全相同。
+- 其它平台的默认实现：
+  - MP3 用纯托管的 NLayer 解码（`NLayer.NAudioSupport` 2.0.1，MIT 许可，适配 NAudio.Core 2.x，不依赖系统编解码器）。
+    - 选择理由：与现有 NAudio 管线直接衔接，不引入原生库。
+    - NLayer 3.x 需要 NAudio 3，暂不升级。
+  - 输出为 `SilentWavePlayer`：不出声，播放立即以“正常结束”返回，配音管线照常推进。之后再接 PulseAudio / PipeWire。
+- `WasapiAudioPlayer` 本身只依赖 `IWavePlayer` 工厂，类名保持不变，与 `TtsAudioDecoder` 一起移入 Core。
+- NLayer 输出 32 位浮点，用 `Wave32To16Stream` 转为 16 位 PCM，与 Windows 上 `Mp3FileReader` 的输出格式一致（`WavProcessor` 只接受 PCM16）。
+- Core 单测新增 `QuestVoiceAudioHostTests`（3 项）：
+  - NLayer 解码 0.3 秒正弦波 MP3，检查格式、长度与振幅；
+  - `TtsAudioDecoder` 走默认宿主解码 MP3；
+  - 空输出能立即完成播放。
+
+### 剩余（主程序中的任务层文件）
+
 - **剧情语音**：
-  - 抽出 `IAudioPlayer`（Windows 仍为 `WasapiAudioPlayer`）、TTS 引擎注册（Windows SAPI 留在主程序）和 `IMp3Decoder`。
-  - Windows 继续用 NAudio 的 `Mp3FileReader`（ACM）；Linux 计划用纯托管的 NLayer（MIT 许可，有 NAudio 适配），不依赖系统编解码器。
-  - Linux 的播放器先用空实现，之后接 PulseAudio / PipeWire。
-- **界面拆分**：`ScriptRepoUpdater` / `PathRecorder` 的界面部分拆为接口；处理 `OneDragonTask`、`TaskRunner`、`RedeemCodeManager`、`SoloTaskExecutionService` 对界面服务的依赖。
+  - `WindowsSapiTtsProvider` 及引用它的 `TtsProviderRegistry`：需要把提供者注册改为宿主注入；
+  - `QuestVoiceSessionFactory`：读取嵌入的路由资源；
+  - `QuestVoiceSession` 和路由 / 其它 TTS 提供者：被上面两者连带。
+- **音游**：`MusicGuidedSession` 的截图器创建需要改走平台截图工厂。
+- **依赖界面的任务和组件**：
+  - `ScriptRepoUpdater` / `PathRecorder` 的界面部分拆为接口；
+  - `OneDragonTask`、`TaskRunner`、`RedeemCodeManager`、`SoloTaskExecutionService`。
