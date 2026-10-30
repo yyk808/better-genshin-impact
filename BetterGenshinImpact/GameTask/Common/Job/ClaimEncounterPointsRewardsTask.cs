@@ -58,7 +58,7 @@ public class ClaimEncounterPointsRewardsTask : ISoloTask<NoParam, NoData>
         _runtime = runtime;
         _config = config;
         _returnMainUiTask = new ReturnMainUiTask(runtime);
-        IStringLocalizer<ClaimEncounterPointsRewardsTask> stringLocalizer = App.GetService<IStringLocalizer<ClaimEncounterPointsRewardsTask>>() ?? throw new NullReferenceException();
+        IStringLocalizer<ClaimEncounterPointsRewardsTask> stringLocalizer = CoreServices.GetService<IStringLocalizer<ClaimEncounterPointsRewardsTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this.commissionsLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "委托");
     }

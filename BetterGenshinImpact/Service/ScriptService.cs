@@ -24,7 +24,7 @@ namespace BetterGenshinImpact.Service;
 
 public partial class ScriptService : IScriptService
 {
-    private readonly ILogger<ScriptService> _logger = App.GetLogger<ScriptService>();
+    private readonly ILogger<ScriptService> _logger = CoreServices.GetLogger<ScriptService>();
     private readonly TaskTriggerDispatcher _triggers;
 
     public ScriptService(TaskTriggerDispatcher triggers)

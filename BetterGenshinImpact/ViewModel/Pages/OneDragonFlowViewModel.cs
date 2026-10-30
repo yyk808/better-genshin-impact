@@ -39,7 +39,7 @@ namespace BetterGenshinImpact.ViewModel.Pages;
 
 public partial class OneDragonFlowViewModel : ViewModel
 {
-    private readonly ILogger<OneDragonFlowViewModel> _logger = App.GetLogger<OneDragonFlowViewModel>();
+    private readonly ILogger<OneDragonFlowViewModel> _logger = CoreServices.GetLogger<OneDragonFlowViewModel>();
 
     public static readonly string OneDragonFlowConfigFolder = OneDragonFlowConfigStore.Folder;
 

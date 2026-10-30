@@ -268,7 +268,7 @@ public class AutoFightTask : ISoloTask<AutoFightParam, NoData>
         Initialize(param);
 
         using var predictor = _taskParam.FightFinishDetectEnabled
-            ? App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiWorld)
+            ? CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiWorld)
             : null;
         _predictor = predictor;
         _ct = ct;

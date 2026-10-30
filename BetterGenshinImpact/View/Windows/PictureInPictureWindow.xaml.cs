@@ -40,7 +40,7 @@ public partial class PictureInPictureWindow : Window
     /// 当前运行环境，截图器未启动时为 null。
     /// 本窗口由静态的 PictureInPictureService 直接 new，不经过 DI，因此从容器取进程级的 GameRuntimeService；每次读取，不缓存
     /// </summary>
-    private static GameRuntime? CurrentRuntime => App.GetService<GameRuntimeService>()?.Current;
+    private static GameRuntime? CurrentRuntime => CoreServices.GetService<GameRuntimeService>()?.Current;
 
     /// <summary>
     /// 配置根。本窗口没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）

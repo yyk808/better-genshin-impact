@@ -77,7 +77,7 @@ public class ScanPickTask
     public async Task DoOnce(CancellationToken ct, int? seconds = null)
     {
         // 每次扫描独立持有模型，结束或取消时释放，允许同一任务实例再次扫描。
-        using var predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiWorld);
+        using var predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiWorld);
         var sec = seconds ?? _config.AutoFightConfig.PickDropsAfterFightSeconds;
         Stopwatch timeoutStopwatch = Stopwatch.StartNew();
         TimeSpan finishTime = TimeSpan.FromSeconds(sec);

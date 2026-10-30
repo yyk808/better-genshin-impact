@@ -20,7 +20,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 public class DiscordWebhookNotifier : INotifier
 {
     private static readonly ILogger<DiscordWebhookNotifier> Logger =
-        App.GetLogger<DiscordWebhookNotifier>();
+        CoreServices.GetLogger<DiscordWebhookNotifier>();
 
     private readonly HttpClient _httpClient;
     private readonly string _webhookUrl;

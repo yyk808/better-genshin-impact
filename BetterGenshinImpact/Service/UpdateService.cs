@@ -41,7 +41,7 @@ public class UpdateService : IUpdateService
 
     public UpdateService(IConfigService configService, IHttpClientFactory httpClientFactory)
     {
-        _logger = App.GetLogger<UpdateService>();
+        _logger = CoreServices.GetLogger<UpdateService>();
         _configService = configService;
         _httpClientFactory = httpClientFactory;
         Config = _configService.Get();

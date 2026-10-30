@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.GameTask.Common.Job;
 public static class ItemMetadataCache
 {
     private record struct ItemEntry(GridScreenName Page, int? SortOrder);
-    private static readonly ILogger _logger = App.GetLogger<LoggerMarker>();
+    private static readonly ILogger _logger = CoreServices.GetLogger<LoggerMarker>();
     private static readonly Dictionary<string, ItemEntry> _entries = LoadEntriesOrEmpty();
 
     /// <summary>

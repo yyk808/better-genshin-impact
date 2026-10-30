@@ -40,7 +40,7 @@ public class GridIconsAccuracyTestTask : ISoloTask<GridIconsAccuracyTestParam, N
     /// </summary>
     private readonly GameRuntime _runtime;
 
-    private readonly ILogger logger = App.GetLogger<GetGridIconsTask>();
+    private readonly ILogger logger = CoreServices.GetLogger<GetGridIconsTask>();
     private IInputChannel input => InputHub.Foreground;
 
     private CancellationToken ct;

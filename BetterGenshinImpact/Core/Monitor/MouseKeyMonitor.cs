@@ -147,7 +147,7 @@ public partial class MouseKeyMonitor : IDisposable
 
         // 由页面直接 new，没有注入入口，只能在钩子回调里取 GameRuntimeService；
         // 每次按键时读取 Current（不缓存），没有运行环境时按前台进程名判断
-        if (SystemControl.IsGameForeground(App.GetService<GameRuntimeService>()?.Current?.Window))
+        if (SystemControl.IsGameForeground(CoreServices.GetService<GameRuntimeService>()?.Current?.Window))
         {
             ChatUiHotkeyGuard.PrimeFromChatKey(e.KeyCode);
         }

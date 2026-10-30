@@ -27,7 +27,7 @@ namespace BetterGenshinImpact.GameTask;
 /// </summary>
 public class SystemControl
 {
-    private static readonly ILogger Logger = App.GetLogger<SystemControl>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<SystemControl>();
 
     private static readonly Lazy<IPlatformServices> FallbackPlatform =
         new(() => new Win32PlatformServices(logger: Logger));
@@ -35,7 +35,7 @@ public class SystemControl
     /// <summary>
     /// 平台服务：优先取 DI 中注册的实例，宿主未建立（单元测试等）时使用本地实例
     /// </summary>
-    public static IPlatformServices Platform => App.GetService<IPlatformServices>() ?? FallbackPlatform.Value;
+    public static IPlatformServices Platform => CoreServices.GetService<IPlatformServices>() ?? FallbackPlatform.Value;
 
     /// <summary>
     /// 配置根。SystemControl 是静态的 Win32 函数集合，没有创建方可以传参，暂时读静态入口（见 task-context-removal.md 第 5 节）
@@ -225,7 +225,7 @@ public class SystemControl
         restartArgs.Add(Environment.ProcessId.ToString());
 
         // 新进程会立即读取 config.json，先写入防抖窗口内尚未落盘的配置改动
-        App.GetService<IConfigService>()?.Flush();
+        CoreServices.GetService<IConfigService>()?.Flush();
 
         // 启动新进程
         var startInfo = new ProcessStartInfo
@@ -280,7 +280,7 @@ public class SystemControl
     /// </summary>
     public static void CloseGame()
     {
-        var service = App.GetService<GameRuntimeService>();
+        var service = CoreServices.GetService<GameRuntimeService>();
         if (service != null)
         {
             service.CloseGame();

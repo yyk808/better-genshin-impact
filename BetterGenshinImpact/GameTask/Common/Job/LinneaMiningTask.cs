@@ -111,7 +111,7 @@ public class LinneaMiningTask
 
     public async Task Start(CancellationToken ct)
     {
-        using var predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>()
+        using var predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>()
             .CreateYoloPredictor(BgiOnnxModel.BgiMine);
         _predictor = predictor;
         var aimingModeEntered = false;

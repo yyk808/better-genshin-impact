@@ -20,7 +20,7 @@ internal static class MapIconImageCache
     /// <summary>
     /// 远程图片服务，每次从容器取得，避免类型初始化早于容器创建时永久为空
     /// </summary>
-    private static IRemoteImageService? Remote => App.GetService<IRemoteImageService>();
+    private static IRemoteImageService? Remote => CoreServices.GetService<IRemoteImageService>();
 
     /// <summary>
     /// 程序内置的本地图标（pack 资源、程序目录下的文件），数量由程序资源决定

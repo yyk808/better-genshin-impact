@@ -22,7 +22,7 @@ namespace BetterGenshinImpact.GameTask.Common.Job
     /// </summary>
     internal class CountInventoryItem : ISoloTask<CountInventoryItemParam, InventoryCountData>
     {
-        private readonly ILogger logger = App.GetLogger<CountInventoryItem>();
+        private readonly ILogger logger = CoreServices.GetLogger<CountInventoryItem>();
 
         /// <summary>
         /// 本次运行使用的运行环境

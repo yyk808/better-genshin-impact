@@ -23,7 +23,7 @@ internal static class ChildSessionProcessLauncher
         uint childSessionId)
     {
         // 分身实例共用同一个 config.json，启动前先写入防抖窗口内尚未落盘的配置改动
-        App.GetService<IConfigService>()?.Flush();
+        CoreServices.GetService<IConfigService>()?.Flush();
 
         var startInfo = CreateBetterGiStartInfo();
         return LaunchElevatedAsync(

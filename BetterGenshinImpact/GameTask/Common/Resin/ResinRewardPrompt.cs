@@ -28,7 +28,7 @@ public static class ResinRewardPrompt
 
     /// <summary>获取秘境本地化器；三个任务共用现有资源，不创建新的资源包。</summary>
     private static IStringLocalizer<AutoDomainTask> Localizer()
-        => App.GetService<IStringLocalizer<AutoDomainTask>>() ?? throw new InvalidOperationException("未初始化秘境本地化服务。");
+        => CoreServices.GetService<IStringLocalizer<AutoDomainTask>>() ?? throw new InvalidOperationException("未初始化秘境本地化服务。");
 
     /// <summary>检测明确的库存不足提示；不把该提示当作其他树脂行不可用的依据。</summary>
     public static bool HasShortageHint(IReadOnlyList<Region> regions, CultureInfo culture,

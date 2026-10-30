@@ -334,7 +334,7 @@ public partial class HtmlMaskWindow : Window
         {
             // 环境与 Profile 由环境入口统一管理（Data/WebView2/App 的 HtmlMask Profile），与其他网页隔离；
             // 遮罩页面不允许打开新窗口和下载
-            var provider = App.GetService<IWebViewEnvironmentProvider>()
+            var provider = CoreServices.GetService<IWebViewEnvironmentProvider>()
                            ?? throw new InvalidOperationException("WebView2 环境入口尚未初始化");
             await WebView.InitializeAsync(provider, WebViewProfiles.HtmlMask, new WebViewOptions { NewWindowPolicy = WebViewNewWindowPolicy.Reject });
             if (_isClosing) return;
@@ -565,7 +565,7 @@ public partial class HtmlMaskWindow : Window
     /// 当前运行环境的游戏窗口句柄，截图器未启动时为 0。
     /// 本窗口由脚本经静态入口 <see cref="Show"/> 创建，不经过 DI，因此从容器取进程级的 GameRuntimeService；每次读取，不缓存
     /// </summary>
-    private static nint CurrentGameHandle => App.GetService<GameRuntimeService>()?.Current?.Window.Handle ?? 0;
+    private static nint CurrentGameHandle => CoreServices.GetService<GameRuntimeService>()?.Current?.Window.Handle ?? 0;
 
     /// <summary>
     /// 更新窗口位置

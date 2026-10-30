@@ -31,12 +31,12 @@ public partial class FeedWindowViewModel : ViewModel
     [ObservableProperty] private bool _isCnServerSelected = true;
     [ObservableProperty] private bool _isGlobalServerSelected;
 
-    private readonly HttpClient _httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default);
+    private readonly HttpClient _httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default);
     public CommonConfig CommonConfig { get; }
 
     public FeedWindowViewModel()
     {
-        var configService = App.GetService<IConfigService>();
+        var configService = CoreServices.GetService<IConfigService>();
         CommonConfig = configService?.Get().CommonConfig ?? new CommonConfig();
         IsDisplayBtnGetLiveCodes = GamePreviewLiveDateCalculator.IsWithinPreviewRange(DateTime.Now);
     }

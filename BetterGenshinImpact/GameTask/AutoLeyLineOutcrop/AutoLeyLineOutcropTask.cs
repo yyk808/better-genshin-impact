@@ -82,7 +82,7 @@ public class AutoLeyLineOutcropTask : ISoloTask<AutoLeyLineOutcropParam, ResinCl
     /// </summary>
     private const string TaskName = "自动地脉花";
 
-    private readonly ILogger<AutoLeyLineOutcropTask> _logger = App.GetLogger<AutoLeyLineOutcropTask>();
+    private readonly ILogger<AutoLeyLineOutcropTask> _logger = CoreServices.GetLogger<AutoLeyLineOutcropTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

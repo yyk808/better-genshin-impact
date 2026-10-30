@@ -6,7 +6,7 @@ namespace BetterGenshinImpact.Helpers;
 
 public class DeviceIdHelper
 {
-    private static readonly ILogger _logger = App.GetLogger<DeviceIdHelper>();
+    private static readonly ILogger _logger = CoreServices.GetLogger<DeviceIdHelper>();
     private static readonly Lazy<string> _lazyDeviceId = new(InitializeDeviceId);
     
     public static string DeviceId => _lazyDeviceId.Value;

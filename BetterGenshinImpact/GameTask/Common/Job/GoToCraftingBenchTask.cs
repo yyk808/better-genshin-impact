@@ -79,7 +79,7 @@ public class GoToCraftingBenchTask : ISoloTask<CraftCondensedResinParam, CraftCo
         _runtime = runtime;
         _config = config;
         _chooseTalkOptionTask = new ChooseTalkOptionTask(runtime);
-        IStringLocalizer<GoToCraftingBenchTask> stringLocalizer = App.GetService<IStringLocalizer<GoToCraftingBenchTask>>() ?? throw new NullReferenceException();
+        IStringLocalizer<GoToCraftingBenchTask> stringLocalizer = CoreServices.GetService<IStringLocalizer<GoToCraftingBenchTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this.craftLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "合成");
     }

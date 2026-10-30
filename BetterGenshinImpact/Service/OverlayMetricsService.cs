@@ -23,8 +23,8 @@ public sealed class OverlayMetricsService : IDisposable
     private static readonly TimeSpan GpuQueryResetInterval = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan PeakProcessingCostWindow = TimeSpan.FromSeconds(5);
 
-    private readonly ILogger<OverlayMetricsService> _logger = App.GetLogger<OverlayMetricsService>();
-    private readonly IConfigService? _configService = App.GetService<IConfigService>();
+    private readonly ILogger<OverlayMetricsService> _logger = CoreServices.GetLogger<OverlayMetricsService>();
+    private readonly IConfigService? _configService = CoreServices.GetService<IConfigService>();
     private readonly object _locker = new();
     private readonly object _hardwareLocker = new();
     private readonly MaskWindowConfig? _maskWindowConfig;

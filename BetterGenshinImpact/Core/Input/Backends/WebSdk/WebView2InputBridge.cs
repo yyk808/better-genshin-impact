@@ -86,7 +86,7 @@ public sealed class WebView2InputBridge : IWebInputBridge, IDisposable
         _core.WebMessageReceived += OnWebMessageReceived;
     }
 
-    private static ILogger Logger => _logger ??= App.GetLogger<WebView2InputBridge>();
+    private static ILogger Logger => _logger ??= CoreServices.GetLogger<WebView2InputBridge>();
 
     /// <summary>
     /// 注入 SDK 与分发脚本（对之后的每次导航生效），然后返回桥。

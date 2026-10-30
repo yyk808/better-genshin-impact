@@ -13,7 +13,7 @@ public sealed class AutoPickAssets
 {
     private static readonly AssetsCache<CacheKey, AutoPickAssets> Cache = new(
         static key => new AutoPickAssets(key.CaptureSize, key.PickKey));
-    private readonly ILogger<AutoPickAssets> _logger = App.GetLogger<AutoPickAssets>();
+    private readonly ILogger<AutoPickAssets> _logger = CoreServices.GetLogger<AutoPickAssets>();
 
     public GameKey PickVk { get; private set; } = GameKey.VK_F;
     public RecognitionObject PickRo { get; private set; }

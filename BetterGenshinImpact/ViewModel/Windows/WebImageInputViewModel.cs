@@ -15,7 +15,7 @@ public partial class WebImageInputViewModel : ViewModel
     public event Action? RequestClose;
 
     private readonly IBannerImageService _bannerImageService;
-    private readonly ILogger<WebImageInputViewModel> _logger = App.GetLogger<WebImageInputViewModel>();
+    private readonly ILogger<WebImageInputViewModel> _logger = CoreServices.GetLogger<WebImageInputViewModel>();
     private CancellationTokenSource? _downloadCancellationTokenSource;
 
     [ObservableProperty]

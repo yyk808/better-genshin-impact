@@ -31,7 +31,7 @@ public partial class ArtifactOcrDialog
     /// </summary>
     private readonly AutoArtifactSalvageTaskParam salvageTaskParam;
 
-    public static ILogger Logger { get; } = App.GetLogger<ArtifactOcrDialog>();
+    public static ILogger Logger { get; } = CoreServices.GetLogger<ArtifactOcrDialog>();
 
     public ArtifactOcrDialog(double xRatio, double yRatio, double widthRatio, double heightRatio, string title, string? javaScript = null)
     {
@@ -52,7 +52,7 @@ public partial class ArtifactOcrDialog
     public async Task<bool> CaptureAsync()
     {
         // 没启动时候，启动截图器
-        var gameRuntimeService = App.GetService<GameRuntimeService>()!;
+        var gameRuntimeService = CoreServices.GetService<GameRuntimeService>()!;
         if (gameRuntimeService.Current is not { } runtime)
         {
             _ = gameRuntimeService.StartAsync();

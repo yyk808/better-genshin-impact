@@ -255,7 +255,7 @@ internal sealed class CharacterDevelopmentStateMachineTask : StateMachineBase<Ch
     private static readonly Regex NumberRegex = new(@"\d+", RegexOptions.Compiled);
     private static readonly Regex TalentBonusRegex = new(@"天赋\s*等级\s*[+＋]\s*3", RegexOptions.Compiled);
 
-    private readonly ILogger<CharacterDevelopmentStateMachineTask> _logger = App.GetLogger<CharacterDevelopmentStateMachineTask>();
+    private readonly ILogger<CharacterDevelopmentStateMachineTask> _logger = CoreServices.GetLogger<CharacterDevelopmentStateMachineTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境。

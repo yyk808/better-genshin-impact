@@ -42,7 +42,7 @@ public class AutoEatTask : BaseIndependentTask, ISoloTask<AutoEatParam, AutoEatD
     private AutoEatParam _taskParam = null!;
 
     private readonly AutoEatConfig _config;
-    private readonly ILogger _logger = App.GetLogger<AutoEatTask>();
+    private readonly ILogger _logger = CoreServices.GetLogger<AutoEatTask>();
     private IInputChannel _input => InputHub.Foreground;
     private CancellationToken _ct;
 

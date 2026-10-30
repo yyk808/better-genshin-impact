@@ -42,7 +42,7 @@ public partial class MusicPageViewModel : ViewModel
 
     /// <summary>游戏运行环境服务；引导式跟弹每次读取 Current，不持有运行环境</summary>
     private readonly GameRuntimeService _runtimeService;
-    private readonly ILogger<MusicPageViewModel> _logger = App.GetLogger<MusicPageViewModel>();
+    private readonly ILogger<MusicPageViewModel> _logger = CoreServices.GetLogger<MusicPageViewModel>();
     private CancellationTokenSource? _refreshCancellationTokenSource;
     private CancellationTokenSource? _coverLoadCancellationTokenSource;
     private Task? _sessionTask;

@@ -25,7 +25,7 @@ public class Notification
       _config = config;
   }
 
-    private readonly ILogger<Notification> _logger = App.GetLogger<Notification>();
+    private readonly ILogger<Notification> _logger = CoreServices.GetLogger<Notification>();
     private readonly TimeSpan _timeWindow = TimeSpan.FromMinutes(1);
     private readonly int _maxNotifications = 5;
     private readonly Queue<DateTime> _callRecords = new();

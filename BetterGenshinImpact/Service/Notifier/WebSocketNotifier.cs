@@ -30,7 +30,7 @@ namespace BetterGenshinImpact.Service.Notifier
         private static ClientWebSocket CreateSocket()
         {
             var socket = new ClientWebSocket();
-            if (App.GetService<AppWebProxy>() is { } proxy)
+            if (CoreServices.GetService<AppWebProxy>() is { } proxy)
             {
                 socket.Options.Proxy = proxy;
             }

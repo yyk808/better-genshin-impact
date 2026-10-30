@@ -103,7 +103,7 @@ public class NotificationService : IHostedService, IDisposable
     /// </summary>
     public static NotificationService Instance()
     {
-        return App.GetService<NotificationService>()
+        return CoreServices.GetService<NotificationService>()
                ?? throw new InvalidOperationException("NotificationService 未在容器中初始化");
     }
 

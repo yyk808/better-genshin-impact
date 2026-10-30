@@ -124,7 +124,7 @@ public partial class OneDragonTaskItem : ObservableObject
 
     // public OneDragonTaskItem(Type viewModelType, Func<Task> action)
     // {
-    //     ViewModel = App.GetService(viewModelType) as OneDragonBaseViewModel;
+    //     ViewModel = CoreServices.GetService(viewModelType) as OneDragonBaseViewModel;
     //     if (ViewModel == null)
     //     {
     //         throw new ArgumentException("Invalid view model type", nameof(viewModelType));
@@ -192,7 +192,7 @@ public partial class OneDragonTaskItem : ObservableObject
                     }
 
                     // 策略名取本次运行传入的配置根：在子实例中运行时，它是启动时从磁盘读取的最新配置
-                    var taskSettingsPageViewModel = App.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(allConfig.AutoFightConfig.StrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动秘境战斗策略{Msg}，跳过", "未配置");
@@ -239,7 +239,7 @@ public partial class OneDragonTaskItem : ObservableObject
                         config.AutoBossStrategyName = "根据队伍自动选择";
                     }
 
-                    var taskSettingsPageViewModel = App.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(config.AutoBossStrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动首领讨伐战斗策略{Msg}，跳过", "未配置");
@@ -283,7 +283,7 @@ public partial class OneDragonTaskItem : ObservableObject
                         allConfig.AutoStygianOnslaughtConfig.StrategyName = "根据队伍自动选择";
                     }
 
-                    var taskSettingsPageViewModel = App.GetService<TaskSettingsPageViewModel>();
+                    var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
                     if (taskSettingsPageViewModel!.GetFightStrategy(allConfig.AutoStygianOnslaughtConfig.StrategyName, out var path))
                     {
                         TaskControl.Logger.LogError("自动幽境危战战斗策略{Msg}，跳过", "未配置");

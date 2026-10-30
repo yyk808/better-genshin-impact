@@ -69,7 +69,7 @@ internal sealed class InventoryCountComparisonTask : ISoloTask<InventoryCountCom
     /// 本次运行的对比目标；在 RunAsync 开头由参数赋值
     /// </summary>
     private InventoryCountComparisonTarget target;
-    private readonly ILogger logger = App.GetLogger<InventoryCountComparisonTask>();
+    private readonly ILogger logger = CoreServices.GetLogger<InventoryCountComparisonTask>();
     private IInputChannel input => InputHub.Foreground;
 
     /// <summary>

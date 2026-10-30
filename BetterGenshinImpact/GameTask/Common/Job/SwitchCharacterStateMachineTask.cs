@@ -65,7 +65,7 @@ public sealed class SwitchCharacterStateMachineTask : StateMachineBase<SwitchCha
     private static readonly Rect SortTypeRoi1080 = new(116, 29, 245, 38);
     private static readonly Rect SortOptionsRoi1080 = new(111, 80, 241, 372);
 
-    private readonly ILogger<SwitchCharacterStateMachineTask> _logger = App.GetLogger<SwitchCharacterStateMachineTask>();
+    private readonly ILogger<SwitchCharacterStateMachineTask> _logger = CoreServices.GetLogger<SwitchCharacterStateMachineTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

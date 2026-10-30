@@ -21,7 +21,7 @@ namespace BetterGenshinImpact.GameTask.AutoGeniusInvokation.Model;
 /// </summary>
 public class Duel
 {
-    private readonly ILogger<Duel> _logger = App.GetLogger<Duel>();
+    private readonly ILogger<Duel> _logger = CoreServices.GetLogger<Duel>();
 
     /// <summary>
     /// 本次对局使用的运行环境：分辨率检查、画面信息与遮罩清理都只使用它

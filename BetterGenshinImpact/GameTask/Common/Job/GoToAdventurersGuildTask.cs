@@ -56,7 +56,7 @@ public class GoToAdventurersGuildTask
         _runtime = runtime;
         _config = config;
         _chooseTalkOptionTask = new ChooseTalkOptionTask(runtime);
-        IStringLocalizer<GoToAdventurersGuildTask> stringLocalizer = App.GetService<IStringLocalizer<GoToAdventurersGuildTask>>() ?? throw new NullReferenceException();
+        IStringLocalizer<GoToAdventurersGuildTask> stringLocalizer = CoreServices.GetService<IStringLocalizer<GoToAdventurersGuildTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this.dailyLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "每日");
         this.catherineLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "凯瑟琳");

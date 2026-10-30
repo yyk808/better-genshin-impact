@@ -193,7 +193,7 @@ public partial class CombatStrategyPickerViewModel : ObservableObject
             var vm = (CombatStrategyPickerViewModel)recipient;
             if (!ReferenceEquals(message.Requester, vm)) return;
             vm.Select(CombatStrategyResolver.Parse(message.Path));
-            App.GetService<ISnackbarService>()?.Show("已保存并选用", "可在录制管理中重命名", ControlAppearance.Success, null, TimeSpan.FromSeconds(3));
+            CoreServices.GetService<ISnackbarService>()?.Show("已保存并选用", "可在录制管理中重命名", ControlAppearance.Success, null, TimeSpan.FromSeconds(3));
         });
     }
 
@@ -248,7 +248,7 @@ public partial class CombatStrategyPickerViewModel : ObservableObject
         {
             if (ct.IsCancellationRequested) return;
             LoadError = "读取目录失败：" + ex.Message;
-            App.GetLogger<CombatStrategyPickerViewModel>().LogWarning(ex, "读取战斗策略目录失败");
+            CoreServices.GetLogger<CombatStrategyPickerViewModel>().LogWarning(ex, "读取战斗策略目录失败");
         }
         finally { if (ReferenceEquals(_loadCts, cts)) IsLoading = false; }
     }

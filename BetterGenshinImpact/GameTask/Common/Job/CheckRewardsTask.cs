@@ -30,7 +30,7 @@ namespace BetterGenshinImpact.GameTask.Common.Job;
 /// </summary>
 public class CheckRewardsTask
 {
-    private readonly ILogger<CheckRewardsTask> _logger = App.GetLogger<CheckRewardsTask>();
+    private readonly ILogger<CheckRewardsTask> _logger = CoreServices.GetLogger<CheckRewardsTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境
@@ -55,7 +55,7 @@ public class CheckRewardsTask
     {
         _runtime = runtime;
         _config = config;
-        IStringLocalizer<CheckRewardsTask> stringLocalizer = App.GetService<IStringLocalizer<CheckRewardsTask>>() ?? throw new NullReferenceException();
+        IStringLocalizer<CheckRewardsTask> stringLocalizer = CoreServices.GetService<IStringLocalizer<CheckRewardsTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this._dailyRewardsClaimedLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "今日奖励已领取");
         this._dailyCommissionRewardsString = stringLocalizer.WithCultureGet(cultureInfo, "每日委托奖励");

@@ -28,7 +28,7 @@ public class NotifierManager
     private List<INotifier> _notifiers = [];
     private readonly Dictionary<INotifier, int> _leases = new();
 
-    public static ILogger Logger { get; } = App.GetLogger<NotifierManager>();
+    public static ILogger Logger { get; } = CoreServices.GetLogger<NotifierManager>();
 
     public NotifierManager()
     {

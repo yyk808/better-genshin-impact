@@ -22,7 +22,7 @@ namespace BetterGenshinImpact.GameTask.Common.Job;
 
 public partial class ChooseTalkOptionTask
 {
-    private readonly ILogger<ChooseTalkOptionTask> _logger = App.GetLogger<ChooseTalkOptionTask>();
+    private readonly ILogger<ChooseTalkOptionTask> _logger = CoreServices.GetLogger<ChooseTalkOptionTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

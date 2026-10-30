@@ -43,17 +43,17 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
     /// </summary>
     private static AllConfig Config => ConfigService.Config!;
 
-    private readonly ILogger<ScriptRepoUpdater> _logger = App.GetLogger<ScriptRepoUpdater>();
+    private readonly ILogger<ScriptRepoUpdater> _logger = CoreServices.GetLogger<ScriptRepoUpdater>();
 
     /// <summary>
     /// 程序代理，用于 Git 拉取时按网络设置决定是否走代理。单例不经 DI 创建，从容器获取
     /// </summary>
-    private static AppWebProxy? AppProxy => App.GetService<AppWebProxy>();
+    private static AppWebProxy? AppProxy => CoreServices.GetService<AppWebProxy>();
 
     /// <summary>
     /// 临时文件服务，用于仓库 ZIP 导入解压和更换仓库地址时的重新克隆。单例不经 DI 创建，从容器获取
     /// </summary>
-    private static ITempFileService TempFiles => App.GetService<ITempFileService>()
+    private static ITempFileService TempFiles => CoreServices.GetService<ITempFileService>()
                                                  ?? throw new InvalidOperationException("临时文件服务尚未注册");
 
     /// <summary>

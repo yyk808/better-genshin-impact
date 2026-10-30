@@ -104,7 +104,7 @@ public class EngineExtend
     /// ！！！ 注意：这个方法会添加一些全局方法和对象，不要随便添加，以免安全风险！！！
     /// <para>
     /// 本方法属于编排层（L4）：宿主对象（L3）需要的进程级服务（如截图服务）在这里获取后通过构造函数交给它们，
-    /// 宿主对象本身不使用 App.GetService。
+    /// 宿主对象本身不使用 CoreServices.GetService。
     /// </para>
     /// </summary>
     /// <param name="engine"></param>
@@ -122,7 +122,7 @@ public class EngineExtend
         // engine.AddHostObject("xHost", new ExtendedHostFunctions());  // 有越权的安全风险
 
         // 截图服务是进程级 DI 单例；InitHost 是编排层，在这里取出后交给需要的宿主对象（自动钓鱼的关键帧截图）
-        var screenshots = App.GetService<GameScreenshotService>();
+        var screenshots = CoreServices.GetService<GameScreenshotService>();
 
         // 添加我的自定义实例化对象
         engine.AddHostObject("keyMouseScript", new KeyMouseScript(runtime, workDir, ct));

@@ -29,7 +29,7 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 public class Genshin
 {
     private PixelRect captureAreaRect;
-    private readonly ILogger<Genshin> _logger = App.GetLogger<Genshin>();
+    private readonly ILogger<Genshin> _logger = CoreServices.GetLogger<Genshin>();
 
     /// <summary>
     /// 当前脚本执行的取消令牌。
@@ -554,7 +554,7 @@ public class Genshin
     public async Task AutoFishing(int fishingTimePolicy = 0)
     {
         using var scriptOperation = ScriptHostOperations.Enter();
-        var taskSettingsPageViewModel = App.GetService<TaskSettingsPageViewModel>();
+        var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
         if (taskSettingsPageViewModel == null)
         {
             throw new ArgumentNullException(nameof(taskSettingsPageViewModel), "内部视图模型对象为空");

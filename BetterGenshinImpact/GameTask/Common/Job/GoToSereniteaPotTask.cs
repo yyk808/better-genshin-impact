@@ -86,7 +86,7 @@ public class GoToSereniteaPotTask : ISoloTask<SereniteaPotParam, NoData>
         _runtime = runtime;
         _config = config;
         _chooseTalkOptionTask = new ChooseTalkOptionTask(runtime);
-        IStringLocalizer<GoToSereniteaPotTask> stringLocalizer = App.GetService<IStringLocalizer<GoToSereniteaPotTask>>() ?? throw new NullReferenceException();
+        IStringLocalizer<GoToSereniteaPotTask> stringLocalizer = CoreServices.GetService<IStringLocalizer<GoToSereniteaPotTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this.ayuanHeyString = stringLocalizer.WithCultureGet(cultureInfo, "阿圆");
         this.ayuanHuolingString = stringLocalizer.WithCultureGet(cultureInfo, "壶灵");

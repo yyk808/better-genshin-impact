@@ -12,7 +12,7 @@ public class MatchTemplateHelper
 {
     // 单元测试和离线工具没有 WPF App，不应仅为了记录异常而初始化完整应用宿主。
     private static ILogger<MatchTemplateHelper>? Logger => System.Windows.Application.Current is App
-        ? App.GetLogger<MatchTemplateHelper>()
+        ? CoreServices.GetLogger<MatchTemplateHelper>()
         : null;
 
     /// <summary>

@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.GameTask.AutoGeniusInvokation;
 
 public class ScriptParser
 {
-    private static readonly ILogger<ScriptParser> MyLogger = App.GetLogger<ScriptParser>();
+    private static readonly ILogger<ScriptParser> MyLogger = CoreServices.GetLogger<ScriptParser>();
 
     /// <summary>
     /// 解析策略文本，生成绑定到本次运行的对局

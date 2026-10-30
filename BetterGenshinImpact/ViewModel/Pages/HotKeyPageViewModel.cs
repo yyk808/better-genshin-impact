@@ -904,7 +904,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
             Config.HotKeyConfig.KeyMouseMacroRecordHotkey,
             Config.HotKeyConfig.KeyMouseMacroRecordHotkeyType, async (_, _) =>
             {
-                var service = App.GetService<KeyMouseRecordService>();
+                var service = CoreServices.GetService<KeyMouseRecordService>();
                 if (service == null) return;
                 if (!service.IsRecording)
                 {

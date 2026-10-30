@@ -148,14 +148,14 @@ namespace BetterGenshinImpact.GameTask
 
         public static TaskTriggerDispatcher Instance()
         {
-            return App.GetService<TaskTriggerDispatcher>()
+            return CoreServices.GetService<TaskTriggerDispatcher>()
                    ?? throw new InvalidOperationException("调度器未注册");
         }
 
         /// <summary>
         /// 兼容旧调用方，从 DI 容器获取调度器；截图器是否已启动应查看当前 GameRuntime
         /// </summary>
-        public static TaskTriggerDispatcher? InstanceNullable() => App.GetService<TaskTriggerDispatcher>();
+        public static TaskTriggerDispatcher? InstanceNullable() => CoreServices.GetService<TaskTriggerDispatcher>();
 
         /// <summary>
         /// 任务开始：进入任务模式并清空启用名单。用户开启的触发器在下一帧停用

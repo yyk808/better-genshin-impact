@@ -29,7 +29,7 @@ public static class WechatClawbotHelper
     /// </summary>
     private static HttpClient CreateNotificationClient(TimeSpan timeout)
     {
-        var client = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
+        var client = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
         client.Timeout = timeout;
         return client;
     }

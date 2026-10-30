@@ -30,7 +30,7 @@ public static class RecognitionObjectJsonLoader
 {
     private sealed class LoggerTag;
 
-    private static readonly ILogger Logger = App.GetLogger<LoggerTag>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<LoggerTag>();
 
     public static RecognitionObject LoadFromFile(string filePath, string objectName, RecognitionObjectJsonLoadContext context)
     {

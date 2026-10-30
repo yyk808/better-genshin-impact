@@ -98,7 +98,7 @@ public class CombatScenes : IDisposable
         _config = config;
         if (predictor == null)
         {
-            _predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiAvatarSide);
+            _predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiAvatarSide);
             _ownsPredictor = true;
         }
         else

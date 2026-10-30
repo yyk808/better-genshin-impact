@@ -24,7 +24,7 @@ namespace BetterGenshinImpact.GameTask.MapMask;
 /// </summary>
 public class MapMaskTrigger : ITaskTrigger
 {
-    private readonly ILogger<MapMaskTrigger> _logger = App.GetLogger<MapMaskTrigger>();
+    private readonly ILogger<MapMaskTrigger> _logger = CoreServices.GetLogger<MapMaskTrigger>();
 
     public string Name => "地图遮罩";
     public bool IsEnabledByConfig => _maskConfig.Enabled;

@@ -19,7 +19,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 /// </summary>
 public class QqWebSocketHelper
 {
-    private static readonly ILogger Logger = App.GetLogger<QqWebSocketHelper>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<QqWebSocketHelper>();
 
     private const string TokenUrl = "https://bots.qq.com/app/getAppAccessToken";
     private const string GatewayUrl = "https://api.sgroup.qq.com/gateway";
@@ -49,7 +49,7 @@ public class QqWebSocketHelper
 
         var verifyCode = GenerateVerifyCode();
 
-        using var httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
+        using var httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(BindTimeoutSeconds));
         var ct = timeoutCts.Token;
@@ -61,7 +61,7 @@ public class QqWebSocketHelper
 
         using var socket = new ClientWebSocket();
         // 代理跟随网络与代理设置
-        if (App.GetService<AppWebProxy>() is { } proxy)
+        if (CoreServices.GetService<AppWebProxy>() is { } proxy)
         {
             socket.Options.Proxy = proxy;
         }
@@ -130,7 +130,7 @@ public class QqWebSocketHelper
 
         var verifyCode = GenerateVerifyCode();
 
-        using var httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
+        using var httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(BindTimeoutSeconds));
         var ct = timeoutCts.Token;
@@ -145,7 +145,7 @@ public class QqWebSocketHelper
 
             using var socket = new ClientWebSocket();
             // 代理跟随网络与代理设置
-            if (App.GetService<AppWebProxy>() is { } proxy)
+            if (CoreServices.GetService<AppWebProxy>() is { } proxy)
             {
                 socket.Options.Proxy = proxy;
             }

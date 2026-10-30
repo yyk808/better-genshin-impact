@@ -10,7 +10,7 @@ namespace BetterGenshinImpact.GameTask.QuickBuy;
 
 public class QuickBuyTask
 {
-    private static readonly ILogger<QuickBuyTask> _logger = App.GetLogger<QuickBuyTask>();
+    private static readonly ILogger<QuickBuyTask> _logger = CoreServices.GetLogger<QuickBuyTask>();
 
     /// <summary>
     /// 快速购买热键入口。运行环境是否存在由热键调用方判断

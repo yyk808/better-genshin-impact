@@ -22,7 +22,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 /// </summary>
 public sealed class WechatClawbotSession : IDisposable
 {
-    private static readonly ILogger<WechatClawbotSession> Logger = App.GetLogger<WechatClawbotSession>();
+    private static readonly ILogger<WechatClawbotSession> Logger = CoreServices.GetLogger<WechatClawbotSession>();
 
     private const int DefaultLongPollTimeoutMs = 35000;
     private const int MaxConsecutiveFailures = 3;
@@ -50,7 +50,7 @@ public sealed class WechatClawbotSession : IDisposable
         _contextToken = string.Empty;
         _getUpdatesBuf = string.Empty;
         // 长轮询专用 HttpClient：超时需大于服务端 hold 时间（35s），不能复用 30s 的共享客户端
-        _httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
+        _httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification);
         _httpClient.Timeout = TimeSpan.FromSeconds(60);
     }
 

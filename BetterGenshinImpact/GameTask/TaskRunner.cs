@@ -28,23 +28,23 @@ namespace BetterGenshinImpact.GameTask;
 /// </summary>
 public class TaskRunner
 {
-    private readonly ILogger<TaskRunner> _logger = App.GetLogger<TaskRunner>();
+    private readonly ILogger<TaskRunner> _logger = CoreServices.GetLogger<TaskRunner>();
 
     /// <summary>
     /// 将停止按钮、全局热键和运行环境关闭转发到本轮局部 CTS。
     /// </summary>
-    private readonly TaskStopService _taskStopService = App.GetService<TaskStopService>();
+    private readonly TaskStopService _taskStopService = CoreServices.GetService<TaskStopService>();
 
     /// <summary>
     /// 独立任务运行期间的 Windows 通知抑制服务。
     /// </summary>
     private readonly WindowsNotificationSuppressionService _windowsNotificationSuppressionService =
-        App.GetService<WindowsNotificationSuppressionService>()!;
+        CoreServices.GetService<WindowsNotificationSuppressionService>()!;
 
     /// <summary>
     /// 游戏运行环境的编排服务，用于按需启动截图器。TaskRunner 有多处直接 new，暂时从容器获取
     /// </summary>
-    private readonly GameRuntimeService _gameRuntimeService = App.GetService<GameRuntimeService>()!;
+    private readonly GameRuntimeService _gameRuntimeService = CoreServices.GetService<GameRuntimeService>()!;
 
     public TaskRunner()
     {
@@ -154,7 +154,7 @@ public class TaskRunner
         ArgumentNullException.ThrowIfNull(param);
         return Task.Run(() => RunCoreAsync(async (runtime, ct) =>
         {
-            var instance = task.CreateTask(App.ServiceProvider, runtime, config);
+            var instance = task.CreateTask(CoreServices.Provider, runtime, config);
             onStarted?.Invoke();
             return await task.RunAsync(instance, param, ct);
         }, task.WaitForMainUi, task.DisplayName, requestToken));

@@ -275,7 +275,7 @@ public partial class NotifyIconViewModel : ObservableObject, IDisposable
             return;
         }
 
-        App.GetService<IConfigService>()?.Save();
+        CoreServices.GetService<IConfigService>()?.Save();
         Application.Current.Shutdown();
     }
 
@@ -283,7 +283,7 @@ public partial class NotifyIconViewModel : ObservableObject, IDisposable
     public async Task CheckUpdateAsync()
     {
         // 检查更新
-        await App.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
+        await CoreServices.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
         {
             Trigger = UpdateTrigger.Manual
         });

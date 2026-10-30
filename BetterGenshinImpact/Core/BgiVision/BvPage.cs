@@ -17,7 +17,7 @@ namespace BetterGenshinImpact.Core.BgiVision;
 
 public class BvPage
 {
-    private static readonly ILogger Logger = App.GetLogger<BvPage>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<BvPage>();
     private readonly CancellationToken _cancellationToken;
 
     /// <summary>

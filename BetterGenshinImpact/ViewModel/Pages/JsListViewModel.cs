@@ -35,7 +35,7 @@ namespace BetterGenshinImpact.ViewModel.Pages;
 
 public partial class JsListViewModel : ViewModel
 {
-    private readonly ILogger<JsListViewModel> _logger = App.GetLogger<JsListViewModel>();
+    private readonly ILogger<JsListViewModel> _logger = CoreServices.GetLogger<JsListViewModel>();
     private readonly string scriptPath = Global.ScriptPath();
 
     [ObservableProperty] private ObservableCollection<ScriptProject> _scriptItems = [];

@@ -273,7 +273,7 @@ public static partial class Bv
             });
 
             CultureInfo cultureInfo = new CultureInfo(Config.OtherConfig.GameCultureInfoName);
-            IStringLocalizer stringLocalizer = App.GetService<IStringLocalizer<BvResxHelper>>() ?? throw new Exception();
+            IStringLocalizer stringLocalizer = CoreServices.GetService<IStringLocalizer<BvResxHelper>>() ?? throw new Exception();
             string revival = stringLocalizer.WithCultureGet(cultureInfo, "复苏");
             if (list.Any(r => r.Text.Contains(revival)))
             {

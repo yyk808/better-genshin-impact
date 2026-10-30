@@ -4,7 +4,7 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 
 public class Log
 {
-    private readonly ILogger<Log> _logger = App.GetLogger<Log>();
+    private readonly ILogger<Log> _logger = CoreServices.GetLogger<Log>();
 
     public void Debug(string? message, params object?[] args)
     {

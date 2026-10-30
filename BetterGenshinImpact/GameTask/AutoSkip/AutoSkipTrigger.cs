@@ -36,7 +36,7 @@ namespace BetterGenshinImpact.GameTask.AutoSkip;
 /// </summary>
 public partial class AutoSkipTrigger : ITaskTrigger
 {
-    private readonly ILogger<AutoSkipTrigger> _logger = App.GetLogger<AutoSkipTrigger>();
+    private readonly ILogger<AutoSkipTrigger> _logger = CoreServices.GetLogger<AutoSkipTrigger>();
 
     public string Name => "自动剧情";
 

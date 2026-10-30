@@ -40,7 +40,7 @@ namespace BetterGenshinImpact.ViewModel.Pages;
 
 public partial class MapPathingViewModel : ViewModel
 {
-    private readonly ILogger<MapPathingViewModel> _logger = App.GetLogger<MapPathingViewModel>();
+    private readonly ILogger<MapPathingViewModel> _logger = CoreServices.GetLogger<MapPathingViewModel>();
     public static readonly string PathJsonPath = Global.Absolute(@"User\AutoPathing");
 
     [ObservableProperty] private ObservableCollection<FileTreeNode<PathingTask>> _treeList = [];
@@ -181,7 +181,7 @@ public partial class MapPathingViewModel : ViewModel
         //
         // await uiMessageBox.ShowDialogAsync();
 
-        var vm = App.GetService<PathingConfigViewModel>();
+        var vm = CoreServices.GetService<PathingConfigViewModel>();
         var view = new PathingConfigView(vm);
         view?.ShowDialog();
     }

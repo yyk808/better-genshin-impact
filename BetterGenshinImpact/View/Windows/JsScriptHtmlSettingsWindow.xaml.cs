@@ -20,7 +20,7 @@ namespace BetterGenshinImpact.View.Windows;
 /// </summary>
 public partial class JsScriptHtmlSettingsWindow : FluentWindow
 {
-    private readonly ILogger<JsScriptHtmlSettingsWindow> _logger = App.GetLogger<JsScriptHtmlSettingsWindow>();
+    private readonly ILogger<JsScriptHtmlSettingsWindow> _logger = CoreServices.GetLogger<JsScriptHtmlSettingsWindow>();
 
     /// <summary>打开窗口时 BetterGI 是否为深色主题，决定页面的首选配色。</summary>
     private readonly bool _isDarkTheme = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark;
@@ -78,7 +78,7 @@ public partial class JsScriptHtmlSettingsWindow : FluentWindow
     {
         try
         {
-            var provider = App.GetService<IWebViewEnvironmentProvider>()
+            var provider = CoreServices.GetService<IWebViewEnvironmentProvider>()
                            ?? throw new InvalidOperationException("WebView2 环境入口尚未初始化");
             // 不设置下载目录，页面发起的下载会被取消；target=_blank 的 http(s) 链接交给系统浏览器
             await WebView.InitializeAsync(provider, WebViewProfiles.ScriptSettings, new WebViewOptions

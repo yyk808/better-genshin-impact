@@ -138,7 +138,7 @@ public class ApplicationHostService(
                         _ = _navigationWindow.Navigate(typeof(ScriptControlPage));
                         if (cmdOptions.GroupNames.Length > 0)
                         {
-                            var scheduler = App.GetService<ScriptControlViewModel>();
+                            var scheduler = CoreServices.GetService<ScriptControlViewModel>();
                             scheduler?.OnStartMultiScriptGroupWithNamesAsync(cmdOptions.GroupNames);
                         }
                         break;

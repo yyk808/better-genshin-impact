@@ -49,7 +49,7 @@ public partial class AutoComboTreeWindow : Window
     private void PositionToLogBox()
     {
         // 本窗口由 AutoComboTreeWindowService 直接 new，不经过 DI，因此从容器取进程级的 GameRuntimeService；每次读取，不缓存
-        if (App.GetService<GameRuntimeService>()?.Current is not { } runtime)
+        if (CoreServices.GetService<GameRuntimeService>()?.Current is not { } runtime)
         {
             return;
         }

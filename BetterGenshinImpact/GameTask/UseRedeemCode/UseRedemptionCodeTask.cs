@@ -36,7 +36,7 @@ public class UseRedemptionCodeTask : ISoloTask<UseRedemptionCodeParam, NoData>
     /// </summary>
     public const string CodeRejectedReason = "redeem_code_rejected";
 
-    private static readonly ILogger _logger = App.GetLogger<UseRedemptionCodeTask>();
+    private static readonly ILogger _logger = CoreServices.GetLogger<UseRedemptionCodeTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.GameTask.UseRedeemCode;
 public class GetLiveRedeemCode
 {
     private static readonly string BBS_URL = "https://bbs-api.mihoyo.com";
-    private readonly HttpClient _httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.GameApi);
+    private readonly HttpClient _httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.GameApi);
 
     private readonly Dictionary<string, string> _url = new()
     {

@@ -131,10 +131,10 @@ public class Avatar
     private static readonly Random UnstuckRandom = new();
 
     private static readonly Lazy<BgiYoloPredictor> QBurstClassifierLazy = new(() =>
-        App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiQClassify));
+        CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiQClassify));
 
     private static readonly Lazy<BgiYoloPredictor> ESkillClassifierLazy = new(() =>
-        App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiEClassify));
+        CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiEClassify));
 
     // E 技能分类模型由所有角色共享，串行执行推理，避免并发调用同一会话。
     private static readonly object ESkillClassifierLock = new();

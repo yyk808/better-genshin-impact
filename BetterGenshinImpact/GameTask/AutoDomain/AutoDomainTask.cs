@@ -160,7 +160,7 @@ public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
         _allConfig = config;
 
         IStringLocalizer<AutoDomainTask> stringLocalizer =
-            App.GetService<IStringLocalizer<AutoDomainTask>>() ?? throw new NullReferenceException();
+            CoreServices.GetService<IStringLocalizer<AutoDomainTask>>() ?? throw new NullReferenceException();
         CultureInfo cultureInfo = new CultureInfo(config.OtherConfig.GameCultureInfoName);
         this.challengeCompletedLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "挑战达成");
         this.autoLeavingLocalizedString = stringLocalizer.WithCultureGet(cultureInfo, "自动退出");
@@ -286,7 +286,7 @@ public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
             return initFailure;
         }
 
-        using var predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiTree);
+        using var predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiTree);
         _predictor = predictor;
 
         _guidePlanning = _guideCustomTargets != null ||

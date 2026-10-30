@@ -36,7 +36,7 @@ public partial class KeyBindingsWindow : FluentWindow
         InitializeComponent();
         SourceInitialized += (s, e) => WindowHelper.TryApplySystemBackdrop(this);
 
-        var page = App.GetService<KeyBindingsSettingsPage>();
+        var page = CoreServices.GetService<KeyBindingsSettingsPage>();
         Grid.SetRow(page!, 1);
         Grid1.Children.Add(page!);
     }

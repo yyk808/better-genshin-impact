@@ -98,7 +98,7 @@ public class CraftMaterialTask
     /// </summary>
     private static readonly string[] BonusMaterialTypes = ["角色与武器培养素材", "武器突破素材", "角色天赋素材", "药剂"];
 
-    private readonly ILogger<CraftMaterialTask> _logger = App.GetLogger<CraftMaterialTask>();
+    private readonly ILogger<CraftMaterialTask> _logger = CoreServices.GetLogger<CraftMaterialTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

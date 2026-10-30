@@ -14,7 +14,7 @@ public sealed class MusicLibraryService(
     IMusicScoreParser scoreParser,
     IMusicStateStore stateStore) : IMusicLibraryService
 {
-    private readonly ILogger<MusicLibraryService> _logger = App.GetLogger<MusicLibraryService>();
+    private readonly ILogger<MusicLibraryService> _logger = CoreServices.GetLogger<MusicLibraryService>();
     private readonly object _watcherSyncRoot = new();
     private FileSystemWatcher? _watcher;
     private Timer? _debounceTimer;

@@ -36,7 +36,7 @@ namespace BetterGenshinImpact.Core.Script.Dependence;
 
 public class Dispatcher
 {
-    private readonly ILogger<Dispatcher> _logger = App.GetLogger<Dispatcher>();
+    private readonly ILogger<Dispatcher> _logger = CoreServices.GetLogger<Dispatcher>();
 
     private readonly object? _config;
 
@@ -166,7 +166,7 @@ public class Dispatcher
             throw new ArgumentNullException(nameof(soloTask), "独立任务对象不能为空");
         }
 
-        var taskSettingsPageViewModel = App.GetService<TaskSettingsPageViewModel>();
+        var taskSettingsPageViewModel = CoreServices.GetService<TaskSettingsPageViewModel>();
         if (taskSettingsPageViewModel == null)
         {
             throw new ArgumentNullException(nameof(taskSettingsPageViewModel), "内部视图模型对象为空");

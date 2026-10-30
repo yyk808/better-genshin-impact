@@ -51,7 +51,7 @@ public partial class ScriptControlViewModel : ViewModel
 {
     private readonly ISnackbarService _snackbarService;
 
-    private readonly ILogger<ScriptControlViewModel> _logger = App.GetLogger<ScriptControlViewModel>();
+    private readonly ILogger<ScriptControlViewModel> _logger = CoreServices.GetLogger<ScriptControlViewModel>();
 
     private readonly IScriptService _scriptService;
 

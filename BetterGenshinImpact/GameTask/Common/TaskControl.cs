@@ -15,7 +15,7 @@ public class TaskControl
     /// <summary>
     /// 任务公共日志
     /// </summary>
-    public static ILogger Logger { get; } = App.GetLogger<TaskControl>();
+    public static ILogger Logger { get; } = CoreServices.GetLogger<TaskControl>();
 
     /// <summary>
     /// 独立任务锁：同一时刻只允许一个独立任务运行

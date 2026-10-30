@@ -19,7 +19,7 @@ namespace BetterGenshinImpact.View.Controls.Webview;
 /// </summary>
 public class WebpagePanel : UserControl
 {
-    private readonly ILogger<WebpagePanel> _logger = App.GetLogger<WebpagePanel>();
+    private readonly ILogger<WebpagePanel> _logger = CoreServices.GetLogger<WebpagePanel>();
     private Uri _currentUri = null!;
     private WebView2 _webView = null!;
 
@@ -110,7 +110,7 @@ public class WebpagePanel : UserControl
     {
         try
         {
-            var provider = App.GetService<IWebViewEnvironmentProvider>()
+            var provider = CoreServices.GetService<IWebViewEnvironmentProvider>()
                            ?? throw new InvalidOperationException("WebView2 环境入口尚未初始化");
             await _webView.InitializeAsync(provider, WebViewProfiles.Default, new WebViewOptions
             {

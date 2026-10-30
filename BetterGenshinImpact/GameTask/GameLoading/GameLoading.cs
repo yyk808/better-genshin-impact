@@ -45,7 +45,7 @@ public class GameLoadingTrigger : ITaskTrigger
     /// 启动配置，取自创建方传入的配置根
     /// </summary>
     private readonly GenshinStartConfig _config;
-    private static ILogger<GameLoadingTrigger> _logger = App.GetLogger<GameLoadingTrigger>();
+    private static ILogger<GameLoadingTrigger> _logger = CoreServices.GetLogger<GameLoadingTrigger>();
 
 
     // private int _enterGameClickCount = 0;

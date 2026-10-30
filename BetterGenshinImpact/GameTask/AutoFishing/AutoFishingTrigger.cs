@@ -25,7 +25,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
 {
     public class AutoFishingTrigger : ITaskTrigger
     {
-        private readonly ILogger<AutoFishingTrigger> _logger = App.GetLogger<AutoFishingTrigger>();
+        private readonly ILogger<AutoFishingTrigger> _logger = CoreServices.GetLogger<AutoFishingTrigger>();
         private IInputChannel input => InputHub.Foreground;
 
         public string Name => "自动钓鱼";

@@ -20,7 +20,7 @@ namespace BetterGenshinImpact.GameTask.AutoEat;
 /// </summary>
 public class AutoEatTrigger : ITaskTrigger
 {
-    private readonly ILogger<AutoEatTrigger> _logger = App.GetLogger<AutoEatTrigger>();
+    private readonly ILogger<AutoEatTrigger> _logger = CoreServices.GetLogger<AutoEatTrigger>();
 
     public string Name => "自动吃药";
     public bool IsEnabledByConfig => _config.Enabled;

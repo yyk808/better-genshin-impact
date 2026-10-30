@@ -30,7 +30,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
         /// </summary>
         public const string TaskId = "auto_fishing";
 
-        private readonly ILogger _logger = App.GetLogger<AutoFishingTask>();
+        private readonly ILogger _logger = CoreServices.GetLogger<AutoFishingTask>();
         private IInputChannel input => InputHub.Foreground;
 
         private CancellationToken _ct;
@@ -77,7 +77,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
         public async Task<SoloTaskResult<NoData>> RunAsync(AutoFishingTaskParam param, CancellationToken ct)
         {
             this.param = param;
-            using var predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiFish);
+            using var predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(BgiOnnxModel.BgiFish);
             this._ct = ct;
 
             IOcrService ocrService = OcrFactory.Paddle;

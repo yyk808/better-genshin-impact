@@ -556,7 +556,7 @@ public partial class CommonSettingsPageViewModel : ViewModel
     [RelayCommand]
     private async Task CheckUpdateAsync()
     {
-        await App.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
+        await CoreServices.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
         {
             Trigger = UpdateTrigger.Manual,
             Channel = UpdateChannel.Stable
@@ -572,7 +572,7 @@ public partial class CommonSettingsPageViewModel : ViewModel
             return;
         }
         
-        await App.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
+        await CoreServices.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption
         {
             Trigger = UpdateTrigger.Manual,
             Channel = UpdateChannel.Alpha,
@@ -602,14 +602,14 @@ public partial class CommonSettingsPageViewModel : ViewModel
     [RelayCommand]
     private async Task OnGameLangSelectionChanged(KeyValuePair<string, string> type)
     {
-        await App.ServiceProvider.GetRequiredService<OcrFactory>().Unload();
+        await CoreServices.Provider.GetRequiredService<OcrFactory>().Unload();
     }
 
     [RelayCommand]
     private async Task OnPaddleOcrModelConfigChanged(PaddleOcrModelConfig value)
     {
         Config.OtherConfig.OcrConfig.PaddleOcrModelConfig = value;
-        await App.ServiceProvider.GetRequiredService<OcrFactory>().Unload();
+        await CoreServices.Provider.GetRequiredService<OcrFactory>().Unload();
     }
 
     [RelayCommand]

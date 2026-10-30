@@ -25,7 +25,7 @@ public static class SoloTaskSettingsFactory
             return null;
         }
 
-        return ActivatorUtilities.CreateInstance(services ?? App.ServiceProvider, vmType, effectiveParameters) as SoloTaskSettingsViewModel
+        return ActivatorUtilities.CreateInstance(services ?? CoreServices.Provider, vmType, effectiveParameters) as SoloTaskSettingsViewModel
                ?? throw new InvalidOperationException($"设置 VM {vmType.Name} 必须继承 {nameof(SoloTaskSettingsViewModel)}。");
     }
 }

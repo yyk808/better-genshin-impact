@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.GameTask.Music.Service;
 public sealed class MusicStateStore : IMusicStateStore
 {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
-    private readonly ILogger<MusicStateStore> _logger = App.GetLogger<MusicStateStore>();
+    private readonly ILogger<MusicStateStore> _logger = CoreServices.GetLogger<MusicStateStore>();
     private readonly object _syncRoot = new();
     private readonly string _statePath = Global.Absolute(@"User\Music\music-state.json");
 

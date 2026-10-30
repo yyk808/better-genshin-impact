@@ -25,7 +25,7 @@ public class OneKeyClaimRewardTask : Singleton<OneKeyClaimRewardTask>
     private const int ScrollChunkSize = 10;
     private const int MaxBlankContinueChecks = 3;
     private const int ScrollRenderDelayMilliseconds = 120;
-    private static readonly ILogger<OneKeyClaimRewardTask> Logger = App.GetLogger<OneKeyClaimRewardTask>();
+    private static readonly ILogger<OneKeyClaimRewardTask> Logger = CoreServices.GetLogger<OneKeyClaimRewardTask>();
 
     /// <summary>
     /// 配置根。单例没有创建方可以传参，暂时读配置根（见 task-context-removal.md 第 5 节）

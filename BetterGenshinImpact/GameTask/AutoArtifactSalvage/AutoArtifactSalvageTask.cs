@@ -118,7 +118,7 @@ public class AutoArtifactSalvageTask : ISoloTask<AutoArtifactSalvageTaskParam, N
     public AutoArtifactSalvageTask(GameRuntime runtime, ILogger? logger = null)
     {
         _runtime = runtime;
-        this.logger = logger ?? App.GetLogger<AutoArtifactSalvageTask>();
+        this.logger = logger ?? CoreServices.GetLogger<AutoArtifactSalvageTask>();
     }
 
     /// <summary>
@@ -579,7 +579,7 @@ public class AutoArtifactSalvageTask : ISoloTask<AutoArtifactSalvageTaskParam, N
     /// <exception cref="Exception"></exception>
     public async static Task<bool> IsMatchJavaScript(ArtifactStat artifact, string javaScript, ILogger? logger = null, TimeProvider? timeProvider = null)
     {
-        logger = logger ?? App.GetLogger<AutoArtifactSalvageTask>();
+        logger = logger ?? CoreServices.GetLogger<AutoArtifactSalvageTask>();
         using V8ScriptEngine engine = new V8ScriptEngine(V8ScriptEngineFlags.UseCaseInsensitiveMemberBinding | V8ScriptEngineFlags.DisableGlobalMembers);
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3), timeProvider ?? TimeProvider.System);    // 这里只是用JS写一个自定义判断方法，由于每个圣遗物都会执行一次，这个方法不应执行太久
         cts.Token.Register(() =>

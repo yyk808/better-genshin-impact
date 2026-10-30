@@ -25,7 +25,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
     /// </summary>
     private static AllConfig Config => ConfigService.Config!;
 
-    private readonly ILogger<GlobalKeyMouseRecord> _logger = App.GetLogger<GlobalKeyMouseRecord>();
+    private readonly ILogger<GlobalKeyMouseRecord> _logger = CoreServices.GetLogger<GlobalKeyMouseRecord>();
 
     private KeyMouseRecorder? _recorder;
 
@@ -86,7 +86,7 @@ public class GlobalKeyMouseRecord : Singleton<GlobalKeyMouseRecord>
             // 录制器与主界面判断都绑定到开始录制时的运行环境
             _runtime = runtime;
             _recorder = new KeyMouseRecorder(runtime, Config);
-            var monitorFactory = App.GetService<IRelativeMouseInputMonitorFactory>()
+            var monitorFactory = CoreServices.GetService<IRelativeMouseInputMonitorFactory>()
                                  ?? throw new InvalidOperationException("相对鼠标捕获工厂未注册");
             _relativeMouseSubscription = monitorFactory
                 .Get(inputType)

@@ -29,7 +29,7 @@ internal class AutoFightHandler(GameRuntime runtime, AllConfig config) : IAction
     /// </summary>
     private readonly AllConfig _config = config;
 
-    private readonly ILogger<AutoFightHandler> _logger = App.GetLogger<AutoFightHandler>();
+    private readonly ILogger<AutoFightHandler> _logger = CoreServices.GetLogger<AutoFightHandler>();
     public async Task RunAsyncByScript(CancellationToken ct, WaypointForTrack? waypointForTrack = null, object? config = null)
     {
         await StartFight(ct, config,waypointForTrack);

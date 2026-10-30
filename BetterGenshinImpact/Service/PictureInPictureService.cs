@@ -90,6 +90,6 @@ public static class PictureInPictureService
     /// </summary>
     private static bool IsWindowAllowed()
     {
-        return App.GetService<GameRuntimeService>()?.Kind != GameRuntimeKind.WebPage;
+        return CoreServices.GetService<GameRuntimeService>()?.Kind != GameRuntimeKind.WebPage;
     }
 }

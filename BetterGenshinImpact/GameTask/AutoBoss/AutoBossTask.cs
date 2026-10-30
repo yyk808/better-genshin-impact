@@ -61,7 +61,7 @@ public class AutoBossTask : ISoloTask<AutoBossParam, ResinClaimData>
     /// </summary>
     private const string TaskName = "自动首领讨伐";
 
-    private readonly ILogger<AutoBossTask> _logger = App.GetLogger<AutoBossTask>();
+    private readonly ILogger<AutoBossTask> _logger = CoreServices.GetLogger<AutoBossTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

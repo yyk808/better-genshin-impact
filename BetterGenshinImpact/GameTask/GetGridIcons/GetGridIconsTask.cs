@@ -39,7 +39,7 @@ public class GetGridIconsTask : ISoloTask<GetGridIconsParam, NoData>
     /// </summary>
     private readonly GameRuntime _runtime;
 
-    private readonly ILogger logger = App.GetLogger<GetGridIconsTask>();
+    private readonly ILogger logger = CoreServices.GetLogger<GetGridIconsTask>();
     private IInputChannel input => InputHub.Foreground;
 
     private CancellationToken ct;

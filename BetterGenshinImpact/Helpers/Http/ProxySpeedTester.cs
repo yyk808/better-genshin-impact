@@ -18,7 +18,7 @@ public class ProxySpeedTester
     {
         get
         {
-            var client = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default);
+            var client = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default);
             client.Timeout = TimeSpan.FromSeconds(15);
             return client;
         }

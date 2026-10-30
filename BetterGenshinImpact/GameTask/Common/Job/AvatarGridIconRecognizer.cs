@@ -55,7 +55,7 @@ internal sealed class AvatarGridIconRecognizer : IDisposable
     /// </summary>
     public AvatarGridIconRecognizer()
     {
-        _session = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>()
+        _session = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>()
             .CreateInferenceSession(BgiOnnxModel.AvatarGridIcon);
         try
         {

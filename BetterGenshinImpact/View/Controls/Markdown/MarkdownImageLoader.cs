@@ -32,7 +32,7 @@ public sealed class MarkdownImageLoader : IMarkdownImageLoader
     /// <summary>
     /// 远程图片服务：网络图片经文件缓存下载，跟随网络与代理设置
     /// </summary>
-    private static IRemoteImageService RemoteImages => App.GetService<IRemoteImageService>()
+    private static IRemoteImageService RemoteImages => CoreServices.GetService<IRemoteImageService>()
                                                        ?? throw new InvalidOperationException("远程图片服务尚未初始化。");
     private readonly ConcurrentDictionary<string, WeakReference<MarkdownImageResult>> _cache = new(StringComparer.OrdinalIgnoreCase);
 

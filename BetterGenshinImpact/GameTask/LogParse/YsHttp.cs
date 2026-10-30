@@ -119,7 +119,7 @@ namespace BetterGenshinImpact.GameTask.LogParse
         }
 
         // 游戏接口客户端，跟随网络与代理设置
-        protected readonly HttpClient _httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.GameApi);
+        protected readonly HttpClient _httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.GameApi);
 
         protected virtual async Task<ApiResponse<T>> CommonSendAsync<T>(HttpRequestMessage request,
             CancellationToken cancellationToken = default)

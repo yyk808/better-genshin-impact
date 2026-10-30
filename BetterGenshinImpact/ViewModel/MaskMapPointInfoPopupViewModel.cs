@@ -19,12 +19,12 @@ namespace BetterGenshinImpact.ViewModel;
 
 public partial class MaskMapPointInfoPopupViewModel : ObservableObject
 {
-    private readonly ILogger<MaskMapPointInfoPopupViewModel> _logger = App.GetLogger<MaskMapPointInfoPopupViewModel>();
+    private readonly ILogger<MaskMapPointInfoPopupViewModel> _logger = CoreServices.GetLogger<MaskMapPointInfoPopupViewModel>();
     private CancellationTokenSource? _cts;
     /// <summary>
     /// 远程图片服务：点位图片经文件缓存下载，跟随网络与代理设置
     /// </summary>
-    private static IRemoteImageService? Remote => App.GetService<IRemoteImageService>();
+    private static IRemoteImageService? Remote => CoreServices.GetService<IRemoteImageService>();
     private MemoryStream? _imageStream;
 
     public event EventHandler<MaskMapPoint?>? ToggleHiddenRequested;
@@ -51,7 +51,7 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
     /// <summary>
     /// 悬浮小窗服务；子实例中不可用
     /// </summary>
-    private static IGuideWindowService? GuideWindow => App.GetService<IGuideWindowService>();
+    private static IGuideWindowService? GuideWindow => CoreServices.GetService<IGuideWindowService>();
 
     /// <summary>
     /// 链接旁是否显示“换一种方式打开”的小按钮（悬浮小窗可用时）
@@ -105,7 +105,7 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
 
         try
         {
-            var service = App.GetService<IMaskMapPointService>();
+            var service = CoreServices.GetService<IMaskMapPointService>();
             if (service == null)
             {
                 TextError = "地图服务未就绪";

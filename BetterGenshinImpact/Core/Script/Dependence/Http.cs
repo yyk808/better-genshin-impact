@@ -22,7 +22,7 @@ public class Http
     /// </summary>
     private const int MaxRedirects = 5;
 
-    private readonly ILogger<Http> _logger = App.GetLogger<Http>();
+    private readonly ILogger<Http> _logger = CoreServices.GetLogger<Http>();
 
     /// <summary>
     /// 是否为需要跟随的重定向状态码
@@ -127,7 +127,7 @@ public class Http
         }
 
         // 使用脚本专用客户端发送请求：跟随网络与代理设置，且不自动跟随重定向
-        var httpClient = App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Script);
+        var httpClient = CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Script);
         var currentUri = new Uri(url);
         var currentMethod = new HttpMethod(method);
         var currentBody = body;

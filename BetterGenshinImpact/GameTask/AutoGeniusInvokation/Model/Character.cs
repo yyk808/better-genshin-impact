@@ -9,7 +9,7 @@ namespace BetterGenshinImpact.GameTask.AutoGeniusInvokation.Model
 {
     public class Character
     {
-        private readonly ILogger _logger = App.GetLogger<Character>();
+        private readonly ILogger _logger = CoreServices.GetLogger<Character>();
 
         /// <summary>
         /// 1-3 所在数组下标一致

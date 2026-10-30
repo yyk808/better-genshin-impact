@@ -21,7 +21,7 @@ namespace BetterGenshinImpact.GameTask.Music.Service;
 
 public sealed class MusicInstrumentSwitcher : IMusicInstrumentSwitcher
 {
-    private readonly ILogger<MusicInstrumentSwitcher> _logger = App.GetLogger<MusicInstrumentSwitcher>();
+    private readonly ILogger<MusicInstrumentSwitcher> _logger = CoreServices.GetLogger<MusicInstrumentSwitcher>();
 
     /// <summary>
     /// 游戏运行环境服务。进程级单例不持有运行环境，每次切换乐器时读取 Current

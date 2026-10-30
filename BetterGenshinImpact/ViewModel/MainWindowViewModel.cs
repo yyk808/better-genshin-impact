@@ -232,7 +232,7 @@ public partial class MainWindowViewModel : ObservableObject, IViewModel, IDispos
         _instanceService = instanceService;
         _instanceVisualIdentity = instanceVisualIdentity;
         Config = _configService.Get();
-        _logger = App.GetLogger<MainWindowViewModel>();
+        _logger = CoreServices.GetLogger<MainWindowViewModel>();
         // 订阅通用配置变更：设置页修改背景图路径或开关后，主窗口背景实时刷新
         Config.CommonConfig.PropertyChanged += OnCommonConfigPropertyChanged;
         LoadMainBackground();
@@ -790,7 +790,7 @@ public partial class MainWindowViewModel : ObservableObject, IViewModel, IDispos
         OnceRun();
 
         // 检查更新
-        await App.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption());
+        await CoreServices.GetService<IUpdateService>()!.CheckUpdateAsync(new UpdateOption());
         
         // 检查兑换码更新
         await CheckRedeemCodeFeedsUpdateAsync();
@@ -863,7 +863,7 @@ public partial class MainWindowViewModel : ObservableObject, IViewModel, IDispos
     {
         try
         {
-            var kbVm = App.GetService<KeyBindingsSettingsPageViewModel>();
+            var kbVm = CoreServices.GetService<KeyBindingsSettingsPageViewModel>();
             if (kbVm != null)
             {
                 kbVm.FetchFromRegistryCommand.Execute(null);
@@ -1028,7 +1028,7 @@ public partial class MainWindowViewModel : ObservableObject, IViewModel, IDispos
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, FeedWindowViewModel.CodesJsonUrl);
-            var response = await App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default).SendAsync(request);
+            var response = await CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Default).SendAsync(request);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
             var items = JsonConvert.DeserializeObject<List<FeedItem>>(json) ?? [];

@@ -32,7 +32,7 @@ namespace BetterGenshinImpact.GameTask.AutoGeniusInvokation;
 /// </summary>
 public class GeniusInvokationControl
 {
-    private readonly ILogger<GeniusInvokationControl> _logger = App.GetLogger<GeniusInvokationControl>();
+    private readonly ILogger<GeniusInvokationControl> _logger = CoreServices.GetLogger<GeniusInvokationControl>();
 
     /// <summary>
     /// 本次运行使用的运行环境：截图、焦点检查、捕获区域坐标都只使用它

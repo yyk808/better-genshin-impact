@@ -47,7 +47,7 @@ public static class ESkillCdTracker
     private static CancellationTokenSource? _debounceCts;
     private static readonly object _debounceLock = new();
 
-    private static readonly ILogger Logger = App.GetLogger<ConditionEvaluator>(); // ESkillCdTracker 是静态类，不能用作泛型参数
+    private static readonly ILogger Logger = CoreServices.GetLogger<ConditionEvaluator>(); // ESkillCdTracker 是静态类，不能用作泛型参数
 
     /// <summary>
     /// 防抖触发 E 技能 CD 检测。

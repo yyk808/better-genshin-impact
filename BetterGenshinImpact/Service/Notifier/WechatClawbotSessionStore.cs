@@ -23,7 +23,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 /// </summary>
 public static class WechatClawbotSessionStore
 {
-    private static readonly ILogger Logger = App.GetLogger<LoggerHolder>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<LoggerHolder>();
     private sealed class LoggerHolder { }
 
     private static readonly SemaphoreSlim Gate = new(1, 1);

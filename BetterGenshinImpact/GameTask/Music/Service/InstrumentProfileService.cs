@@ -14,7 +14,7 @@ namespace BetterGenshinImpact.GameTask.Music.Service;
 public sealed class InstrumentProfileService : IInstrumentProfileService
 {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
-    private readonly ILogger<InstrumentProfileService> _logger = App.GetLogger<InstrumentProfileService>();
+    private readonly ILogger<InstrumentProfileService> _logger = CoreServices.GetLogger<InstrumentProfileService>();
     private readonly string _profilePath = Global.Absolute(@"User\Music\instrument-profiles.json");
 
     private static readonly (char Key, int Note)[] StandardMappings =

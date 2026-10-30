@@ -20,7 +20,7 @@ namespace BetterGenshinImpact.Core.BgiVision;
 /// </summary>
 public class BvLocator
 {
-    private static readonly ILogger Logger = App.GetLogger<BvLocator>();
+    private static readonly ILogger Logger = CoreServices.GetLogger<BvLocator>();
     private readonly CancellationToken _cancellationToken;
     private readonly IReadOnlyList<string> _anyTexts;
     private int? _timeout;

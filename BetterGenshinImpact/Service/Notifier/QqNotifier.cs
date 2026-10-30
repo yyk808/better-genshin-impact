@@ -26,7 +26,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 /// </summary>
 public sealed class QqNotifier : INotifier
 {
-    private static readonly ILogger<QqNotifier> Logger = App.GetLogger<QqNotifier>();
+    private static readonly ILogger<QqNotifier> Logger = CoreServices.GetLogger<QqNotifier>();
 
     public string Name { get; } = "QQ";
 

@@ -30,7 +30,7 @@ public class RewardResultRecognizer
     private static readonly Lazy<RewardResultRecognizer> _instance = new(() => new RewardResultRecognizer());
     public static RewardResultRecognizer Instance => _instance.Value;
 
-    private readonly ILogger<RewardResultRecognizer> _logger = App.GetLogger<RewardResultRecognizer>();
+    private readonly ILogger<RewardResultRecognizer> _logger = CoreServices.GetLogger<RewardResultRecognizer>();
     private static readonly Scalar RewardMaskLower = new(0, 0, 190);
     private static readonly Scalar RewardMaskUpper = new(179, 20, 249);
 

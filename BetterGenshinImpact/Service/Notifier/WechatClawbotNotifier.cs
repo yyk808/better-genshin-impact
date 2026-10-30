@@ -27,7 +27,7 @@ namespace BetterGenshinImpact.Service.Notifier;
 /// </summary>
 public sealed class WechatClawbotNotifier : INotifier, IDisposable
 {
-    private static readonly ILogger<WechatClawbotNotifier> Logger = App.GetLogger<WechatClawbotNotifier>();
+    private static readonly ILogger<WechatClawbotNotifier> Logger = CoreServices.GetLogger<WechatClawbotNotifier>();
 
     /// <summary>
     /// 推送会话过期事件（静态）。sendmessage 检测到 ret=-2 prepare failed 时触发，

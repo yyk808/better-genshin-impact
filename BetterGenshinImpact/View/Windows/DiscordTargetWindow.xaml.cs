@@ -77,7 +77,7 @@ public partial class DiscordTargetWindow : FluentWindow
     {
         InitializeComponent();
 
-        _apiClient = new DiscordBotApiClient(App.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification), botToken);
+        _apiClient = new DiscordBotApiClient(CoreServices.GetService<IHttpClientFactory>()!.CreateClient(HttpClientNames.Notification), botToken);
 
         foreach (var target in targets ?? [])
         {

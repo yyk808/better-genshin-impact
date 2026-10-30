@@ -86,7 +86,7 @@ public sealed class RepoWebBridge
         string userConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "User", "config.json");
 
         // 保存有防抖，读取文件前先写入尚未落盘的改动
-        App.GetService<IConfigService>()?.Flush();
+        CoreServices.GetService<IConfigService>()?.Flush();
         
         if (!File.Exists(userConfigPath))
         {

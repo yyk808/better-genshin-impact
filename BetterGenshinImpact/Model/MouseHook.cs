@@ -38,7 +38,7 @@ public class MouseHook
     /// <returns>游戏位于前台时返回 true</returns>
     private static bool IsGameForeground()
     {
-        return SystemControl.IsGameForeground(App.GetService<GameRuntimeService>()?.Current?.Window);
+        return SystemControl.IsGameForeground(CoreServices.GetService<GameRuntimeService>()?.Current?.Window);
     }
 
     public void MouseDown(object? sender, GlobalMouseEventArgs e)

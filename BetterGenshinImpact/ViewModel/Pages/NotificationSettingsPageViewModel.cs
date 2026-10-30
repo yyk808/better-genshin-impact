@@ -23,7 +23,7 @@ namespace BetterGenshinImpact.ViewModel.Pages;
 public partial class NotificationSettingsPageViewModel : ObservableObject, IViewModel
 {
     private static readonly Microsoft.Extensions.Logging.ILogger<NotificationSettingsPageViewModel> Logger =
-        App.GetLogger<NotificationSettingsPageViewModel>();
+        CoreServices.GetLogger<NotificationSettingsPageViewModel>();
 
     private readonly NotificationService _notificationService;
     private readonly HashSet<string> _knownNotificationEventCodes;

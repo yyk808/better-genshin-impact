@@ -28,7 +28,7 @@ namespace BetterGenshinImpact.GameTask.AutoPick;
 
 public partial class AutoPickTrigger : ITaskTrigger
 {
-    private readonly ILogger<AutoPickTrigger> _logger = App.GetLogger<AutoPickTrigger>();
+    private readonly ILogger<AutoPickTrigger> _logger = CoreServices.GetLogger<AutoPickTrigger>();
 
     public string Name => "自动拾取";
     public bool IsEnabledByConfig => _config.AutoPickConfig.Enabled;

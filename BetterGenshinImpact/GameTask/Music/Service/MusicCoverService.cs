@@ -21,7 +21,7 @@ public sealed class MusicCoverService : IMusicCoverService
     /// </summary>
     private readonly IFileCache _fileCache;
     private readonly HttpClient _httpClient;
-    private readonly ILogger<MusicCoverService> _logger = App.GetLogger<MusicCoverService>();
+    private readonly ILogger<MusicCoverService> _logger = CoreServices.GetLogger<MusicCoverService>();
     private int _stopRemoteRequests;
 
     /// <param name="fileCache">文件缓存</param>

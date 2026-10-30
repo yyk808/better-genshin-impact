@@ -15,7 +15,7 @@ public class OcrFactory : IDisposable
     // public static IOcrService Media = Create(OcrEngineTypes.Media);
 
 
-    public static IOcrService Paddle => App.ServiceProvider.GetRequiredService<OcrFactory>().PaddleOcr;
+    public static IOcrService Paddle => CoreServices.Provider.GetRequiredService<OcrFactory>().PaddleOcr;
     public IOcrService PaddleOcr
     {
         get
@@ -113,7 +113,7 @@ public class OcrFactory : IDisposable
     private PaddleOcrService CreatePaddleOcrInstance()
     {
         _activeModelType = ResolveModelType();
-        return new PaddleOcrService(App.ServiceProvider.GetRequiredService<BgiOnnxFactory>(), _activeModelType);
+        return new PaddleOcrService(CoreServices.Provider.GetRequiredService<BgiOnnxFactory>(), _activeModelType);
     }
 
     private PaddleOcrService.PaddleOcrModelType ResolveModelType()

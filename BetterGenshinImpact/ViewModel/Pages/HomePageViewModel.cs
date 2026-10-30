@@ -120,7 +120,7 @@ public partial class HomePageViewModel : ViewModel, IDisposable
 
     private readonly IMaskWindowHost _maskWindowHost;
     private readonly CustomHtmlMaskService _customHtmlMaskService;
-    private readonly ILogger<HomePageViewModel> _logger = App.GetLogger<HomePageViewModel>();
+    private readonly ILogger<HomePageViewModel> _logger = CoreServices.GetLogger<HomePageViewModel>();
 
     private readonly GameRuntimeService _gameRuntimeService;
     private readonly Win32RuntimeProvider _win32RuntimeProvider;
@@ -947,7 +947,7 @@ public partial class HomePageViewModel : ViewModel, IDisposable
         {
             CancelBannerDownload();
             // 打开窗口
-            var vm = App.GetService<WebImageInputViewModel>();
+            var vm = CoreServices.GetService<WebImageInputViewModel>();
             var webImageInput = new WebImageInput(vm!);
             webImageInput.Owner = Application.Current.MainWindow;
             vm!.SubmitCompleted += RefreshBannerImage;

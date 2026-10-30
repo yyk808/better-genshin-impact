@@ -47,7 +47,7 @@ public class KeyMouseHook: IDisposable
     private readonly object _mouseMoveLock = new();
     private DateTime _lastProcessMouseMoveTime = DateTime.MinValue;
     
-    private readonly ILogger<KeyMouseHook> _logger = App.GetLogger<KeyMouseHook>();
+    private readonly ILogger<KeyMouseHook> _logger = CoreServices.GetLogger<KeyMouseHook>();
     
     /// <summary>
     /// 统一处理回调函数执行过程中的异常

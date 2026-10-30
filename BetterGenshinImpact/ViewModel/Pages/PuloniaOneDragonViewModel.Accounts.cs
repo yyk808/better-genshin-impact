@@ -129,7 +129,7 @@ public partial class PuloniaOneDragonViewModel
         try
         {
             using var viewModel = new PuloniaGenshinAccountsViewModel(_store,
-                App.GetService<PuloniaGameTaskCoordinator>()!, App.GetService<IPuloniaGenshinAccountSwitcher>()!);
+                CoreServices.GetService<PuloniaGameTaskCoordinator>()!, CoreServices.GetService<IPuloniaGenshinAccountSwitcher>()!);
             await viewModel.LoadAsync();
             new PuloniaGenshinAccountsWindow(viewModel) { Owner = Application.Current.MainWindow }.ShowDialog();
             await RefreshGenshinAccountsAsync();

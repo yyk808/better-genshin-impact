@@ -27,7 +27,7 @@ public class ChooseFOptionTask
     private const int RecognitionRetryCount = 5;
     private const int RetryMouseMoveDistance = 400;
     private static readonly SemaphoreSlim SelectionLock = new(1, 1);
-    private readonly ILogger<ChooseFOptionTask> _logger = App.GetLogger<ChooseFOptionTask>();
+    private readonly ILogger<ChooseFOptionTask> _logger = CoreServices.GetLogger<ChooseFOptionTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

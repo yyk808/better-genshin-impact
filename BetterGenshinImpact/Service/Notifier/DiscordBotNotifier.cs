@@ -53,7 +53,7 @@ public static class DiscordBotMessageFormats
 /// </summary>
 public class DiscordBotNotifier : INotifier
 {
-    private static readonly ILogger<DiscordBotNotifier> Logger = App.GetLogger<DiscordBotNotifier>();
+    private static readonly ILogger<DiscordBotNotifier> Logger = CoreServices.GetLogger<DiscordBotNotifier>();
 
     private const string ApiBase = "https://discord.com/api/v10";
 

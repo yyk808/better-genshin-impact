@@ -19,7 +19,7 @@ namespace BetterGenshinImpact.View;
 
 public partial class MainWindow : FluentWindow, INavigationWindow
 {
-    private readonly ILogger<MainWindow> _logger = App.GetLogger<MainWindow>();
+    private readonly ILogger<MainWindow> _logger = CoreServices.GetLogger<MainWindow>();
     private ScrollViewer? _currentScrollViewer;
     private double _targetOffset;
     private double _inputVelocity;
@@ -245,12 +245,12 @@ public partial class MainWindow : FluentWindow, INavigationWindow
         CompositionTarget.Rendering -= OnCompositionTargetRendering;
         RemoveHandler(PreviewMouseWheelEvent, new MouseWheelEventHandler(OnGlobalPreviewMouseWheel));
         base.OnClosed(e);
-        _ = App.GetService<NotifyIconViewModel>()?.ExitAsync();
+        _ = CoreServices.GetService<NotifyIconViewModel>()?.ExitAsync();
     }
 
     private void OnNotifyIconLeftDoubleClick(NotifyIcon sender, RoutedEventArgs e)
     {
-        App.GetService<NotifyIconViewModel>()?.ShowOrHide();
+        CoreServices.GetService<NotifyIconViewModel>()?.ShowOrHide();
     }
 
     public INavigationView GetNavigation() => RootNavigation;

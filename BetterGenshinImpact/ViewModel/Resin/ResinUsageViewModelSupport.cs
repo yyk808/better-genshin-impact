@@ -40,7 +40,7 @@ public static class ResinUsageViewModelSupport
     public static IResinSettingsDialogs? ResolveDialogs(IResinSettingsDialogs? dialogs)
     {
         if (dialogs is not null || Application.Current is not App) return dialogs;
-        try { return App.GetService<IResinSettingsDialogs>(); }
+        try { return CoreServices.GetService<IResinSettingsDialogs>(); }
         catch (InvalidOperationException) { return null; }
     }
 }

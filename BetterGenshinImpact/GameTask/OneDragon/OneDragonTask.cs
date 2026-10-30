@@ -52,7 +52,7 @@ public class OneDragonTask : ISoloTask<OneDragonParam, NoData>
     /// <summary>
     /// 一条龙日志
     /// </summary>
-    private readonly ILogger<OneDragonTask> _logger = App.GetLogger<OneDragonTask>();
+    private readonly ILogger<OneDragonTask> _logger = CoreServices.GetLogger<OneDragonTask>();
 
     /// <summary>
     /// 本次运行使用的运行环境

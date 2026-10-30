@@ -15,7 +15,7 @@ public sealed class MusicPlaybackService(
     IMusicInstrumentSwitcher instrumentSwitcher,
     IEnumerable<IKeyInputTransport> transports) : IMusicPlaybackService
 {
-    private readonly ILogger<MusicPlaybackService> _logger = App.GetLogger<MusicPlaybackService>();
+    private readonly ILogger<MusicPlaybackService> _logger = CoreServices.GetLogger<MusicPlaybackService>();
     private readonly object _syncRoot = new();
     private readonly Dictionary<MusicInputMode, IKeyInputTransport> _transports =
         transports.ToDictionary(x => x.Mode);

@@ -163,7 +163,7 @@ public sealed class ScriptYoloPredictor : IDisposable
     {
         // 编译缓存由推理运行时按模型内容统一放在 Data/Cache/Inference
         var model = new BgiOnnxModel(Path.GetFileNameWithoutExtension(_modelPath), _modelPath);
-        var predictor = App.ServiceProvider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(model);
+        var predictor = CoreServices.Provider.GetRequiredService<BgiOnnxFactory>().CreateYoloPredictor(model);
         try
         {
             var yolo = predictor.Predictor;
