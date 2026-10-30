@@ -226,7 +226,7 @@ public sealed class AutoFightAssets
                 {
                     Name = $"Experience_{exp}",
                     RecognitionType = RecognitionTypes.TemplateMatch,
-                    TemplateImageMat = GameTaskManager.LoadAssetImage("AutoFight", fileName, _captureWidth, _captureHeight),
+                    TemplateImageMat = GameTaskAssets.LoadAssetImage("AutoFight", fileName, _captureWidth, _captureHeight),
                     RegionOfInterest = roi,
                     UseMask = true,
                     Threshold = threshold,

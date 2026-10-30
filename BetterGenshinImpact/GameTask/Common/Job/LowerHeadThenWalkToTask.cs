@@ -50,7 +50,7 @@ public class LowerHeadThenWalkToTask
         {
             Name = "TrackPoint",
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage(@"Common\Element", targetMatName, runtime.SystemInfo),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage(@"Common\Element", targetMatName, runtime.SystemInfo),
             RegionOfInterest = new Rect((int)(300 * AssetScale), 0, CaptureRect.Width - (int)(600 * AssetScale), CaptureRect.Height),
             Threshold = 0.6,
             DrawOnWindow = true

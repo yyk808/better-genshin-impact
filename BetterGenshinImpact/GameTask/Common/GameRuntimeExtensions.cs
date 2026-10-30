@@ -182,15 +182,15 @@ public static class GameRuntimeExtensions
         var first = true;
         var autoPickStopped = false;
         // 记录最开始的暂停状态
-        var isSuspend = RunnerContext.Instance.IsSuspend;
+        var isSuspend = RunnerSuspend.Current.IsSuspend;
         try
         {
-            while (RunnerContext.Instance.IsSuspend)
+            while (RunnerSuspend.Current.IsSuspend)
             {
                 wait.ThrowIfStopped();
                 if (first)
                 {
-                    RunnerContext.Instance.StopAutoPick();
+                    RunnerSuspend.Current.StopAutoPick();
                     autoPickStopped = true;
                     // 使快捷键本身释放
                     wait.Sleep(300);
@@ -206,7 +206,7 @@ public static class GameRuntimeExtensions
                     }
 
                     Logger.LogWarning("快捷键触发暂停，等待解除");
-                    foreach (var item in RunnerContext.Instance.SuspendableDictionary)
+                    foreach (var item in RunnerSuspend.Current.SuspendableDictionary)
                     {
                         wait.ThrowIfStopped();
                         item.Value.Suspend();
@@ -223,7 +223,7 @@ public static class GameRuntimeExtensions
             if (isSuspend)
             {
                 Logger.LogWarning("暂停已经解除");
-                foreach (var item in RunnerContext.Instance.SuspendableDictionary)
+                foreach (var item in RunnerSuspend.Current.SuspendableDictionary)
                 {
                     wait.ThrowIfStopped();
                     item.Value.Resume();
@@ -235,7 +235,7 @@ public static class GameRuntimeExtensions
             // 即使取消发生在暂停内部，也平衡本次拾取暂停计数；不会恢复已停止的子任务。
             if (autoPickStopped)
             {
-                RunnerContext.Instance.ResumeAutoPick();
+                RunnerSuspend.Current.ResumeAutoPick();
             }
         }
     }

@@ -1,3 +1,4 @@
+using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Recognition.OCR;
 using BetterGenshinImpact.Core.Recognition.OpenCv;
@@ -342,7 +343,7 @@ public class Avatar
             {
                 if (EnableESkillClassify)
                 {
-                    ESkillClassifyViewModel.Instance.Result = null;
+                    ESkillClassifyMonitor.Publish(null);
                 }
                 return;
             }
@@ -887,18 +888,18 @@ public class Avatar
             }
         }
 
-        // 识别结果写入 VM，由需要显示的模块（如 AutoComboRunTask）订阅 INPC 变更后绘制（数据与显示解耦）
+        // 识别结果经 ESkillClassifyMonitor 写入 VM，由需要显示的模块（如 AutoComboRunTask）订阅 INPC 变更后绘制（数据与显示解耦）
         var domainToCaptureFactor = (double)_runtime.SystemInfo.CaptureAreaRect.Width / imageRegion.Width;
         var eRectCapture = new Rect((int)(eRect1080.X * domainToCaptureFactor), (int)(eRect1080.Y * domainToCaptureFactor),
             (int)(eRect1080.Width * domainToCaptureFactor), (int)(eRect1080.Height * domainToCaptureFactor));
-        ESkillClassifyViewModel.Instance.Result = new ESkillClassifyResult
+        ESkillClassifyMonitor.Publish(new ESkillClassifyResult
         {
             State = classifyResult.State,
             Code = classifyResult.Code,
             AvatarName = CombatAvatar.Name,
-            ClassifyRect = eRectCapture.ToWindowsRectangle(),
-            TextPosition = new System.Windows.Point(eRectCapture.X, eRectCapture.Y - 24 * domainToCaptureFactor),
-        };
+            ClassifyRect = new MaskRect(eRectCapture.X, eRectCapture.Y, eRectCapture.Width, eRectCapture.Height),
+            TextPosition = new MaskPoint(eRectCapture.X, eRectCapture.Y - 24 * domainToCaptureFactor),
+        });
         return classifyResult;
     }
 
@@ -1278,17 +1279,17 @@ public class Avatar
     // 鼠标键（VK_LBUTTON、VK_RBUTTON、VK_MBUTTON、VK_XBUTTON1、VK_XBUTTON2）由输入通道转成对应的鼠标键
     public void KeyDown(string key)
     {
-        InputHub.Foreground.Keyboard.KeyDown(KeyBindingsSettingsPageViewModel.MappingKey(User32Helper.ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyDown(GameKeyMapping.MappingKey(User32Helper.ToVk(key)));
     }
 
     public void KeyUp(string key)
     {
-        InputHub.Foreground.Keyboard.KeyUp(KeyBindingsSettingsPageViewModel.MappingKey(User32Helper.ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyUp(GameKeyMapping.MappingKey(User32Helper.ToVk(key)));
     }
 
     public void KeyPress(string key)
     {
-        InputHub.Foreground.Keyboard.KeyPress(KeyBindingsSettingsPageViewModel.MappingKey(User32Helper.ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyPress(GameKeyMapping.MappingKey(User32Helper.ToVk(key)));
     }
 
     /// <summary>

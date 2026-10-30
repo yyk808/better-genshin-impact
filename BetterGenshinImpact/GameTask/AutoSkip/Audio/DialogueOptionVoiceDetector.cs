@@ -5,12 +5,12 @@ namespace BetterGenshinImpact.GameTask.AutoSkip.Audio;
 
 internal sealed class DialogueOptionVoiceDetector : IDisposable
 {
-    private readonly ProcessLoopbackAudioCapture _capture;
+    private readonly IProcessAudioCapture _capture;
     private readonly SileroVadDetector _vad;
     private readonly List<float> _pendingSamples = [];
     private int _pendingSampleOffset;
 
-    private DialogueOptionVoiceDetector(int targetProcessId, ProcessLoopbackAudioCapture capture, SileroVadDetector vad)
+    private DialogueOptionVoiceDetector(int targetProcessId, IProcessAudioCapture capture, SileroVadDetector vad)
     {
         TargetProcessId = targetProcessId;
         _capture = capture;
@@ -21,12 +21,12 @@ internal sealed class DialogueOptionVoiceDetector : IDisposable
 
     public static DialogueOptionVoiceDetector Create(int targetProcessId)
     {
-        ProcessLoopbackAudioCapture? capture = null;
+        IProcessAudioCapture? capture = null;
         SileroVadDetector? vad = null;
         try
         {
             vad = new SileroVadDetector();
-            capture = new ProcessLoopbackAudioCapture(targetProcessId);
+            capture = ProcessAudioCapture.Create(targetProcessId);
             return new DialogueOptionVoiceDetector(targetProcessId, capture, vad);
         }
         catch

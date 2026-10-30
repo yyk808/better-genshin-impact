@@ -56,7 +56,7 @@ public sealed class MusicInstrumentSwitcher : IMusicInstrumentSwitcher
         var uiInteractionStarted = false;
         try
         {
-            using var instrumentTemplate = GameTaskManager.LoadAssetImage(
+            using var instrumentTemplate = GameTaskAssets.LoadAssetImage(
                 "Music",
                 Path.Combine("Instruments", $"{instrumentName}.png"),
                 runtime.SystemInfo);

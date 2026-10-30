@@ -26,7 +26,7 @@ public class BvImage
         {
             Name = templateAssert,
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage(featureName, assertName, runtime.SystemInfo),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage(featureName, assertName, runtime.SystemInfo),
             RegionOfInterest = roi,
             Threshold = threshold
         }.InitTemplate();

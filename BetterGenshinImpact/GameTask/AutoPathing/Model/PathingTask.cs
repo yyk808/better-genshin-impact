@@ -1,3 +1,4 @@
+using BetterGenshinImpact.GameTask.AutoPathing;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.Common;
 using System;
@@ -55,8 +56,8 @@ public class PathingTask
             return null;
         }
 
-        // 获取 MapPathingViewModel.PathJsonPath
-        var basePath = MapPathingViewModel.PathJsonPath;
+        // 获取 PathingPaths.PathJsonPath
+        var basePath = PathingPaths.PathJsonPath;
 
         // 获取 FullPath 相对于 basePath 的相对路径
         var relativePath = Path.GetRelativePath(basePath, FullPath);

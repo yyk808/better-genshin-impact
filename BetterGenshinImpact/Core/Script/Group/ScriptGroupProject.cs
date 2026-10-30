@@ -227,7 +227,7 @@ public partial class ScriptGroupProject : ObservableObject
         {
             // 加载并执行
             ct.ThrowIfCancellationRequested();
-            var task = PathingTask.BuildFromFilePath(Path.Combine(MapPathingViewModel.PathJsonPath, FolderName, Name));
+            var task = PathingTask.BuildFromFilePath(Path.Combine(PathingPaths.PathJsonPath, FolderName, Name));
             if (task == null)
             {
                 return;
@@ -236,7 +236,7 @@ public partial class ScriptGroupProject : ObservableObject
             pathingTask.PartyConfig = GroupInfo?.Config.PathingConfig;
             if (!pathingTask.PartyConfig.Enabled || pathingTask.PartyConfig.AutoPickEnabled)
             {
-                TaskTriggerDispatcher.Instance().AddTrigger("AutoPick", null);
+                TriggerDispatcher.Instance().AddTrigger("AutoPick", null);
             }
             // 使用本次路线结果判断是否成功，避免读取执行器遗留状态。
             var pathingResult = await pathingTask.Pathing(task);

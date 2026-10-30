@@ -233,7 +233,7 @@ namespace BetterGenshinImpact.GameTask.AutoFishing
                     {
                         Name = "BtnWhiteConfirm",
                         RecognitionType = RecognitionTypes.TemplateMatch,
-                        TemplateImageMat = GameTaskManager.LoadAssetImage(@"Common\Element", "btn_white_confirm.png", systemInfo),
+                        TemplateImageMat = GameTaskAssets.LoadAssetImage(@"Common\Element", "btn_white_confirm.png", systemInfo),
                         Use3Channels = true
                     }.InitTemplate());
                     if (ra.IsExist())

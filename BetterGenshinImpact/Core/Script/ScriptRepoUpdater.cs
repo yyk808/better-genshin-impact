@@ -1,3 +1,4 @@
+using BetterGenshinImpact.GameTask.AutoPathing;
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Script.Project;
@@ -3043,7 +3044,7 @@ public partial class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                 _webWindow = null;
             };
 
-            _webWindow.Panel!.DownloadFolderPath = MapPathingViewModel.PathJsonPath;
+            _webWindow.Panel!.DownloadFolderPath = PathingPaths.PathJsonPath;
             // _webWindow.NavigateToFile(Global.Absolute(@"Assets\Web\ScriptRepo\index.html"));
             _webWindow.Panel!.OnWebViewInitializedAction = () =>
             {

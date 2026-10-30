@@ -34,7 +34,7 @@ public static partial class Bv
         }
 
         using var textMat = new Mat(region.SrcMat, textRect);
-        var boundingRect = AutoPickTrigger.GetWhiteTextBoundingRect(textMat);
+        var boundingRect = PickTextHelper.GetWhiteTextBoundingRect(textMat);
         // 如果找到有效区域
         if (boundingRect.Width > 5 && boundingRect.Height > 5)
         {

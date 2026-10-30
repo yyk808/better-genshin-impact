@@ -62,7 +62,7 @@ public sealed class QuickTeleportAssets
         {
             Name = name + "MapChooseIcon",
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage("QuickTeleport", name, captureSize.Width, captureSize.Height),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage("QuickTeleport", name, captureSize.Width, captureSize.Height),
             RegionOfInterest = MapChooseIconRoi,
             DrawOnWindow = false
         }.InitTemplate();

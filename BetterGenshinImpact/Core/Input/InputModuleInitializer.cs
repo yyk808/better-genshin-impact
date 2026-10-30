@@ -25,6 +25,11 @@ internal static class InputModuleInitializer
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;
         BetterGenshinImpact.GameTask.GameSystem.Control = BetterGenshinImpact.GameTask.SystemControlAdapter.Instance;
+        BetterGenshinImpact.GameTask.RunnerSuspend.Provider = static () => BetterGenshinImpact.GameTask.RunnerContext.Instance;
+        BetterGenshinImpact.GameTask.AutoFight.Model.ESkillClassifyMonitor.Sink =
+            static result => BetterGenshinImpact.ViewModel.Windows.ESkillClassifyViewModel.Instance.Result = result;
+        BetterGenshinImpact.GameTask.AutoSkip.Audio.ProcessAudioCapture.Factory =
+            static pid => new BetterGenshinImpact.GameTask.AutoSkip.Audio.ProcessLoopbackAudioCapture(pid);
         PlatformHost.IsMicaBackdropSupported = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_22523_OrGreater;
     }
 }

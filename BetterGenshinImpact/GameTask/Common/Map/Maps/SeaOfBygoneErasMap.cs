@@ -44,7 +44,7 @@ public class SeaOfBygoneErasMap : SceneBaseMap
     {
         return TeleportTemplates.GetOrAdd((greyBigMapMat.Width, greyBigMapMat.Height), static size =>
         {
-            using var img = GameTaskManager.LoadAssetImage("QuickTeleport", "TeleportTransparentBackground.png", size.Width, size.Height, ImreadModes.Unchanged);
+            using var img = GameTaskAssets.LoadAssetImage("QuickTeleport", "TeleportTransparentBackground.png", size.Width, size.Height, ImreadModes.Unchanged);
             var template = new Mat();
             Cv2.CvtColor(img, template, ColorConversionCodes.BGRA2GRAY);
 

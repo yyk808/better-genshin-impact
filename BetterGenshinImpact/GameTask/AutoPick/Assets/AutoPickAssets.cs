@@ -69,7 +69,7 @@ public sealed class AutoPickAssets
         {
             Name = key,
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage("AutoPick", key + ".png", captureSize.Width, captureSize.Height),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage("AutoPick", key + ".png", captureSize.Width, captureSize.Height),
             RegionOfInterest = new Rect((int)(1090 * AssetScale),
                 (int)(330 * AssetScale),
                 (int)(60 * AssetScale),
@@ -84,7 +84,7 @@ public sealed class AutoPickAssets
         {
             Name = "chatPick" + key,
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage("AutoPick", key + ".png", captureSize.Width, captureSize.Height),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage("AutoPick", key + ".png", captureSize.Width, captureSize.Height),
             RegionOfInterest = new Rect((int)(1200 * AssetScale),
                 (int)(350 * AssetScale),
                 (int)(50 * AssetScale),

@@ -39,7 +39,7 @@ public static class ElementRecognition
         {
             Name = "ChatBackButton",
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage(@"UseRedeemCode", "esc_return_button.png", frameSize.Width, frameSize.Height),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage(@"UseRedeemCode", "esc_return_button.png", frameSize.Width, frameSize.Height),
             RegionOfInterest = new Rect(0, 0, (int)(220 * assetScale), (int)(160 * assetScale)),
             Threshold = 0.72,
             DrawOnWindow = false

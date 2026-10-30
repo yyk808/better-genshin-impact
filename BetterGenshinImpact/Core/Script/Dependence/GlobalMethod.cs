@@ -85,17 +85,17 @@ public class GlobalMethod
     // 扩展键的处理也在通道内部完成
     public static void KeyDown(string key)
     {
-        InputHub.Foreground.Keyboard.KeyDown(KeyBindingsSettingsPageViewModel.MappingKey(ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyDown(GameKeyMapping.MappingKey(ToVk(key)));
     }
 
     public static void KeyUp(string key)
     {
-        InputHub.Foreground.Keyboard.KeyUp(KeyBindingsSettingsPageViewModel.MappingKey(ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyUp(GameKeyMapping.MappingKey(ToVk(key)));
     }
 
     public static void KeyPress(string key)
     {
-        InputHub.Foreground.Keyboard.KeyPress(KeyBindingsSettingsPageViewModel.MappingKey(ToVk(key)));
+        InputHub.Foreground.Keyboard.KeyPress(GameKeyMapping.MappingKey(ToVk(key)));
     }
 
     private static GameKey ToVk(string key)

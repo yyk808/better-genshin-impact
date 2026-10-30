@@ -42,7 +42,7 @@ public sealed class PuloniaPathingTaskExecutor : IPuloniaTaskExecutor
         DisplayName = "地图追踪",
         Description = "从已拉取的脚本仓库选择路线，并配置队伍、自动拾取与自动战斗选项。",
         RequiresGameSession = true,
-        ResourceBaseDirectory = MapPathingViewModel.PathJsonPath,
+        ResourceBaseDirectory = PathingPaths.PathJsonPath,
         DefaultParameters = PuloniaTaskCommonSettings.CreateDefaults("pathing"),
         ParameterSchema = new JObject
         {
@@ -82,9 +82,9 @@ public sealed class PuloniaPathingTaskExecutor : IPuloniaTaskExecutor
         var partyConfig = PuloniaTaskCommonSettings.FromParameters("pathing", parameters).PathingConfig;
         // 触发器租约仅属于当前节点，异常或取消时也会撤销。
         using var autoPick = partyConfig.AutoPickEnabled
-            ? TaskTriggerDispatcher.Instance().AddTrigger("AutoPick", null) : null;
+            ? TriggerDispatcher.Instance().AddTrigger("AutoPick", null) : null;
         using var autoEat = partyConfig.AutoEatEnabled
-            ? TaskTriggerDispatcher.Instance().AddTrigger("AutoEat", null) : null;
+            ? TriggerDispatcher.Instance().AddTrigger("AutoEat", null) : null;
 
         var executor = new PathExecutor(runtime, _config, ct) { PartyConfig = partyConfig };
         var result = await executor.Pathing(pathingTask).ConfigureAwait(false);
@@ -104,7 +104,7 @@ public sealed class PuloniaPathingTaskExecutor : IPuloniaTaskExecutor
         const string pathingPrefix = "pathing/";
         var relative = resource.RelativePath.StartsWith(pathingPrefix, StringComparison.OrdinalIgnoreCase)
             ? resource.RelativePath[pathingPrefix.Length..] : resource.RelativePath;
-        var logicalPath = Path.Combine(MapPathingViewModel.PathJsonPath, relative.Replace('/', Path.DirectorySeparatorChar));
+        var logicalPath = Path.Combine(PathingPaths.PathJsonPath, relative.Replace('/', Path.DirectorySeparatorChar));
         return PathingTask.BuildFromJson(json, logicalPath);
     }
 

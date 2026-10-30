@@ -143,7 +143,7 @@ public class PathRecorder : Singleton<PathRecorder>
                 BgiVersion = Global.Version
             };
             var name = $@"{DateTime.Now:yyyyMMdd_HHmmss}.json";
-            _pathingTask.SaveToFile(Path.Combine(MapPathingViewModel.PathJsonPath, name));
+            _pathingTask.SaveToFile(Path.Combine(PathingPaths.PathJsonPath, name));
             TaskControl.Logger.LogInformation("录制编辑器未打开，直接保存路径点记录:{Name}", name);
         }
         else
@@ -175,7 +175,7 @@ public class PathRecorder : Singleton<PathRecorder>
                 WindowState = WindowState.Maximized
             };
             _webWindow.Closed += (s, e) => _webWindow = null;
-            _webWindow.Panel!.DownloadFolderPath = MapPathingViewModel.PathJsonPath;
+            _webWindow.Panel!.DownloadFolderPath = PathingPaths.PathJsonPath;
 
             var htmlPath = Global.Absolute(@"Assets\Map\Editor\index.html");
             var uri = new UriBuilder(htmlPath);

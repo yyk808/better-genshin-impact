@@ -32,7 +32,7 @@ public class ResinStatus
         {
             Name = "OriginalResinTopIcon",
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage("AutoFight", "original_resin_top_icon.png", systemInfo),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage("AutoFight", "original_resin_top_icon.png", systemInfo),
             DrawOnWindow = false
         }.InitTemplate();
         using ImageRegion crop1 = region.DeriveCrop(new Rect((int)(1300 * assetScale), (int)(25 * assetScale), (int)(160 * assetScale), (int)(50 * assetScale)));   // 数字位数的不同导致了水平方向上宽泛的区域
@@ -60,7 +60,7 @@ public class ResinStatus
         {
             Name = "CondensedResinTopIcon",
             RecognitionType = RecognitionTypes.TemplateMatch,
-            TemplateImageMat = GameTaskManager.LoadAssetImage("AutoFight", "condensed_resin_top_icon.png", systemInfo),
+            TemplateImageMat = GameTaskAssets.LoadAssetImage("AutoFight", "condensed_resin_top_icon.png", systemInfo),
             DrawOnWindow = false
         }.InitTemplate();
         using ImageRegion crop2 = region.DeriveCrop(new Rect(startX, (int)(25 * assetScale), (int)(90 * assetScale), (int)(50 * assetScale)));

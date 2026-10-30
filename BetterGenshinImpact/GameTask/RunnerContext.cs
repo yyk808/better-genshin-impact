@@ -18,7 +18,7 @@ namespace BetterGenshinImpact.GameTask;
 /// <summary>
 /// 使用 TaskRunner 运行任务时的上下文
 /// </summary>
-public class RunnerContext : Singleton<RunnerContext>
+public class RunnerContext : Singleton<RunnerContext>, IRunnerSuspendState
 {
     /// <summary>
     /// 当前正在执行的脚本项目，用于 JS 的 HTTP、通知等权限校验。
@@ -40,6 +40,8 @@ public class RunnerContext : Singleton<RunnerContext>
     /// 暂停实现
     /// </summary>
     public Dictionary<string, ISuspendable> SuspendableDictionary = new();
+
+    Dictionary<string, ISuspendable> IRunnerSuspendState.SuspendableDictionary => SuspendableDictionary;
     
     /// <summary>
     /// 是否正在自动领取派遣任务
