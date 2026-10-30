@@ -12,7 +12,6 @@ namespace BetterGenshinImpact.GameTask.Common.Job;
 /// 领取每日奖励：依次领取长效历练点、前往冒险家协会领取每日委托与探索派遣奖励、领取纪行。
 /// </summary>
 [SoloTaskInfo(TaskId, "领取每日奖励", Group = "日常奖励", Order = 130, OneDragonOrder = 7)]
-[SoloTaskSettingsView(typeof(ClaimDailyRewardsSettingsView), typeof(ClaimDailyRewardsSettingsViewModel))]
 public class ClaimDailyRewardsTask : ISoloTask<DailyRewardsParam, NoData>
 {
     /// <summary>

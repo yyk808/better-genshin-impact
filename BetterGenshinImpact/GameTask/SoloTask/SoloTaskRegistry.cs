@@ -35,8 +35,18 @@ public sealed partial class SoloTaskRegistry
     /// <exception cref="InvalidOperationException">任务声明不符合合同。</exception>
     public SoloTaskRegistry(IEnumerable<Assembly> assemblies)
     {
+        var assemblyList = assemblies.ToList();
+        var settingsMap = new Dictionary<Type, SoloTaskSettingsViewAttribute>();
+        foreach (var map in assemblyList.SelectMany(a => a.GetCustomAttributes<SoloTaskSettingsMapAttribute>()))
+        {
+            if (!settingsMap.TryAdd(map.TaskType, new SoloTaskSettingsViewAttribute(map.ViewType, map.ViewModelType)))
+            {
+                throw new InvalidOperationException($"独立任务 {map.TaskType.FullName} 的设置界面被重复声明。");
+            }
+        }
+
         var settingsViewModels = new HashSet<Type>();
-        foreach (var type in assemblies.SelectMany(GetLoadableTypes))
+        foreach (var type in assemblyList.SelectMany(GetLoadableTypes))
         {
             var info = type.GetCustomAttribute<SoloTaskInfoAttribute>();
             if (info is null)
@@ -44,7 +54,7 @@ public sealed partial class SoloTaskRegistry
                 continue;
             }
 
-            var descriptor = CreateDescriptor(type, info);
+            var descriptor = CreateDescriptor(type, info, settingsMap);
             if (!_byId.TryAdd(descriptor.TaskId, descriptor))
             {
                 throw new InvalidOperationException($"独立任务标识 {descriptor.TaskId} 重复注册：{type.FullName}。");
@@ -120,7 +130,8 @@ public sealed partial class SoloTaskRegistry
     /// <summary>
     /// 校验任务类型并建立描述符。
     /// </summary>
-    private static SoloTaskDescriptor CreateDescriptor(Type type, SoloTaskInfoAttribute info)
+    private static SoloTaskDescriptor CreateDescriptor(Type type, SoloTaskInfoAttribute info,
+        IReadOnlyDictionary<Type, SoloTaskSettingsViewAttribute> settingsMap)
     {
         if (!TaskIdRegex().IsMatch(info.Id))
         {
@@ -148,7 +159,7 @@ public sealed partial class SoloTaskRegistry
 
         var arguments = contracts[0].GetGenericArguments();
         return new SoloTaskDescriptor(type, info, arguments[0], arguments[1],
-            type.GetCustomAttribute<SoloTaskSettingsViewAttribute>(), constructors[0]);
+            type.GetCustomAttribute<SoloTaskSettingsViewAttribute>() ?? settingsMap.GetValueOrDefault(type), constructors[0]);
     }
 
     /// <summary>

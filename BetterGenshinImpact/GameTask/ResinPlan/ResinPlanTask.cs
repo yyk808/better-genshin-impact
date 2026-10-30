@@ -31,7 +31,6 @@ namespace BetterGenshinImpact.GameTask.ResinPlan;
 /// </summary>
 [SoloTaskInfo(TaskId, "体力计划", Description = "按体力用量依次调度合成浓缩、首领、提升指南养成与剩余树脂任务，并汇总本次全部奖励。",
     Group = "树脂与战斗", Order = 200, Scopes = SoloTaskScopes.Plan, OneDragonOrder = 2)]
-[SoloTaskSettingsView(typeof(ResinPlanSettingsView), typeof(ResinPlanSettingsViewModel))]
 public sealed class ResinPlanTask : ISoloTask<ResinPlanParam, ResinPlanData>
 {
     /// <summary>独立任务稳定标识。</summary>

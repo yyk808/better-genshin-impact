@@ -25,7 +25,7 @@ public class AssertUtils
     /// <param name="msg">功能名称，用于日志</param>
     public static void CheckGameResolution(GameRuntime runtime, string msg = "")
     {
-        var gameScreenSize = SystemControl.GetGameScreenRect(runtime.Window.Handle);
+        var gameScreenSize = GameSystem.GetGameScreenSize(runtime.Window.Handle);
         if (gameScreenSize.Width * 9 != gameScreenSize.Height * 16)
         {
             TaskControl.Logger.LogError("游戏窗口分辨率不是 16:9 ！当前分辨率为 {Width}x{Height} , 非 16:9 分辨率的游戏无法正常使用{Msg}功能 !", gameScreenSize.Width, gameScreenSize.Height, msg);

@@ -62,7 +62,6 @@ namespace BetterGenshinImpact.GameTask.AutoDomain;
 /// 业务设置全部来自 <see cref="AutoDomainParam"/>，结果附带本次识别到的奖励汇总。
 /// </summary>
 [SoloTaskInfo(TaskId, "自动秘境", Group = "树脂与战斗", Order = 210)]
-[SoloTaskSettingsView(typeof(AutoDomainSettingsView), typeof(AutoDomainSettingsViewModel))]
 public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
 {
     /// <summary>本任务支持的树脂使用方式、种类、档位及默认设置。</summary>
@@ -546,7 +545,7 @@ public partial class AutoDomainTask : ISoloTask<AutoDomainParam, ResinClaimData>
 
     private void LogScreenResolution()
     {
-        var gameScreenSize = SystemControl.GetGameScreenRect(_runtime.Window.Handle);
+        var gameScreenSize = GameSystem.GetGameScreenSize(_runtime.Window.Handle);
         if (gameScreenSize.Width * 9 != gameScreenSize.Height * 16)
         {
             Logger.LogError("游戏窗口分辨率不是 16:9 ！当前分辨率为 {Width}x{Height} , 非 16:9 分辨率的游戏无法正常使用自动秘境功能 !",

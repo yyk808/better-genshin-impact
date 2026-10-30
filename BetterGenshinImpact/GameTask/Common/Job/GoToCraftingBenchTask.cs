@@ -29,7 +29,6 @@ namespace BetterGenshinImpact.GameTask.Common.Job;
 /// 前往合成台：走到指定国家的合成台并进入合成界面；作为独立任务运行时按保留树脂数合成浓缩树脂。
 /// </summary>
 [SoloTaskInfo(TaskId, "合成浓缩树脂", Group = "日常奖励", Order = 120)]
-[SoloTaskSettingsView(typeof(CraftCondensedResinSettingsView), typeof(CraftCondensedResinSettingsViewModel))]
 public class GoToCraftingBenchTask : ISoloTask<CraftCondensedResinParam, CraftCondensedResinData>
 {
     /// <summary>

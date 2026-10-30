@@ -78,7 +78,6 @@ public enum StygianState
 /// 3. 运行时调用 RunStateMachineUntil() 自动驱动状态机
 /// </summary>
 [SoloTaskInfo(TaskId, "自动幽境危战", Group = "树脂与战斗", Order = 230, WaitForMainUi = false)]
-[SoloTaskSettingsView(typeof(AutoStygianOnslaughtSettingsView), typeof(AutoStygianOnslaughtSettingsViewModel))]
 public class AutoStygianOnslaughtTask : StateMachineBase<StygianState, BvPage>, ISoloTask<AutoStygianOnslaughtParam, ResinClaimData>
 {
     /// <summary>本任务支持的树脂使用方式、种类、档位及默认设置。</summary>
@@ -915,7 +914,7 @@ public class AutoStygianOnslaughtTask : StateMachineBase<StygianState, BvPage>, 
 
     private void LogScreenResolution()
     {
-        var gameScreenSize = SystemControl.GetGameScreenRect(_runtime.Window.Handle);
+        var gameScreenSize = GameSystem.GetGameScreenSize(_runtime.Window.Handle);
         if (gameScreenSize.Width * 9 != gameScreenSize.Height * 16)
         {
             Logger.LogError("游戏窗口分辨率不是 16:9 ！当前分辨率为 {Width}x{Height}",

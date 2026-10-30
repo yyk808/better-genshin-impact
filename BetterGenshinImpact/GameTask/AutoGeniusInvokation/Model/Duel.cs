@@ -475,7 +475,7 @@ public class Duel
 
     private void LogScreenResolution()
     {
-        var gameScreenSize = SystemControl.GetGameScreenRect(_runtime.Window.Handle);
+        var gameScreenSize = GameSystem.GetGameScreenSize(_runtime.Window.Handle);
         if (gameScreenSize.Width != 1920 || gameScreenSize.Height != 1080)
         {
             _logger.LogWarning("游戏窗口分辨率不是 1920x1080 ！当前分辨率为 {Width}x{Height} , 非 1920x1080 分辨率的游戏可能无法正常使用自动七圣召唤 !", gameScreenSize.Width, gameScreenSize.Height);

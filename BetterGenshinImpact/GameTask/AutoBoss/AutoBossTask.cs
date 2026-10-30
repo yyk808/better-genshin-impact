@@ -45,7 +45,6 @@ namespace BetterGenshinImpact.GameTask.AutoBoss;
 /// 自动首领讨伐独立任务，负责按配置前往 Boss、执行战斗策略、领取征讨之花奖励并处理重定位。
 /// </summary>
 [SoloTaskInfo(TaskId, "自动首领讨伐", Group = "树脂与战斗", Order = 220)]
-[SoloTaskSettingsView(typeof(AutoBossSettingsView), typeof(AutoBossSettingsViewModel))]
 public class AutoBossTask : ISoloTask<AutoBossParam, ResinClaimData>
 {
     /// <summary>本任务支持的树脂使用方式、种类、档位及默认设置。</summary>
@@ -1167,7 +1166,7 @@ public class AutoBossTask : ISoloTask<AutoBossParam, ResinClaimData>
     /// <exception cref="Exception">游戏窗口不是 16:9 时抛出。</exception>
     private void LogScreenResolution()
     {
-        var gameScreenSize = SystemControl.GetGameScreenRect(_runtime.Window.Handle);
+        var gameScreenSize = GameSystem.GetGameScreenSize(_runtime.Window.Handle);
         if (gameScreenSize.Width * 9 != gameScreenSize.Height * 16)
         {
             _logger.LogError("游戏窗口分辨率不是 16:9 ！当前分辨率为 {Width}x{Height}", gameScreenSize.Width, gameScreenSize.Height);
