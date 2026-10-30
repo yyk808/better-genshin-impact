@@ -265,3 +265,45 @@ Windows 版导航中的“任务计划”现在是新的计划系统（`PuloniaT
 ### 文件数（口径同上）
 
 Core 980 个（新增 `ScriptGroupStore`、`ScriptGroupRunner`），主项目 759 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 45 个。
+
+## 里程碑 32：长按快捷键、完整 OpenCvSharpExtern 提示、其余快捷键动作、Linux 通知
+
+### 一条龙打开地图时 M 键“按住约 74 秒”
+
+不是按键泄漏：`TpTask.TryToOpenBigMapUi` 每次调用 `InputHub.Foreground.SimulateAction(GIActions.OpenMap)`（单次 KeyPress），
+随后最多等待 63×80 ms 检查大地图界面；假游戏没有大地图画面，所以每约 5 秒按一次 M，两轮重试共 14 次，每次按住约 30～60 ms。
+之前的统计脚本取“第一次按下到最后一次抬起”，误报为 74 秒。按每次按下 / 抬起配对重新统计：M 按下 14 次，最长单次 63 ms，结束时没有仍按住的键。
+与 Windows 代码路径相同（同一个 Core 方法、同一个前台输入通道），不是 Linux 特有问题，代码未改。
+
+### OpenCvSharpExtern
+
+- 宿主仍按 `Host.Common` 的规则选择原生库：找到 `opencv-build/out/libOpenCvSharpExtern.so`（或 `OpenCvSharpExternPath`）时使用完整构建，否则退回 Sdcb 精简构建。
+- 新增 `OpenCvCapabilities`：启动时探测 SIFT / SURF 能否创建。完整构建记录“OpenCV 特征匹配：SIFT / SURF 可用”；
+  精简构建记录警告“OpenCV 特征匹配不可用（EntryPointNotFoundException…）……地图追踪、传送及一条龙中依赖大地图的任务无法运行”，并给出构建方法。
+  “环境”页新增“特征匹配（地图追踪）”一行显示同样的结论。两个宿主（Avalonia、无界面）共用。
+
+### 快捷键
+
+- Core 新增 `GameTask/Common/Hotkeys/HotkeyActionCatalog`（实时任务开关、日志窗口 / 指标栏开关、快捷点击确认 / 取消按钮、独立任务快捷键与任务的对应、长按类快捷键清单）
+  与 `HoldHotkeyRunner`（长按期间反复执行、按下 / 抬起回调，语义同 WPF `KeyboardHook` 的 IsHold）。WPF 快捷键页改为调用前者，行为不变。
+- 平台接口新增可选的 `IHotkeyHoldService`（按下 / 抬起），X11 由 XGrabKey 的 KeyPress / KeyRelease 实现，按下与抬起回调在同一线程按顺序执行。
+- Avalonia 设置页补齐动作：截图、日志与状态窗口、遮罩指标栏、7 个实时任务开关、8 个独立任务启动 / 停止、那维莱特转圈、快速强化圣遗物、快速购买、
+  一键领取奖励、快速进出尘歌壶、快捷点击确认 / 取消、一键战斗宏、手动触发快速传送（按住状态经 `HotkeyHoldState` 提供给快速传送触发器）、获取大地图中心点位置。
+  键鼠录制、模板素材制作、路径记录器 / 添加路径点依赖 Windows 版的录制与编辑器，尚未迁移。
+- 与 Windows 的差异：长按类快捷键在 Windows 上用低级键盘钩子（不拦截按键），X11 上用 XGrabKey（游戏收不到该键）。
+
+### 通知
+
+- Core 新增 `NetworkNotifierFactory`：按通知配置创建 14 种网络通知器（Webhook、飞书、OneBot、企业微信、WebSocket、Bark、钉钉、Telegram、信息推送、Discord、Server 酱、MeoW、Gotify、QQ）。
+  WPF `NotificationService` 改为用它创建这些通知器，Windows 通知、邮件、微信 Clawbot 仍由主程序创建（通知并发发送，注册顺序不影响结果）。
+- Linux 宿主新增 `LinuxNotificationService`（实现 `INotificationHub`：事件订阅过滤、补截图、发送后释放截图，与 Windows 版相同）
+  与 `FreedesktopNotifier`（notify-send，没有时 gdbus 调用 `org.freedesktop.Notifications.Notify`；都不可用或失败时静默）。
+  “Windows 通知”开关在 Linux 上对应系统通知。邮件与微信 Clawbot 尚未接入。HttpClient 的请求日志只保留警告以上（地址中可能带令牌）。
+- 设置 → 通知新增“测试通知”与“系统通知”两项；Avalonia 新增无人值守参数 `--notify-test`。
+
+### 验证
+
+- 长按：F7 绑定“那维莱特转圈”，xdotool 按住 1.5 秒：假游戏收到 149 次相对移动，全部落在按住期间，抬起后停止。
+- 普通：F6 切换自动钓鱼（日志“切换自动钓鱼状态为[开启] / [关闭]”），F8 启动 / 停止自动伐木。
+- 通知：本机 Webhook 接收端收到任务失败事件（task.error）与测试通知（notify.test），均带截图；用记录参数的 notify-send 替身验证系统通知的参数。
+- OpenCV：精简构建与完整构建分别启动，日志分别为不可用警告与“SIFT / SURF 可用”。
