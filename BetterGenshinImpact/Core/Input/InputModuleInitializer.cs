@@ -1,4 +1,8 @@
+using BetterGenshinImpact.Core.Input.Backends.Win32;
+using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.Platform.Windows;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace BetterGenshinImpact.Core.Input;
@@ -12,6 +16,13 @@ internal static class InputModuleInitializer
     [ModuleInitializer]
     internal static void Initialize()
     {
-        InputChannelBase.LoggerFactory ??= static () => App.GetLogger<InputChannelBase>();
+        InputChannelBase.LoggerFactory ??= static () => CoreServices.GetLogger<InputChannelBase>();
+
+        // InputHub、Region 等已移入 Core，Windows 主程序的默认实现在这里接回：
+        // 未 Attach 时是未绑定窗口的 Win32 后端（前台可用，后台 warn），光标 / 屏幕大小走 User32 / Gdi32，与迁移前相同
+        CoreServices.SetProvider(static () => App.ServiceProvider);
+        InputHub.DefaultBackendFactory ??= static () => new Win32InputBackend(IntPtr.Zero);
+        PlatformHost.KeyState = Win32KeyStateProvider.Instance;
+        PlatformHost.Screen = Win32ScreenInfo.Instance;
     }
 }

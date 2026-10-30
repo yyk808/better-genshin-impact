@@ -24,6 +24,11 @@ public enum InputBackendKind
     /// Linux X11 / XWayland：XTest 前台输入，没有后台通道
     /// </summary>
     X11,
+
+    /// <summary>
+    /// 没有可用的输入后端（宿主未设置默认后端时的占位，所有操作忽略并告警）
+    /// </summary>
+    None,
 }
 
 /// <summary>

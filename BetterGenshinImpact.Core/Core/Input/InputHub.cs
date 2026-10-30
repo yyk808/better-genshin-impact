@@ -1,4 +1,3 @@
-using BetterGenshinImpact.Core.Input.Backends.Win32;
 using System;
 using System.Threading;
 
@@ -16,12 +15,37 @@ public static class InputHub
 {
     private static readonly object AttachLock = new();
 
-    /// <summary>
-    /// 未 Attach 时：未绑定窗口的 Win32 后端，前台可用，后台 warn
-    /// </summary>
-    private static IInputBackend _backend = new Win32InputBackend(IntPtr.Zero);
+    private static IInputBackend? _backend;
 
-    public static IInputBackend Backend => Volatile.Read(ref _backend);
+    private static Func<IInputBackend>? _defaultBackendFactory;
+
+    /// <summary>
+    /// 未 Attach 时使用的默认后端的工厂，首次取 <see cref="Backend"/> 时调用一次。
+    /// Windows 主程序在程序集加载时设置为“未绑定窗口的 Win32 后端”（前台可用，后台 warn），与迁移前相同；
+    /// 未设置时为 <see cref="UnsupportedInputBackend"/>
+    /// </summary>
+    public static Func<IInputBackend>? DefaultBackendFactory
+    {
+        get => Volatile.Read(ref _defaultBackendFactory);
+        set => Volatile.Write(ref _defaultBackendFactory, value);
+    }
+
+    public static IInputBackend Backend
+    {
+        get
+        {
+            var backend = Volatile.Read(ref _backend);
+            if (backend != null)
+            {
+                return backend;
+            }
+
+            lock (AttachLock)
+            {
+                return _backend ??= DefaultBackendFactory?.Invoke() ?? new UnsupportedInputBackend("未设置输入后端");
+            }
+        }
+    }
 
     public static IInputChannel Foreground => Backend.Foreground;
 
@@ -47,14 +71,14 @@ public static class InputHub
         ArgumentNullException.ThrowIfNull(backend);
         lock (AttachLock)
         {
-            var old = Backend;
+            var old = _backend;
             if (ReferenceEquals(old, backend))
             {
                 return;
             }
 
             Volatile.Write(ref _backend, backend);
-            old.Dispose();
+            old?.Dispose();
         }
     }
 

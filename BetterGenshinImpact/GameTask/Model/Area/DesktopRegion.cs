@@ -2,7 +2,7 @@ using BetterGenshinImpact.Core.Input;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask.Model.Area.Converter;
 using BetterGenshinImpact.Helpers;
-using Fischless.GameCapture;
+using BetterGenshinImpact.Platform;
 using OpenCvSharp;
 
 namespace BetterGenshinImpact.GameTask.Model.Area;
@@ -16,11 +16,14 @@ public class DesktopRegion : Region
 {
     private static IMouseInput Mouse => InputHub.Foreground.Mouse;
 
+    /// <summary>主屏幕物理分辨率，每次重新读取（Windows 为 GetDeviceCaps，与原 PrimaryScreen.WorkingArea 相同）</summary>
+    private static PixelSize PrimaryScreenSize => PlatformHost.Screen.PrimaryScreenSize;
+
     public DesktopRegion(int w, int h) : base(0, 0, w, h)
     {
     }
 
-    public DesktopRegion() : base(0, 0, PrimaryScreen.WorkingArea.Width, PrimaryScreen.WorkingArea.Height)
+    public DesktopRegion() : base(0, 0, PrimaryScreenSize.Width, PrimaryScreenSize.Height)
     {
     }
 
@@ -28,7 +31,7 @@ public class DesktopRegion : Region
     /// 截图区域树的根。从它派生的所有区域都绘制到这个遮罩窗口绘制入口
     /// </summary>
     public DesktopRegion(IMaskWindowDrawingBoard? drawingBoard)
-        : base(0, 0, PrimaryScreen.WorkingArea.Width, PrimaryScreen.WorkingArea.Height, drawingBoard: drawingBoard)
+        : base(0, 0, PrimaryScreenSize.Width, PrimaryScreenSize.Height, drawingBoard: drawingBoard)
     {
     }
 
@@ -51,14 +54,14 @@ public class DesktopRegion : Region
     /// <param name="cy"></param>
     public static void DesktopRegionClick(double cx, double cy)
     {
-        Mouse.MoveMouseTo(cx * 65535 * 1d / PrimaryScreen.WorkingArea.Width,
-            cy * 65535 * 1d / PrimaryScreen.WorkingArea.Height).LeftButtonDown().Sleep(50).LeftButtonUp().Sleep(50);
+        Mouse.MoveMouseTo(cx * 65535 * 1d / PrimaryScreenSize.Width,
+            cy * 65535 * 1d / PrimaryScreenSize.Height).LeftButtonDown().Sleep(50).LeftButtonUp().Sleep(50);
     }
 
     public static void DesktopRegionMove(double cx, double cy)
     {
-        Mouse.MoveMouseTo(cx * 65535 * 1d / PrimaryScreen.WorkingArea.Width,
-            cy * 65535 * 1d / PrimaryScreen.WorkingArea.Height);
+        Mouse.MoveMouseTo(cx * 65535 * 1d / PrimaryScreenSize.Width,
+            cy * 65535 * 1d / PrimaryScreenSize.Height);
     }
     
     public static void DesktopRegionMoveBy(double dx, double dy)

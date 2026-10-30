@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Threading;
 using BetterGenshinImpact.GameTask.Common;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.Model.Area;
 
@@ -96,7 +96,8 @@ public class Region : IDisposable
     /// </summary>
     public void BackgroundClick()
     {
-        User32.GetCursorPos(out var p);
+        // 原为 User32.GetCursorPos：取不到时为 (0, 0)
+        var p = PlatformHost.KeyState.GetCursorPosition() ?? default;
         this.Move();  // 必须移动实际鼠标（前台通道）
         InputHub.Background.Mouse.LeftButtonClick(); // 后台通道点击
         Thread.Sleep(10);
