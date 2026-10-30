@@ -36,7 +36,7 @@ public class KeyboardHook
     /// <returns>游戏位于前台时返回 true</returns>
     private static bool IsGameForeground()
     {
-        return SystemControl.IsGameForeground(CoreServices.GetService<GameRuntimeService>()?.Current?.Window);
+        return GameSystem.IsGameForeground(CoreServices.GetService<GameRuntimeService>()?.Current?.Window);
     }
 
     /// <summary>

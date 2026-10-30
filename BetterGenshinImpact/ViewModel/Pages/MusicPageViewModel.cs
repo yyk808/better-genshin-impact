@@ -996,7 +996,7 @@ public partial class MusicPageViewModel : ViewModel
     /// 引导式跟弹判断游戏是否在前台：有运行环境时看它的窗口，截图器未启动时按前台窗口的进程名判断。
     /// </summary>
     /// <returns>游戏在前台时返回 true。</returns>
-    private bool IsGuidedGameForeground() => SystemControl.IsGameForeground(_runtimeService.Current?.Window);
+    private bool IsGuidedGameForeground() => GameSystem.IsGameForeground(_runtimeService.Current?.Window);
 
     /// <summary>
     /// 引导开始后把前台交还给游戏窗口（覆盖层自己是 WS_EX_NOACTIVATE + 点击穿透的，不会再抢走焦点）。
@@ -1008,12 +1008,12 @@ public partial class MusicPageViewModel : ViewModel
             var handle = _runtimeService.Current?.Window.Handle ?? IntPtr.Zero;
             if (handle == IntPtr.Zero)
             {
-                handle = SystemControl.FindGenshinImpactHandle();
+                handle = GameSystem.FindGenshinImpactHandle();
             }
 
             if (handle != IntPtr.Zero)
             {
-                SystemControl.RestoreWindow(handle);
+                GameSystem.RestoreWindow(handle);
                 return;
             }
 

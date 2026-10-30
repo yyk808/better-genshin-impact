@@ -138,7 +138,7 @@ public partial class HotKeySettingModel : ObservableObject
                     var pressedArgs = new KeyPressedEventArgs(hotkey.ModifierKey, hotkey.Key);
                     GlobalRegisterHook?.Dispose();
                     GlobalRegisterHook = null;
-                    GlobalRegisterHook = SystemControl.Platform.Hotkeys.Register(gesture, _ =>
+                    GlobalRegisterHook = GameSystem.Platform.Hotkeys.Register(gesture, _ =>
                     {
                         if (OnKeyPressAction != null)
                         {

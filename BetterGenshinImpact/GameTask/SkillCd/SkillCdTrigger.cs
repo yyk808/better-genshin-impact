@@ -370,7 +370,7 @@ public class SkillCdTrigger : ITaskTrigger
         var elementalSkillKey = _config
             .KeyBindingsConfig.ElementalSkill.ToVK();
 
-        var keyState = SystemControl.Platform.KeyState;
+        var keyState = GameSystem.Platform.KeyState;
         bool isEDown = keyState.IsKeyDown(elementalSkillKey);
         if (isEDown && !_prevEKey) _lastEKeyPress = now;
         _prevEKey = isEDown;

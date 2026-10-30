@@ -120,7 +120,7 @@ public class GeniusInvokationControl
             _runtime.TrySuspend();
             if (!_runtime.IsOperable())
             {
-                var name = SystemControl.GetActiveByProcess();
+                var name = GameSystem.GetActiveByProcess();
                 _logger.LogWarning($"当前获取焦点的窗口为: {name}，不是原神，暂停");
                 throw new RetryException("当前获取焦点的窗口不是原神");
             }

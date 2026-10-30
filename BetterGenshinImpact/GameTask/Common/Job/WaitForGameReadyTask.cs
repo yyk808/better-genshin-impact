@@ -156,7 +156,7 @@ public class WaitForGameReadyTask(GameRuntime runtime)
         if (_focusLostCount % MinimizeActivateEvery == 0)
         {
             Logger.LogInformation("多次尝试未恢复，尝试最小化后激活窗口！");
-            SystemControl.MinimizeAndActivateWindow(_runtime.Window.Handle);
+            GameSystem.MinimizeAndActivateWindow(_runtime.Window.Handle);
         }
         else
         {

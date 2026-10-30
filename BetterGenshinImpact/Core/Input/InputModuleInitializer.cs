@@ -24,6 +24,7 @@ internal static class InputModuleInitializer
         InputHub.DefaultBackendFactory ??= static () => new Win32InputBackend(IntPtr.Zero);
         PlatformHost.KeyState = Win32KeyStateProvider.Instance;
         PlatformHost.Screen = Win32ScreenInfo.Instance;
+        BetterGenshinImpact.GameTask.GameSystem.Control = BetterGenshinImpact.GameTask.SystemControlAdapter.Instance;
         PlatformHost.IsMicaBackdropSupported = static () => BetterGenshinImpact.Helpers.OsVersionHelper.IsWindows11_22523_OrGreater;
     }
 }

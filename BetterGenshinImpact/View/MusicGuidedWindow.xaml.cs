@@ -658,7 +658,7 @@ public partial class MusicGuidedWindow : Window, IMusicGuidedOverlay
         }
 
         _gameActiveCheckedAt = now;
-        _gameActiveCached = IsGameForeground?.Invoke() ?? SystemControl.IsGameForeground(null);
+        _gameActiveCached = IsGameForeground?.Invoke() ?? GameSystem.IsGameForeground(null);
         return _gameActiveCached;
     }
 
@@ -949,7 +949,7 @@ public partial class MusicGuidedWindow : Window, IMusicGuidedOverlay
 
     /// <summary>异步键状态：这个键现在按着吗</summary>
     private static bool IsKeyDown(int virtualKey)
-        => SystemControl.Platform.KeyState.IsKeyDown((GameKey)virtualKey);
+        => GameSystem.Platform.KeyState.IsKeyDown((GameKey)virtualKey);
 
     /// <summary>只在「刚按下」的那一帧返回 true（长按不会连续触发）</summary>
     private bool PressedOnce(int virtualKey)

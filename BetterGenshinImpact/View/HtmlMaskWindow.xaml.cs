@@ -642,7 +642,7 @@ public partial class HtmlMaskWindow : Window
                 var gameHandle = CurrentGameHandle;
                 if (gameHandle != IntPtr.Zero)
                 {
-                    SystemControl.FocusWindow(gameHandle);
+                    GameSystem.FocusWindow(gameHandle);
                 }
             }
             catch (Exception ex)

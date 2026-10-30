@@ -528,7 +528,7 @@ internal sealed class RelativeMouseMessageHandler
 
     private static bool IsKeyPressed(GameKey key)
     {
-        return SystemControl.Platform.KeyState.IsKeyDown(key);
+        return GameSystem.Platform.KeyState.IsKeyDown(key);
     }
 
     /// <summary>
@@ -538,7 +538,7 @@ internal sealed class RelativeMouseMessageHandler
     private bool IsGameOperable()
     {
         var runtime = _serviceProvider.GetService<GameRuntimeService>()?.Current;
-        return runtime?.IsOperable() ?? SystemControl.IsGameForeground(null);
+        return runtime?.IsOperable() ?? GameSystem.IsGameForeground(null);
     }
 
     private RelativeMouseSample? TakeAccumulatedSample()

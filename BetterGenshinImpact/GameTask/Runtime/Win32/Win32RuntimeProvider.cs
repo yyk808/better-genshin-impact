@@ -45,7 +45,7 @@ public sealed class Win32RuntimeProvider(
                     return null;
                 }
 
-                hWnd = await SystemControl.StartFromLocalAsync(startConfig.InstallPath);
+                hWnd = await GameSystem.StartFromLocalAsync(startConfig.InstallPath);
                 if (hWnd == IntPtr.Zero)
                 {
                     // 启动失败的提示已由 StartFromLocalAsync 给出
@@ -70,7 +70,7 @@ public sealed class Win32RuntimeProvider(
     public GameRuntime AttachTo(nint hWnd)
     {
         // 激活窗口，保证后面能够正常获取窗口信息
-        SystemControl.ActivateWindow(hWnd);
+        GameSystem.ActivateWindow(hWnd);
 
         var window = new Win32GameWindow(hWnd);
         IGameCapture? capture = null;
@@ -105,14 +105,14 @@ public sealed class Win32RuntimeProvider(
     /// <summary>
     /// 结束游戏进程：已绑定时只结束绑定窗口所属的进程名
     /// </summary>
-    public void CloseGame(GameRuntime? current) => SystemControl.CloseGameProcesses(current?.Window);
+    public void CloseGame(GameRuntime? current) => GameSystem.CloseGameProcesses(current?.Window);
 
     /// <summary>
     /// 经平台的游戏窗口查找器找窗，查找条件（候选进程名、窗口类名优先）来自当前设置
     /// </summary>
     private nint FindGameWindowHandle()
     {
-        using var window = platform.GameWindows.FindGameWindow(SystemControl.GetGameWindowSearch());
+        using var window = platform.GameWindows.FindGameWindow(GameSystem.GetGameWindowSearch());
         return window?.Handle ?? IntPtr.Zero;
     }
 

@@ -46,7 +46,7 @@ public class ExitAndReloginJob
     public async Task Start(CancellationToken ct)
     {
         Logger.LogInformation("退出至登录页面");
-        SystemControl.FocusWindow(_runtime.Window.Handle);
+        GameSystem.FocusWindow(_runtime.Window.Handle);
 
         // 等待菜单界面出现
         await NewRetry.WaitForElementAppear(

@@ -22,7 +22,7 @@ public class QuickEnhanceArtifactMacro
     /// <param name="runtime">热键触发时的运行环境，点击坐标按它的捕获区域换算</param>
     public static void Done(GameRuntime runtime)
     {
-        // SystemControl.ActivateWindow(TaskContext.Instance().GameHandle);
+        // GameSystem.ActivateWindow(TaskContext.Instance().GameHandle);
 
         var config = Config.MacroConfig;
 

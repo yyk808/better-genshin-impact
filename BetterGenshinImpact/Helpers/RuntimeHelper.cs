@@ -141,7 +141,7 @@ internal static class RuntimeHelper
                 {
                     Application.Current.MainWindow?.Show();
                     Application.Current.MainWindow?.Activate();
-                    SystemControl.RestoreWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle);
+                    GameSystem.RestoreWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle);
                 });
             }
         }, TaskCreationOptions.LongRunning).ConfigureAwait(false);

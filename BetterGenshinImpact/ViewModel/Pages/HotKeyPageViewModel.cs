@@ -1072,7 +1072,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
                     var myTask = new ChooseFOptionTask(runtime, Config);
                     Task.Run(async () => { await myTask.SingleSelectText("荒坠的圣迹", runtime.Stopping); });
 
-                    // var pName = SystemControl.GetActiveProcessName();
+                    // var pName = GameSystem.GetActiveProcessName();
                     // Debug.WriteLine($"当前处于前台的程序：{pName}，原神是否位于前台：{SystemControl.IsGenshinImpactActive()}");
                     // TaskControl.Logger.LogInformation($"当前处于前台的程序：{pName}");
                 }

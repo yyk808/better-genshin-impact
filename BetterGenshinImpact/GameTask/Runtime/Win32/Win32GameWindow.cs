@@ -43,7 +43,7 @@ public class Win32GameWindow : IGameWindow
         }
 
         Handle = hWnd;
-        _process = SystemControl.GetProcessByHandle(hWnd) ?? throw new ArgumentException("通过句柄获取游戏进程失败");
+        _process = GameSystem.GetProcessByHandle(hWnd) ?? throw new ArgumentException("通过句柄获取游戏进程失败");
         ProcessId = _process.Id;
         ProcessName = _process.ProcessName;
 
@@ -97,10 +97,10 @@ public class Win32GameWindow : IGameWindow
 
     public virtual bool RequiresForeground => true;
 
-    public virtual void Activate() => SystemControl.ActivateWindow(Handle);
+    public virtual void Activate() => GameSystem.ActivateWindow(Handle);
 
     /// <summary>
-    /// 投递 WM_CLOSE，请求窗口自行关闭（不强制结束进程；强制结束见 SystemControl.CloseGameProcesses）
+    /// 投递 WM_CLOSE，请求窗口自行关闭（不强制结束进程；强制结束见 GameSystem.CloseGameProcesses）
     /// </summary>
     public virtual void RequestClose() => User32.PostMessage(Handle, User32.WindowMessage.WM_CLOSE, 0, 0);
 

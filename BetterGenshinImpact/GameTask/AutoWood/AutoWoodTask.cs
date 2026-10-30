@@ -488,7 +488,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
     private void PressZ(WoodTaskParam taskParam)
     {
         // IMPORTANT: MUST try focus before press Z
-        SystemControl.FocusWindow(_runtime.Window.Handle);
+        GameSystem.FocusWindow(_runtime.Window.Handle);
 
         if (_first)
         {
@@ -541,7 +541,7 @@ public partial class AutoWoodTask : ISoloTask<WoodTaskParam, NoData>
 
     private void PressEsc(WoodTaskParam taskParam)
     {
-        SystemControl.FocusWindow(_runtime.Window.Handle);
+        GameSystem.FocusWindow(_runtime.Window.Handle);
         InputHub.Foreground.Keyboard.KeyPress(GameKey.VK_ESCAPE);
         // if (_config.AutoWoodConfig.PressTwoEscEnabled)
         // {

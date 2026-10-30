@@ -16,6 +16,6 @@ internal class GenshinRegistry
     /// <returns></returns>
     public static IRegistryKey? GetRegistryKey(GenshinRegistryType type = GenshinRegistryType.Auto, string? gameExecutablePath = null)
     {
-        return new GenshinSettingsStore(SystemControl.Platform.UserRegistry).OpenGameKey(type, gameExecutablePath);
+        return new GenshinSettingsStore(GameSystem.Platform.UserRegistry).OpenGameKey(type, gameExecutablePath);
     }
 }

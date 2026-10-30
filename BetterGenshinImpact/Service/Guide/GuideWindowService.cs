@@ -976,7 +976,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
             return;
         }
 
-        var keyState = SystemControl.Platform.KeyState;
+        var keyState = GameSystem.Platform.KeyState;
         if (keyState.IsKeyDown(GameKey.VK_LBUTTON) || keyState.IsKeyDown(GameKey.VK_RBUTTON))
         {
             return;

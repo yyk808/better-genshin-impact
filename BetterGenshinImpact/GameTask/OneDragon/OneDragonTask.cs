@@ -249,18 +249,18 @@ public class OneDragonTask : ISoloTask<OneDragonParam, NoData>
         switch (completionAction)
         {
             case "关闭游戏":
-                SystemControl.CloseGame();
+                GameSystem.CloseGame();
                 break;
             case "关闭软件":
                 Application.Current.Dispatcher.Invoke(() => { Application.Current.Shutdown(); });
                 break;
             case "关闭游戏和软件":
-                SystemControl.CloseGame();
+                GameSystem.CloseGame();
                 Application.Current.Dispatcher.Invoke(() => { Application.Current.Shutdown(); });
                 break;
             case "关机":
-                SystemControl.CloseGame();
-                SystemControl.Shutdown();
+                GameSystem.CloseGame();
+                GameSystem.Shutdown();
                 break;
         }
     }

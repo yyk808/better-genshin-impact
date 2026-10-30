@@ -264,7 +264,7 @@ public static class GameRuntimeExtensions
         {
             if (!runtime.IsOperable())
             {
-                var name = SystemControl.GetActiveByProcess();
+                var name = GameSystem.GetActiveByProcess();
                 Logger.LogWarning($"当前获取焦点的窗口为: {name}，不是原神，暂停");
                 throw new RetryException("当前获取焦点的窗口不是原神");
             }
@@ -278,13 +278,13 @@ public static class GameRuntimeExtensions
             if (count >= 10 && count % 10 == 0)
             {
                 Logger.LogInformation("多次尝试未恢复，尝试最小化后激活窗口！");
-                SystemControl.MinimizeAndActivateWindow(window.Handle);
+                GameSystem.MinimizeAndActivateWindow(window.Handle);
             }
             else
             {
-                var name = SystemControl.GetActiveByProcess();
+                var name = GameSystem.GetActiveByProcess();
                 Logger.LogInformation("当前获取焦点的窗口为: {Name}，不是原神，尝试恢复窗口", name);
-                SystemControl.FocusWindow(window.Handle);
+                GameSystem.FocusWindow(window.Handle);
             }
 
             count++;
@@ -312,7 +312,7 @@ public static class GameRuntimeExtensions
     private static bool IsKeyPressed(GameKey key)
     {
         // 系统键状态（Win32 为 GetAsyncKeyState 高位）
-        return SystemControl.Platform.KeyState.IsKeyDown(key);
+        return GameSystem.Platform.KeyState.IsKeyDown(key);
     }
 
     #endregion
@@ -330,13 +330,13 @@ public static class GameRuntimeExtensions
             return true;
         }
 
-        var name = SystemControl.GetActiveProcessName();
+        var name = GameSystem.GetActiveProcessName();
         if (string.IsNullOrEmpty(name))
         {
             return false;
         }
 
-        return SystemControl.GetGenshinGameProcessNameList(window)
+        return GameSystem.GetGenshinGameProcessNameList(window)
             .Any(p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
     }
 

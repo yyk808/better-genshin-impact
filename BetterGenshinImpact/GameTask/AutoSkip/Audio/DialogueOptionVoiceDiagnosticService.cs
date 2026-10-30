@@ -234,7 +234,7 @@ internal sealed class DialogueOptionVoiceDiagnosticService : BackgroundService
         var configuredHandle = _runtimeService.Current?.Window.Handle ?? IntPtr.Zero;
         if (configuredHandle != IntPtr.Zero)
         {
-            var configuredProcess = SystemControl.GetProcessByHandle(configuredHandle);
+            var configuredProcess = GameSystem.GetProcessByHandle(configuredHandle);
             if (configuredProcess is { Id: > 0 })
             {
                 return configuredProcess;
@@ -243,10 +243,10 @@ internal sealed class DialogueOptionVoiceDiagnosticService : BackgroundService
             configuredProcess?.Dispose();
         }
 
-        var detectedHandle = SystemControl.FindGenshinImpactHandle();
+        var detectedHandle = GameSystem.FindGenshinImpactHandle();
         return detectedHandle == IntPtr.Zero
             ? null
-            : SystemControl.GetProcessByHandle(detectedHandle);
+            : GameSystem.GetProcessByHandle(detectedHandle);
     }
 
     private void ReleaseDetector()

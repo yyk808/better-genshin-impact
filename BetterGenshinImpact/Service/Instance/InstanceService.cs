@@ -984,7 +984,7 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
             mainWindow?.Activate();
             if (mainWindow is not null)
             {
-                SystemControl.RestoreWindow(new WindowInteropHelper(mainWindow).Handle);
+                GameSystem.RestoreWindow(new WindowInteropHelper(mainWindow).Handle);
             }
 
             CoreServices.GetService<HomePageViewModel>()?.HandleActivation(commandLineOptions);

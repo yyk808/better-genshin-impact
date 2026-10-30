@@ -696,7 +696,7 @@ public sealed class MusicGuidedSession : IDisposable
     {
         // 优先使用已绑定运行环境的窗口；截图器未启动时按进程查找原神窗口
         var handle = _options.CurrentRuntime?.Invoke()?.Window.Handle ?? nint.Zero;
-        return handle != nint.Zero ? handle : SystemControl.FindGenshinImpactHandle();
+        return handle != nint.Zero ? handle : GameSystem.FindGenshinImpactHandle();
     }
 
     private void OnKeyPressed(Keys key)
