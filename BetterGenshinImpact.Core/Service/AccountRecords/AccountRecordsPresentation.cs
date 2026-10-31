@@ -38,6 +38,12 @@ public static class AccountRecordsAccounts
     public static readonly (string Title, string Text) ResetConfirm2 = ("最终确认（2/2）",
         "再次确认：此操作影响所有账号，覆盖全部自定义字典和账号记录配置。原数据会保留在 AccountRecords 同级备份目录，但界面不提供撤销。确定执行重置？");
 
+    /// <summary>重置完成提示。</summary>
+    public const string ResetDoneText = "已重置为预设值，UID 列表已清空。";
+
+    /// <summary>导出时尚未选择 UID。</summary>
+    public const string NoUidSelectedText = "尚未选择 UID。";
+
     /// <summary>导出完成提示。</summary>
     public const string ExportDoneText = "当前库存已导出。文件保留原记录时间与来源，不包含异常、快照或图标。";
 
@@ -211,4 +217,64 @@ public static class InventoryRowBuilder
             row.CanBatchArchive = row.StateRank == 3 && row.Event != null && counts.GetValueOrDefault(row.Event.Kind) >= 2;
         return rows;
     }
+}
+
+/// <summary>导入文件的预览结果（文件快照、默认目标 UID、摘要、字典补充行）。</summary>
+public sealed class AccountRecordsImportPreview
+{
+    /// <summary>预览通过的文件快照，导入时使用它而不是重新读取文件。</summary>
+    public required Newtonsoft.Json.Linq.JObject Package { get; init; }
+    /// <summary>文件中的 UID，作为默认导入目标。</summary>
+    public required string FileUid { get; init; }
+    /// <summary>文件摘要。</summary>
+    public required string Summary { get; init; }
+    /// <summary>补充字典预览行（名称：分类）。</summary>
+    public required IReadOnlyList<string> Definitions { get; init; }
+    /// <summary>包含开发测试增量，导入前需要确认。</summary>
+    public bool HasDeltas { get; init; }
+}
+
+/// <summary>账号库存导入的预览与结果摘要（原 WPF AccountRecordsImportViewModel 中与界面无关的部分）。</summary>
+public static class AccountRecordsImport
+{
+    /// <summary>未选择文件时的提示。</summary>
+    public const string InitialSummary = "请选择 AccountRecords JSON 文件。目前支持单个账号的当前库存。";
+    /// <summary>开发测试增量确认标题。</summary>
+    public const string DeltaConfirmTitle = "开发测试操作";
+    /// <summary>开发测试增量确认正文。</summary>
+    public const string DeltaConfirmText = "此文件包含库存增量测试数据，仅供开发调试与报错验证，不代表正式开放。是否继续导入？";
+    /// <summary>目标 UID 不合法。</summary>
+    public const string InvalidTargetUid = "目标 UID 须为首位非零的 9～10 位数字。";
+
+    /// <summary>读取并预览交换文件；失败时抛出异常（调用方用 AccountRecordsErrorMessages.Describe 显示）。</summary>
+    public static async Task<AccountRecordsImportPreview> PreviewAsync(string path)
+    {
+        var package = await InventoryStore.ReadExchangeAsync(path);
+        var account = ((Newtonsoft.Json.Linq.JObject)package["accounts"]!).Properties().Single();
+        var count = ((Newtonsoft.Json.Linq.JObject)account.Value["inventory"]!).Count;
+        var definitions = ((Newtonsoft.Json.Linq.JObject)package["itemDefinitions"]!).Properties().Select(item => $"{item.Name}：{item.Value["category"]}").ToList();
+        var summary = $"{Path.GetFileName(path)}\n文件 UID：{account.Name} · 库存 {count} 项 · 字典补充 {definitions.Count} 项";
+        if (account.Value["deltas"] is Newtonsoft.Json.Linq.JArray { Count: > 0 } deltas) summary += $"\n包含 {deltas.Count} 条开发测试增量，导入前需要确认。";
+        if (package["note"]?.Type == Newtonsoft.Json.Linq.JTokenType.String) summary += "\n" + (string?)package["note"];
+        return new AccountRecordsImportPreview { Package = package, FileUid = account.Name, Summary = summary, Definitions = definitions, HasDeltas = HasDeltas(package) };
+    }
+
+    /// <summary>文件中任一账号包含开发测试增量。</summary>
+    public static bool HasDeltas(Newtonsoft.Json.Linq.JObject package) =>
+        ((Newtonsoft.Json.Linq.JObject)package["accounts"]!).Properties().Any(account => account.Value["deltas"] is Newtonsoft.Json.Linq.JArray { Count: > 0 });
+
+    /// <summary>导入结果含异常（新增异常或重复项中已有异常）。</summary>
+    public static bool HasErrors(InventoryReportResult result) => result.Rejected.Count > 0 || result.DuplicateErrorCount > 0;
+
+    /// <summary>导入完成摘要。</summary>
+    public static string CompletionSummary(InventoryReportResult result) =>
+        $"接受 {result.Accepted.Count} 项，忽略重复 {result.DuplicateCount} 项（已有异常 {result.DuplicateErrorCount} 项），新增异常 {result.Rejected.Count} 项，分类提醒 {result.Warnings.Count} 项。";
+
+    /// <summary>有分类提醒时的说明（无提醒返回 null）。</summary>
+    public static string? WarningMessage(InventoryReportResult result) => result.Warnings.Count > 0
+        ? $"分类提醒 {result.Warnings.Count} 项：已保留本地分类，数量独立处理。关闭窗口后可在库存中查看橘灯详情。\n{CompletionSummary(result)}"
+        : null;
+
+    /// <summary>导入失败提示（已保存的批次会保留）。</summary>
+    public static string FailureMessage(Exception ex) => $"导入未完成：{AccountRecordsErrorMessages.Describe(ex)}\n已经成功保存的批次会保留。";
 }

@@ -2,6 +2,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using BetterGenshinImpact.Avalonia.ViewModels;
 using BetterGenshinImpact.Avalonia.Views;
@@ -55,6 +56,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plugins": await PluginsAsync(); break;
                 case "onedragon-layout": await OneDragonLayoutAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
+                case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2283,6 +2285,137 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 狛荷屋(test) 第 3 步：导出（临时文件替换）、清除（取消/确认）、导入预览对话框（改目标 UID）、删除 UID、两次重置确认；
+    /// 所有确认都是 FAContentDialog，文字来自 Core（AccountRecordsAccounts / AccountRecordsImport）
+    /// </summary>
+    private async Task AccountRecordsIoAsync()
+    {
+        var page = vm.AccountRecords;
+        var root = Global.Absolute(@"User\AccountRecords");
+        var createdRoot = !Directory.Exists(root);
+        const string uidA = "100000053", uidB = "1000000053";
+        const string exportDir = "/tmp/m52-accounts-export";
+        if (Directory.Exists(exportDir)) Directory.Delete(exportDir, true);
+        Directory.CreateDirectory(exportDir);
+        var store = new BetterGenshinImpact.Service.AccountRecords.InventoryStore(new BetterGenshinImpact.Service.AccountRecords.InventoryCatalog(), root);
+        FluentAvalonia.UI.Controls.FAContentDialog? last = null;
+        async Task<FluentAvalonia.UI.Controls.FAContentDialog?> NextDialog()
+        {
+            var d = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            last = d;
+            await Settle(200);
+            return d;
+        }
+        string DialogText(FluentAvalonia.UI.Controls.FAContentDialog? d) =>
+            d is null ? "" : string.Join("\n", (d.Content as Control)?.GetLogicalDescendants().OfType<TextBlock>().Select(t => t.Text) ?? []);
+        void Answer(FluentAvalonia.UI.Controls.FAContentDialog? d, bool yes) =>
+            d?.Hide(yes ? FluentAvalonia.UI.Controls.FAContentDialogResult.Primary : FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+        try
+        {
+            await store.AddUidAsync(uidA);
+            var now = DateTimeOffset.Now.ToString("O");
+            await store.ReportAsync(uidA, new BetterGenshinImpact.Service.AccountRecords.Model.AccountRecordSource { Reference = "m52/uitest-io", DisplayName = "M52 导入导出" },
+            [
+                new BetterGenshinImpact.Service.AccountRecords.Model.InventoryReport { Name = "摩拉", Quantity = 4321, RecordedAt = now },
+                new BetterGenshinImpact.Service.AccountRecords.Model.InventoryReport { Name = "原石", Quantity = 160, RecordedAt = now }
+            ]);
+            vm.Navigate("狛荷屋(test)");
+            await Settle(800);
+            page.SelectedUid = uidA;
+            await WaitFor(() => page.Rows.Count == 2 ? (object?)true : null);
+            Check("账号操作菜单", Named<DropDownButton>("AccountMenuButton") is not null);
+
+            // 导出
+            string? suggested = null;
+            page.PickExportPath = name => { suggested = name; return Task.FromResult<string?>(Path.Combine(exportDir, name)); };
+            var export = page.ExportInventoryCommand.ExecuteAsync(null);
+            var done = await NextDialog();
+            Check("导出完成提示（Core 文本）", DialogText(done).Contains(BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ExportDoneText), DialogText(done));
+            Answer(done, true);
+            await export;
+            var file = suggested is null ? null : Path.Combine(exportDir, suggested);
+            Check("导出文件（默认文件名、无临时文件残留）", file is not null && suggested!.StartsWith($"AccountRecords-{uidA}-") && File.Exists(file)
+                && File.ReadAllText(file).Contains("摩拉") && Directory.GetFiles(exportDir).Length == 1, suggested);
+
+            // 清空库存：先取消再确认
+            var clear = page.ClearAccountCommand.ExecuteAsync("inventory");
+            var confirm = await NextDialog();
+            Check("清空确认（Core 文本）", DialogText(confirm).Contains(BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ClearConfirmText("inventory")), DialogText(confirm));
+            Answer(confirm, false);
+            await clear;
+            await Settle(300);
+            Check("取消后库存保留", page.Rows.Count == 2);
+            clear = page.ClearAccountCommand.ExecuteAsync("inventory");
+            Answer(await NextDialog(), true);
+            await clear;
+            await WaitFor(() => page.Rows.Count == 0 ? (object?)true : null);
+            Check("确认后库存清空、UID 保留", page.Rows.Count == 0 && page.UidOptions.Contains(uidA) && page.SelectedUid == uidA);
+
+            // 导入到新 UID
+            page.PickImportPath = () => Task.FromResult(file);
+            var import = page.OpenImportCommand.ExecuteAsync(null);
+            var preview = await NextDialog();
+            var uidBox = (preview?.Content as Control)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == "ImportUidBox");
+            Check("导入预览对话框（文件 UID 与摘要）", uidBox?.Text == uidA && DialogText(preview).Contains("库存 2 项"), DialogText(preview));
+            if (uidBox is not null) uidBox.Text = uidB;
+            Answer(preview, true);
+            var summary = await NextDialog();
+            Check("导入完成摘要", DialogText(summary).Contains("接受 2 项"), DialogText(summary));
+            Answer(summary, true);
+            await import;
+            await Settle(300);
+            Check("导入后切换到目标 UID 并显示库存", page.SelectedUid == uidB && page.UidOptions.Contains(uidB) && page.Rows.Count == 2
+                && page.Rows.Any(r => r.Name == "摩拉" && r.QuantityText == "4321"), $"{page.SelectedUid} {page.Rows.Count}");
+            Shot("avalonia-accounts-import.png");
+
+            // 删除 UID
+            var delete = page.ClearAccountCommand.ExecuteAsync("uid");
+            var del = await NextDialog();
+            Check("删除 UID 确认（Core 文本）", DialogText(del).Contains(BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ClearConfirmText("uid")));
+            Answer(del, true);
+            await delete;
+            await Settle(300);
+            Check("删除后 UID 移除", !page.UidOptions.Contains(uidB) && !Directory.Exists(Path.Combine(root, uidB)), string.Join(",", page.UidOptions));
+
+            // 两次重置确认：只在测试前不存在账号记录目录时执行，避免覆盖已有数据
+            if (createdRoot)
+            {
+                var reset = page.ResetToDefaultsCommand.ExecuteAsync(null);
+                var first = await NextDialog();
+                Check("重置第 1 次确认", first?.Title as string == BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ResetConfirm1.Title, first?.Title?.ToString());
+                Answer(first, false);
+                await reset;
+                Check("第 1 次取消不重置", page.UidOptions.Contains(uidA));
+                reset = page.ResetToDefaultsCommand.ExecuteAsync(null);
+                Answer(await NextDialog(), true);
+                var second = await NextDialog();
+                Check("重置第 2 次确认", second?.Title as string == BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ResetConfirm2.Title, second?.Title?.ToString());
+                Answer(second, true);
+                var resetDone = await NextDialog();
+                Check("重置完成提示", DialogText(resetDone).Contains(BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.ResetDoneText));
+                Answer(resetDone, true);
+                await reset;
+                Check("重置后 UID 列表为空", page.UidOptions.Count == 0 && page.SelectedUid is null && page.Rows.Count == 0);
+            }
+            else
+            {
+                log.Information("狛荷屋：已有账号记录目录，跳过重置检查");
+            }
+        }
+        finally
+        {
+            foreach (var uid in new[] { uidA, uidB })
+                try { if (Directory.Exists(Path.Combine(root, uid))) await store.ClearAsync(uid, false, true); } catch (Exception e) { log.Warning("清理测试 UID {Uid} 失败：{Message}", uid, e.Message); }
+            if (createdRoot)
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+                foreach (var dir in Directory.GetDirectories(Path.GetDirectoryName(root)!, "AccountRecords.backup-*")) Directory.Delete(dir, true);
+            }
+            if (Directory.Exists(exportDir)) Directory.Delete(exportDir, true);
+        }
     }
 
     /// <summary>

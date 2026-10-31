@@ -39,7 +39,7 @@ public partial class AccountRecordsImportViewModel : ObservableObject
     /// <summary>用户可编辑的目标 UID；默认沿用文件中的 UID。</summary>
     [ObservableProperty] private string _targetUid = "";
     /// <summary>当前文件摘要。</summary>
-    [ObservableProperty] private string _summary = "请选择 AccountRecords JSON 文件。目前支持单个账号的当前库存。";
+    [ObservableProperty] private string _summary = AccountRecordsImport.InitialSummary;
     /// <summary>导入反馈或读取错误。</summary>
     [ObservableProperty] private string _message = "";
     /// <summary>是否允许用文件中的分类补充本地字典空缺。</summary>
@@ -72,15 +72,11 @@ public partial class AccountRecordsImportViewModel : ObservableObject
         CompletionSummary = null;
         try
         {
-            _package = await InventoryStore.ReadExchangeAsync(dialog.FileName);
-            var account = ((JObject)_package["accounts"]!).Properties().Single();
-            TargetUid = account.Name;
-            var count = ((JObject)account.Value["inventory"]!).Count;
-            foreach (var item in ((JObject)_package["itemDefinitions"]!).Properties())
-                Definitions.Add($"{item.Name}：{item.Value["category"]}");
-            Summary = $"{Path.GetFileName(dialog.FileName)}\n文件 UID：{account.Name} · 库存 {count} 项 · 字典补充 {Definitions.Count} 项";
-            if (account.Value["deltas"] is JArray { Count: > 0 } deltas) Summary += $"\n包含 {deltas.Count} 条开发测试增量，导入前需要确认。";
-            if (_package["note"]?.Type == JTokenType.String) Summary += "\n" + (string?)_package["note"];
+            var preview = await AccountRecordsImport.PreviewAsync(dialog.FileName);
+            _package = preview.Package;
+            TargetUid = preview.FileUid;
+            foreach (var line in preview.Definitions) Definitions.Add(line);
+            Summary = preview.Summary;
             HasPackage = true;
         }
         catch (Exception ex) { Summary = "文件未载入。"; Message = AccountRecordsErrorMessages.Describe(ex); }
@@ -99,11 +95,11 @@ public partial class AccountRecordsImportViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var hasDeltas = ((JObject)_package["accounts"]!).Properties().Any(account => account.Value["deltas"] is JArray { Count: > 0 });
-            if (hasDeltas && await ThemedMessageBox.ShowAsync("此文件包含库存增量测试数据，仅供开发调试与报错验证，不代表正式开放。是否继续导入？",
-                "开发测试操作", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+            var hasDeltas = AccountRecordsImport.HasDeltas(_package);
+            if (hasDeltas && await ThemedMessageBox.ShowAsync(AccountRecordsImport.DeltaConfirmText,
+                AccountRecordsImport.DeltaConfirmTitle, MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
             var uid = TargetUid.Trim();
-            if (!InventoryStore.IsValidUid(uid)) throw new ArgumentException("目标 UID 须为首位非零的 9～10 位数字。");
+            if (!InventoryStore.IsValidUid(uid)) throw new ArgumentException(AccountRecordsImport.InvalidTargetUid);
             // 导入按批次保存，异常不代表没有写入；关闭后必须刷新这次实际操作的目标。
             ImportedUid = uid;
             var result = await AccountRecordsInteractionGate.Instance.ExecuteManualAsync(() => _store.ImportInventoryAsync(_package, uid, IncludeDefinitions, hasDeltas));
@@ -111,15 +107,15 @@ public partial class AccountRecordsImportViewModel : ObservableObject
             RejectedCount = result.Rejected.Count;
             DuplicateCount = result.DuplicateCount;
             DuplicateErrorCount = result.DuplicateErrorCount;
-            HasImportErrors = RejectedCount > 0 || DuplicateErrorCount > 0;
-            CompletionSummary = $"接受 {AcceptedCount} 项，忽略重复 {DuplicateCount} 项（已有异常 {DuplicateErrorCount} 项），新增异常 {RejectedCount} 项，分类提醒 {result.Warnings.Count} 项。";
-            if (result.Warnings.Count > 0)
-                Message = $"分类提醒 {result.Warnings.Count} 项：已保留本地分类，数量独立处理。关闭窗口后可在库存中查看橘灯详情。\n{CompletionSummary}";
+            HasImportErrors = AccountRecordsImport.HasErrors(result);
+            CompletionSummary = AccountRecordsImport.CompletionSummary(result);
+            if (AccountRecordsImport.WarningMessage(result) is { } warning)
+                Message = warning;
             closeAfterImport = !HasImportErrors && result.Warnings.Count == 0;
             HasPackage = false;
             _package = null;
         }
-        catch (Exception ex) { Message = $"导入未完成：{AccountRecordsErrorMessages.Describe(ex)}\n已经成功保存的批次会保留。"; }
+        catch (Exception ex) { Message = AccountRecordsImport.FailureMessage(ex); }
         finally { IsBusy = false; }
         if (closeAfterImport) CloseRequested?.Invoke();
     }

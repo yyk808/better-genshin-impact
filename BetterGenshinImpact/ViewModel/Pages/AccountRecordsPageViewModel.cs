@@ -48,7 +48,7 @@ public partial class AccountRecordsPageViewModel : ViewModel
             ResetColumnWidths();
             await Inventory.SelectUidAsync(null);
             await Load();
-            await ThemedMessageBox.ShowAsync("已重置为预设值，UID 列表已清空。", "重置完成", MessageBoxButton.OK);
+            await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.ResetDoneText, "重置完成", MessageBoxButton.OK);
         }
         catch (Exception ex) { await ThemedMessageBox.ShowAsync(AccountRecordsErrorMessages.Describe(ex), "重置失败", MessageBoxButton.OK, ThemedMessageBox.MessageBoxIcon.Error); }
     }
@@ -183,7 +183,7 @@ public partial class AccountRecordsPageViewModel : ViewModel
         var uid = SelectedUid;
         if (uid == null)
         {
-            await ThemedMessageBox.ShowAsync("尚未选择 UID。", "导出库存", MessageBoxButton.OK);
+            await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.NoUidSelectedText, "导出库存", MessageBoxButton.OK);
             return;
         }
         var dialog = new Microsoft.Win32.SaveFileDialog

@@ -12,6 +12,19 @@
                 <TextBlock Text="UID" VerticalAlignment="Center" />
                 <ComboBox x:Name="UidBox" Width="160" ItemsSource="{Binding UidOptions}" SelectedItem="{Binding SelectedUid}" PlaceholderText="尚无 UID" />
                 <Button x:Name="AddUidButton" Content="新增 UID" Command="{Binding BeginAddUidCommand}" />
+                <DropDownButton x:Name="AccountMenuButton" Content="账号操作">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="导入库存…" Command="{Binding OpenImportCommand}" />
+                            <MenuItem Header="导出当前库存…" Command="{Binding ExportInventoryCommand}" />
+                            <Separator />
+                            <MenuItem Header="清空该 UID 的库存" Command="{Binding ClearAccountCommand}" CommandParameter="inventory" />
+                            <MenuItem Header="删除该 UID 及全部记录" Command="{Binding ClearAccountCommand}" CommandParameter="uid" />
+                            <Separator />
+                            <MenuItem Header="重置为预设值…" Command="{Binding ResetToDefaultsCommand}" />
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
                 <TextBox x:Name="SearchBox" Width="200" Watermark="搜索库存记录" Text="{Binding SearchText}" />
             </StackPanel>
         </Grid>
@@ -38,7 +51,7 @@
                 <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
                 <Panel>
                     <TextBlock x:Name="EmptyInventoryText" IsVisible="{Binding !HasRows}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7"
-                               Text="暂无库存记录。库存由脚本或任务上报；导入/导出将在后续版本迁移。" />
+                               Text="暂无库存记录。库存由脚本或任务上报，也可从“账号操作”导入。" />
                     <ScrollViewer>
                         <ItemsControl x:Name="InventoryList" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
