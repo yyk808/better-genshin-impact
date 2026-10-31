@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             x:Class="BetterGenshinImpact.Avalonia.Views.PluginsPage"
+             x:DataType="vm:PluginsPageViewModel">
+    <!-- 与 WPF PluginsPage 相同的结构：标题与按钮、说明、功能选择、已安装插件（Linux 只读） -->
+    <ScrollViewer>
+        <StackPanel Classes="page">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="pagetitle" Text="插件" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="OpenPluginsDirButton" Content="打开插件目录" Command="{Binding OpenPluginsDirectoryCommand}" />
+                    <Button x:Name="RefreshPluginsButton" Content="刷新" Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </Grid>
+            <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.85" Text="插件可以替换 BetterGI 的部分功能，例如 OCR 模型。启用、停用和切换都不需要重启。" />
+            <Border x:Name="LinuxPluginNotice" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
+                <TextBlock TextWrapping="Wrap" Text="Linux 版暂不加载外部插件（插件为 Windows 程序集），下面的已安装插件只读显示；功能选择中的内置实现可以直接切换。" />
+            </Border>
+            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="功能选择" />
+            <ItemsControl x:Name="PluggableList" ItemsSource="{Binding Pluggables}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PluggableItem">
+                        <Border Margin="0,0,0,8" Padding="16,12" CornerRadius="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="2">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                    <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Text="{Binding Description}" />
+                                    <TextBlock FontSize="12" Foreground="#E0A040" TextWrapping="Wrap" Text="{Binding FallbackText}" IsVisible="{Binding HasFallback}" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1" MinWidth="260" VerticalAlignment="Center" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
+                                          DisplayMemberBinding="{ReflectionBinding Text}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="已安装插件" />
+            <TextBlock x:Name="NoPluginsText" Opacity="0.7" TextWrapping="Wrap" IsVisible="{Binding HasNoPlugins}"
+                       Text="尚未安装插件。可以在 Windows 版中从文件安装，或把插件文件夹放到插件目录后点击刷新。" />
+            <ItemsControl x:Name="InstalledList" ItemsSource="{Binding Plugins}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:InstalledPluginInfo">
+                        <Border Margin="0,0,0,8" Padding="16,12" CornerRadius="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Opacity="0.7" Text="{Binding VersionText}" />
+                                    <TextBlock Foreground="#E0A040" Text="{Binding StatusText}" />
+                                </StackPanel>
+                                <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap" Text="{Binding Description}" />
+                                <TextBlock FontSize="12" Opacity="0.6"><Run Text="标识：" /><Run Text="{Binding Id}" /><Run Text="    目录：" /><Run Text="{Binding Directory}" /></TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

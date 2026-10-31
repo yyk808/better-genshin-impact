@@ -218,7 +218,7 @@ internal static class AvaloniaHostProgram
                          ("任务计划", "avalonia-taskplan.png"), ("一条龙", "avalonia-onedragon.png"),
                          ("JS 脚本", "avalonia-auto-js.png"), ("地图追踪", "avalonia-auto-pathing.png"), ("录制回放", "avalonia-auto-record.png"),
                          ("全自动", "avalonia-auto.png"), ("快捷键", "avalonia-settings-hotkey.png"), ("通知", "avalonia-settings-notify.png"),
-                         ("新一条龙", "avalonia-newonedragon.png"), ("辅助操控", "avalonia-macro.png"), ("自动演奏", "avalonia-music.png"), ("悬浮小窗", "avalonia-guide.png"), ("狛荷屋(test)", "avalonia-placeholder.png"), ("执行记录", "avalonia-history.png"), ("设置", "avalonia-settings.png"), ("启动", "avalonia-home.png"),
+                         ("新一条龙", "avalonia-newonedragon.png"), ("辅助操控", "avalonia-macro.png"), ("自动演奏", "avalonia-music.png"), ("悬浮小窗", "avalonia-guide.png"), ("插件", "avalonia-plugins.png"), ("狛荷屋(test)", "avalonia-placeholder.png"), ("执行记录", "avalonia-history.png"), ("设置", "avalonia-settings.png"), ("启动", "avalonia-home.png"),
                      })
             {
                 viewModel.Navigate(page);

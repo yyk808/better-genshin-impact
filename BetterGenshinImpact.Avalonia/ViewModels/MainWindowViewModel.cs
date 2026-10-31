@@ -37,6 +37,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Macro = new MacroPageViewModel(host, Navigate, log);
         Music = new MusicPageViewModel(host, log);
         Guide = new GuideWindowSettingsPageViewModel(host, Navigate, log);
+        Plugins = new PluginsPageViewModel(host, log);
         NewOneDragon = new NewOneDragonPageViewModel(
             new TaskPlanPageViewModel(host, log, BetterGenshinImpact.Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon, TaskPlan), Navigate);
         Settings = new SettingsPageViewModel(host, log,
@@ -71,7 +72,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ];
         FooterItems =
         [
-            new("插件", "PuzzlePiece24", Placeholder("插件", "功能选择与插件管理（PluginsPage）"), isAvailable: false),
+            new("插件", "PuzzlePiece24", Plugins),
             // Linux 版独有：运行环境检查（WPF 版没有此页）
             new("环境", "WindowDevTools24", Environment),
             new("设置", "Settings24", Settings, () => Settings.SelectedTab = 0),
@@ -110,6 +111,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MusicPageViewModel Music { get; }
 
     public GuideWindowSettingsPageViewModel Guide { get; }
+
+    public PluginsPageViewModel Plugins { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

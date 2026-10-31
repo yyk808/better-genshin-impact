@@ -52,6 +52,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "macro": await MacroAsync(); break;
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
+                case "plugins": await PluginsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2254,6 +2255,58 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 插件页（对应 WPF PluginsPage）：功能选择（Core PluggableRegistry，改选写入 PluginConfig）、已安装插件只读列表（读取 plugin.json）
+    /// </summary>
+    private async Task PluginsAsync()
+    {
+        var page = vm.Plugins;
+        var testDir = Path.Combine(page.PluginsDirectory, "m51-test-plugin");
+        var createdRoot = !Directory.Exists(page.PluginsDirectory);
+        Directory.CreateDirectory(testDir);
+        File.WriteAllText(Path.Combine(testDir, "plugin.json"), "{\"manifest_version\":1,\"id\":\"m51.test\",\"name\":\"M51 测试插件\",\"version\":\"1.2.3\",\"description\":\"只读列表测试\"}");
+        try
+        {
+            vm.Navigate("插件");
+            await Settle(600);
+            Check("Linux 提示", Named<Border>("LinuxPluginNotice")?.IsEffectivelyVisible == true);
+            var registry = page.Registry;
+            Check("功能选择与注册表一致", registry is not null && page.Pluggables.Count == registry.All.Count && page.Pluggables.Count > 0, $"{page.Pluggables.Count}");
+            Check("每项都有当前选择", page.Pluggables.All(p => p.SelectedOption is not null && p.Options.Count > 0),
+                string.Join(";", page.Pluggables.Select(p => $"{p.DisplayName}:{p.Options.Count}")));
+            var multi = page.Pluggables.FirstOrDefault(p => p.Options.Count(o => !o.IsUnavailable) > 1);
+            if (multi is not null && registry is not null)
+            {
+                var before = multi.SelectedOption!;
+                var other = multi.Options.First(o => !o.IsUnavailable && o.Id != before.Id);
+                multi.SelectedOption = other;
+                await Settle();
+                Check("改选写入注册表", registry.GetSelection(multi.Descriptor.Id).Effective.Id == other.Id, other.Id);
+                multi.SelectedOption = multi.Options.First(o => o.Id == before.Id);
+                await Settle();
+                Check("改回原选择", registry.GetSelection(multi.Descriptor.Id).Effective.Id == before.Id);
+            }
+            else
+            {
+                log.Information("插件页：没有多实现的功能，跳过改选检查");
+            }
+
+            await Click(Named<Button>("RefreshPluginsButton")!, "刷新");
+            var item = page.Plugins.FirstOrDefault(p => p.Id == "m51.test");
+            Check("读取已安装插件", item is { Name: "M51 测试插件", VersionText: "v1.2.3" } && !page.HasNoPlugins, item?.ToString());
+            Check("列表显示", Named<ItemsControl>("InstalledList")?.ItemCount == page.Plugins.Count);
+            Shot("avalonia-plugins.png");
+        }
+        finally
+        {
+            Directory.Delete(testDir, true);
+            if (createdRoot && !Directory.EnumerateFileSystemEntries(page.PluginsDirectory).Any()) Directory.Delete(page.PluginsDirectory);
+        }
+
+        page.Refresh();
+        Check("删除后刷新", page.Plugins.All(p => p.Id != "m51.test"));
     }
 
     /// <summary>

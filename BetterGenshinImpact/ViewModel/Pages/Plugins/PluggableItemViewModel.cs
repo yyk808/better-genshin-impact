@@ -86,40 +86,20 @@ public sealed partial class PluggableItemViewModel : ObservableObject
     /// </summary>
     public void Refresh()
     {
-        var state = _registry.GetSelection(Descriptor.Id);
+        // 选项、当前选择与回退提示由 Core 计算（Avalonia 插件页共用）
+        var view = PluggableSelectionPresentation.Build(_registry, Descriptor.Id);
         _syncing = true;
         try
         {
             Options.Clear();
-            foreach (var implementation in _registry.GetImplementations(Descriptor.Id))
+            foreach (var option in view.Options)
             {
-                Options.Add(new PluggableImplOption(
-                    implementation.Id,
-                    $"{implementation.DisplayName} · {implementation.PluginName ?? "内置"}",
-                    false));
+                Options.Add(option);
             }
 
-            // 保存的实现来自未启用的插件：保留一项占位并选中，用户主动改选之前原来的选择不会丢失
-            if (state is { SavedImplementationId: { } savedId, Saved: null })
-            {
-                var placeholder = new PluggableImplOption(savedId, $"{savedId}（插件未启用）", true);
-                Options.Add(placeholder);
-                SelectedOption = placeholder;
-            }
-            else
-            {
-                var selectedId = state.Saved?.Id ?? state.Effective.Id;
-                SelectedOption = Options.FirstOrDefault(o => o.Id == selectedId);
-            }
-
-            HasFallback = state.IsFallback;
-            FallbackText = state switch
-            {
-                { IsFallback: true, SavedFailed: true } =>
-                    $"{state.Saved!.DisplayName} 加载失败，当前使用 {state.Effective.DisplayName}，原因见日志。",
-                { IsFallback: true } => $"所选实现来自未启用的插件，当前使用 {state.Effective.DisplayName}。",
-                _ => null,
-            };
+            SelectedOption = view.Selected;
+            HasFallback = view.HasFallback;
+            FallbackText = view.FallbackText;
         }
         finally
         {
@@ -141,11 +121,3 @@ public sealed partial class PluggableItemViewModel : ObservableObject
         _registry.Select(Descriptor.Id, value.Id);
     }
 }
-
-/// <summary>
-/// 功能选择下拉框中的一项。
-/// </summary>
-/// <param name="Id">实现标识。</param>
-/// <param name="Text">显示文字：“显示名 · 来源”。</param>
-/// <param name="IsUnavailable">是否为未启用插件的占位项，选中它不会保存。</param>
-public sealed record PluggableImplOption(string Id, string Text, bool IsUnavailable);

@@ -44,6 +44,9 @@
         <DataTemplate DataType="vm:GuideWindowSettingsPageViewModel">
             <views:GuideWindowSettingsPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:PluginsPageViewModel">
+            <views:PluginsPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:NewOneDragonPageViewModel">
             <views:NewOneDragonPage />
         </DataTemplate>
