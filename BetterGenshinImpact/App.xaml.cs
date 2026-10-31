@@ -570,6 +570,8 @@ public partial class App : Application
             ServerTimeHelper.Initialize(_host.Services.GetRequiredService<IServerTimeProvider>());
             // 自动配音随截图器和开关自动启停，启动时创建服务以订阅运行环境、任务模式和开关。
             _host.Services.GetRequiredService<QuestVoiceService>();
+            // 界面冒烟检查：仅在环境变量 BGI_WPF_SMOKE=1 时执行（默认关闭）
+            WpfSmokeTest.StartIfRequested(_host.Services);
             if (InstanceBootstrap.Current?.Context.IsRoot == true)
             {
                 // 宿主启动完成后实例上下文已初始化；主实例尽力清理遗留锁，失败也不影响启动。
