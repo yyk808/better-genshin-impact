@@ -16,9 +16,6 @@ using BetterGenshinImpact.GameTask.QuestVoice.Features.Tts;
 using BetterGenshinImpact.Service;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
-using System.Windows;
-using BetterGenshinImpact.View.Windows;
 
 namespace BetterGenshinImpact.ViewModel.Pages;
 
@@ -162,6 +159,12 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
         try { RequireEditable(); _owner.CommandError = ""; action(); } catch (Exception exception) { Report(exception); }
     }
 
+    /// <summary>需要确认框或文件选择的编辑命令；等待界面返回后再次检查冻结状态。</summary>
+    private async Task EditAsync(Func<Task> action)
+    {
+        try { RequireEditable(); _owner.CommandError = ""; await action(); } catch (Exception exception) { Report(exception); }
+    }
+
     /// <summary>文件操作期间冻结编辑并保证异常不会离开异步命令。</summary>
     private async Task FileOperation(Func<Task> action)
     {
@@ -179,8 +182,7 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
     }
 
     /// <summary>显式破坏性操作使用宿主主题确认；无窗口的组件测试不弹出界面。</summary>
-    private static bool ConfirmChange(string message) => Application.Current?.MainWindow is null
-        || ThemedMessageBox.Question(message, "确认配置操作", MessageBoxButton.YesNo, MessageBoxResult.No) == MessageBoxResult.Yes;
+    private Task<bool> ConfirmChangeAsync(string message) => _owner.Ui.ConfirmAsync(message, "确认配置操作");
 
     /// <summary>读取当前配置路径，不覆盖已有未保存输入。</summary>
     [RelayCommand(CanExecute = nameof(IsEditingAllowed))]
@@ -196,7 +198,7 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsEditingAllowed))]
     private Task DiscardAndReloadAsync() => FileOperation(async () =>
     {
-        if (HasChanges && !ConfirmChange("确定放弃未保存草稿并重新加载吗？")) return;
+        if (HasChanges && !await ConfirmChangeAsync("确定放弃未保存草稿并重新加载吗？")) return;
         var snapshot = await _store.LoadAsync(_factory.RoutingCatalogPath, serverSidePaths: _factory.RoutingServerSidePaths);
         Apply(snapshot.Catalog); _loadedPath = snapshot.CatalogPath; _expectedSha256 = snapshot.CatalogSha256;
         EditStatus = "已放弃旧草稿并重新加载。";
@@ -223,12 +225,11 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
     private Task ImportAsync() => FileOperation(async () =>
     {
         RequireCleanDraft();
-        var dialog = new OpenFileDialog { Title = "导入角色路由草稿", Filter = "JSON 文件 (*.json)|*.json", Multiselect = false };
-        if (dialog.ShowDialog() != true) return;
+        if (await _owner.Ui.PickOpenFileAsync("导入角色路由草稿", "JSON 文件 (*.json)|*.json", null) is not { } importPath) return;
         var target = _factory.RoutingCatalogPath;
         var targetHash = await _store.ReadSha256Async(target);
-        var imported = await _store.LoadAsync(dialog.FileName, serverSidePaths: _factory.RoutingServerSidePaths);
-        if (!ConfirmChange("导入后有效内容将自动保存到当前路由目录并保留备份，确定继续吗？")) return;
+        var imported = await _store.LoadAsync(importPath, serverSidePaths: _factory.RoutingServerSidePaths);
+        if (!await ConfirmChangeAsync("导入后有效内容将自动保存到当前路由目录并保留备份，确定继续吗？")) return;
         Apply(imported.Catalog); _loadedPath = target; _expectedSha256 = targetHash; MarkDraftChanged();
         EditStatus = "已导入草稿；校验通过后自动保存并保留备份。";
     });
@@ -237,12 +238,11 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanEditDraft))]
     private Task ExportAsync() => FileOperation(async () =>
     {
-        var dialog = new SaveFileDialog { Title = "导出路由草稿", Filter = "JSON 文件 (*.json)|*.json", FileName = "routing.export.json", AddExtension = true };
-        if (dialog.ShowDialog() != true) return;
-        if (string.Equals(Path.GetFullPath(dialog.FileName), Path.GetFullPath(_factory.RoutingCatalogPath), StringComparison.OrdinalIgnoreCase))
+        if (await _owner.Ui.PickSaveFileAsync("导出路由草稿", "JSON 文件 (*.json)|*.json", "routing.export.json") is not { } exportPath) return;
+        if (string.Equals(Path.GetFullPath(exportPath), Path.GetFullPath(_factory.RoutingCatalogPath), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("导出目标不能是当前配置文件，请使用保存命令。");
-        var hash = await _store.ReadSha256Async(dialog.FileName);
-        await _store.SaveAsync(dialog.FileName, BuildCatalog(), hash, serverSidePaths: _factory.RoutingServerSidePaths);
+        var hash = await _store.ReadSha256Async(exportPath);
+        await _store.SaveAsync(exportPath, BuildCatalog(), hash, serverSidePaths: _factory.RoutingServerSidePaths);
         EditStatus = "已导出草稿；当前配置的有效修改继续自动保存。";
     });
 
@@ -262,17 +262,17 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
 
     /// <summary>拒绝删除当前旅行者，用户须先明确更改旅行者选择。</summary>
     [RelayCommand(CanExecute = nameof(CanEditDraft))]
-    private void DeleteSpeaker() => Edit(() =>
+    private Task DeleteSpeakerAsync() => EditAsync(async () =>
     {
         if (SelectedSpeaker is not { } item) return;
         if (Same(TravelerId, item.Id) || Same(TravelerId, item.OriginalId)) throw new InvalidOperationException("当前角色是旅行者，请先更改旅行者选择。");
-        if (!ConfirmChange("确定删除角色“" + item.Names + "”吗？")) return;
+        if (!await ConfirmChangeAsync("确定删除角色“" + item.Names + "”吗？")) return;
         item.PropertyChanged -= OnSpeakerChanged; Speakers.Remove(item); SelectedSpeaker = null; MarkDraftChanged(); NotifyLists();
     });
 
     /// <summary>任何角色、NPC 兜底或旁白引用都阻止删除 profile。</summary>
     [RelayCommand(CanExecute = nameof(CanEditDraft))]
-    private void DeleteProfile() => Edit(() =>
+    private Task DeleteProfileAsync() => EditAsync(async () =>
     {
         if (SelectedProfile is not { } item) return;
         bool References(string? value) => Same(value, item.Id) || Same(value, item.OriginalId);
@@ -280,7 +280,7 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
         if (References(FallbackVoiceId)) references.Add("未知 NPC");
         if (References(NarratorVoiceId)) references.Add("旁白");
         if (references.Count > 0) throw new InvalidOperationException("此声线仍被引用：" + string.Join("、", references) + "。请先解除绑定。");
-        if (!ConfirmChange("确定删除声线“" + item.Name + "”吗？")) return;
+        if (!await ConfirmChangeAsync("确定删除声线“" + item.Name + "”吗？")) return;
         item.PropertyChanged -= OnProfileChanged; Profiles.Remove(item); SelectedProfile = null; MarkDraftChanged(); NotifyLists();
     });
 

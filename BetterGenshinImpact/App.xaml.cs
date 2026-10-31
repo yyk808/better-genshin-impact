@@ -298,6 +298,7 @@ public partial class App : Application
                 services.AddView<MusicPage, MusicPageViewModel>();
                 // 自动配音：入口为实时触发页卡片，设置在独立窗口；设置模型为单例以保留草稿。
                 services.AddSingleton<RoutingCatalogStore>();
+                services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.IQuestVoiceSettingsUi, BetterGenshinImpact.Service.Ui.WpfQuestVoiceSettingsUi>();
                 services.AddSingleton<QuestVoiceSettingsViewModel>();
                 services.AddSingleton<QuestVoiceCardViewModel>();
                 services.AddSingleton(sp => new QuestVoiceSessionFactory(all.QuestVoiceConfig, Core.Config.Global.StartUpPath, sp.GetRequiredService<BgiOnnxFactory>()));

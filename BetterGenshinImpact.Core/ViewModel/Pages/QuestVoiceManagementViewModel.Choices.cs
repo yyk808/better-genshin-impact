@@ -113,9 +113,9 @@ public partial class QuestVoiceManagementViewModel
     });
     /// <summary>文件选择仅用于本机资源；远程路径不得自动上传或本机验证。</summary>
     [RelayCommand]
-    private void BrowseProfileAsset(string kind)
+    private async Task BrowseProfileAssetAsync(string kind)
     {
-        Edit(() =>
+        await EditAsync(async () =>
         {
             if (SelectedProfile is not { } item) return;
             if (item.InstanceId == "remote" || item.InstanceId == "" && _factory.RoutingServerSidePaths)
@@ -127,7 +127,7 @@ public partial class QuestVoiceManagementViewModel
                 _ => ("选择参考音频", "参考音频 (*.wav;*.mp3;*.flac;*.ogg)|*.wav;*.mp3;*.flac;*.ogg", item.ReferenceAudioPath)
             };
             // 与设置窗口其他浏览按钮共用同一文件选择逻辑；资源保留完整路径。
-            if (QuestVoiceSettingsViewModel.PickFile(title, filter, current, useRelativeIfUnderStartup: false) is not { } selected) return;
+            if (await _owner.PickFileAsync(title, filter, current, useRelativeIfUnderStartup: false) is not { } selected) return;
             if (kind == "gpt") item.GptWeightsPath = selected;
             else if (kind == "sovits") item.SovitsWeightsPath = selected;
             else item.ReferenceAudioPath = selected;

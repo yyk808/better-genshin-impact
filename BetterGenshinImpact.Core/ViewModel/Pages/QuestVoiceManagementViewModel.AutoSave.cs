@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.QuestVoice.Core.Routing;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Routing;
@@ -18,7 +17,7 @@ public partial class QuestVoiceManagementViewModel
     /// <summary>同一编辑器的保存及显式文件操作串行执行。</summary>
     private readonly SemaphoreSlim _saveGate = new(1, 1);
     /// <summary>UI 线程防抖，不在按键事件同步写盘。</summary>
-    private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
+    private IQuestVoiceUiTimer _saveTimer = null!;
     /// <summary>每次编辑都递增，保存期间的新输入不能被清除。</summary>
     private long _draftRevision;
     /// <summary>已保存资源，用于只对新增或改变的本机资源进行存在性校验。</summary>
@@ -41,7 +40,7 @@ public partial class QuestVoiceManagementViewModel
     /// <summary>只登记草稿，不通过后台线程访问可变 WPF 集合。</summary>
     private void InitializeAutoSave()
     {
-        _saveTimer.Tick += async (_, _) => { _saveTimer.Stop(); await FlushAutoSaveAsync(); };
+        _saveTimer = _owner.Ui.CreateTimer(TimeSpan.FromMilliseconds(750), async () => { _saveTimer.Stop(); await FlushAutoSaveAsync(); });
         _owner.Config.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName != nameof(QuestVoiceConfig.RoutingCatalogPath)) return;

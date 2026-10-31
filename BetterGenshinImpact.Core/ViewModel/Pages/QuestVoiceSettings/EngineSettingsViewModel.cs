@@ -139,9 +139,12 @@ public abstract partial class EngineSettingsViewModel : ObservableObject
         Invalidate();
         OnPropertyChanged(nameof(SelectedRegisteredProfile));
         if (active && IsLibraryExpanded) _ = EnsureRegisteredProfilesAsync();
-        if (active && ProviderId is "huoshan" or "windows-sapi" or "openai-speech" or "google-translate")
+        if (active && RefreshVoicesOnActivate)
             _ = RefreshVoicesAsync();
     }
+
+    /// <summary>静态列表和系统声音在进入页面时读取；网络声音只在用户点击刷新后读取。</summary>
+    protected virtual bool RefreshVoicesOnActivate => ProviderId is "huoshan" or "windows-sapi" or "openai-speech" or "google-translate";
 
     /// <summary>替换配置字典时重新订阅，保留对新实例的身份判断。</summary>
     private void ObserveConfig()
