@@ -1,3 +1,4 @@
+using Avalonia;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using BetterGenshinImpact.Core.Config;
@@ -47,6 +48,12 @@ public sealed partial class HotkeyItemViewModel : ObservableObject
     }
 
     public string Group { get; }
+
+    /// <summary>分组的第一项（在其上方显示分组标题）</summary>
+    public bool IsGroupStart { get; init; }
+
+    /// <summary>组内缩进（与 WPF 版快捷键页的树形缩进相同）</summary>
+    public Thickness Indent => string.IsNullOrEmpty(Group) ? new Thickness(12, 0, 0, 0) : new Thickness(32, 0, 0, 0);
 
     public string Name { get; }
 
@@ -162,7 +169,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                 continue;
             }
 
-            Hotkeys.Add(new HotkeyItemViewModel(Config.HotKeyConfig, group, name, property, HotkeyActions.ContainsKey(property)));
+            // 与 WPF 版快捷键页相同按分组显示：每组第一项上方显示分组标题，组内缩进
+            Hotkeys.Add(new HotkeyItemViewModel(Config.HotKeyConfig, group, name, property, HotkeyActions.ContainsKey(property))
+            {
+                IsGroupStart = !string.IsNullOrEmpty(group) && Hotkeys.LastOrDefault()?.Group != group,
+            });
         }
 
         RegisterHotkeys();

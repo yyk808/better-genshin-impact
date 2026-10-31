@@ -94,8 +94,31 @@
     </Style>
 
     <!-- SettingsExpander 之间留出间距（WPF 版 CardExpander 之间有间隔） -->
-    <Style Selector="StackPanel > ui|FASettingsExpander">
-        <Setter Property="Margin" Value="0,0,0,4" />
+    <!-- 卡片间距与 WPF 版 CardControl / CardExpander 的 Margin 0,0,0,12 相同 -->
+    <Style Selector="ui|FASettingsExpander">
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- 与 WPF 设置页相同的页面布局：PagePadding 48,20,48,28，页标题 18 SemiBold，分组标题 BodyStrong，卡片间距 12 -->
+    <Style Selector="StackPanel.page">
+        <Setter Property="Margin" Value="48,20,48,28" />
+    </Style>
+    <Style Selector="StackPanel.page > ui|FASettingsExpander">
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <Style Selector="TextBlock.pagetitle">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <Style Selector="TextBlock.pagesection">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <!-- 选项卡由导航栏切换时隐藏标题栏（TabItem 仍保留，供界面自测按标题选择） -->
+    <Style Selector="TabControl.nostrip /template/ ItemsPresenter#PART_ItemsPresenter">
+        <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <!-- 旧的 ListBox 导航样式（主窗口已改用 FANavigationView，保留给其余列表） -->

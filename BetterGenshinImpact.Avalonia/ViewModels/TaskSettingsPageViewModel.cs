@@ -324,6 +324,9 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
 
     public string DisplayName { get; }
 
+    /// <summary>卡片图标（与 WPF 版独立任务页相同）</summary>
+    public FluentAvalonia.UI.Controls.FAIconSource Icon => BetterGenshinImpact.Avalonia.Services.WpfIcons.SoloTask(DisplayName);
+
     public string Description { get; }
 
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);

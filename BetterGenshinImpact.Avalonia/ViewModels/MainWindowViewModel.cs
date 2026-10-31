@@ -13,23 +13,13 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// <summary>主窗口：左侧导航 + 内容区 + 底部日志面板 + 轻提示</summary>
 public sealed partial class MainWindowViewModel : ObservableObject
 {
-    // 导航图标：Fluent System Icons（Regular）码位，与 WPF 版 MainWindow.xaml 的 SymbolRegular 相同
-    private const string IconHome = "\uF606"; // Play24
-    private const string IconBolt = "\uF827"; // Timer24
-    private const string IconTask = "\uEC9A"; // TaskListSquareLtr24
-    private const string IconCalendar = "\uE1DF"; // BranchFork24
-    private const string IconDragon = "\uE056"; // AnimalTurtle24
-    private const string IconAuto = "\uF1F9"; // Bot24
-    private const string IconChip = "\uF35C"; // DeveloperBoard24（WPF 版没有“环境”页）
-    private const string IconSettings = "\uF6AA"; // Settings24
-
     private readonly DispatcherTimer _toastTimer;
 
     [ObservableProperty] private NavItem _selectedNav;
     [ObservableProperty] private PageViewModel _currentPage;
     [ObservableProperty] private string? _toastText;
     [ObservableProperty] private string _toastKind = "Information";
-    [ObservableProperty] private bool _isLogExpanded = true;
+    [ObservableProperty] private bool _isLogExpanded; // 与 WPF 版相同默认不显示日志面板（底部按钮展开）
     [ObservableProperty] private bool _showDebugLog;
 
     public MainWindowViewModel(GameHost? host, string? hostError, ILogger log)
@@ -46,19 +36,39 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
             taskId => Tasks.ToggleAsync(taskId));
+        // 导航栏与 WPF 版 MainWindow.xaml 相同的顺序、标题与图标；尚未迁移的页面为说明页（灰色）
         NavItems =
         [
-            new("启动", IconHome, Home),
-            new("实时触发", IconBolt, Trigger),
-            new("独立任务", IconTask, Tasks),
-            new("任务计划", IconCalendar, TaskPlan),
-            new("一条龙", IconDragon, OneDragon),
-            new("全自动", IconAuto, Auto),
+            new("启动", "Play24", Home),
+            new("实时触发", "Timer24", Trigger),
+            new("独立任务", "TaskListSquareLtr24", Tasks),
+            new("任务计划", "BranchFork24", TaskPlan),
+            new("新一条龙", "AnimalTurtle24", Placeholder("新一条龙", "Pulonia 新一条龙（PuloniaOneDragonPage）"), isAvailable: false),
+            new("执行记录", "History24", Placeholder("执行记录", "Pulonia 任务执行记录（PuloniaTaskHistoryPage）"), isAvailable: false),
+            new("狛荷屋(test)", "Box24", Placeholder("狛荷屋(test)", "账号记录（AccountRecordsPage）"), isAvailable: false),
+            new("一条龙", "AnimalTurtle24", OneDragon),
+            new("全自动", "Bot24", Auto, () => Auto.SelectedTab = 0)
+            {
+                Children =
+                [
+                    new("调度器", "DeveloperBoard24", Auto, () => Auto.SelectedTab = 0),
+                    new("JS 脚本", "DocumentJs16", Auto, () => Auto.SelectedTab = 1),
+                    new("地图追踪", "Map24", Auto, () => Auto.SelectedTab = 2),
+                    new("录制回放", "Record24", Auto, () => Auto.SelectedTab = 3),
+                ],
+            },
+            new("辅助操控", "XboxController24", Placeholder("辅助操控", "宏与辅助操控设置（MacroSettingsPage）"), isAvailable: false),
+            new("自动演奏", "MusicNote224", Placeholder("自动演奏", "自动演奏（MusicPage）"), isAvailable: false),
+            new("悬浮小窗", "VideoClip24", Placeholder("悬浮小窗", "悬浮小窗设置（GuideWindowSettingsPage）"), isAvailable: false),
+            new("快捷键", "Flash24", Settings, () => Settings.SelectedTab = 1),
+            new("通知", "Alert24", Settings, () => Settings.SelectedTab = 2),
         ];
         FooterItems =
         [
-            new("环境", IconChip, Environment),
-            new("设置", IconSettings, Settings),
+            new("插件", "PuzzlePiece24", Placeholder("插件", "功能选择与插件管理（PluginsPage）"), isAvailable: false),
+            // Linux 版独有：运行环境检查（WPF 版没有此页）
+            new("环境", "WindowDevTools24", Environment),
+            new("设置", "Settings24", Settings, () => Settings.SelectedTab = 0),
         ];
         _selectedNav = NavItems[0];
         _currentPage = Home;
@@ -108,13 +118,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         CurrentPage = value.Page;
+        value.OnSelected?.Invoke();
         value.Page.OnNavigatedTo();
     }
 
     /// <summary>按标题切换页面（命令行 --page 与截图用）</summary>
     public bool Navigate(string title)
     {
-        var item = NavItems.Concat(FooterItems).FirstOrDefault(n => n.Title == title);
+        var item = AllNavItems().FirstOrDefault(n => n.Title == title);
         if (item is null)
         {
             return false;
@@ -123,6 +134,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedNav = item;
         return true;
     }
+
+    /// <summary>全部导航项（含子项）</summary>
+    public IEnumerable<NavItem> AllNavItems() =>
+        NavItems.Concat(FooterItems).SelectMany(n => n.Children.Prepend(n));
 
     public void ShowToast(DialogKind kind, string message)
     {
@@ -153,6 +168,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ToggleLog() => IsLogExpanded = !IsLogExpanded;
 
-    private static PlaceholderPageViewModel Placeholder(string title) =>
-        new(title, $"“{title}”尚未迁移到 Avalonia 宿主。当前阶段只提供截图器启动与实时触发（自动拾取、自动剧情、自动开门等），其余页面会按迁移计划逐步加入。");
+    private static PlaceholderPageViewModel Placeholder(string title, string wpfPage) =>
+        new(title, $"“{title}”尚未迁移到 Linux（Avalonia）版，对应 Windows 版页面：{wpfPage}。可在 Windows 版中使用，Linux 版会按迁移计划逐步加入。");
 }

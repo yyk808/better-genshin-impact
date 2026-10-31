@@ -89,6 +89,8 @@ public static class FluentSymbols
         ["Document24"] = 0xF379,
         ["DocumentArrowDown20"] = 0xE4E0,
         ["DocumentCopy24"] = 0xF381,
+        ["DocumentJs16"] = 0xF0DF,
+        ["DocumentText24"] = 0xE558,
         ["Edit24"] = 0xF3DE,
         ["ErrorCircle16"] = 0xF3F0,
         ["Eye24"] = 0xE5F3,
@@ -107,6 +109,7 @@ public static class FluentSymbols
         ["GlobeLocation24"] = 0xF45F,
         ["HandWave24"] = 0xEF05,
         ["History24"] = 0xF47F,
+        ["Home24"] = 0xF481,
         ["Image24"] = 0xF489,
         ["Info24"] = 0xF4A4,
         ["Keyboard24"] = 0xF4B9,
@@ -135,6 +138,7 @@ public static class FluentSymbols
         ["Power24"] = 0xF60F,
         ["Previous24"] = 0xF629,
         ["PuzzlePiece24"] = 0xE9EA,
+        ["QuestionCircle24"] = 0xF63E,
         ["ReOrderDotsVertical24"] = 0xE9F9,
         ["Record20"] = 0xF661,
         ["Record24"] = 0xF662,
@@ -146,6 +150,7 @@ public static class FluentSymbols
         ["Search20"] = 0xF68F,
         ["Search24"] = 0xF690,
         ["Send20"] = 0xF699,
+        ["Server24"] = 0xF76C,
         ["Settings16"] = 0xF6A8,
         ["Settings24"] = 0xF6AA,
         ["Shield24"] = 0xF6BF,
@@ -166,9 +171,61 @@ public static class FluentSymbols
         ["WeatherMoon24"] = 0xF87E,
         ["Window24"] = 0xEE5E,
         ["WindowConsole20"] = 0xEE6F,
+        ["WindowDevTools24"] = 0xF8B9,
         ["WindowNew24"] = 0xEE7B,
+        ["Wrench24"] = 0xF8C1,
         ["WrenchScrewdriver24"] = 0xEE88,
+        ["XboxController24"] = 0xEEB9,
     };
+}
+
+/// <summary>
+/// WPF 版独立任务、部分设置卡片使用的 Fgi 图标字体（WPF 的 FaFontIconStyle：Resources/Fonts/Fgi-Regular.ttf，按码位取字形，并缩放到 0.79）
+/// </summary>
+public static class FgiSymbols
+{
+    public static FontFamily Font { get; } = new("avares://bgi-avalonia/Assets/Fonts/Fgi-Regular.ttf#FgiRegular");
+
+    /// <summary>与 WPF FaFontIconStyle 的 ScaleTransform 0.79167 相同的视觉大小</summary>
+    public const double Scale = 0.79167;
+
+    public static string Glyph(string hex) => char.ConvertFromUtf32(Convert.ToInt32(hex, 16));
+}
+
+/// <summary>按 WPF 版写法取图标源：Fluent 图标名称（如 Play24），或 Fgi 字体码位（如 fgi:F6D2）</summary>
+public static class WpfIcons
+{
+    public static FAIconSource Source(string spec) => spec.StartsWith("fgi:", StringComparison.Ordinal)
+        ? new FAFontIconSource { Glyph = FgiSymbols.Glyph(spec[4..]), FontFamily = FgiSymbols.Font, FontSize = 20 * FgiSymbols.Scale }
+        : new FAFontIconSource { Glyph = FluentSymbols.Glyph(spec), FontFamily = FluentSymbols.Font };
+
+    /// <summary>WPF 版 TaskSettingsPage.xaml 中各独立任务卡片的图标（按任务标题）</summary>
+    private static readonly Dictionary<string, string> SoloTasks = new()
+    {
+        ["自动七圣召唤"] = "fgi:F6D2",
+        ["自动伐木"] = "fgi:F6B2",
+        ["自动战斗"] = "fgi:F71D",
+        ["自动秘境"] = "fgi:F438",
+        ["自动首领讨伐"] = "fgi:E629",
+        ["自动幽境危战"] = "fgi:E588",
+        ["全自动钓鱼（单个鱼塘）"] = "fgi:E3A8",
+        ["自动地脉花"] = "fgi:F7FF",
+        ["自动千音雅集"] = "MusicNote224",
+        ["自动烹饪"] = "fgi:E43F",
+        ["自动连招（实验）"] = "fgi:F085",
+        ["自动分解圣遗物"] = "fgi:F4BB",
+        ["自动使用兑换码"] = "BarcodeScanner24",
+        ["截取物品图标（开发者）"] = "fgi:1F527",
+    };
+
+    public static FAIconSource SoloTask(string title) => Source(SoloTasks.GetValueOrDefault(title, "TaskListSquareLtr24"));
+}
+
+/// <summary>Fgi 字体图标源：<c>IconSource="{svc:FgiIconSource F6D2}"</c></summary>
+public sealed class FgiIconSourceExtension(string hex) : MarkupExtension
+{
+    public override object ProvideValue(IServiceProvider serviceProvider) =>
+        new FAFontIconSource { Glyph = FgiSymbols.Glyph(hex), FontFamily = FgiSymbols.Font, FontSize = 20 * FgiSymbols.Scale };
 }
 
 /// <summary>图标源（FASettingsExpander.IconSource 等）：<c>IconSource="{svc:FluentIconSource Play24}"</c></summary>

@@ -27,12 +27,12 @@
         </Style>
     </UserControl.Styles>
     <ScrollViewer>
-        <StackPanel Margin="28,20,28,20" Spacing="4">
+        <StackPanel Classes="page">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="停止当前任务" Command="{Binding StopCommand}"
                         IsEnabled="{Binding IsTaskActive}" VerticalAlignment="Center" />
                 <StackPanel>
-                    <TextBlock Classes="pageTitle" Text="独立任务设置" FontSize="20" />
+                    <TextBlock Classes="pagetitle" Text="独立任务设置" Margin="0" />
                     <TextBlock Classes="desc" Text="{Binding StatusText, StringFormat='状态：{0}'}" Margin="0,2,0,8" />
                 </StackPanel>
             </DockPanel>
@@ -48,7 +48,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SoloTaskCardViewModel">
                                         <!-- 每个独立任务一张 SettingsExpander（对应 WPF 版独立任务页的 CardExpander：标题行右侧为启动 / 停止按钮） -->
-                                        <ui:FASettingsExpander Header="{Binding DisplayName}" Description="{Binding Description}">
+                                        <ui:FASettingsExpander Header="{Binding DisplayName}" Description="{Binding Description}" IconSource="{Binding Icon}">
                                             <ui:FASettingsExpander.Footer>
                                                 <Button Classes="run" Classes.running="{Binding IsRunning}"
                                                         Content="{Binding ButtonText}" Command="{Binding ToggleCommand}"

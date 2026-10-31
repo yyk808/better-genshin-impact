@@ -26,7 +26,7 @@
             </Border>
 
             <!-- 截图器：标题行启动 / 停止，展开后为启动相关配置（对应原版首页第一张 CardExpander，图标 Play24） -->
-            <ui:FASettingsExpander Header="BetterGI 截图器，启动！" Description="{Binding StatusText}" IconSource="{svc:FluentIconSource Play24}" IsExpanded="True">
+            <ui:FASettingsExpander Header="BetterGI 截图器，启动！" Description="{Binding StatusText}" IconSource="{svc:FluentIconSource Play24}">
                 <ui:FASettingsExpander.Footer>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <!-- 运行状态点 -->

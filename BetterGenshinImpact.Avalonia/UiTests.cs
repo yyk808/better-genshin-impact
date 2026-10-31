@@ -101,7 +101,18 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         return null;
     }
 
-    private static async Task Settle(int ms = 400) => await Task.Delay(ms);
+    /// <summary>
+    /// 等界面稳定。设置卡片与 WPF 版相同默认收起，自测要操作卡片内的控件，先展开当前页面的全部设置卡片
+    /// </summary>
+    private async Task Settle(int ms = 400)
+    {
+        foreach (var expander in All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible && !e.IsExpanded))
+        {
+            expander.IsExpanded = true;
+        }
+
+        await Task.Delay(ms);
+    }
 
     private void Shot(string file)
     {
@@ -1083,7 +1094,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         => Children(ReadPlan(id)).FirstOrDefault(k => k.Value<string>("task_type") == taskType)?["parameters"] as JObject ?? new JObject();
 
     /// <summary>在 UI 线程稍后执行打开树脂对话框的命令（对话框是同步模态），返回打开的对话框</summary>
-    private static async Task<ResinSettingsWindow?> OpenResinDialogAsync(System.Windows.Input.ICommand command)
+    private async Task<ResinSettingsWindow?> OpenResinDialogAsync(System.Windows.Input.ICommand command)
     {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => command.Execute(null));
         var dialog = await WaitFor(() => ResinSettingsWindow.Current);

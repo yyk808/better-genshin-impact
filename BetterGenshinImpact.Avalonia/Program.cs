@@ -211,34 +211,24 @@ internal static class AvaloniaHostProgram
             Directory.CreateDirectory(dir);
             // 先让触发器跑一会儿，日志面板里能看到拾取 / 剧情的记录
             await Task.Delay(total / 2);
-            foreach (var (page, file) in new[] { ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"), ("一条龙", "avalonia-onedragon.png"), ("全自动", "avalonia-auto.png"), ("设置", "avalonia-settings.png"), ("启动", "avalonia-home.png") })
+            // 按导航项依次截图（与 WPF 版导航栏相同的页面；全自动的子项、快捷键、通知为同一页面的不同选项卡）
+            foreach (var (page, file) in new[]
+                     {
+                         ("实时触发", "avalonia-trigger.png"), ("环境", "avalonia-environment.png"), ("独立任务", "avalonia-tasks.png"),
+                         ("任务计划", "avalonia-taskplan.png"), ("一条龙", "avalonia-onedragon.png"),
+                         ("JS 脚本", "avalonia-auto-js.png"), ("地图追踪", "avalonia-auto-pathing.png"), ("录制回放", "avalonia-auto-record.png"),
+                         ("全自动", "avalonia-auto.png"), ("快捷键", "avalonia-settings-hotkey.png"), ("通知", "avalonia-settings-notify.png"),
+                         ("新一条龙", "avalonia-placeholder.png"), ("设置", "avalonia-settings.png"), ("启动", "avalonia-home.png"),
+                     })
             {
                 viewModel.Navigate(page);
                 await Task.Delay(600);
                 SaveScreenshot(window, Path.Combine(dir, file), log);
             }
 
-            // 全自动、设置页的各个标签
-            viewModel.Navigate("全自动");
-            foreach (var (tab, file) in new[] { (1, "avalonia-auto-js.png"), (2, "avalonia-auto-pathing.png"), (3, "avalonia-auto-record.png"), (0, "avalonia-auto.png") })
-            {
-                viewModel.Auto.SelectedTab = tab;
-                await Task.Delay(500);
-                SaveScreenshot(window, Path.Combine(dir, file), log);
-            }
-
-            viewModel.Navigate("设置");
-            foreach (var (tab, file) in new[] { (1, "avalonia-settings-mask.png"), (2, "avalonia-settings-hotkey.png"), (3, "avalonia-settings-notify.png"), (4, "avalonia-settings-about.png"), (0, "avalonia-settings.png") })
-            {
-                viewModel.Settings.SelectedTab = tab;
-                await Task.Delay(500);
-                SaveScreenshot(window, Path.Combine(dir, file), log);
-            }
-
             viewModel.Navigate("启动");
             await Task.Delay(300);
-            // 启动页下半部分：收起日志、展开“同时启动原神”，滚动到底部
-            viewModel.IsLogExpanded = false;
+            // 启动页下半部分：展开“同时启动原神”，滚动到底部
             foreach (var expander in window.GetVisualDescendants().OfType<Expander>())
             {
                 expander.IsExpanded = true;
@@ -248,7 +238,6 @@ internal static class AvaloniaHostProgram
             window.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(s => s.Extent.Height > s.Viewport.Height)?.ScrollToEnd();
             await Task.Delay(400);
             SaveScreenshot(window, Path.Combine(dir, "avalonia-home-launch.png"), log);
-            viewModel.IsLogExpanded = true;
 
             // 截图器拿到的一帧（用于核对截图内容，例如是否截到了遮罩）
             if (viewModel.Host is { IsRunning: true } runningHost)
@@ -304,24 +293,22 @@ internal static class AvaloniaHostProgram
         var dialog = Task.Run(() => UiHost.Dialogs.Show("这是 UiHost.Dialogs 的消息框自检（任务代码在后台线程同步调用）。\n截图后自动关闭。",
             "消息框自检", DialogKind.Question, DialogButtons.YesNo));
         await Task.Delay(800);
-        var box = desktop.Windows.OfType<MessageBoxWindow>().FirstOrDefault();
+        var box = FluentMessageBox.Current;
         if (box is null)
         {
-            log.Warning("UiHost 自检：没有找到消息框窗口");
+            log.Warning("UiHost 自检：没有找到消息框");
             return;
         }
 
-        if (dir is not null)
+        if (dir is not null && desktop.MainWindow is { } main)
         {
             Directory.CreateDirectory(dir);
-            SaveScreenshot(box, Path.Combine(dir, "avalonia-messagebox.png"), log);
-            if (desktop.MainWindow is { } main)
-            {
-                SaveScreenshot(main, Path.Combine(dir, "avalonia-toast.png"), log);
-            }
+            // 消息框为主窗口覆盖层上的 ContentDialog，与轻提示一起截主窗口
+            SaveScreenshot(main, Path.Combine(dir, "avalonia-messagebox.png"), log);
+            SaveScreenshot(main, Path.Combine(dir, "avalonia-toast.png"), log);
         }
 
-        box.Close(DialogResult.Yes);
+        box.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
         var result = await dialog;
         log.Information("UiHost 自检：消息框返回 {Result}", result);
     }

@@ -5,98 +5,18 @@
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.SettingsPage"
              x:DataType="vm:SettingsPageViewModel">
-    <TabControl SelectedIndex="{Binding SelectedTab}" Padding="0">
+    <!-- 与 WPF 相同：通用设置、快捷键、通知是导航栏中各自的页面（选项卡标题栏隐藏，由导航栏切换） -->
+    <TabControl Classes="nostrip" SelectedIndex="{Binding SelectedTab}" Padding="0">
         <TabItem Header="通用">
             <ScrollViewer>
-                <StackPanel Margin="20,4,20,16" Spacing="0">
-                    <TextBlock Classes="section" Text="软件设置" Margin="0,12,0,4" />
-                    <!-- 软件设置（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}" IsExpanded="True">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pagetitle" Text="软件设置" />
+                    <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
                         <ui:FASettingsExpander.Footer>
                             <ComboBox Width="160" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
-                    <TextBlock Classes="section" Text="开发者功能" Margin="0,12,0,4" />
-                    <!-- 开发者功能（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="启用保存截图功能" Description="可以通过快捷键保存截图，文件保存在 log/screenshot" IconSource="{svc:FluentIconSource DeveloperBoard24}" IsExpanded="True">
-                        <ui:FASettingsExpander.Footer>
-                            <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotEnabled}" OnContent="" OffContent="" />
-                        </ui:FASettingsExpander.Footer>
-                        <ui:FASettingsExpanderItem Content="截图遮盖UID" Description="生成的截图会遮盖右下角的UID区域">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotUidCoverEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="保存奖励识别截图" Description="保存奖励识别的调试图片到 log/RewardRecognition">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.RewardRecognitionScreenshotEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                    </ui:FASettingsExpander>
-                    <!-- 通用功能设置（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="通用功能设置" IconSource="{svc:FluentIconSource Settings24}" IsExpanded="True">
-                        <ui:FASettingsExpanderItem Content="地图追踪优先使用的特征匹配方式" Description="影响所有地图追踪功能，重启后生效">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ComboBox Width="160" ItemsSource="{Binding MapMatchingMethods}" SelectedItem="{Binding Config.PathingConditionConfig.MapMatchingMethod}" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="地图移动过程中是否缩放地图" Description="建议开启，关闭该设置可能在运行部分脚本时发生错误">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapZoomEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="地图拖动使用相对鼠标移动" Description="用于兼容性测试，关闭时使用绝对坐标移动，通常更稳定">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapDragUseRelativeMove}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="是否就近七天神像恢复血量" Description="启用后将自动选择最近的七天神像，忽略指定位置">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.IsReviveInNearestStatueOfTheSeven}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                    </ui:FASettingsExpander>
-                    <!-- 其他设置（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="其他设置" IconSource="{svc:FluentIconSource WrenchScrewdriver24}" IsExpanded="True">
-                        <ui:FASettingsExpanderItem Content="失去焦点自动恢复" Description="任务执行中游戏窗口失去焦点时尝试重新激活（关闭时暂停并提示）">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.RestoreFocusOnLostEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="优先使用窗口类名查找游戏窗口" Description="找窗时先按 UnityWndClass 类名匹配">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.WindowClassDetectPreferred}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="服务器时区" Description="用于判断每日刷新、月卡等（亚服 / 国服 UTC+8，欧服 UTC+1，美服 UTC-5）">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ComboBox Width="160" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding Config.OtherConfig.ServerTimeZoneOffset}" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="详细错误日志" Description="任务出错时在日志中输出完整堆栈">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.DetailedErrorLogs}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="保存日志文件" Description="与 Windows 版相同写到 log 目录（better-genshin-impact日期.log，按天滚动，保留 31 个）；关闭后日志只显示在界面" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="打开日志" Command="{Binding OpenLogFileCommand}" />
-                                    <Button Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
-                                    <ToggleSwitch x:Name="LogFileToggle" IsChecked="{Binding LinuxConfig.LogFileEnabled, FallbackValue=False}" OnContent="" OffContent="" />
-                                </StackPanel>
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                    </ui:FASettingsExpander>
-                </StackPanel>
-            </ScrollViewer>
-        </TabItem>
-        <TabItem Header="遮罩">
-            <ScrollViewer>
-                <StackPanel Margin="20,4,20,16" Spacing="0">
-                    <TextBlock Classes="section" Text="遮罩" Margin="0,12,0,4" />
-                    <!-- 遮罩（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="启用遮罩窗口" Description="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" IconSource="{svc:FluentIconSource SquareHintSparkles24}" IsExpanded="True">
+                    <ui:FASettingsExpander Header="启用遮罩窗口" Description="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" IconSource="{svc:FluentIconSource SquareHintSparkles24}">
                         <ui:FASettingsExpander.Footer>
                             <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.MaskEnabled}" OnContent="" OffContent="" />
                         </ui:FASettingsExpander.Footer>
@@ -126,9 +46,7 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <TextBlock Classes="section" Text="准星" Margin="0,12,0,4" />
-                    <!-- 准星（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="启用准星" Description="在遮罩窗口中心显示准星" IconSource="{svc:FluentIconSource Cursor24}" IsExpanded="True">
+                    <ui:FASettingsExpander Header="启用准星" Description="在遮罩窗口中心显示准星" IconSource="{svc:FluentIconSource SquareHintSparkles24}">
                         <ui:FASettingsExpander.Footer>
                             <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.CrosshairEnabled}" OnContent="" OffContent="" />
                         </ui:FASettingsExpander.Footer>
@@ -153,57 +71,151 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="开发者功能" Description="模板素材制作、调试截图等面向开发和素材维护的工具" IconSource="{svc:FluentIconSource DeveloperBoard24}">
+                        <ui:FASettingsExpanderItem Content="启用保存截图功能" Description="可以通过快捷键保存截图，文件保存在 log/screenshot">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="截图遮盖UID" Description="生成的截图会遮盖右下角的UID区域">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.ScreenshotUidCoverEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="保存奖励识别截图" Description="保存奖励识别的调试图片到 log/RewardRecognition">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.CommonConfig.RewardRecognitionScreenshotEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <TextBlock Classes="pagesection" Text="通用功能设置" />
+                    <ui:FASettingsExpander Header="地图追踪优先使用的特征匹配方式" Description="影响所有地图追踪功能，重启后生效" IconSource="{svc:FluentIconSource DataTreemap24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox Width="160" ItemsSource="{Binding MapMatchingMethods}" SelectedItem="{Binding Config.PathingConditionConfig.MapMatchingMethod}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="大地图地图传送设置" Description="用于地图追踪、自动秘境、一条龙等功能中传送功能的配置" IconSource="{svc:FgiIconSource F3C5}">
+                        <ui:FASettingsExpanderItem Content="地图移动过程中是否缩放地图" Description="建议开启，关闭该设置可能在运行部分脚本时发生错误">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapZoomEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="地图拖动使用相对鼠标移动" Description="用于兼容性测试，关闭时使用绝对坐标移动，通常更稳定">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.MapDragUseRelativeMove}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="七天神像设置" Description="用于指定回血的七天神像" IconSource="{svc:FgiIconSource F0FA}">
+                        <ui:FASettingsExpanderItem Content="是否就近七天神像恢复血量" Description="启用后将自动选择最近的七天神像，忽略指定位置">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.IsReviveInNearestStatueOfTheSeven}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="其他设置" Description="设定一些其他功能的配置，失去焦点自动恢复等" IconSource="{svc:FgiIconSource F141}">
+                        <ui:FASettingsExpanderItem Content="失去焦点自动恢复" Description="任务执行中游戏窗口失去焦点时尝试重新激活（关闭时暂停并提示）">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.RestoreFocusOnLostEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="优先使用窗口类名查找游戏窗口" Description="找窗时先按 UnityWndClass 类名匹配">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.WindowClassDetectPreferred}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="服务器时区" Description="用于判断每日刷新、月卡等（亚服 / 国服 UTC+8，欧服 UTC+1，美服 UTC-5）">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox Width="160" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding Config.OtherConfig.ServerTimeZoneOffset}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="详细错误日志" Description="任务出错时在日志中输出完整堆栈">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.DetailedErrorLogs}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="保存日志文件" Description="与 Windows 版相同写到 log 目录（better-genshin-impact日期.log，按天滚动，保留 31 个）；关闭后日志只显示在界面" IconSource="{svc:FluentIconSource DocumentText24}" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="打开日志" Command="{Binding OpenLogFileCommand}" />
+                                <Button Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
+                                <ToggleSwitch x:Name="LogFileToggle" IsChecked="{Binding LinuxConfig.LogFileEnabled, FallbackValue=False}" OnContent="" OffContent="" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <TextBlock Classes="pagesection" Text="帮助" />
+                    <ui:FASettingsExpander Header="关于 BetterGI" Description="开源、免费的原神辅助工具（Linux · Avalonia 预览）" IconSource="{svc:FluentIconSource Info24}">
+                        <ui:FASettingsExpanderItem>
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="title" Text="BetterGI · 更好的原神（Linux · Avalonia 预览）" />
+                                <TextBlock Classes="desc" Text="{Binding Version, StringFormat='版本：{0}'}" />
+                                <TextBlock Classes="desc" Text="{Binding Runtime, StringFormat='运行时：{0}'}" />
+                                <TextBlock Classes="desc" Text="{Binding DisplayName, StringFormat='X 显示：{0}'}" />
+                                <TextBlock Classes="desc" Text="{Binding AssetsDirectory, StringFormat='素材目录：{0}'}" TextWrapping="Wrap" />
+                                <TextBlock Classes="desc" Text="{Binding ConfigFile, StringFormat='配置文件：{0}'}" TextWrapping="Wrap" />
+                                <TextBlock Classes="desc" Text="项目主页：https://github.com/babalae/better-genshin-impact　文档：https://bettergi.com" TextWrapping="Wrap" />
+                                <TextBlock Classes="desc" Text="本软件开源、免费，仅供学习交流使用。" />
+                            </StackPanel>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
         <TabItem Header="快捷键">
             <ScrollViewer>
-                <StackPanel Margin="20,4,20,16" Spacing="0">
-                    <DockPanel Margin="0,4,0,8">
-                        <Button DockPanel.Dock="Right" Content="重新注册" Command="{Binding RegisterHotkeysCommand}" />
+                <!-- 与 WPF 版 HotKeyPage 相同：标题与说明、一张表格卡片（功能 / 快捷键类型 / 配置快捷键），按分组缩进 -->
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pagesection" Text="快捷键设置" />
+                    <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,0,0,12"
+                               Text="全局热键：只支持组合键和功能键，经 X11 XGrabKey 注册，游戏收不到该键。键鼠监听：支持任意键盘单键，经 XInput2 监听、不拦截按键，只在游戏位于前台时触发（推荐）。点击类型按钮可以切换快捷键类型；点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除）。其中存在长按需求的功能不能使用全局热键。" />
+                    <Border Classes="card" Padding="0,8">
                         <StackPanel>
-                            <TextBlock Classes="desc" Text="{Binding HotkeyStatus}" />
-                            <TextBlock Classes="desc" TextWrapping="Wrap"
-                                       Text="点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除），写法与 Windows 版相同。方式与 Windows 版相同：“全局热键”经 X11 XGrabKey 注册（游戏收不到该键）；“键鼠监听”经 XInput2 原始事件监听、不拦截按键，只在游戏位于前台时触发，不支持组合键（组合键改用全局热键）。长按类固定为键鼠监听。" />
+                            <Grid ColumnDefinitions="*,110,130,60" Margin="16,4,16,8">
+                                <TextBlock Grid.Column="0" Text="功能" FontWeight="SemiBold" />
+                                <TextBlock Grid.Column="1" Text="快捷键类型" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="配置快捷键" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Hotkeys}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:HotkeyItemViewModel">
+                                        <StackPanel Margin="16,0">
+                                            <TextBlock Text="{Binding Group, StringFormat='⌄ {0}'}" IsVisible="{Binding IsGroupStart}" Margin="12,6,0,4" />
+                                            <Grid ColumnDefinitions="*,110,130,60" MinHeight="40">
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="{Binding Indent}">
+                                                    <TextBlock Text="{Binding Name}" />
+                                                    <TextBlock Classes="desc" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="{Binding TypeText}" HorizontalAlignment="Center" IsEnabled="{Binding !IsHold}"
+                                                        ToolTip.Tip="{Binding IsSupported, Converter={x:Static vm:SettingsConverters.Supported}, StringFormat='点击切换：全局热键（XGrabKey，游戏收不到该键）/ 键鼠监听（不拦截，只在游戏前台时触发）。{0}'}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ToggleHotkeyTypeCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Grid.Column="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="6,0"
+                                                        Content="{Binding DisplayValue}" Classes.accent="{Binding IsRecording}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).StartRecordCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Grid.Column="3" Content="清除" Padding="8,4"
+                                                        Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ClearHotkeyCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
+                    </Border>
+                    <DockPanel Margin="0,12,0,0">
+                        <Button DockPanel.Dock="Right" Content="重新注册" Command="{Binding RegisterHotkeysCommand}" />
+                        <TextBlock Classes="desc" Text="{Binding HotkeyStatus}" VerticalAlignment="Center" />
                     </DockPanel>
-                    <ItemsControl ItemsSource="{Binding Hotkeys}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:HotkeyItemViewModel">
-                                <Border Classes="row">
-                                    <Grid ColumnDefinitions="90,*,120,230,60">
-                                        <TextBlock Grid.Column="0" Classes="desc" Text="{Binding Group}" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" />
-                                            <TextBlock Classes="desc" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                            <Button Content="{Binding TypeText}" Padding="6,2" IsEnabled="{Binding !IsHold}"
-                                                    ToolTip.Tip="点击切换：全局热键（XGrabKey，游戏收不到该键）/ 键鼠监听（不拦截，只在游戏前台时触发）"
-                                                    Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ToggleHotkeyTypeCommand}"
-                                                    CommandParameter="{Binding}" />
-                                            <TextBlock Classes="desc" Text="{Binding IsSupported, Converter={x:Static vm:SettingsConverters.Supported}}" />
-                                        </StackPanel>
-                                        <Button Grid.Column="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="8,3"
-                                                Content="{Binding DisplayValue}" Classes.accent="{Binding IsRecording}"
-                                                Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).StartRecordCommand}"
-                                                CommandParameter="{Binding}" />
-                                        <Button Grid.Column="4" Content="清除" Padding="8,3" Margin="6,0,0,0"
-                                                Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).ClearHotkeyCommand}"
-                                                CommandParameter="{Binding}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
         <TabItem Header="通知">
             <ScrollViewer>
-                <StackPanel Margin="20,4,20,16" Spacing="0">
-                    <!-- 通知（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="通知" IconSource="{svc:FluentIconSource Alert24}" IsExpanded="True">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pagetitle" Text="通知设置" />
+                    <ui:FASettingsExpander Header="全局通知设置" Description="影响下方所有通知的设置" IconSource="{svc:FluentIconSource Alert24}">
                         <ui:FASettingsExpanderItem Content="测试通知" Description="向当前启用的全部通知渠道发送一条测试通知">
                             <ui:FASettingsExpanderItem.Footer>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -212,35 +224,28 @@
                                 </StackPanel>
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="系统通知" Description="{Binding SystemNotificationDesc}">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.WindowsUwpNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="JS 脚本通知" Description="允许 JS 脚本发送通知">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.JsNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="通知包含截图" Description="通知中附带游戏截图">
+                        <ui:FASettingsExpanderItem Content="通知时包含截图" Description="通知中附带游戏截图">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.IncludeScreenShot}" OnContent="" OffContent="" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="一条龙结束汇总" Description="一条龙结束时发送执行汇总">
+                        <ui:FASettingsExpanderItem Content="一条龙结束发送汇总通知" Description="一条龙结束时发送执行汇总">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.DragonEndSummaryEnabled}" OnContent="" OffContent="" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="事件订阅" Description="需要通知的事件，逗号分隔，留空为全部">
+                        <ui:FASettingsExpanderItem Content="是否允许 JS 通知" Description="允许 JS 脚本发送通知">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.JsNotificationEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="需要通知的事件" Description="需要通知的事件，逗号分隔，留空为全部">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Width="280" Text="{Binding Config.NotificationConfig.NotificationEventSubscribe}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <TextBlock Classes="section" Text="Webhook" Margin="0,12,0,4" />
-                    <!-- Webhook（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="启用 Webhook" Description="向指定地址 POST 通知 JSON" IconSource="{svc:FluentIconSource CloudLink24}" IsExpanded="True">
+                    <ui:FASettingsExpander Header="启用 Webhook" Description="向指定地址 POST 通知 JSON" IconSource="{svc:FluentIconSource CloudArrowUp24}">
                         <ui:FASettingsExpander.Footer>
                             <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.WebhookEnabled}" OnContent="" OffContent="" />
                         </ui:FASettingsExpander.Footer>
@@ -250,40 +255,49 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <!-- 企业微信（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="企业微信" IconSource="{svc:FluentIconSource ChatMultiple24}" IsExpanded="True">
-                        <ui:FASettingsExpanderItem Content="启用企业微信机器人" Description="群机器人 Webhook，消息为文本（附截图时另发图片）">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Name="WorkweixinStatus" Text="{Binding WorkweixinStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
-                                    <Button Name="WorkweixinTestButton" Content="测试" Command="{Binding TestWorkweixinNotificationCommand}" />
-                                    <ToggleSwitch Name="WorkweixinSwitch" IsChecked="{Binding Config.NotificationConfig.WorkweixinNotificationEnabled}" OnContent="" OffContent="" />
-                                </StackPanel>
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="Webhook 地址" Description="群机器人设置中的 Webhook 地址（https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…）">
+                    <ui:FASettingsExpander Header="启用系统通知" Description="{Binding SystemNotificationDesc}" IconSource="{svc:FluentIconSource Alert28}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.WindowsUwpNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="启用飞书通知" Description="Webhook 地址填在配置文件 / Windows 版" IconSource="{svc:FluentIconSource Send20}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.FeishuNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="启用 OneBot 通知" IconSource="{svc:FluentIconSource Bot24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.OneBotNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="启用企业微信通知" Description="群机器人 Webhook，消息为文本（附截图时另发图片）" IconSource="{svc:FluentIconSource ChatMultiple24}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Name="WorkweixinStatus" Text="{Binding WorkweixinStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
+                                <Button Name="WorkweixinTestButton" Content="测试" Command="{Binding TestWorkweixinNotificationCommand}" />
+                                <ToggleSwitch Name="WorkweixinSwitch" IsChecked="{Binding Config.NotificationConfig.WorkweixinNotificationEnabled}" OnContent="" OffContent="" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="企业微信通知地址" Description="群机器人设置中的 Webhook 地址（https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…）">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Name="WorkweixinUrlBox" Width="360" Text="{Binding Config.NotificationConfig.WorkweixinWebhookUrl}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <!-- 邮件（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="邮件" IconSource="{svc:FluentIconSource ChatMail20}" IsExpanded="True">
-                        <ui:FASettingsExpanderItem Content="启用邮件通知" Description="通过 SMTP 发送；465 端口用 SSL，587 用 STARTTLS，25 不加密，其余自动协商">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Name="EmailStatus" Text="{Binding EmailStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
-                                    <Button Name="EmailTestButton" Content="测试" Command="{Binding TestEmailNotificationCommand}" />
-                                    <ToggleSwitch Name="EmailSwitch" IsChecked="{Binding Config.NotificationConfig.EmailNotificationEnabled}" OnContent="" OffContent="" />
-                                </StackPanel>
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
+                    <ui:FASettingsExpander Header="启用邮箱通知" Description="通过 SMTP 发送；465 端口用 SSL，587 用 STARTTLS，25 不加密，其余自动协商" IconSource="{svc:FluentIconSource ChatMail20}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Name="EmailStatus" Text="{Binding EmailStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
+                                <Button Name="EmailTestButton" Content="测试" Command="{Binding TestEmailNotificationCommand}" />
+                                <ToggleSwitch Name="EmailSwitch" IsChecked="{Binding Config.NotificationConfig.EmailNotificationEnabled}" OnContent="" OffContent="" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
                         <ui:FASettingsExpanderItem Content="SMTP 服务器" Description="如 smtp.qq.com">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Name="SmtpServerBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpServer}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="SMTP 端口">
+                        <ui:FASettingsExpanderItem Content="SMTP 服务器端口">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Name="SmtpPortBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpPort}" />
                             </ui:FASettingsExpanderItem.Footer>
@@ -293,7 +307,7 @@
                                 <TextBox Name="SmtpUserBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpUsername}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="SMTP 密码 / 授权码">
+                        <ui:FASettingsExpanderItem Content="SMTP 密码">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Name="SmtpPasswordBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpPassword}" PasswordChar="•" />
                             </ui:FASettingsExpanderItem.Footer>
@@ -314,48 +328,16 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <!-- 其他通道（WPF 版为 CardExpander / CardControl） -->
-                    <ui:FASettingsExpander Header="其他通道" IconSource="{svc:FluentIconSource Bot24}" IsExpanded="True">
-                        <ui:FASettingsExpanderItem Content="飞书" Description="Webhook 地址填在配置文件 / Windows 版">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.FeishuNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="钉钉">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.DingDingwebhookNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="Bark">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.BarkNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="OneBot">
-                            <ui:FASettingsExpanderItem.Footer>
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.OneBotNotificationEnabled}" OnContent="" OffContent="" />
-                            </ui:FASettingsExpanderItem.Footer>
-                        </ui:FASettingsExpanderItem>
+                    <ui:FASettingsExpander Header="启用 Bark 通知" IconSource="{svc:FluentIconSource CommentArrowRight24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.BarkNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
-                </StackPanel>
-            </ScrollViewer>
-        </TabItem>
-        <TabItem Header="关于">
-            <ScrollViewer>
-                <StackPanel Margin="20,4,20,16" Spacing="0">
-                    <TextBlock Classes="section" Text="关于 BetterGI" Margin="0,12,0,4" />
-                    <Border Classes="card">
-                        <StackPanel Spacing="6">
-                            <TextBlock Classes="title" Text="BetterGI · 更好的原神（Linux · Avalonia 预览）" />
-                            <TextBlock Classes="desc" Text="{Binding Version, StringFormat='版本：{0}'}" />
-                            <TextBlock Classes="desc" Text="{Binding Runtime, StringFormat='运行时：{0}'}" />
-                            <TextBlock Classes="desc" Text="{Binding DisplayName, StringFormat='X 显示：{0}'}" />
-                            <TextBlock Classes="desc" Text="{Binding AssetsDirectory, StringFormat='素材目录：{0}'}" TextWrapping="Wrap" />
-                            <TextBlock Classes="desc" Text="{Binding ConfigFile, StringFormat='配置文件：{0}'}" TextWrapping="Wrap" />
-                            <TextBlock Classes="desc" Text="项目主页：https://github.com/babalae/better-genshin-impact　文档：https://bettergi.com" TextWrapping="Wrap" />
-                            <TextBlock Classes="desc" Text="本软件开源、免费，仅供学习交流使用。" />
-                        </StackPanel>
-                    </Border>
+                    <ui:FASettingsExpander Header="启用钉钉机器人通知" IconSource="{svc:FluentIconSource Bot24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.DingDingwebhookNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

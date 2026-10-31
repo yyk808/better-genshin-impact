@@ -4,7 +4,7 @@
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              x:Class="BetterGenshinImpact.Avalonia.Views.AutoPage"
              x:DataType="vm:AutoPageViewModel">
-    <TabControl SelectedIndex="{Binding SelectedTab}" Padding="0">
+    <TabControl Classes="nostrip" SelectedIndex="{Binding SelectedTab}" Padding="0">
         <TabItem Header="调度器">
             <views:ScriptControlPage DataContext="{Binding Scheduler}" />
         </TabItem>
