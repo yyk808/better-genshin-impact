@@ -1,0 +1,260 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="BetterGenshinImpact.Avalonia.Views.GuideWindowSettingsPage"
+             x:DataType="vm:GuideWindowSettingsPageViewModel">
+    <!-- 与 WPF GuideWindowSettingsPage 相同的卡片与顺序；小窗本身（WebView2）Linux 暂未实现，设置与收藏共用 config.json 与 User/GuideWindow -->
+    <ScrollViewer>
+        <StackPanel Classes="page">
+            <TextBlock Classes="pagetitle" Text="悬浮小窗" />
+            <TextBlock Margin="0,-4,0,8" TextWrapping="Wrap" Opacity="0.85" Text="边玩边看攻略视频的置顶小窗。在游戏中按住 Alt 把鼠标移到小窗上即可操作，常用操作都可以用快捷键完成，不需要切换窗口。" />
+            <Border x:Name="UnsupportedBanner" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
+                <TextBlock TextWrapping="Wrap" Text="{Binding StatusText}" />
+            </Border>
+            <ui:FASettingsExpander x:Name="WindowCard" Header="小窗" Description="小窗未打开（Linux 版暂不支持）" IconSource="{svc:FluentIconSource VideoClip24}">
+                <ui:FASettingsExpander.Footer>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent" Content="打开小窗" IsEnabled="False" />
+                        <Button Content="隐藏" IsEnabled="False" />
+                        <Button Content="关闭" IsEnabled="False" />
+                        <Button Content="恢复小窗" IsEnabled="False" />
+                    </StackPanel>
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="HomeCard" Header="主页" Description="没有上次看过的页面时打开" IconSource="{svc:FluentIconSource Globe24}">
+                <ui:FASettingsExpander.Footer>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="HomeUrlBox" Width="270" Text="{Binding Config.HomeUrl, UpdateSourceTrigger=LostFocus}" />
+                        <Button x:Name="ResetHomeButton" Content="恢复 B 站首页" Command="{Binding ResetHomeUrlCommand}" />
+                    </StackPanel>
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="AppearanceCard" Header="外观与窗口" Description="鼠标不在小窗上时的不透明度、置顶与位置。鼠标移到小窗上时总是 100% 显示" IconSource="{svc:FluentIconSource Window24}">
+                <ui:FASettingsExpanderItem Content="不透明度" Description="也可以在小窗的窗口栏上滚动鼠标调整">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="10"><Slider x:Name="OpacitySlider" Width="200" Minimum="0.2" Maximum="1" Value="{Binding Config.Opacity}" /><TextBlock VerticalAlignment="Center" MinWidth="44" Text="{Binding Config.Opacity, StringFormat={}{0:P0}}" /></StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="始终置顶" Description="关闭后小窗是普通窗口，适合放在副屏">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="TopmostToggle" IsChecked="{Binding Config.Topmost}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="位置" Description="跟随游戏窗口：小窗停靠在游戏画面的一角，随游戏窗口移动。自由放置：可以放在任意显示器上">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="PositionModeBox" Width="220" ItemsSource="{Binding PositionModeOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.PositionMode}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="网页缩放" Description="小窗较小时适当缩小网页，可以看到更多内容">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="ZoomBox" Width="220" ItemsSource="{Binding ZoomOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.ZoomFactor}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="沉浸模式下按视频比例缩放" Description="进入沉浸模式和拖动缩放时保持视频宽高比，避免黑边">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="LockAspectToggle" IsChecked="{Binding Config.LockAspectInImmersive}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="显示底部进度线" Description="窗口栏隐藏时，在小窗底边显示一条细的播放进度线">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="ProgressLineToggle" IsChecked="{Binding Config.ShowProgressLine}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="MouseCard" Header="鼠标穿透与交互" Description="小窗默认不抢游戏焦点；需要在网页里输入文字时进入交互模式，结束后自动还给游戏" IconSource="{svc:FluentIconSource CursorClick24}">
+                <ui:FASettingsExpanderItem Content="鼠标穿透" Description="开启后点击直接落到下方的游戏上，不会误点小窗。穿透时用快捷键操作小窗">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="ClickThroughToggle" IsChecked="{Binding Config.IsClickThrough}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="智能透明" Description="鼠标穿透时，鼠标经过小窗会自动淡化，露出下方的游戏画面">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="SmartFadeToggle" IsChecked="{Binding Config.SmartFadeEnabled}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="淡化后的不透明度" IsVisible="{Binding Config.SmartFadeEnabled}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="10"><Slider x:Name="SmartFadeSlider" Width="200" Minimum="0" Maximum="0.8" Value="{Binding Config.SmartFadeOpacity}" /><TextBlock VerticalAlignment="Center" MinWidth="44" Text="{Binding Config.SmartFadeOpacity, StringFormat={}{0:P0}}" /></StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="交互模式自动结束" Description="交互模式下可以在网页中输入文字；鼠标离开小窗一段时间后自动结束">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="InteractionExitBox" Width="220" ItemsSource="{Binding InteractionExitOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.InteractionAutoExitSeconds}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="AutoShowCard" Header="自动显示与隐藏" Description="进入游戏时打开，游戏切到后台时隐藏，执行任务时让开" IconSource="{svc:FluentIconSource EyeOff24}">
+                <ui:FASettingsExpanderItem Content="进入游戏时" Description="截图器连接到游戏窗口时自动打开小窗。自动打开时不会自动播放视频">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="AutoOpenBox" Width="220" ItemsSource="{Binding AutoOpenOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.AutoOpenOnGameStart}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="游戏最小化或切到后台时隐藏" Description="切到其他程序时隐藏，回到游戏时自动显示；切到 BetterGI 主界面时保持显示">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="HideInactiveToggle" IsChecked="{Binding Config.HideWhenGameInactive}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="小窗在其他显示器上时不自动隐藏" Description="小窗与游戏不在同一显示器时，只在游戏最小化时隐藏">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="OtherMonitorToggle" IsChecked="{Binding Config.KeepVisibleOnOtherMonitor}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="小窗隐藏时暂停视频" Description="关闭时隐藏小窗后视频继续播放，可以只听声音">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="PauseHiddenToggle" IsChecked="{Binding Config.PauseWhenHidden}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="执行任务时隐藏小窗" Description="独立任务、调度器、一条龙、任务计划运行时隐藏，避免挡住自动操作">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="HideTaskToggle" IsChecked="{Binding Config.HideDuringTask}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="任务开始时暂停视频">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="PauseTaskToggle" IsChecked="{Binding Config.PauseDuringTask}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="任务结束后恢复小窗" Description="恢复显示，但不会自动继续播放">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="RestoreTaskToggle" IsChecked="{Binding Config.RestoreAfterTask}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="PlaybackCard" Header="播放习惯" Description="快进步长、倍速、临时加速、续播与字幕" IconSource="{svc:FluentIconSource PlayCircle24}">
+                <ui:FASettingsExpanderItem Content="快进、快退步长">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="SeekBox" Width="220" ItemsSource="{Binding SeekOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.SeekSeconds}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="倍速调整步长">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="RateStepBox" Width="220" ItemsSource="{Binding RateStepOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.RateStep}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="按住临时加速的倍速" Description="按住快捷键时加速，松开后恢复原来的倍速">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="BoostBox" Width="220" ItemsSource="{Binding BoostRateOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.BoostRate}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="音量调整步长">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="VolumeStepBox" Width="220" ItemsSource="{Binding VolumeStepOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.VolumeStep}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="从上次位置继续" Description="直接打开网页时沿用网站自己的观看进度">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="ResumeBox" Width="220" ItemsSource="{Binding ResumeModeOptions}" SelectedValueBinding="{ReflectionBinding Value}" DisplayMemberBinding="{ReflectionBinding Name}" SelectedValue="{Binding Config.ResumeMode}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="续播时恢复上次的倍速">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="RestoreRateToggle" IsChecked="{Binding Config.RestorePlaybackRate}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="自动开启中文字幕（B 站）" Description="普通中文字幕优先，其次 AI 中文字幕；本集内手动关闭后不再干预">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="ChineseSubToggle" IsChecked="{Binding Config.AutoEnableChineseSubtitle}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="记住沉浸模式" Description="下次打开视频时自动进入 B 站网页全屏">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="RememberImmersiveToggle" IsChecked="{Binding Config.RememberImmersive}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="SubtitleCard" Header="字幕浮窗" Description="把视频字幕单独显示在游戏画面上，小窗可以缩小或隐藏" IconSource="{svc:FluentIconSource ClosedCaption24}">
+                <ui:FASettingsExpander.Footer>
+                    <ToggleSwitch x:Name="SubtitleToggle" IsChecked="{Binding Config.SubtitleWindowEnabled}" OnContent="" OffContent="" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="位置与宽度" Description="字幕跟随游戏画面。在 Windows 版中可拖动调整">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Button x:Name="ResetSubtitleButton" Content="恢复默认" Command="{Binding ResetSubtitlePositionCommand}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="字号">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="10"><Slider x:Name="SubtitleFontSlider" Width="200" Minimum="12" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Config.SubtitleFontSize}" /><TextBlock VerticalAlignment="Center" MinWidth="44" Text="{Binding Config.SubtitleFontSize}" /></StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="背景不透明度">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="10"><Slider x:Name="SubtitleBgSlider" Width="200" Minimum="0" Maximum="1" Value="{Binding Config.SubtitleBackgroundOpacity}" /><TextBlock VerticalAlignment="Center" MinWidth="44" Text="{Binding Config.SubtitleBackgroundOpacity, StringFormat={}{0:P0}}" /></StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="开启字幕浮窗时隐藏网页内字幕">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="HidePageSubToggle" IsChecked="{Binding Config.HidePageSubtitle}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="小窗隐藏时继续显示字幕" Description="隐藏小窗后只听声音、看字幕">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="SubWhenHiddenToggle" IsChecked="{Binding Config.ShowSubtitleWhenHidden}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="HotKeyCard" Header="快捷键" Description="小窗快捷键（播放、快进、倍速、穿透等）随小窗一起使用，Linux 版暂未提供" IconSource="{svc:FluentIconSource Keyboard24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button x:Name="OpenHotKeyButton" Content="前往快捷键页" Command="{Binding OpenHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="LibraryCard" Header="收藏与观看记录" Description="{Binding LibrarySummary}" IconSource="{svc:FluentIconSource Star24}" IsExpanded="True">
+                <ui:FASettingsExpanderItem>
+                    <StackPanel Spacing="6">
+                        <TextBlock FontWeight="SemiBold" Text="收藏" />
+                        <TextBlock FontSize="12" Opacity="0.7" Text="在小窗窗口栏点 ★ 收藏当前视频。标题可以直接修改" />
+                        <TextBlock FontSize="12" Opacity="0.6" Text="暂无收藏" IsVisible="{Binding !HasFavorites}" />
+                        <ItemsControl x:Name="FavoritesList" ItemsSource="{Binding Favorites}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GuideFavoriteItem">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
+                                        <StackPanel>
+                                            <TextBox Text="{Binding Title, UpdateSourceTrigger=LostFocus}" />
+                                            <TextBlock FontSize="11" Opacity="0.6" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center" FontSize="12" Opacity="0.7" Text="{Binding Progress}" />
+                                        <Button Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="删除收藏" Content="{svc:FluentIcon Delete24, Size=14}"
+                                                Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveFavoriteCommand}" CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+                            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Text="最近观看（最多显示 50 条）" />
+                            <Button Grid.Column="1" x:Name="ClearHistoryButton" Content="清空" Command="{Binding ClearHistoryCommand}" IsEnabled="{Binding HasHistory}" />
+                        </Grid>
+                        <TextBlock FontSize="12" Opacity="0.7" Text="观看超过 10 秒的视频会自动记录进度" />
+                        <ItemsControl x:Name="HistoryList" ItemsSource="{Binding History}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GuideHistoryItem">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock FontSize="11" Opacity="0.6" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center" FontSize="12" Opacity="0.7" Text="{Binding Progress}" />
+                                        <Button Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="删除记录" Content="{svc:FluentIcon Delete24, Size=14}"
+                                                Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveHistoryCommand}" CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander x:Name="WebDataCard" Header="网页数据与快捷打开" Description="小窗使用独立的网页环境，B 站登录只保存在小窗中" IconSource="{svc:FluentIconSource Link24}">
+                <ui:FASettingsExpanderItem Content="地图点位视频默认用小窗打开" Description="在大地图遮罩的点位详情中点击视频攻略时，直接在小窗中播放">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="MapVideoToggle" IsChecked="{Binding Config.OpenMapVideoInWindow}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="识别剪贴板中的 B 站链接" Description="复制 B 站视频链接后切到 BetterGI 主界面时，询问是否用小窗打开">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="ClipboardToggle" IsChecked="{Binding Config.ClipboardPromptEnabled}" OnContent="" OffContent="" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

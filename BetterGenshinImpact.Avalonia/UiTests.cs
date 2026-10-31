@@ -51,6 +51,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "newonedragon": await NewOneDragonAsync(); break;
                 case "macro": await MacroAsync(); break;
                 case "music": await MusicAsync(); break;
+                case "guide": await GuideAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2253,6 +2254,86 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 悬浮小窗设置页（对应 WPF GuideWindowSettingsPage）：卡片与顺序、设置写入 GuideWindowConfig（下拉框按值选择）、
+    /// 收藏与观看记录（Core GuideLibraryStore：进度文本、改标题、删除、清空确认）
+    /// </summary>
+    private async Task GuideAsync()
+    {
+        var page = vm.Guide;
+        var lib = page.Library;
+        if (!lib.IsFavorite("BV1m51test")) lib.ToggleFavorite("BV1m51test", "M51 收藏测试", "https://www.bilibili.com/video/BV1m51test");
+        lib.UpdateProgress("BV1m51test", "M51 收藏测试", "https://www.bilibili.com/video/BV1m51test", 75, 600, 1.0);
+        lib.UpdateProgress("BV1m51hist", "M51 记录测试", "https://www.bilibili.com/video/BV1m51hist", 30, 0, 1.0);
+        vm.Navigate("悬浮小窗");
+        await Settle(600);
+        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
+        Check("卡片与 WPF 相同", headers.SequenceEqual(["小窗", "主页", "外观与窗口", "鼠标穿透与交互", "自动显示与隐藏", "播放习惯", "字幕浮窗", "快捷键", "收藏与观看记录", "网页数据与快捷打开"]),
+            string.Join(",", headers));
+        Check("提示 Linux 不支持小窗", Named<Border>("UnsupportedBanner")?.IsEffectivelyVisible == true);
+        var cfg = page.Config;
+        await Settle(600); // 第二次：展开后才出现的卡片内控件
+        Check("下拉框按值显示", (Named<ComboBox>("ZoomBox")?.SelectedItem as ViewModels.GuideOption)?.Value.Equals(cfg.ZoomFactor) == true
+                              && (Named<ComboBox>("SeekBox")?.SelectedItem as ViewModels.GuideOption)?.Value.Equals(cfg.SeekSeconds) == true,
+            $"{cfg.ZoomFactor} {cfg.SeekSeconds}");
+        var zoom0 = cfg.ZoomFactor; var seek0 = cfg.SeekSeconds; var pos0 = cfg.PositionMode; var top0 = cfg.Topmost; var home0 = cfg.HomeUrl; var fade0 = cfg.SmartFadeEnabled;
+        Named<ComboBox>("ZoomBox")!.SelectedIndex = 1;
+        Named<ComboBox>("SeekBox")!.SelectedIndex = 3;
+        Named<ComboBox>("PositionModeBox")!.SelectedIndex = 1;
+        Named<ToggleSwitch>("TopmostToggle")!.IsChecked = !top0;
+        await Settle();
+        Check("设置写入配置", cfg.ZoomFactor == 0.8 && cfg.SeekSeconds == 15 && cfg.PositionMode == Core.Config.GuidePositionMode.Free && cfg.Topmost == !top0,
+            $"{cfg.ZoomFactor} {cfg.SeekSeconds} {cfg.PositionMode} {cfg.Topmost}");
+        cfg.SmartFadeEnabled = true;
+        await Settle();
+        var fadeVisible = Named<Slider>("SmartFadeSlider") is not null;
+        cfg.SmartFadeEnabled = false;
+        await Settle();
+        Check("智能透明关闭时隐藏淡化不透明度", fadeVisible && Named<Slider>("SmartFadeSlider") is null);
+        cfg.HomeUrl = "https://example.com/";
+        await Click(Named<Button>("ResetHomeButton")!, "恢复 B 站首页");
+        Check("恢复 B 站首页", cfg.HomeUrl == Core.Config.GuideWindowConfig.DefaultHomeUrl);
+        cfg.ZoomFactor = zoom0; cfg.SeekSeconds = seek0; cfg.PositionMode = pos0; cfg.Topmost = top0; cfg.HomeUrl = home0; cfg.SmartFadeEnabled = fade0;
+
+        // 收藏与观看记录
+        var fav = page.Favorites.FirstOrDefault(f => f.Id is not null && f.Url.EndsWith("BV1m51test"));
+        Check("收藏显示进度", fav?.Progress == "看到 01:15 / 10:00" || fav?.Progress.StartsWith("看到 1:15") == true, fav?.Progress);
+        Check("观看记录", page.History.Any(h => h.Title == "M51 记录测试" && h.Progress.StartsWith("看到")) && page.LibrarySummary.Contains("收藏"), page.LibrarySummary);
+        if (fav is not null)
+        {
+            fav.Title = "M51 改名";
+            await Settle();
+            Check("改标题写回收藏", lib.GetFavorites().Any(f => f.Title == "M51 改名"));
+            page.RemoveFavoriteCommand.Execute(fav);
+            await Settle(500);
+            Check("删除收藏", !lib.GetFavorites().Any(f => f.VideoKey == "BV1m51test") && page.Favorites.All(f => !f.Url.EndsWith("BV1m51test")));
+        }
+
+        var hist = page.History.First(h => h.VideoKey == "BV1m51hist");
+        page.RemoveHistoryCommand.Execute(hist);
+        await Settle(500);
+        Check("删除观看记录", lib.FindRecord("BV1m51hist") is null && page.History.All(h => h.VideoKey != "BV1m51hist"));
+        lib.UpdateProgress("BV1m51hist2", "M51 记录二", "https://www.bilibili.com/video/BV1m51hist2", 10, 100, 1.0);
+        await Settle(500);
+        var clear = page.ClearHistoryCommand.ExecuteAsync(null);
+        var dialog = await WaitFor(() => Services.FluentMessageBox.Current);
+        Check("清空前确认", dialog is not null);
+        Shot("avalonia-guide-confirm.png");
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await clear;
+        await Settle(500);
+        Check("清空观看记录", lib.FindRecord("BV1m51hist2") is null && page.History.All(h => h.VideoKey != "BV1m51hist2"));
+        lib.UpdateProgress("BV1m51shot", "M51 截图用记录", "https://www.bilibili.com/video/BV1m51shot", 42, 300, 1.0);
+        await Settle(500);
+        await Click(Named<Button>("OpenHotKeyButton")!, "前往快捷键页");
+        Check("前往快捷键页", vm.SelectedNav?.Title == "快捷键", vm.SelectedNav?.Title);
+        vm.Navigate("悬浮小窗");
+        await Settle(600);
+        Shot("avalonia-guide.png");
+        lib.RemoveRecord("BV1m51shot");
+        lib.Flush();
     }
 
     /// <summary>

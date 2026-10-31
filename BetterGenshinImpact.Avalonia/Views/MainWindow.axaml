@@ -41,6 +41,9 @@
         <DataTemplate DataType="vm:MusicPageViewModel">
             <views:MusicPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:GuideWindowSettingsPageViewModel">
+            <views:GuideWindowSettingsPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:NewOneDragonPageViewModel">
             <views:NewOneDragonPage />
         </DataTemplate>

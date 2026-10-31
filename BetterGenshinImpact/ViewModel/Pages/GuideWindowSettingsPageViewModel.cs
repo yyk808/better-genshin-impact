@@ -403,22 +403,7 @@ public partial class GuideWindowSettingsPageViewModel : ViewModel
     /// <summary>
     /// 进度说明
     /// </summary>
-    private static string DescribeProgress(GuideWatchRecord? record)
-    {
-        if (record is null)
-        {
-            return string.Empty;
-        }
-
-        if (record.Finished)
-        {
-            return "已看完";
-        }
-
-        return record.Duration > 0
-            ? $"看到 {GuideWindowState.FormatTime(record.Position)} / {GuideWindowState.FormatTime(record.Duration)}"
-            : $"看到 {GuideWindowState.FormatTime(record.Position)}";
-    }
+    private static string DescribeProgress(GuideWatchRecord? record) => GuideLibraryPresentation.DescribeProgress(record);
 
     #endregion
 
