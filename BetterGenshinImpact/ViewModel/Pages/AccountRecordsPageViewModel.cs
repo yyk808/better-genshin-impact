@@ -1,8 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using BetterGenshinImpact.Service.AccountRecords;
@@ -32,10 +30,10 @@ public partial class AccountRecordsPageViewModel : ViewModel
     [RelayCommand]
     private async Task ResetToDefaults()
     {
-        if (await ThemedMessageBox.ShowAsync("将重置所有 UID 及其库存、异常、事件和快照，恢复补充字典、来源字典、Warning 规则及账号记录设置为预设值。预设 UID 列表为空。是否继续？",
-                "重置为预设值（1/2）", MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
-        if (await ThemedMessageBox.ShowAsync("再次确认：此操作影响所有账号，覆盖全部自定义字典和账号记录配置。原数据会保留在 AccountRecords 同级备份目录，但界面不提供撤销。确定执行重置？",
-                "最终确认（2/2）", MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
+        if (await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.ResetConfirm1.Text,
+                AccountRecordsAccounts.ResetConfirm1.Title, MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
+        if (await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.ResetConfirm2.Text,
+                AccountRecordsAccounts.ResetConfirm2.Title, MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
         try
         {
             await AccountRecordsInteractionGate.Instance.ExecuteManualAsync(() => _store.ResetToDefaultsAsync());
@@ -191,20 +189,15 @@ public partial class AccountRecordsPageViewModel : ViewModel
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = "导出当前库存", Filter = "账号记录 JSON|*.json", DefaultExt = ".json", AddExtension = true,
-            FileName = $"AccountRecords-{uid}-{DateTime.Now:yyyyMMdd-HHmmss}.json"
+            FileName = AccountRecordsAccounts.DefaultExportFileName(uid, DateTime.Now)
         };
         if (dialog.ShowDialog() != true) return;
-        string? temporary = null;
         try
         {
-            var package = await _store.ExportInventoryAsync(uid);
-            temporary = dialog.FileName + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            await File.WriteAllTextAsync(temporary, package.ToString(Newtonsoft.Json.Formatting.Indented), new UTF8Encoding(false));
-            File.Move(temporary, dialog.FileName, true);
-            await ThemedMessageBox.ShowAsync("当前库存已导出。文件保留原记录时间与来源，不包含异常、快照或图标。", "导出完成", MessageBoxButton.OK);
+            await AccountRecordsAccounts.ExportInventoryAsync(_store, uid, dialog.FileName);
+            await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.ExportDoneText, "导出完成", MessageBoxButton.OK);
         }
         catch (Exception ex) { await ThemedMessageBox.ShowAsync(AccountRecordsErrorMessages.Describe(ex), "导出失败", MessageBoxButton.OK); }
-        finally { if (temporary != null && File.Exists(temporary)) File.Delete(temporary); }
     }
 
     /// <summary>保存空账号；重复输入时直接选择已有项。</summary>
@@ -212,9 +205,9 @@ public partial class AccountRecordsPageViewModel : ViewModel
     private async Task AddUid()
     {
         var uid = PendingUid.Trim();
-        if (uid.Length is < 9 or > 10 || uid[0] == '0' || !uid.All(char.IsAsciiDigit))
+        if (!AccountRecordsAccounts.IsValidUid(uid))
         {
-            UidValidationMessage = "UID 必须为 9～10 位数字且首位非零。";
+            UidValidationMessage = AccountRecordsAccounts.UidValidationMessage;
             return;
         }
 
@@ -232,15 +225,10 @@ public partial class AccountRecordsPageViewModel : ViewModel
     [RelayCommand]
     private async Task ClearAccount(string scope)
     {
-        if (scope is not ("inventory" or "uid")) return;
+        if (!AccountRecordsAccounts.IsClearScope(scope)) return;
         var uid = SelectedUid;
         if (uid == null) return;
-        var description = scope switch
-        {
-            "uid" => "删除该 UID 及其全部账号记录和快照",
-            _ => "清空该 UID 的库存、异常和库存快照，但保留 UID"
-        };
-        if (await ThemedMessageBox.ShowAsync($"确定{description}？此操作不可撤销。", "清除账号记录", MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
+        if (await ThemedMessageBox.ShowAsync(AccountRecordsAccounts.ClearConfirmText(scope), "清除账号记录", MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes) return;
         try
         {
             await AccountRecordsInteractionGate.Instance.ExecuteManualAsync(() => _store.ClearAsync(uid, false, scope == "uid"));

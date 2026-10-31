@@ -70,7 +70,7 @@ public sealed partial class AccountRecordsInventoryRow : ObservableObject
     /// <summary>最近一次可追溯上报批次，包括失败上报。</summary>
     public string? LastScanAttemptId { get; set; }
     /// <summary>状态优先级：红、橘、黄、绿、灰、无灯。</summary>
-    public int StateRank => HasError ? 0 : Event?.State switch { "Error" => 0, "Warning" => 1, "Pending" => 2, "Completed" => 3, "Planned" => 4, _ => 5 };
+    public int StateRank => InventoryRowFormatting.StateRank(HasError, Event);
     /// <summary>是否显示状态灯。</summary>
     public bool HasStatusLight => StateRank < 5;
     /// <summary>当前物品为未受阻的绿灯，且账号内同类合法归档目标至少有两条。</summary>
@@ -78,15 +78,15 @@ public sealed partial class AccountRecordsInventoryRow : ObservableObject
     /// <summary>累计待核实增量；为空表示没有待核实变动。</summary>
     public decimal? PendingDelta { get; set; }
     /// <summary>附在确认库存右侧，不参与主数量居中。</summary>
-    public string DeltaText => PendingDelta is { } value ? $"（{(value > 0 ? "+" : value == 0 ? "±" : "")}{value}）" : "";
+    public string DeltaText => InventoryRowFormatting.DeltaText(PendingDelta);
     /// <summary>无确认库存但有变动时，仅居中显示增减量，不将未知库存视为零。</summary>
-    public string QuantityText => Quantity?.ToString() ?? (PendingDelta.HasValue ? DeltaText : "未知");
+    public string QuantityText => InventoryRowFormatting.QuantityText(Quantity, PendingDelta);
     /// <summary>已有确认库存时，在主数量右侧附加增减量。</summary>
     public string AdditionalDeltaText => Quantity.HasValue ? DeltaText : "";
     /// <summary>两行提示的来源及变动摘要。</summary>
     public string StatusDetails { get; set; } = "";
     /// <summary>悬停同样显示两行摘要。</summary>
-    public string StatusText => AccountRecordsErrorMessages.ForDisplay(Event?.Message ?? Error?.Message ?? "") + "\n" + StatusDetails;
+    public string StatusText => InventoryRowFormatting.StatusText(Event, Error, StatusDetails);
     /// <summary>标准名称或待修订名称。</summary>
     public string Name { get; set; } = "";
     /// <summary>由物品字典生成的名称排序文本，不用于展示或存储关联。</summary>
@@ -112,7 +112,7 @@ public sealed partial class AccountRecordsInventoryRow : ObservableObject
     /// <summary>用于时间排序的 UTC 时间。</summary>
     public DateTimeOffset? RecordedAt { get; set; }
     /// <summary>按当前系统时区展示时间。</summary>
-    public string TimeText => RecordedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "未记录";
+    public string TimeText => InventoryRowFormatting.TimeText(RecordedAt);
     /// <summary>到期批次是否包含尚未核实的增量推算。</summary>
     public bool ExpirationsEstimated { get; set; }
     /// <summary>当前分批到期信息；存在待核实增量时展示推算结果。</summary>
@@ -124,17 +124,9 @@ public sealed partial class AccountRecordsInventoryRow : ObservableObject
     /// <summary>到期排序时，有到期信息的材料始终排在无信息材料之前。</summary>
     public bool HasExpiration => Expirations is { Count: > 0 };
     /// <summary>表格显示剩余天数，多批同时标注数量。</summary>
-    public string ExpirationText => Expirations is not { Count: > 0 } ? ExpirationsEstimated && Expirations != null ? "无剩余批次（推算）" : "—" : string.Join("；", Expirations.Select(item =>
-        $"{item.Quantity} 个：{Remaining(item.Time)}")) + (ExpirationsEstimated ? "（推算）" : "");
+    public string ExpirationText => InventoryRowFormatting.ExpirationText(Expirations, ExpirationsEstimated);
     /// <summary>悬停逐行显示各批次数量和剩余天数。</summary>
-    public string ExpirationDetails => Expirations is not { Count: > 0 } ? ExpirationsEstimated && Expirations != null ? "已知到期批次推算已消耗完，等待完整库存核实。" : "未提供过期信息" : string.Join("\n", Expirations.Select(item =>
-        $"{item.Quantity} 个：{Remaining(item.Time)}")) + (ExpirationsEstimated ? "\n包含待核实增量，按最早到期优先推算消耗。" : "");
-    /// <summary>按实际时长显示完整天数，不足一天独立提示。</summary>
-    private static string Remaining(DateTimeOffset time)
-    {
-        var remaining = time - DateTimeOffset.UtcNow;
-        return remaining <= TimeSpan.Zero ? "已过期" : remaining.TotalDays < 1 ? "不足 1 天" : $"{Math.Floor(remaining.TotalDays)} 天";
-    }
+    public string ExpirationDetails => InventoryRowFormatting.ExpirationDetails(Expirations, ExpirationsEstimated);
     /// <summary>刷新时间与事件展示，不重建行或触发图像重新加载。</summary>
     public void RefreshTimeAndStatus()
     {
