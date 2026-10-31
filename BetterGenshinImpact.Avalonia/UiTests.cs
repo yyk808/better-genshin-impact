@@ -40,6 +40,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "boss-editors": await BossEditorsAsync(); break;
                 case "resin-plan-editor": await ResinPlanEditorAsync(); break;
                 case "plan-hotkey": await PlanHotkeyAsync(); break;
+                case "plan-reference": await PlanReferenceAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1525,6 +1526,53 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await WaitFor(() => scheduler.Hotkeys.Registered.Count == 0 ? "ok" : null);
             Check("删除计划后注销快捷键", scheduler.Hotkeys.Registered.Count == 0, string.Join("；", scheduler.Hotkeys.Registered));
         }
+    }
+
+    // —— 计划引用：引用已有计划、互相引用拒绝、被引用计划不可删除 ——
+
+    private async Task PlanReferenceAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M42 引用自测 A") is not { } a) return;
+        if (await CreateTempPlanAsync(page, "M42 引用自测 B") is not { } b)
+        {
+            await DeleteTempPlanAsync(page, a);
+            return;
+        }
+
+        // 新建计划会重新加载列表，按 ID 取当前项
+        var itemA = page.Plans.First(p => p.Plan.Id == a);
+        var itemB = page.Plans.First(p => p.Plan.Id == b);
+        page.SelectedTab = 0;
+        await Settle();
+        Check("引用候选不含自身", page.ReferencePlans.Contains(itemA) && !page.ReferencePlans.Contains(itemB));
+        page.ReferenceTarget = itemA;
+        await Click(Named<Button>("AddPlanReferenceButton"), "引用");
+        var bJson = ReadJson(Global.Absolute($@"User\Pulonia\plans\{b}.json")).ToString(Newtonsoft.Json.Formatting.None);
+        Check("存盘：引用节点", bJson.Contains("\"plan_id\":\"" + a + "\"") && bJson.Contains("引用：M42 引用自测 A"), bJson);
+        Check("任务列表显示引用", page.Nodes.Any(n => n.Name == "引用：M42 引用自测 A" && n.Detail.StartsWith("引用计划")));
+        await Settle(600);
+        Shot("avalonia-plan-reference.png");
+
+        // A 引用 B 会形成环
+        page.SelectedPlan = page.Plans.First(p => p.Plan.Id == a);
+        await Settle(400);
+        itemB = page.Plans.First(p => p.Plan.Id == b);
+        page.ReferenceTarget = itemB;
+        await Click(Named<Button>("AddPlanReferenceButton"), "引用（成环）");
+        var aJson = ReadJson(Global.Absolute($@"User\Pulonia\plans\{a}.json")).ToString(Newtonsoft.Json.Formatting.None);
+        Check("拒绝互相引用", page.StatusMessage.Contains("互相引用") && !aJson.Contains(b), page.StatusMessage);
+
+        // 被引用的 A 不能删除
+        await Click(ButtonByText("删除计划"), "删除计划（被引用）");
+        Check("被引用计划不可删除", File.Exists(Global.Absolute($@"User\Pulonia\plans\{a}.json")) && page.StatusMessage.Contains("仍引用"), page.StatusMessage);
+
+        page.SelectedPlan = page.Plans.First(p => p.Plan.Id == b);
+        await Settle(400);
+        await DeleteTempPlanAsync(page, b);
+        page.SelectedPlan = page.Plans.FirstOrDefault(p => p.Plan.Id == a);
+        await Settle(400);
+        await DeleteTempPlanAsync(page, a);
     }
 
     private TextBox? FieldBox(string name)

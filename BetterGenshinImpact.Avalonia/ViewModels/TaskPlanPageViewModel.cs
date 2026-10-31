@@ -145,6 +145,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     partial void OnSelectedPlanChanged(TaskPlanItem? value)
     {
         TriggerEditor = null;
+        ReferenceTarget = null;
+        OnPropertyChanged(nameof(ReferencePlans));
         RebuildNodes();
         RebuildTriggers();
         OnPropertyChanged(nameof(HasSelectedPlan));
@@ -413,6 +415,13 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     private async Task DeletePlanAsync()
     {
         if (_store is null || SelectedPlan is not { } item) return;
+        // 与 WPF 相同：仍被其他计划引用时不删除
+        if (Plans.FirstOrDefault(other => other != item && ReferencedPlanIds(other.Plan.RootTask).Contains(item.Plan.Id)) is { } referrer)
+        {
+            StatusMessage = $"计划“{referrer.Name}”仍引用此计划，请先移除引用后再删除。";
+            return;
+        }
+
         try
         {
             await _store.DeletePlanAsync(item.Plan.Id, item.Plan.Revision);
@@ -459,6 +468,66 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         {
             StatusMessage = "添加任务失败：" + e.Message;
         }
+    }
+
+    /// <summary>可被当前计划引用的其他计划（引用选择框）</summary>
+    public IReadOnlyList<TaskPlanItem> ReferencePlans => Plans.Where(p => p != SelectedPlan).ToList();
+
+    [ObservableProperty] private TaskPlanItem? _referenceTarget;
+
+    /// <summary>
+    /// 新增对其他计划的引用节点（与 WPF “引用已有任务计划”相同）：不复制目标计划内容，目标之后的修改同步生效；
+    /// 两个计划互相引用（含间接）时拒绝。
+    /// </summary>
+    [RelayCommand]
+    private async Task AddPlanReferenceAsync()
+    {
+        if (SelectedPlan is not { } item) return;
+        if (ReferenceTarget is not { } target || target == item)
+        {
+            StatusMessage = "请选择要引用的其他计划。";
+            return;
+        }
+
+        if (WouldCreateReferenceCycle(item.Plan.Id, target.Plan.Id))
+        {
+            StatusMessage = $"不能引用“{target.Name}”：两个计划会互相引用。";
+            return;
+        }
+
+        var parent = SelectedNode is { Task.TaskType: "group", Task.Source: null } group ? group.Task : item.Plan.RootTask;
+        parent.Children.Add(new PuloniaTask
+        {
+            Name = "引用：" + target.Name,
+            TaskType = "group",
+            Source = new PuloniaTaskSource { Kind = "plan", PlanId = target.Plan.Id },
+        });
+        await SaveAsync(item, $"已引用计划“{target.Name}”。");
+        RebuildNodes();
+    }
+
+    /// <summary>引用后能否从目标计划经引用链回到当前计划</summary>
+    internal bool WouldCreateReferenceCycle(string sourcePlanId, string targetPlanId)
+    {
+        var plans = Plans.ToDictionary(p => p.Plan.Id, p => p.Plan);
+        var visited = new HashSet<string>();
+        var pending = new Stack<string>([targetPlanId]);
+        while (pending.TryPop(out var id))
+        {
+            if (id == sourcePlanId) return true;
+            if (!visited.Add(id) || !plans.TryGetValue(id, out var plan)) continue;
+            foreach (var referenced in ReferencedPlanIds(plan.RootTask)) pending.Push(referenced);
+        }
+
+        return false;
+    }
+
+    internal static IEnumerable<string> ReferencedPlanIds(PuloniaTask task)
+    {
+        if (task.Source is { Kind: "plan", PlanId: { Length: > 0 } id }) yield return id;
+        foreach (var child in task.Children)
+        foreach (var nested in ReferencedPlanIds(child))
+            yield return nested;
     }
 
     [RelayCommand]
@@ -614,7 +683,7 @@ public sealed partial class TaskPlanNodeRow : ObservableObject
 
     public string TypeText => PuloniaTaskTypeText.Get(Task);
 
-    public string Detail => Task.Source?.Path ?? Task.Path ?? Task.Resource?.ScopeKey ?? "";
+    public string Detail => Task.Source is { Kind: "plan" } ? "引用计划（目标修改同步生效）" : Task.Source?.Path ?? Task.Path ?? Task.Resource?.ScopeKey ?? "";
 
     public double RowOpacity => _parentEnabled && Task.IsEnabled ? 1 : 0.5;
 

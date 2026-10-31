@@ -72,7 +72,11 @@
                                         <ComboBox ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" MinWidth="220" MaxWidth="360"
                                                   IsVisible="{Binding HasResources}" Margin="0,0,6,4" />
                                         <Button Content="＋ 添加" Command="{Binding AddTaskCommand}" Margin="0,0,6,4" />
-                                        <Button Content="分组" Command="{Binding AddGroupCommand}" Margin="0,0,14,4" />
+                                        <Button Content="分组" Command="{Binding AddGroupCommand}" Margin="0,0,6,4" />
+                                        <ComboBox Name="ReferencePlanBox" ItemsSource="{Binding ReferencePlans}" SelectedItem="{Binding ReferenceTarget}"
+                                                  PlaceholderText="引用计划" MinWidth="140" Margin="0,0,6,4" DisplayMemberBinding="{Binding Name}" />
+                                        <Button Name="AddPlanReferenceButton" Content="引用" Command="{Binding AddPlanReferenceCommand}" Margin="0,0,14,4"
+                                                ToolTip.Tip="引用已有任务计划：不复制内容，之后修改该计划会同步影响这里" />
                                         <Button Content="↑" Command="{Binding MoveTaskCommand}" CommandParameter="up" Margin="0,0,4,4" ToolTip.Tip="上移" />
                                         <Button Content="↓" Command="{Binding MoveTaskCommand}" CommandParameter="down" Margin="0,0,4,4" ToolTip.Tip="下移" />
                                         <Button Content="删除" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
