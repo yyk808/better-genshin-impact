@@ -23,6 +23,7 @@ public static class DedicatedTaskSettings
         [GameTask.Common.Job.GoToSereniteaPotTask.TaskId] = typeof(SereniteaPotSettingsViewModel),
         [GameTask.AutoBoss.AutoBossTask.TaskId] = typeof(AutoBossSettingsViewModel),
         [GameTask.AutoStygianOnslaught.AutoStygianOnslaughtTask.TaskId] = typeof(AutoStygianOnslaughtSettingsViewModel),
+        [GameTask.ResinPlan.ResinPlanTask.TaskId] = typeof(ResinPlanSettingsViewModel),
     };
 
     /// <summary>按任务类型创建专属设置 VM；VM 构造函数接收当前有效参数，其余依赖从服务容器解析（可缺省）</summary>

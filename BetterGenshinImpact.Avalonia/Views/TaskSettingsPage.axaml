@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              x:Class="BetterGenshinImpact.Avalonia.Views.TaskSettingsPage"
              x:DataType="vm:TaskSettingsPageViewModel">
     <UserControl.Styles>
@@ -92,10 +93,10 @@
                                                         <TextBlock Classes="desc" Text="0 表示直到体力耗尽" />
                                                     </StackPanel>
                                                 </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsDomain}">
-                                                    <TextBox Text="{Binding Page.Config.AutoDomainConfig.PartyName}" />
-                                                    <TextBlock Text="切换队伍名称（为空不切换）" VerticalAlignment="Center" />
-                                                </DockPanel>
+                                                <!-- 自动秘境的其余配置项（对照 WPF 独立任务页） -->
+                                                <Panel IsVisible="{Binding IsDomain}">
+                                                    <views:SoloDomainCard x:Name="SoloDomainCard" DataContext="{Binding Page.Domain}" />
+                                                </Panel>
                                                 <DockPanel Classes="param" IsVisible="{Binding IsBoss}">
                                                     <ComboBox ItemsSource="{Binding Page.FightStrategies}"
                                                               SelectedItem="{Binding Page.Config.AutoBossConfig.StrategyName}" />

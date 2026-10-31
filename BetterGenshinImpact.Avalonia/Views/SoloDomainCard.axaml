@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloDomainCard"
+             x:DataType="vm:SoloDomainSettingsViewModel">
+    <!-- 独立任务页自动秘境的配置项（对照 WPF TaskSettingsPage 自动秘境区域；“按材料数量提前结束”尚未迁移） -->
+    <UserControl.Styles>
+        <Style Selector="DockPanel.param > ToggleSwitch, DockPanel.param > NumericUpDown">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <Style Selector="DockPanel.param > ComboBox, DockPanel.param > TextBox, DockPanel.param > ToggleSwitch, DockPanel.param > NumericUpDown, DockPanel.param > Button">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+        <Style Selector="DockPanel.param > ComboBox, DockPanel.param > TextBox">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="Width" Value="220" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="DockPanel.param > StackPanel > TextBlock.desc">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel Spacing="10">
+        <DockPanel Classes="param">
+            <TextBox x:Name="SdPartyName" Text="{Binding Config.PartyName}" />
+            <StackPanel>
+                <TextBlock Text="自动切换到指定队伍" />
+                <TextBlock Classes="desc" Text="注意队伍名称是游戏内你手动设置的名称" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <StackPanel Orientation="Horizontal" Spacing="12" DockPanel.Dock="Right" VerticalAlignment="Center">
+                <RadioButton x:Name="SdSourceTraining" GroupName="SdDomainSource" Content="跟随培养计划" IsChecked="{Binding DomainSource.IsTrainingPlan}" />
+                <RadioButton x:Name="SdSourceManual" GroupName="SdDomainSource" Content="指定秘境" IsChecked="{Binding DomainSource.IsManualDomain}" />
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="秘境来源" />
+                <TextBlock Classes="desc" Text="按游戏内养成计划，从提升指南中选择秘境" IsVisible="{Binding DomainSource.IsTrainingPlan}" />
+                <TextBlock Classes="desc" Text="传送到选定的秘境刷取；未选择时从当前秘境门口开始" IsVisible="{Binding DomainSource.IsManualDomain}" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param" IsVisible="{Binding DomainSource.IsManualDomain}">
+            <ComboBox x:Name="SdDomainName" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.DomainNames}" SelectedItem="{Binding ManualDomainChoice}" />
+            <StackPanel>
+                <TextBlock Text="秘境" />
+                <TextBlock Classes="desc" Text="自动传送到刷取的秘境" />
+            </StackPanel>
+        </DockPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding DomainSource.IsTrainingPlan}">
+        <TextBlock Text="培养计划设置" FontWeight="SemiBold" />
+            <TextBlock Classes="desc" Text="需求以游戏内养成计划为准，请先把要培养的角色加入养成计划" />
+            <DockPanel Classes="param">
+                <ToggleSwitch x:Name="SdCalculateRuns" IsChecked="{Binding Config.TrainingGuideCalculateRunsEnabled}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="自动计算今日刷取次数" />
+                    <TextBlock Classes="desc" Text="在秘境入口读取培养材料并计算次数，可连续刷多个秘境；关闭时只刷提升指南中的第一个秘境，下方缩进的设置不生效" />
+                </StackPanel>
+            </DockPanel>
+            <StackPanel Margin="16,0,0,0" Spacing="8" IsEnabled="{Binding Config.TrainingGuideCalculateRunsEnabled}">
+            <DockPanel Classes="param">
+                <ComboBox x:Name="SdRunPreference" ItemsSource="{Binding RunPreferences}" SelectedIndex="{Binding Config.TrainingGuideRunPreference}" />
+                <StackPanel>
+                    <TextBlock Text="刷取偏好" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param" IsEnabled="{Binding IsReservePercentEditable}">
+                <NumericUpDown x:Name="SdReservePercent" Minimum="0" Maximum="20" Increment="1" FormatString="0" Width="140" Value="{Binding Config.TrainingGuideCraftingBonusReservePercent}" />
+                <StackPanel>
+                    <TextBlock Text="合成收益预留率（%）" />
+                    <TextBlock Classes="desc" Text="默认 7%，可设置 0%～20%；0% 最保守；数值越高越依赖合成天赋收益，预计刷取次数越少，但也更可能需要补刷" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param">
+                <ToggleSwitch x:Name="SdGuideReward" IsChecked="{Binding Config.TrainingGuideRewardRecognitionEnabled}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="按领奖结果更新养成库存" />
+                    <TextBlock Classes="desc" Text="默认开启，用于动态调整刷取次数；关闭后不更新库存，按初始预计体力刷取，实际材料可能有偏差" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param" IsEnabled="{Binding Config.TrainingGuideRewardRecognitionEnabled}">
+                <ToggleSwitch x:Name="SdFailureBudget" IsChecked="{Binding Config.TrainingGuideRewardFailureBudgetEnabled}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="识别失败时按固定预算继续" />
+                    <TextBlock Classes="desc" Text="默认关闭，奖励识别失败即结束任务。开启后，当前材料按原预规划树脂预算继续，不再动态估算" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param">
+                <ComboBox x:Name="SdFallbackDomain" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FallbackDomainNames}" SelectedItem="{Binding FallbackDomainChoice}" />
+                <StackPanel>
+                    <TextBlock Text="备选秘境" />
+                    <TextBlock Classes="desc" Text="培养计划完成或无可刷秘境时使用" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param">
+                <ComboBox x:Name="SdFallbackSunday" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.SundayChoices}" SelectedItem="{Binding Config.TrainingGuideFallbackSundaySelectedValue}" />
+                <StackPanel>
+                    <TextBlock Text="周日或限时" />
+                    <TextBlock Classes="desc" Text="选择序号" />
+                </StackPanel>
+            </DockPanel>
+            <DockPanel Classes="param">
+                <ToggleSwitch x:Name="SdLowAr" IsChecked="{Binding Config.TrainingGuideLowARAdaptationEnabled}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="低冒险等阶适配" />
+                    <TextBlock Classes="desc" Text="默认关闭，适用于秘境难度未解锁时自动选择可用难度" />
+                </StackPanel>
+            </DockPanel>
+            </StackPanel>
+            <TextBlock Text="开发者工具" FontWeight="SemiBold" />
+            <DockPanel Classes="param" IsEnabled="{Binding Config.TrainingGuideCalculateRunsEnabled}">
+                <ToggleSwitch x:Name="SdDiagnostics" IsChecked="{Binding Config.TrainingGuideDiagnosticsEnabled}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="培养计划详细诊断" />
+                    <TextBlock Classes="desc" Text="排查问题时开启，下次任务生效。保存 OCR 原文、匹配分数、判断过程及诊断截图至 User/Diagnostics" />
+                </StackPanel>
+            </DockPanel>
+        </StackPanel>
+        <DockPanel Classes="param">
+            <Button x:Name="SdResinButton" Content="设置" Command="{Binding DomainResin.EditCommand}" MinWidth="88" DockPanel.Dock="Right" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock Text="树脂使用" />
+                <TextBlock x:Name="SdResinSummary" Classes="desc" Text="{Binding DomainResin.Summary}" />
+                <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding DomainResin.Problem}" IsVisible="{Binding DomainResin.HasProblem}" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SdArtifactSalvage" IsChecked="{Binding Config.AutoArtifactSalvage}" OnContent="" OffContent="" />
+            <StackPanel>
+                <TextBlock Text="结束后自动分解圣遗物" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param" IsEnabled="{Binding Config.AutoArtifactSalvage}">
+            <ComboBox x:Name="SdMaxStar" ItemsSource="{x:Static vm:SoloDomainSettingsViewModel.ArtifactStarChoices}" SelectedItem="{Binding Salvage.MaxArtifactStar}" />
+            <StackPanel>
+                <TextBlock Text="分解的最高星级" />
+                <TextBlock Classes="desc" Text="需要快速分解圣遗物的最高星级" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <TextBox x:Name="SdFightEndDelay" Text="{Binding Config.FightEndDelay}" />
+            <StackPanel>
+                <TextBlock Text="战斗完成后等待时间（秒）" />
+                <TextBlock Classes="desc" Text="战斗结束后，寻找石化古树前的延迟时间，等一些角色技能完全结束" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SdShortMovement" IsChecked="{Binding Config.ShortMovement}" OnContent="" OffContent="" />
+            <StackPanel>
+                <TextBlock Text="寻找古树时使用小步伐行走（正常用户请不要启用）" />
+                <TextBlock Classes="desc" Text="如果电脑性能较差，寻找古树时间过久，可以尝试使用这个功能" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SdWalkToF" IsChecked="{Binding Config.WalkToF}" OnContent="" OffContent="" />
+            <StackPanel>
+                <TextBlock Text="步行前往开启秘境和领取奖励" />
+                <TextBlock Classes="desc" Text="如果电脑性能较差，开启秘境或者领取奖励的F点击不到，可以尝试此功能" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <TextBox x:Name="SdLeftRightMoveTimes" Text="{Binding Config.LeftRightMoveTimes}" />
+            <StackPanel>
+                <TextBlock Text="寻找古树时确认位置左右移动的次数（正常用户不要修改）" />
+                <TextBlock Classes="desc" Text="小步伐行走的时候左右确认位置的次数" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SdAutoEat" IsChecked="{Binding Config.AutoEat}" OnContent="" OffContent="" />
+            <StackPanel>
+                <TextBlock Text="自动吃药" />
+                <TextBlock Classes="desc" Text="请先装备 “便携营养袋” ，在红血时候后自动按Z键吃药" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SdRewardRecognition" IsChecked="{Binding Config.RewardRecognitionEnabled}" OnContent="" OffContent="" />
+            <StackPanel>
+                <TextBlock Text="启用奖励识别" />
+                <TextBlock Classes="desc" Text="每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <TextBox x:Name="SdReviveRetry" Text="{Binding Config.ReviveRetryCount}" />
+            <StackPanel>
+                <TextBlock Text="角色死亡后重试次数" />
+                <TextBlock Classes="desc" Text="秘境战斗中，发生角色死亡重试的次数" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</UserControl>

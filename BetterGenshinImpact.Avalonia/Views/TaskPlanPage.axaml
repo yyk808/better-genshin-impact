@@ -129,6 +129,9 @@
                                                         <DataTemplate DataType="tasksVm:AutoStygianOnslaughtSettingsViewModel">
                                                             <solo:AutoStygianOnslaughtSettingsEditor />
                                                         </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:ResinPlanSettingsViewModel">
+                                                            <solo:ResinPlanSettingsEditor />
+                                                        </DataTemplate>
                                                     </ContentControl.DataTemplates>
                                                 </ContentControl>
                                                 <TextBlock Text="{Binding NodeEditor.FieldsTitle, FallbackValue=''}" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />

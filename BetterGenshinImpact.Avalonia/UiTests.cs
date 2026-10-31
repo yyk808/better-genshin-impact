@@ -38,6 +38,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
                 case "boss-editors": await BossEditorsAsync(); break;
+                case "resin-plan-editor": await ResinPlanEditorAsync(); break;
+                case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -1273,6 +1275,147 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         }
 
         await DeleteTempPlanAsync(page, id);
+    }
+
+    // —— 专属参数编辑器：体力计划（含子任务设置窗口） ——
+
+    private async Task ResinPlanEditorAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M40 体力计划自测") is not { } id)
+        {
+            return;
+        }
+
+        const string plan = "solo.resin_plan";
+        await AddSoloTaskAsync(page, plan);
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.ResinPlanSettingsViewModel>(page, plan) is { } rp)
+        {
+            Named<ToggleSwitch>("RpLimitResin")!.IsChecked = true;
+            await Settle();
+            Named<NumericUpDown>("RpResinLimit")!.Value = 120;
+            Named<ToggleSwitch>("RpCraftFirst")!.IsChecked = true;
+            await Settle();
+            Named<ComboBox>("RpCraftCountry")!.SelectedItem = "璃月";
+            var bossEnabled = rp.Boss.Enabled;
+            rp.Boss.Enabled = !bossEnabled;
+            await Settle();
+            Check("子任务设置可用", rp.Domain.CanEdit);
+            Shot("avalonia-resin-plan-editor.png");
+
+            // 自动秘境子任务：改队伍名称后确定
+            global::Avalonia.Threading.Dispatcher.UIThread.Post(() => rp.Domain.EditCommand.Execute(null));
+            var dialog = await WaitFor(() => ResinPlanSubTaskWindow.Current);
+            await Settle(800);
+            Check("打开子任务设置窗口", dialog is not null);
+            if (dialog is not null)
+            {
+                var fields = dialog.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Tag is string && p.IsEffectivelyVisible).Select(p => (string)p.Tag!).ToList();
+                Check("子任务字段不含隐藏字段", fields.Count > 0 && !fields.Contains("domain_name") && !fields.Contains("resin_usage"), string.Join(",", fields));
+                var party = dialog.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Tag as string == "party_name")
+                    ?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => t.IsEffectivelyVisible);
+                Check("队伍名称输入框", party is not null);
+                if (party is not null) party.Text = "M40 队伍";
+                await Settle();
+                Shot(dialog, "avalonia-resin-plan-subtask.png");
+                OnClickMethod.Invoke(NamedIn<Button>(dialog, "SubTaskConfirmButton")!, null);
+                await WaitFor(() => ResinPlanSubTaskWindow.Current is null ? "closed" : null);
+                await Settle();
+            }
+
+            Check("子任务摘要更新", rp.Domain.Summary.Contains("M40 队伍"), rp.Domain.Summary);
+            await Click(Named<Button>("ApplyNodeButton"), "应用（体力计划）");
+            var p = NodeParams(id, plan);
+            var t = p.ToString(Newtonsoft.Json.Formatting.None);
+            Check("存盘：体力上限", p.Value<int?>("max_resin") == 120, t);
+            Check("存盘：优先合成与地区", p.Value<bool?>("craft_condensed_first") == true && p["craft"]?.Value<string>("country") == "璃月", t);
+            Check("存盘：首领参与", p["boss"]?.Value<bool?>("enabled") == !bossEnabled, t);
+            Check("存盘：秘境子任务队伍", p["domain"]?["param"]?.Value<string>("party_name") == "M40 队伍", t);
+        }
+
+        await DeleteTempPlanAsync(page, id);
+    }
+
+    // —— 独立任务页：自动秘境卡片的配置项（写入 config.json 的 autoDomainConfig） ——
+
+    private async Task SoloDomainAsync()
+    {
+        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+        vm.Navigate("独立任务");
+        await Settle(1000);
+        if (ButtonByText("收起") is { } collapse) await Click(collapse, "收起日志");
+        var card = await WaitFor(() => All<Expander>().FirstOrDefault(e => e.DataContext is SoloTaskCardViewModel { IsDomain: true }));
+        Check("找到自动秘境卡片", card is not null);
+        if (card is null) return;
+        card.IsExpanded = true;
+        card.BringIntoView();
+        await Settle(800);
+        var d = vm.Tasks.Domain;
+        Named<TextBox>("SdPartyName")!.Text = "M40 秘境队";
+        Named<RadioButton>("SdSourceManual")!.IsChecked = true;
+        await Settle();
+        var domainBox = Named<ComboBox>("SdDomainName");
+        Check("指定秘境时显示秘境下拉", domainBox is not null && Named<ToggleSwitch>("SdCalculateRuns") is null);
+        var domain = domainBox?.ItemCount > 2 ? domainBox.Items[2] as string : null;
+        if (domainBox is not null && domain is not null) domainBox.SelectedItem = domain;
+        Named<ToggleSwitch>("SdArtifactSalvage")!.IsChecked = true;
+        await Settle();
+        Named<ComboBox>("SdMaxStar")!.SelectedItem = "2";
+        Named<TextBox>("SdFightEndDelay")!.Text = "3.5";
+        Named<ToggleSwitch>("SdAutoEat")!.IsChecked = true;
+        Named<TextBox>("SdReviveRetry")!.Text = "2";
+        Named<TextBox>("SdLeftRightMoveTimes")!.Text = "4";
+        await Settle();
+        Named<TextBox>("SdPartyName")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-solo-domain-manual.png");
+        Named<TextBox>("SdReviveRetry")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-solo-domain-manual-2.png");
+        Check("配置：指定秘境", d.Config.DomainName == domain && domain is not null, d.Config.DomainName);
+
+        // 跟随培养计划
+        Named<RadioButton>("SdSourceTraining")!.IsChecked = true;
+        await Settle();
+        Check("跟随培养计划显示培养设置", Named<ToggleSwitch>("SdCalculateRuns") is not null && Named<ComboBox>("SdDomainName") is null);
+        Named<ComboBox>("SdRunPreference")!.SelectedIndex = 0;
+        Named<NumericUpDown>("SdReservePercent")!.Value = 10;
+        Named<ComboBox>("SdFallbackSunday")!.SelectedItem = "1";
+        Named<ToggleSwitch>("SdLowAr")!.IsChecked = true;
+        await Settle();
+        Named<ToggleSwitch>("SdCalculateRuns")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-solo-domain-training.png");
+
+        // 树脂使用对话框：刷至耗尽改为指定次数 2
+        var resinDialog = await OpenResinDialogAsync(d.DomainResin.EditCommand);
+        Check("打开树脂设置对话框", resinDialog is not null);
+        if (resinDialog is not null)
+        {
+            if (InDialog<RadioButton>(resinDialog, "ResinModeRunCount") is { IsEffectivelyEnabled: true } rc) rc.IsChecked = true;
+            await Settle();
+            if (InDialog<NumericUpDown>(resinDialog, "ResinRunCount") is { } n) n.Value = 2;
+            await Settle();
+            OnClickMethod.Invoke(InDialog<Button>(resinDialog, "ResinConfirmButton")!, null);
+            await WaitFor(() => ResinSettingsWindow.Current is null ? "closed" : null);
+            await Settle();
+        }
+
+        // 配置防抖写盘后核对 config.json
+        await Task.Delay(3000);
+        var c = ReadJson(configPath)["autoDomainConfig"];
+        var text = c?.ToString(Newtonsoft.Json.Formatting.None) ?? "";
+        Check("config.json：队伍", (string?)c?["partyName"] == "M40 秘境队", text.Length > 300 ? text[..300] : text);
+        Check("config.json：跟随培养计划", (string?)c?["domainName"] == GameTask.AutoDomain.AutoDomainTask.TrainingGuideOption, (string?)c?["domainName"]);
+        Check("config.json：预留率 / 备选奖励 / 低冒险等阶", (int?)c?["trainingGuideCraftingBonusReservePercent"] == 10
+                                                           && (string?)c?["trainingGuideFallbackSundaySelectedValue"] == "1"
+                                                           && (bool?)c?["trainingGuideLowARAdaptationEnabled"] == true);
+        Check("config.json：分解圣遗物", (bool?)c?["autoArtifactSalvage"] == true
+                                     && (string?)ReadJson(configPath)["autoArtifactSalvageConfig"]?["maxArtifactStar"] == "2");
+        Check("config.json：等待 / 吃药 / 重试 / 左右移动", Math.Abs(((double?)c?["fightEndDelay"] ?? 0) - 3.5) < 0.01 && (bool?)c?["autoEat"] == true
+                                                       && (int?)c?["reviveRetryCount"] == 2 && (int?)c?["leftRightMoveTimes"] == 4);
+        Check("config.json：树脂使用", d.Config.ResinUsage?.Mode == GameTask.Common.Resin.ResinUsageMode.RunCount && (int?)c?["resinUsage"]?["runCount"] == 2,
+            c?["resinUsage"]?.ToString(Newtonsoft.Json.Formatting.None));
     }
 
     private TextBox? FieldBox(string name)

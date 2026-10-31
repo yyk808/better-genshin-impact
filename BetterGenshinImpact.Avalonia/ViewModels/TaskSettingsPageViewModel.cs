@@ -55,6 +55,7 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
         _host = host;
         _log = log;
         Config = host?.Config ?? new AllConfig();
+        Domain = new SoloDomainSettingsViewModel(Config, host?.Services.GetService<BetterGenshinImpact.ViewModel.Resin.IResinSettingsDialogs>());
         IsAvailable = host is not null;
         if (host is not null)
         {
@@ -115,6 +116,9 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
     ];
 
     public AllConfig Config { get; }
+
+    /// <summary>自动秘境卡片的配置项</summary>
+    public SoloDomainSettingsViewModel Domain { get; }
 
     /// <summary>平台初始化失败时为 false（只显示说明）</summary>
     public bool IsAvailable { get; }

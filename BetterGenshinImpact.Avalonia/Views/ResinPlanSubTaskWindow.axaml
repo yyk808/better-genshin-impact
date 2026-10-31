@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+        xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+        xmlns:pulonia="using:BetterGenshinImpact.ViewModel.Pages.Pulonia"
+        x:Class="BetterGenshinImpact.Avalonia.Views.ResinPlanSubTaskWindow"
+        x:DataType="tasksVm:ResinPlanSubTaskSettingsViewModel"
+        Width="560" Height="640" WindowStartupLocation="CenterOwner" Title="{Binding Title}">
+    <!-- 体力计划子任务设置（对照 WPF ResinPlanSubTaskSettingsWindow；字段模型为 Core 的一条龙参数字段） -->
+    <Window.Styles>
+        <Style Selector="TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Opacity" Value="0.75" /></Style>
+    </Window.Styles>
+    <Window.DataTemplates>
+        <DataTemplate DataType="pulonia:PuloniaOneDragonParameterFieldViewModel">
+            <StackPanel Margin="0,6" Spacing="3" Tag="{Binding Name}">
+                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                <TextBlock Classes="desc" Text="{Binding Description}" />
+                <ToggleSwitch IsChecked="{Binding BooleanValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" />
+                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
+                <ComboBox ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}" SelectedItem="{Binding TextValue}" IsVisible="{Binding IsCombatStrategy}" HorizontalAlignment="Stretch" />
+                <StackPanel IsVisible="{Binding IsSourcedDomain}" Orientation="Horizontal" Spacing="12">
+                    <RadioButton Content="跟随培养计划" GroupName="{Binding Name}" IsChecked="{Binding IsFollowTrainingPlan}" />
+                    <RadioButton Content="指定秘境" GroupName="{Binding Name}" IsChecked="{Binding IsManualDomain}" />
+                </StackPanel>
+                <TextBlock Classes="desc" Text="{Binding DomainSourceDescription}" IsVisible="{Binding IsSourcedDomain}" />
+                <ComboBox ItemsSource="{Binding DomainItems}" SelectedItem="{Binding SelectedDomainItem}" HorizontalAlignment="Stretch">
+                    <ComboBox.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="IsPlainDomain" />
+                            <Binding Path="IsManualDomain" />
+                        </MultiBinding>
+                    </ComboBox.IsVisible>
+                </ComboBox>
+                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsNumber}" />
+                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsText}" />
+                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsAdvancedJson}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" />
+                <StackPanel IsVisible="{Binding IsResinUsage}" Spacing="3">
+                    <TextBlock Classes="desc" Text="{Binding Resin.Summary, FallbackValue=''}" />
+                    <Button Content="设置" Command="{Binding Resin.EditCommand, FallbackValue={x:Null}}" HorizontalAlignment="Left" MinWidth="88" />
+                </StackPanel>
+                <Border IsVisible="{Binding IsObject}" BorderBrush="#30808080" BorderThickness="1" CornerRadius="6" Padding="10,4">
+                    <ItemsControl ItemsSource="{Binding Children}" />
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+    </Window.DataTemplates>
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Padding="20,12" Background="#18808080">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="SubTaskValidationText" Text="{Binding ValidationMessage}" TextWrapping="Wrap" Foreground="#E0A000" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="SubTaskConfirmButton" Content="确定" Classes="accent" MinWidth="72" IsDefault="True" Click="Confirm_Click" />
+                    <Button x:Name="SubTaskCancelButton" Content="取消" MinWidth="72" IsCancel="True" Click="Cancel_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <ScrollViewer Padding="20,12">
+            <StackPanel>
+                <TextBlock Classes="desc" Text="{Binding Description}" Margin="0,0,0,8" />
+                <ItemsControl x:Name="SubTaskFields" ItemsSource="{Binding Fields}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

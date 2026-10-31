@@ -4,6 +4,10 @@ using BetterGenshinImpact.Avalonia.Views;
 using BetterGenshinImpact.GameTask.Common.Resin;
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.ViewModel.Resin;
+using BetterGenshinImpact.ViewModel.SoloTaskSettings;
+using BetterGenshinImpact.GameTask.SoloTask;
+using BetterGenshinImpact.Pulonia.Services;
+using Newtonsoft.Json.Linq;
 
 namespace BetterGenshinImpact.Avalonia.Services;
 
@@ -35,10 +39,17 @@ public sealed class AvaloniaResinSettingsDialogs : IResinSettingsDialogs
 
     private static bool ShowModal(ResinSettingsWindow dialog)
     {
+        RunModal(dialog);
+        return dialog.Confirmed;
+    }
+
+    /// <summary>以活动窗口（或主窗口）为所有者显示模态窗口，嵌套消息循环直到窗口关闭</summary>
+    internal static void RunModal(Window dialog)
+    {
         var owner = AvaloniaPickers.MainWindow;
         if (owner is null)
         {
-            return false;
+            return;
         }
 
         // 打开时活动的窗口作为所有者（如自动配音设置窗口之上的弹窗），否则用主窗口
@@ -48,6 +59,18 @@ public sealed class AvaloniaResinSettingsDialogs : IResinSettingsDialogs
         dialog.Closed += (_, _) => done.Cancel();
         _ = dialog.ShowDialog(active);
         Dispatcher.UIThread.MainLoop(done.Token);
-        return dialog.Confirmed;
+    }
+}
+
+/// <summary>体力计划子任务设置弹窗（WPF 为 View/Windows/ResinPlanSettingsDialogs）</summary>
+public sealed class AvaloniaResinPlanSettingsDialogs(SoloTaskRegistry registry, IResinSettingsDialogs resinDialogs) : IResinPlanSettingsDialogs
+{
+    public JObject? EditSubTask(ResinPlanSubTaskSpec spec, JObject parameters)
+    {
+        var schema = PuloniaSoloTaskSchema.Create(registry.Get(spec.TaskId).ParamType);
+        var viewModel = new ResinPlanSubTaskSettingsViewModel(spec, schema, parameters, resinDialogs);
+        var window = new ResinPlanSubTaskWindow(viewModel);
+        AvaloniaResinSettingsDialogs.RunModal(window);
+        return window.Result;
     }
 }

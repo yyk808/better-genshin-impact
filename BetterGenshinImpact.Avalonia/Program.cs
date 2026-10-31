@@ -82,6 +82,7 @@ internal static class AvaloniaHostProgram
                     services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.IQuestVoiceSettingsUi>(sp => sp.GetRequiredService<AvaloniaQuestVoiceSettingsUi>());
                     // 树脂设置对话框（专属参数编辑器的“设置”按钮）
                     services.AddSingleton<BetterGenshinImpact.ViewModel.Resin.IResinSettingsDialogs, AvaloniaResinSettingsDialogs>();
+                    services.AddSingleton<BetterGenshinImpact.ViewModel.SoloTaskSettings.IResinPlanSettingsDialogs, AvaloniaResinPlanSettingsDialogs>();
                 });
         }
         catch (Exception e)

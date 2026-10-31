@@ -532,3 +532,19 @@ Core 1173 个（11 个文件移入），主项目 585 个；Avalonia 宿主 `.cs
 - 体力计划（`ResinPlanSettingsViewModel` 及子任务设置，依赖一条龙参数字段模型）与独立任务页秘境卡片的完整配置项待迁移。
 
 Core 1175 个，主项目 583 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 77 个。
+
+## 里程碑 40：体力计划编辑器、独立任务页秘境配置项
+
+- 一条龙参数字段模型移入 Core（命名空间不变）：`PuloniaTaskParameterFieldViewModel`、`PuloniaOneDragonParameterFieldViewModel`、`PuloniaOneDragonSettingChoices`，
+  字段生成移至 `PuloniaParameterFieldFactory`（WPF 编辑器委托）。秘境下拉项经 `IPuloniaDomainPickerItems` 提供：Core 默认给秘境名字符串，
+  WPF 以 `ModuleInitializer` 安装原来的级联项实现，WPF 绑定对象不变。培养计划秘境选项常量移入 `TrainingGuideDomainNames`，WPF 委托。
+- 体力计划设置模型 `ResinPlanSettingsViewModel`、子任务模型与 `IResinPlanSettingsDialogs`、以及 `ResinUsageConfigBinding` 移入 Core；WPF 视图只改 XAML 命名空间引用。
+- 任务计划参数面板新增体力计划专属编辑器（对照 WPF `ResinPlanSettingsView`）：限定体力用量与最多消耗、优先合成浓缩树脂与合成地区、活动优先与严格模式、
+  首领 / 秘境 / 幽境危战 / 地脉花四个子任务（启用、摘要、设置）。子任务设置窗口 `ResinPlanSubTaskWindow` 按一条龙参数字段渲染（对照 WPF 子任务设置对话框）。
+- 独立任务页自动秘境卡片补齐 WPF 独立任务页的配置项：队伍、秘境来源（跟随培养计划 / 指定秘境）、秘境、培养计划设置（自动计算次数、刷取偏好、合成收益预留率、
+  按领奖结果更新库存、识别失败按固定预算继续、备选秘境与周日奖励、低冒险等阶适配、详细诊断）、树脂使用（树脂设置对话框）、分解圣遗物与最高星级、
+  战斗结束等待、小步伐、步行开启秘境、左右移动次数、自动吃药、奖励识别、死亡重试。“按材料数量提前结束”（目标材料列表）尚未迁移。
+- 界面自测：`--ui-test resin-plan-editor`（12 项，临时计划中修改体力上限、合成、首领开关与秘境子任务队伍并核对存盘，最后删除计划）；
+  `--ui-test solo-domain`（11 项，修改卡片配置与树脂使用后核对 `config.json`，测试前后由外部脚本备份恢复配置）。
+
+Core 1185 个，主项目 576 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 84 个。

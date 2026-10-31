@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.ResinPlanSettingsEditor"
+             x:DataType="tasksVm:ResinPlanSettingsViewModel">
+    <!-- 体力计划专属参数（对照 WPF ResinPlanSettingsView；子任务“设置”打开 ResinPlanSubTaskWindow） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="StackPanel.indent"><Setter Property="Margin" Value="12,0,0,0" /></Style>
+        <Style Selector="Border.group">
+            <Setter Property="BorderBrush" Value="#30808080" /><Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="8,4" /><Setter Property="Margin" Value="0,4" />
+        </Style>
+    </UserControl.Styles>
+    <UserControl.DataTemplates>
+        <DataTemplate DataType="tasksVm:ResinPlanSubTaskEntryViewModel">
+            <Border Classes="group">
+                <Grid ColumnDefinitions="*,Auto" Tag="{Binding DisplayName}">
+                    <StackPanel Spacing="2">
+                        <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding Enabled}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap" Opacity="0.75" />
+                        <TextBlock Text="{Binding Summary}" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="设置" Command="{Binding EditCommand}" VerticalAlignment="Center" MinWidth="72" Margin="8,0,0,0" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+    <StackPanel>
+        <TextBlock Text="体力计划设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="限定体力用量" />
+            <TextBlock Classes="desc" Text="关闭时用完当前全部原粹与浓缩树脂；开启后本次最多消耗下方树脂数量。" />
+            <ToggleSwitch x:Name="RpLimitResin" IsChecked="{Binding LimitResin}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row indent" IsEnabled="{Binding LimitResin}">
+            <TextBlock Text="最多消耗" />
+            <TextBlock Classes="desc" Text="达到上限后不再领取；原粹按 20 点一档使用，不会超出。" />
+            <NumericUpDown x:Name="RpResinLimit" Minimum="20" Maximum="2000" Increment="20" FormatString="0" Value="{Binding ResinLimit}" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="优先合成浓缩树脂" />
+            <TextBlock Classes="desc" Text="刷取前先把可用原粹合成浓缩树脂，并为首领讨伐留出原粹。" />
+            <ToggleSwitch x:Name="RpCraftFirst" IsChecked="{Binding CraftCondensedFirst}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row indent" IsEnabled="{Binding CraftCondensedFirst}">
+            <TextBlock Text="合成台所在地区" />
+            <TextBlock Classes="desc" Text="前往所选地区的合成台合成浓缩树脂。" />
+            <ComboBox x:Name="RpCraftCountry" ItemsSource="{x:Static tasksVm:ResinPlanSettingsViewModel.CountryChoices}" SelectedItem="{Binding CraftCountry}" />
+        </StackPanel>
+        <TextBlock Text="参与的任务" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ContentControl x:Name="RpBoss" Content="{Binding Boss}" />
+        <ContentControl x:Name="RpDomain" Content="{Binding Domain}" />
+        <ContentControl x:Name="RpStygian" Content="{Binding Stygian}" />
+        <ContentControl x:Name="RpLeyLine" Content="{Binding LeyLine}" />
+        <StackPanel Classes="row">
+            <TextBlock Text="优先满足活动" FontWeight="SemiBold" />
+            <TextBlock Classes="desc" Text="识别到移涌活动时，先在活动对应的内容里用原粹领取当天的双倍；紊乱爆发期进行中时，幽境危战优先使用树脂，并暂停首领与秘境养成。" />
+            <TextBlock Classes="desc" Text="盛材移涌与祝圣移涌的秘境在自动秘境的“设置”中选择，默认跟随培养计划：盛材移涌按提升指南选择秘境，祝圣移涌刷养成角色推荐圣遗物所在的秘境。地脉移涌使用自动地脉花的国家与类型。" />
+            <ToggleSwitch x:Name="RpEventPriority" IsChecked="{Binding EventPriority}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row indent" IsEnabled="{Binding EventPriority}">
+            <TextBlock Text="严格使用 60 树脂" />
+            <TextBlock Classes="desc" Text="开启：剩余 3 次双倍时用 20 档领取 3 次，共 60 原粹，每点都享受双倍。关闭：用 40 档领取 2 次，共 80 原粹，少打一次。" />
+            <ToggleSwitch x:Name="RpEventStrict" IsChecked="{Binding EventStrictResin}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="执行顺序" FontWeight="SemiBold" />
+            <TextBlock Classes="desc" Text="读取树脂 → 识别活动 → 合成浓缩 → 活动（移涌领取 → 紊乱爆发期）→ 首领讨伐 → 秘境养成 → 剩余树脂：幽境危战 → 地脉花 → 备选秘境。" />
+            <TextBlock Classes="desc" Text="秘境养成按游戏内养成计划（冒险之证 → 提升指南）选择秘境，请先在游戏内把要培养的角色加入养成计划；备选秘境在自动秘境的设置中选择。" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>
