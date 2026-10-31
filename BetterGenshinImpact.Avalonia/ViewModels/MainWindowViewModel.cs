@@ -44,6 +44,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
             taskId => Tasks.ToggleAsync(taskId));
+        Settings.NavigateTo = title => Navigate(title);
         // 导航栏与 WPF 版 MainWindow.xaml 相同的顺序、标题与图标；尚未迁移的页面为说明页（灰色）
         NavItems =
         [

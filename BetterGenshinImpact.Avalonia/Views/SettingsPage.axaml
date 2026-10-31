@@ -12,6 +12,20 @@
             <ScrollViewer>
                 <StackPanel Classes="page">
                     <TextBlock Classes="pagetitle" Text="软件设置" />
+                    <ui:FASettingsExpander x:Name="UiLanguageCard" Header="软件UI语言" Description="Linux 版界面暂只有中文；此项与 Windows 版共用，在 Windows 版生效" IconSource="{svc:FluentIconSource LocalLanguage24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox x:Name="UiLanguageBox" Width="200" ItemsSource="{Binding UiCultureNames}" SelectedItem="{Binding Config.OtherConfig.UiCultureInfoName}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="WindowsOnlyCard" Header="Windows 版专属设置" Description="以下设置依赖 Windows，在 Linux 版不可用（与 Windows 版共用配置，切回 Windows 版仍生效）" IconSource="{svc:FluentIconSource Info24}">
+                        <ui:FASettingsExpanderItem Content="网络与代理" Description="使用 Windows 系统代理设置；Linux 版按系统环境变量 HTTP(S)_PROXY 联网" />
+                        <ui:FASettingsExpanderItem Content="存储空间" Description="缓存与网页数据管理依赖 WebView2；Linux 版数据都在程序目录的 User/ 与 Cache/ 下，可手动清理" />
+                        <ui:FASettingsExpanderItem Content="主窗口自定义背景" Description="Windows 版 Mica 背景特性，Linux 版不支持" />
+                        <ui:FASettingsExpanderItem Content="退出时最小化到系统托盘" Description="Linux 版没有托盘图标" />
+                        <ui:FASettingsExpanderItem Content="独立任务期间屏蔽 Windows 通知" Description="依赖 Windows 专注助手" />
+                        <ui:FASettingsExpanderItem Content="外部访问（HTTP API / WebSocket / MCP）" Description="Linux 版尚未实现" />
+                        <ui:FASettingsExpanderItem Content="WGC 截图参数" Description="Windows Graphics Capture 专用；Linux 截图方式见“启动”页" />
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
                         <ui:FASettingsExpander.Footer>
                             <ComboBox Width="200" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
@@ -81,6 +95,31 @@
                                 <NumericUpDown Width="160" Minimum="0" Maximum="100" Value="{Binding Config.MaskWindowConfig.CrosshairGap}" FormatString="0" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="准星类型" Description="十字 / 倒V字 / 圆点 / 中心点十字 / 自定义图片">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="CrosshairTypeBox" Width="160" ItemsSource="{Binding CrosshairTypes}" SelectedItem="{Binding Config.MaskWindowConfig.CrosshairType}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="自定义准星图片" Description="准星类型为自定义时使用的图片路径">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox x:Name="CrosshairImageBox" Width="300" Text="{Binding Config.MaskWindowConfig.CrosshairImagePath}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="缩放方式" Description="自定义准星图片的缩放方式（原图 / 自适应）">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="CrosshairScaleBox" Width="160" ItemsSource="{Binding CrosshairScaleModes}" SelectedItem="{Binding Config.MaskWindowConfig.CrosshairScaleMode}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="ScriptUpdateCard" Header="启动时自动更新已订阅的脚本" Description="启动时自动同步脚本仓库并更新所有已订阅的脚本" IconSource="{svc:FluentIconSource ArrowSync24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="AutoUpdateScriptsSwitch" IsChecked="{Binding Config.ScriptConfig.AutoUpdateSubscribedScripts}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="命令行启动时也自动更新" Description="通过命令行参数启动配置组/一条龙时，先等待脚本更新完成再执行">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.ScriptConfig.AutoUpdateBeforeCommandLineRun}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="开发者功能" Description="模板素材制作、调试截图等面向开发和素材维护的工具" IconSource="{svc:FluentIconSource DeveloperBoard24}">
                         <ui:FASettingsExpanderItem Content="启用保存截图功能" Description="可以通过快捷键保存截图，文件保存在 log/screenshot">
@@ -123,8 +162,65 @@
                                 <ToggleSwitch IsChecked="{Binding Config.TpConfig.IsReviveInNearestStatueOfTheSeven}" OnContent="" OffContent="" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="传送到七天神像之后是否需要移动后回血" Description="启用后将自动向七天神像方向移动">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.TpConfig.ShouldMove}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="七天神像国家" Description="选择七天神像所在国家">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="StatueCountryBox" Width="160" ItemsSource="{Binding StatueCountries}" SelectedItem="{Binding SelectedStatueCountry}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="七天神像区域" Description="选择七天神像所在区域">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="StatueAreaBox" Width="160" ItemsSource="{Binding StatueAreas}" SelectedItem="{Binding SelectedStatueArea}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="回血等待间隔（秒）" Description="【1.0-30.0】传送到七天神像之后需要等待多久恢复血量">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <NumericUpDown x:Name="HpRestoreBox" Width="160" Minimum="1" Maximum="30" Increment="0.5" Value="{Binding Config.TpConfig.HpRestoreDuration}" FormatString="0.0" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="TeleportDelayCard" Header="传送操作间隔倍率" Description="如果传送卡顿请调整倍率，倍率越大传送间隔越长，传送越稳定（2-100 毫秒，默认 20）" IconSource="{svc:FluentIconSource Timer24}">
+                        <ui:FASettingsExpander.Footer>
+                            <NumericUpDown x:Name="TeleportDelayBox" Width="160" Minimum="2" Maximum="100" Value="{Binding Config.TpConfig.TeleportOperationDelayMilliseconds}" FormatString="0" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OcrCard" Header="OCR 配置" Description="主程序内置 PP-OCRv6。需要其他版本或语言的模型时，请在插件页安装并启用对应的 OCR 插件。" IconSource="{svc:FluentIconSource DocumentText24}">
+                        <ui:FASettingsExpander.Footer>
+                            <Button x:Name="OcrPluginsButton" Content="管理插件" Command="{Binding GoToPluginsCommand}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="MiyousheCard" Header="米游社相关" Description="米游社 cookie（调度器日志分析使用）" IconSource="{svc:FluentIconSource Person24}">
+                        <ui:FASettingsExpanderItem Content="米游社cookie">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox x:Name="MiyousheCookieBox" Width="360" PasswordChar="●" Text="{Binding Config.OtherConfig.MiyousheConfig.Cookie}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="cookie与调度器日志处同步" Description="开启后，当调度器日志更改，或此处更改，都会同步其cookie。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Config.OtherConfig.MiyousheConfig.LogSyncCookie}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="其他设置" Description="设定一些其他功能的配置，失去焦点自动恢复等" IconSource="{svc:FgiIconSource F141}">
+                        <ui:FASettingsExpanderItem Content="禁用键鼠监听" Description="禁用后将暂停一键宏等键鼠触发的任务，需重启生效">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="DisableInputMonitorSwitch" IsChecked="{Binding Config.DisableInputMonitor}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="调度器路径追踪任务大地图传送过程中自动领取委托" Description="打开大地图准备传送时，先检测并领取派遣（调用一条龙领取奖励逻辑），选择领取城市后生效">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="DispatchCountryBox" Width="120" ItemsSource="{Binding AdventurersGuildCountries}" SelectedItem="{Binding Config.OtherConfig.AutoFetchDispatchAdventurersGuildCountry}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="图标识别模型" Description="默认ItemV2且推荐，如果出现问题可尝试切换，GridIcon 在合成台与背包计数任务中识别不全">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="ItemIconModeBox" Width="120" ItemsSource="{Binding ItemIconRecognitionModes}" SelectedItem="{Binding Config.OtherConfig.ItemIconRecognitionMode}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
                         <ui:FASettingsExpanderItem Content="失去焦点自动恢复" Description="任务执行中游戏窗口失去焦点时尝试重新激活（关闭时暂停并提示）">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Config.OtherConfig.RestoreFocusOnLostEnabled}" OnContent="" OffContent="" />

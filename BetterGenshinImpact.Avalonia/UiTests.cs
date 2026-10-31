@@ -61,6 +61,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "home-banner": await HomeBannerAsync(); break;
                 case "key-bindings": await KeyBindingsAsync(); break;
                 case "settings-more": await SettingsMoreAsync(); break;
+                case "settings-general": await SettingsGeneralAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2706,6 +2707,58 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         nc.WebSocketNotificationEnabled = wasOn;
         nc.WebSocketEndpoint = wasEp;
         await Settle();
+    }
+
+    /// <summary>通用设置补项：七天神像国家/区域写回点位、准星类型、传送间隔、图标识别模型、米游社、Windows 专属说明、OCR 跳转插件页</summary>
+    private async Task SettingsGeneralAsync()
+    {
+        vm.Navigate("设置");
+        await Settle(600);
+        var page = vm.Settings;
+        var cfg = page.Config;
+        foreach (var ex in All<FluentAvalonia.UI.Controls.FASettingsExpander>()) ex.IsExpanded = true;
+        await Settle(600);
+        Check("Windows 专属设置显示说明", Named<FluentAvalonia.UI.Controls.FASettingsExpander>("WindowsOnlyCard") is not null
+            && Named<FluentAvalonia.UI.Controls.FASettingsExpander>("UiLanguageCard") is not null);
+        var tp = cfg.TpConfig;
+        var saved = (tp.ReviveStatueOfTheSevenCountry, tp.ReviveStatueOfTheSevenArea, tp.ReviveStatueOfTheSevenPointX, tp.ReviveStatueOfTheSevenPointY, tp.TeleportOperationDelayMilliseconds,
+            cfg.MaskWindowConfig.CrosshairType, cfg.OtherConfig.ItemIconRecognitionMode);
+        Check("七天神像国家列表来自地图点位", page.StatueCountries.Count >= 4 && page.SelectedStatueCountry == tp.ReviveStatueOfTheSevenCountry,
+            string.Join(",", page.StatueCountries));
+        var country = page.StatueCountries.First(c => c != tp.ReviveStatueOfTheSevenCountry);
+        Named<ComboBox>("StatueCountryBox")!.SelectedItem = country;
+        await Settle();
+        Check("切换国家后刷新区域并写回国家/区域/坐标", page.StatueAreas.Count > 0 && tp.ReviveStatueOfTheSevenCountry == country
+            && tp.ReviveStatueOfTheSevenArea == page.StatueAreas[0] && tp.ReviveStatueOfTheSevenPointX != saved.ReviveStatueOfTheSevenPointX,
+            $"{country}/{tp.ReviveStatueOfTheSevenArea} ({tp.ReviveStatueOfTheSevenPointX},{tp.ReviveStatueOfTheSevenPointY})");
+        Named<NumericUpDown>("TeleportDelayBox")!.Value = 35;
+        Named<ComboBox>("CrosshairTypeBox")!.SelectedItem = BetterGenshinImpact.Core.Config.CrosshairType.Dot;
+        Named<ComboBox>("ItemIconModeBox")!.SelectedItem = BetterGenshinImpact.GameTask.Common.Job.ItemIconRecognitionMode.GridIcon;
+        await Settle();
+        Check("传送间隔/准星类型/图标识别模型写入配置", tp.TeleportOperationDelayMilliseconds == 35
+            && cfg.MaskWindowConfig.CrosshairType == BetterGenshinImpact.Core.Config.CrosshairType.Dot
+            && cfg.OtherConfig.ItemIconRecognitionMode == BetterGenshinImpact.GameTask.Common.Job.ItemIconRecognitionMode.GridIcon);
+        Check("米游社 cookie 输入框为密码样式", Named<TextBox>("MiyousheCookieBox") is { PasswordChar: '●' });
+        Shot("avalonia-settings-general.png");
+        Named<ComboBox>("StatueCountryBox")!.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-settings-general-statue.png");
+        Named<ComboBox>("ItemIconModeBox")!.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-settings-general-other.png");
+        // 还原
+        page.SelectedStatueCountry = saved.ReviveStatueOfTheSevenCountry;
+        page.SelectedStatueArea = saved.ReviveStatueOfTheSevenArea;
+        tp.ReviveStatueOfTheSevenPointX = saved.ReviveStatueOfTheSevenPointX;
+        tp.ReviveStatueOfTheSevenPointY = saved.ReviveStatueOfTheSevenPointY;
+        tp.TeleportOperationDelayMilliseconds = saved.TeleportOperationDelayMilliseconds;
+        cfg.MaskWindowConfig.CrosshairType = saved.CrosshairType;
+        cfg.OtherConfig.ItemIconRecognitionMode = saved.ItemIconRecognitionMode;
+        await Settle();
+        Check("还原七天神像设置", tp.ReviveStatueOfTheSevenCountry == saved.ReviveStatueOfTheSevenCountry && tp.ReviveStatueOfTheSevenArea == saved.ReviveStatueOfTheSevenArea);
+        await Click(Named<Button>("OcrPluginsButton"), "管理插件");
+        await Settle(600);
+        Check("OCR 配置“管理插件”跳转插件页", vm.CurrentPage == vm.Plugins);
     }
 
     /// <summary>按键绑定设置（WPF 通用设置“按键绑定设置”打开的窗口）：树、改键写回 KeyBindingsConfig、全局按键映射开关</summary>

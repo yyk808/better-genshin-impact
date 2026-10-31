@@ -184,11 +184,91 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
         ApplyHotkeyFilter();
         RegisterHotkeys();
+        InitCommonSettingsExtras();
     }
 
     public override string Title => "设置";
 
     public AllConfig Config { get; }
+
+    // ---- 通用设置补项（对照 WPF CommonSettingsPage，选项与逻辑在 Core CommonSettingsChoices） ----
+
+    /// <summary>页面跳转（由主窗口设置，用于“管理插件”）</summary>
+    public Action<string>? NavigateTo { get; set; }
+
+    [RelayCommand]
+    private void GoToPlugins() => NavigateTo?.Invoke("插件");
+
+    public IReadOnlyList<string> UiCultureNames => BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.UiCultureNames;
+    public IReadOnlyList<CrosshairType> CrosshairTypes => BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.CrosshairTypes;
+    public IReadOnlyList<CrosshairScaleMode> CrosshairScaleModes => BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.CrosshairScaleModes;
+    public IReadOnlyList<BetterGenshinImpact.GameTask.Common.Job.ItemIconRecognitionMode> ItemIconRecognitionModes { get; } =
+        BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.ItemIconRecognitionModes.Keys.ToList();
+    /// <summary>空 = 不领取</summary>
+    public IReadOnlyList<string> AdventurersGuildCountries { get; } = ["", .. BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonChoices.AdventurersGuildCountries];
+
+    /// <summary>七天神像国家</summary>
+    public ObservableCollection<string> StatueCountries { get; } = [];
+
+    /// <summary>七天神像区域</summary>
+    public ObservableCollection<string> StatueAreas { get; } = [];
+
+    private string _statueCountry = string.Empty;
+    private string _statueArea = string.Empty;
+
+    /// <summary>与 WPF 相同：切换国家后刷新区域并选中第一个区域</summary>
+    public string SelectedStatueCountry
+    {
+        get => _statueCountry;
+        set
+        {
+            if (!SetProperty(ref _statueCountry, value)) return;
+            LoadStatueAreas(value);
+            SelectedStatueArea = StatueAreas.FirstOrDefault() ?? string.Empty;
+        }
+    }
+
+    public string SelectedStatueArea
+    {
+        get => _statueArea;
+        set
+        {
+            if (SetProperty(ref _statueArea, value))
+                BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.ApplyRevivePoint(Config.TpConfig, SelectedStatueCountry, value);
+        }
+    }
+
+    private void LoadStatueAreas(string country)
+    {
+        StatueAreas.Clear();
+        SelectedStatueArea = string.Empty;
+        foreach (var a in BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.StatueAreas(country)) StatueAreas.Add(a);
+    }
+
+    private void InitCommonSettingsExtras()
+    {
+        try
+        {
+            foreach (var c in BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.StatueCountries()) StatueCountries.Add(c);
+            _statueCountry = Config.TpConfig.ReviveStatueOfTheSevenCountry;
+            LoadStatueAreas(_statueCountry);
+            _statueArea = Config.TpConfig.ReviveStatueOfTheSevenArea;
+            BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.ApplyRevivePoint(Config.TpConfig, _statueCountry, _statueArea);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "读取七天神像点位失败");
+        }
+
+        try
+        {
+            BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.InitializeMiyousheCookie(Config.OtherConfig.MiyousheConfig);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "读取米游社 cookie 失败");
+        }
+    }
 
     /// <summary>打开按键绑定设置窗口（对应 WPF 通用设置“按键绑定设置”的“打开”）</summary>
     [CommunityToolkit.Mvvm.Input.RelayCommand]

@@ -119,11 +119,7 @@ public partial class CommonSettingsPageViewModel : ViewModel
     ];
 
     public IReadOnlyDictionary<ItemIconRecognitionMode, string> ItemIconRecognitionModes { get; } =
-        new Dictionary<ItemIconRecognitionMode, string>
-        {
-            [ItemIconRecognitionMode.Item] = "ItemV2",
-            [ItemIconRecognitionMode.GridIcon] = "GridIcon"
-        };
+        BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.ItemIconRecognitionModes;
 
     public CommonSettingsPageViewModel(IConfigService configService, INavigationService navigationService,
         NotificationService notificationService, CustomHtmlMaskService customHtmlMaskService,
@@ -202,7 +198,7 @@ public partial class CommonSettingsPageViewModel : ViewModel
     public ObservableCollection<string> MapPathingTypes { get; } = ["SIFT", "TemplateMatch"];
 
     [ObservableProperty] private FrozenDictionary<string, string> _languageDict =
-        new[] { "zh-Hans", "zh-Hant", "en", "ja", "ru", "it"  }
+        BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.UiCultureNames
             .ToFrozenDictionary(c => c, c => CultureInfoNameToKVPConverter.GetDisplayName(c));
 
     public string SelectedCountry
@@ -276,28 +272,15 @@ public partial class CommonSettingsPageViewModel : ViewModel
 
     private void InitializeMiyousheCookie()
     {
-        OtherConfig.Miyoushe mcfg = Config.OtherConfig.MiyousheConfig;
-        if (mcfg.Cookie == string.Empty &&
-            mcfg.LogSyncCookie)
-        {
-            var config = LogParse.LoadConfig();
-            mcfg.Cookie = config.Cookie;
-        }
+        BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.InitializeMiyousheCookie(Config.OtherConfig.MiyousheConfig);
     }
 
     private void InitializeCountries()
     {
-        var countries = MapLazyAssets.Get().GoddessPositions.Values
-            .OrderBy(g => int.TryParse(g.Id, out var id) ? id : int.MaxValue)
-            .GroupBy(g => g.Country)
-            .Select(grp => grp.Key);
         CountryList.Clear();
-        foreach (var country in countries)
+        foreach (var country in BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.StatueCountries())
         {
-            if (!string.IsNullOrEmpty(country))
-            {
-                CountryList.Add(country);
-            }
+            CountryList.Add(country);
         }
 
         _selectedCountry = _tpConfig.ReviveStatueOfTheSevenCountry;
@@ -312,33 +295,16 @@ public partial class CommonSettingsPageViewModel : ViewModel
         SelectedArea = string.Empty;
         if (string.IsNullOrEmpty(country)) return;
 
-        var areas = MapLazyAssets.Get().GoddessPositions.Values
-            .Where(g => g.Country == country)
-            .OrderBy(g => int.TryParse(g.Id, out var id) ? id : int.MaxValue)
-            .GroupBy(g => g.Level1Area)
-            .Select(grp => grp.Key);
-        foreach (var area in areas)
+        foreach (var area in BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.StatueAreas(country))
         {
-            if (!string.IsNullOrEmpty(area))
-            {
-                Areas.Add(area);
-            }
+            Areas.Add(area);
         }
     }
 
     // 当国家或区域改变时更新坐标
     private void UpdateRevivePoint(string country, string area)
     {
-        if (string.IsNullOrEmpty(country) || string.IsNullOrEmpty(area)) return;
-
-        var goddess = MapLazyAssets.Get().GoddessPositions.Values
-            .FirstOrDefault(g => g.Country == country && g.Level1Area == area);
-        if (goddess == null) return;
-        _tpConfig.ReviveStatueOfTheSevenCountry = country;
-        _tpConfig.ReviveStatueOfTheSevenArea = area;
-        _tpConfig.ReviveStatueOfTheSevenPointX = goddess.X;
-        _tpConfig.ReviveStatueOfTheSevenPointY = goddess.Y;
-        _tpConfig.ReviveStatueOfTheSeven = goddess;
+        BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.ApplyRevivePoint(_tpConfig, country, area);
     }
 
     [RelayCommand]
