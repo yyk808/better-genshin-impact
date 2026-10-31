@@ -31,9 +31,7 @@ public partial class TemplateEditorWindow : Window
         DataContext = vm;
         vm.ConfirmOverwrite = async text =>
         {
-            var box = new MessageBoxWindow(text, "确认覆盖模板素材", DialogKind.Warning, DialogButtons.YesNo);
-            await box.ShowDialog(this);
-            return box.Result == DialogResult.Yes;
+            return await FluentMessageBox.ShowAsync(this, text, "确认覆盖模板素材", DialogKind.Warning, DialogButtons.YesNo) == DialogResult.Yes;
         };
         vm.PropertyChanged += (_, e) =>
         {
@@ -114,9 +112,9 @@ public partial class TemplateEditorWindow : Window
             {
                 Log.Warning("打开模板素材制作窗口失败：{Message}", ex.Message);
                 var owner = AvaloniaPickers.MainWindow;
-                var box = new MessageBoxWindow($"无法截取当前游戏画面并打开模板制作工具。{Environment.NewLine}{Environment.NewLine}{ex.Message}"
-                    + $"{Environment.NewLine}{Environment.NewLine}请先在启动页启动截图器，并确认游戏窗口未最小化。", "模板素材制作", DialogKind.Warning, DialogButtons.Ok);
-                if (owner is not null) await box.ShowDialog(owner);
+                var text = ($"无法截取当前游戏画面并打开模板制作工具。{Environment.NewLine}{Environment.NewLine}{ex.Message}"
+                    + $"{Environment.NewLine}{Environment.NewLine}请先在启动页启动截图器，并确认游戏窗口未最小化。");
+                if (owner is not null) await FluentMessageBox.ShowAsync(owner, text, "模板素材制作", DialogKind.Warning, DialogButtons.Ok);
                 return;
             }
 

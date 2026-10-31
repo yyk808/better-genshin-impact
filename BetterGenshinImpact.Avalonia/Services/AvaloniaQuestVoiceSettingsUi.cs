@@ -34,9 +34,7 @@ public sealed class AvaloniaQuestVoiceSettingsUi : IQuestVoiceSettingsUi
     {
         if (TestConfirm is { } test) return test(message);
         if (EffectiveOwner is not { } owner) return true;
-        var box = new MessageBoxWindow(message, title, DialogKind.Question, DialogButtons.YesNo);
-        await box.ShowDialog(owner);
-        return box.Result == DialogResult.Yes;
+        return await FluentMessageBox.ShowAsync(owner, message, title, DialogKind.Question, DialogButtons.YesNo) == DialogResult.Yes;
     }
 
     public async Task<string?> PickOpenFileAsync(string title, string filter, string? initialDirectory)

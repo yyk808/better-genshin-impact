@@ -23,9 +23,7 @@ public sealed class AvaloniaResinSettingsDialogs : IResinSettingsDialogs
         var editor = new ResinUsageEditorViewModel(taskName, capability, current, async confirmation =>
         {
             if (dialog is null) return true;
-            var box = new MessageBoxWindow(confirmation.Message, confirmation.Title, DialogKind.Question, DialogButtons.YesNo);
-            await box.ShowDialog(dialog);
-            return box.Result == DialogResult.Yes;
+            return await FluentMessageBox.ShowAsync(dialog, confirmation.Message, confirmation.Title, DialogKind.Question, DialogButtons.YesNo) == DialogResult.Yes;
         });
         dialog = new ResinSettingsWindow(editor);
         return ShowModal(dialog) ? editor.BuildValue() : null;

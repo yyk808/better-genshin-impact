@@ -40,12 +40,15 @@ public sealed class AvaloniaDialogService(Func<Window?> owner, Action<DialogKind
 
     private async Task<DialogResult> ShowCoreAsync(string message, string title, DialogKind kind, DialogButtons buttons)
     {
-        var window = new MessageBoxWindow(message, title, kind, buttons);
         var parent = owner();
         if (parent is { IsVisible: true })
         {
-            return await window.ShowDialog<DialogResult>(parent);
+            // 有可见的主窗口时用 Fluent 的 ContentDialog（对应 WPF 版 WPF-UI 的 MessageBox）
+            return await FluentMessageBox.ShowAsync(parent, message, title, kind, buttons);
         }
+
+        // 主窗口尚未显示（启动早期）时退回独立的消息框窗口
+        var window = new MessageBoxWindow(message, title, kind, buttons);
 
         var tcs = new TaskCompletionSource<DialogResult>();
         window.Closed += (_, _) => tcs.TrySetResult(window.Result);
@@ -54,7 +57,61 @@ public sealed class AvaloniaDialogService(Func<Window?> owner, Action<DialogKind
     }
 }
 
-/// <summary>简单的消息框窗口：图标 + 文本 + 按钮</summary>
+/// <summary>
+/// 消息框：FluentAvalonia 的 ContentDialog，显示在所属窗口的覆盖层上（图标 + 文本 + 按钮）。
+/// 同一窗口同时只能显示一个 ContentDialog，已有对话框时排队等待。
+/// </summary>
+public static class FluentMessageBox
+{
+    private static readonly SemaphoreSlim Gate = new(1, 1);
+
+    /// <summary>当前显示的对话框（自检与自动化测试用）</summary>
+    public static FluentAvalonia.UI.Controls.FAContentDialog? Current { get; private set; }
+
+    public static async Task<DialogResult> ShowAsync(Window owner, string message, string title, DialogKind kind, DialogButtons buttons)
+    {
+        var list = MessageBoxWindow.ButtonsOf(buttons).ToList();
+        var (glyph, color) = MessageBoxWindow.IconOf(kind);
+        var content = new DockPanel { MaxWidth = 460 };
+        var icon = new FluentAvalonia.UI.Controls.FAFontIcon
+        {
+            Glyph = FluentSymbols.Glyph(glyph), FontFamily = FluentSymbols.Font, FontSize = 28,
+            Foreground = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 0, 14, 0),
+        };
+        DockPanel.SetDock(icon, Dock.Left);
+        content.Children.Add(icon);
+        content.Children.Add(new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
+        var dialog = new FluentAvalonia.UI.Controls.FAContentDialog
+        {
+            Title = string.IsNullOrEmpty(title) ? "BetterGI" : title,
+            Content = content,
+            PrimaryButtonText = list[0].Label,
+            SecondaryButtonText = list.Count > 2 ? list[1].Label : null,
+            CloseButtonText = list.Count > 1 ? list[^1].Label : null,
+            DefaultButton = FluentAvalonia.UI.Controls.FAContentDialogButton.Primary,
+        };
+        // 只有“确定”时，Esc 也按确定处理（与 WPF 消息框相同）
+        await Gate.WaitAsync();
+        try
+        {
+            Current = dialog;
+            var result = await dialog.ShowAsync(owner);
+            return result switch
+            {
+                FluentAvalonia.UI.Controls.FAContentDialogResult.Primary => list[0].Result,
+                FluentAvalonia.UI.Controls.FAContentDialogResult.Secondary when list.Count > 2 => list[1].Result,
+                _ => list.Count > 1 ? list[^1].Result : list[0].Result,
+            };
+        }
+        finally
+        {
+            Current = null;
+            Gate.Release();
+        }
+    }
+}
+
+/// <summary>独立的消息框窗口：主窗口尚未显示时使用（图标 + 文本 + 按钮）</summary>
 public sealed class MessageBoxWindow : Window
 {
     public DialogResult Result { get; private set; } = DialogResult.None;
@@ -131,7 +188,17 @@ public sealed class MessageBoxWindow : Window
         Content = root;
     }
 
-    private static IEnumerable<(string Label, DialogResult Result)> ButtonsOf(DialogButtons buttons) => buttons switch
+    /// <summary>ContentDialog 用的图标（Fluent System Icons 名称）与颜色</summary>
+    internal static (string Symbol, Color Color) IconOf(DialogKind kind) => kind switch
+    {
+        DialogKind.Error => ("DismissCircle24", Color.Parse("#E5484D")),
+        DialogKind.Warning => ("Warning24", Color.Parse("#F5A524")),
+        DialogKind.Success => ("CheckmarkCircle24", Color.Parse("#46A758")),
+        DialogKind.Question => ("QuestionCircle24", Color.Parse("#3E9EFF")),
+        _ => ("Info24", Color.Parse("#3E9EFF")),
+    };
+
+    internal static IEnumerable<(string Label, DialogResult Result)> ButtonsOf(DialogButtons buttons) => buttons switch
     {
         DialogButtons.OkCancel => [("确定", DialogResult.Ok), ("取消", DialogResult.Cancel)],
         DialogButtons.YesNo => [("是", DialogResult.Yes), ("否", DialogResult.No)],
