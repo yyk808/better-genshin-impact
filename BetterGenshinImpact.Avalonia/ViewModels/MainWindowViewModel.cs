@@ -38,6 +38,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Music = new MusicPageViewModel(host, log);
         Guide = new GuideWindowSettingsPageViewModel(host, Navigate, log);
         Plugins = new PluginsPageViewModel(host, log);
+        AccountRecords = new AccountRecordsPageViewModel();
         NewOneDragon = new NewOneDragonPageViewModel(
             new TaskPlanPageViewModel(host, log, BetterGenshinImpact.Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon, TaskPlan), Navigate);
         Settings = new SettingsPageViewModel(host, log,
@@ -52,7 +53,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new("任务计划", "BranchFork24", TaskPlan),
             new("新一条龙", "AnimalTurtle24", NewOneDragon),
             new("执行记录", "History24", History),
-            new("狛荷屋(test)", "Box24", Placeholder("狛荷屋(test)", "账号记录（AccountRecordsPage）"), isAvailable: false),
+            new("狛荷屋(test)", "Box24", AccountRecords),
             new("一条龙", "AnimalTurtle24", OneDragon),
             new("全自动", "Bot24", Auto, () => Auto.SelectedTab = 0)
             {
@@ -113,6 +114,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public GuideWindowSettingsPageViewModel Guide { get; }
 
     public PluginsPageViewModel Plugins { get; }
+
+    public AccountRecordsPageViewModel AccountRecords { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

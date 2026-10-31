@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:ar="using:BetterGenshinImpact.Service.AccountRecords"
+             x:Class="BetterGenshinImpact.Avalonia.Views.AccountRecordsPage"
+             x:DataType="vm:AccountRecordsPageViewModel">
+    <!-- 对应 WPF AccountRecordsPage 的库存记录分页：标题栏 UID 选择/新增、搜索、只读库存表 -->
+    <DockPanel Margin="20,16,20,16">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock Classes="pagetitle" Text="狛荷屋(test)" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="UID" VerticalAlignment="Center" />
+                <ComboBox x:Name="UidBox" Width="160" ItemsSource="{Binding UidOptions}" SelectedItem="{Binding SelectedUid}" PlaceholderText="尚无 UID" />
+                <Button x:Name="AddUidButton" Content="新增 UID" Command="{Binding BeginAddUidCommand}" />
+                <TextBox x:Name="SearchBox" Width="200" Watermark="搜索库存记录" Text="{Binding SearchText}" />
+            </StackPanel>
+        </Grid>
+        <Border DockPanel.Dock="Top" x:Name="AddUidPanel" IsVisible="{Binding IsAddingUid}" Margin="0,0,0,8" Padding="12,8" CornerRadius="6"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBox x:Name="PendingUidBox" Width="180" Watermark="9～10 位数字" Text="{Binding PendingUid}" />
+                <Button x:Name="ConfirmAddUidButton" Classes="accent" Content="添加" Command="{Binding AddUidCommand}" />
+                <Button Content="取消" Command="{Binding CancelAddUidCommand}" />
+                <TextBlock x:Name="UidValidationText" VerticalAlignment="Center" Foreground="#E05050" Text="{Binding UidValidationMessage}" />
+            </StackPanel>
+        </Border>
+        <TextBlock DockPanel.Dock="Bottom" x:Name="AccountStatusText" Classes="desc" Margin="0,8,0,0" Text="{Binding StatusText}" />
+        <Border CornerRadius="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,8">
+                    <TextBlock Text="名称" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="分类" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="数量" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="到期" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="记录时间" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="来源" FontWeight="SemiBold" />
+                </Grid>
+                <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                <Panel>
+                    <TextBlock x:Name="EmptyInventoryText" IsVisible="{Binding !HasRows}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7"
+                               Text="暂无库存记录。库存由脚本或任务上报；导入/导出将在后续版本迁移。" />
+                    <ScrollViewer>
+                        <ItemsControl x:Name="InventoryList" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="ar:InventoryRowSnapshot">
+                                    <Grid ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,4" ToolTip.Tip="{Binding StatusText}">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Category}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding QuantityText}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding ExpirationText}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="4" Text="{Binding TimeText}" />
+                                        <TextBlock Grid.Column="5" Text="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Panel>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

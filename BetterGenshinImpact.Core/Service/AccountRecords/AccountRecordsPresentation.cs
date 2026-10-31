@@ -14,8 +14,8 @@ public static class AccountRecordsAccounts
     /// <summary>新增 UID 不合法时的提示。</summary>
     public const string UidValidationMessage = "UID 必须为 9～10 位数字且首位非零。";
 
-    /// <summary>UID 必须为 9～10 位 ASCII 数字且首位非零；调用方负责去除首尾空白。</summary>
-    public static bool IsValidUid(string uid) => uid.Length is >= 9 and <= 10 && uid[0] != '0' && uid.All(char.IsAsciiDigit);
+    /// <summary>UID 必须为 9～10 位 ASCII 数字且首位非零（与 InventoryStore 存储校验同一规则）；调用方负责去除首尾空白。</summary>
+    public static bool IsValidUid(string uid) => InventoryStore.IsValidUid(uid);
 
     /// <summary>清除范围只接受 inventory 与 uid。</summary>
     public static bool IsClearScope(string? scope) => scope is "inventory" or "uid";

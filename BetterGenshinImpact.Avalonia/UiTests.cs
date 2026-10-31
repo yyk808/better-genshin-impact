@@ -54,6 +54,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
                 case "onedragon-layout": await OneDragonLayoutAsync(); break;
+                case "accounts": await AccountRecordsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2282,6 +2283,67 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 狛荷屋(test)（对应 WPF AccountRecordsPage）：UID 校验与新增（Core AccountRecordsAccounts / InventoryStore）、只读库存表（Core InventoryRowBuilder）、搜索、UID 切换互不串号
+    /// </summary>
+    private async Task AccountRecordsAsync()
+    {
+        var page = vm.AccountRecords;
+        var root = Global.Absolute(@"User\AccountRecords");
+        var createdRoot = !Directory.Exists(root);
+        const string uidA = "100000052", uidB = "1000000052";
+        var store = new BetterGenshinImpact.Service.AccountRecords.InventoryStore(new BetterGenshinImpact.Service.AccountRecords.InventoryCatalog(), root);
+        try
+        {
+            await store.AddUidAsync(uidA);
+            var now = DateTimeOffset.Now.ToString("O");
+            await store.ReportAsync(uidA, new BetterGenshinImpact.Service.AccountRecords.Model.AccountRecordSource { Reference = "m52/uitest", DisplayName = "M52 自测" },
+            [
+                new BetterGenshinImpact.Service.AccountRecords.Model.InventoryReport { Name = "摩拉", Quantity = 1234567, RecordedAt = now },
+                new BetterGenshinImpact.Service.AccountRecords.Model.InventoryReport { Name = "原石", Quantity = 1600, RecordedAt = now },
+                new BetterGenshinImpact.Service.AccountRecords.Model.InventoryReport { Name = "大英雄的经验", Quantity = 88, RecordedAt = now }
+            ]);
+            vm.Navigate("狛荷屋(test)");
+            await Settle(800);
+            Check("UID 列表含测试账号", page.UidOptions.Contains(uidA), string.Join(",", page.UidOptions));
+            page.SelectedUid = uidA;
+            await WaitFor(() => page.Rows.Count >= 3 ? (object?)page.Rows : null);
+            await Settle();
+            var list = Named<ItemsControl>("InventoryList");
+            Check("库存表显示上报的 3 项", page.Rows.Count == 3 && list?.ItemCount == 3, string.Join(",", page.Rows.Select(r => $"{r.Name}={r.QuantityText}")));
+            var mora = page.Rows.FirstOrDefault(r => r.Name == "摩拉");
+            Check("行数据：数量/来源/时间", mora is { QuantityText: "1234567", SourceName: "M52 自测" } && mora.TimeText != "未记录", $"{mora?.QuantityText} {mora?.SourceName} {mora?.TimeText}");
+            Check("空库存提示隐藏", page.HasRows && Named<TextBlock>("EmptyInventoryText") is null);
+            Shot("avalonia-accounts.png");
+            page.SearchText = "原石";
+            await Settle();
+            Check("搜索过滤", page.Rows.Count == 1 && page.Rows[0].Name == "原石", page.Rows.Count.ToString());
+            page.SearchText = "";
+            await Settle();
+
+            await Click(Named<Button>("AddUidButton")!, "新增 UID");
+            Check("新增区展开", Named<Border>("AddUidPanel")?.IsVisible == true);
+            page.PendingUid = "012345678";
+            await page.AddUid();
+            Check("首位为 0 被拒", page.UidValidationMessage == BetterGenshinImpact.Service.AccountRecords.AccountRecordsAccounts.UidValidationMessage && !page.UidOptions.Contains("012345678"), page.UidValidationMessage);
+            page.PendingUid = " " + uidB + " ";
+            await page.AddUid();
+            await Settle(400);
+            Check("新增 UID 并切换", page.SelectedUid == uidB && page.UidOptions.Contains(uidB) && Directory.Exists(Path.Combine(root, uidB)) && !page.IsAddingUid, page.SelectedUid);
+            await WaitFor(() => page.Rows.Count == 0 ? (object?)true : null);
+            Check("新 UID 库存为空且显示提示", page.Rows.Count == 0 && Named<TextBlock>("EmptyInventoryText")?.IsVisible == true);
+            Named<ComboBox>("UidBox")!.SelectedItem = uidA;
+            await WaitFor(() => page.Rows.Count == 3 ? (object?)true : null);
+            Check("UID 切换回来恢复库存", page.SelectedUid == uidA && page.Rows.Count == 3);
+        }
+        finally
+        {
+            foreach (var uid in new[] { uidA, uidB })
+                try { await store.ClearAsync(uid, false, true); } catch (Exception e) { log.Warning("清理测试 UID {Uid} 失败：{Message}", uid, e.Message); }
+            if (createdRoot && Directory.Exists(root)) Directory.Delete(root, true);
+        }
     }
 
     /// <summary>
