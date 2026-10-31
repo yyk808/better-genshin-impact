@@ -1978,10 +1978,35 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("xdotool 启动路径记录器", Press("ctrl+shift+F11"));
         for (var i = 0; i < 120 && settings.PathRecordCount < 1; i++) await Task.Delay(500);
         Check("记录初始传送点", settings.IsPathRecording && settings.PathRecordCount == 1, $"{settings.IsPathRecording} {settings.PathRecordCount}");
-        await Task.Delay(4500); // 假游戏每 4 秒切换小地图位置
-        Check("xdotool 添加路径点", Press("ctrl+shift+F12"));
-        for (var i = 0; i < 60 && settings.PathRecordCount < 2; i++) await Task.Delay(500);
-        Check("添加途经点", settings.PathRecordCount == 2, settings.PathRecordCount.ToString());
+        // 假游戏每 4 秒切换小地图；初始点的截图时刻未知（与切换相位有关，固定等待 4.5 秒可能恰好落回同一画面），
+        // 所以等画面切换后立即添加一个途经点，再等下一次切换添加第二个：相邻两个途经点必定来自不同画面
+        OpenCvSharp.Mat Frame()
+        {
+            using var region = BetterGenshinImpact.GameTask.Common.GameRuntimeExtensions.CaptureToRectArea(runtime);
+            return region.SrcMat.Clone();
+        }
+        async Task<bool> WaitFrameSwitch()
+        {
+            using var reference = await Task.Run(Frame);
+            for (var i = 0; i < 60; i++)
+            {
+                await Task.Delay(150);
+                using var now = await Task.Run(Frame);
+                using var diff = new OpenCvSharp.Mat();
+                OpenCvSharp.Cv2.Absdiff(reference, now, diff);
+                using var gray = diff.Channels() == 1 ? diff.Clone() : diff.CvtColor(diff.Channels() == 4 ? OpenCvSharp.ColorConversionCodes.BGRA2GRAY : OpenCvSharp.ColorConversionCodes.BGR2GRAY);
+                if (OpenCvSharp.Cv2.CountNonZero(gray.Threshold(30, 255, OpenCvSharp.ThresholdTypes.Binary)) > 2000) return true;
+            }
+            return false;
+        }
+        for (var n = 2; n <= 3; n++)
+        {
+            Check($"小地图画面切换（第 {n - 1} 次）", await WaitFrameSwitch());
+            await Task.Delay(300);
+            Check($"xdotool 添加路径点（第 {n - 1} 个）", Press("ctrl+shift+F12"));
+            for (var i = 0; i < 60 && settings.PathRecordCount < n; i++) await Task.Delay(200);
+        }
+        Check("添加途经点", settings.PathRecordCount == 3, settings.PathRecordCount.ToString());
         Check("xdotool 停止路径记录器", Press("ctrl+shift+F11"));
         string? file = null;
         for (var i = 0; i < 20 && file is null; i++)
@@ -1997,14 +2022,15 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             var positions = route["positions"] as Newtonsoft.Json.Linq.JArray ?? [];
             var p0 = positions.Count > 0 ? positions[0] : null;
             var p1 = positions.Count > 1 ? positions[1] : null;
-            var distance = p0 is null || p1 is null ? 0 : Math.Sqrt(Math.Pow((double)p0["x"]! - (double)p1["x"]!, 2) + Math.Pow((double)p0["y"]! - (double)p1["y"]!, 2));
-            Check("路线含传送点与途经点", positions.Count == 2 && (string?)p0?["type"] == "teleport" && (string?)p1?["type"] == "path",
+            var p2 = positions.Count > 2 ? positions[2] : null;
+            var distance = p1 is null || p2 is null ? 0 : Math.Sqrt(Math.Pow((double)p1["x"]! - (double)p2["x"]!, 2) + Math.Pow((double)p1["y"]! - (double)p2["y"]!, 2));
+            Check("路线含传送点与途经点", positions.Count == 3 && (string?)p0?["type"] == "teleport" && (string?)p1?["type"] == "path" && (string?)p2?["type"] == "path",
                 route.ToString(Newtonsoft.Json.Formatting.None));
             // 场景小地图取自精细地图的已知位置：(4618, 3594) 与 (4538, 3534)
             bool Known(Newtonsoft.Json.Linq.JToken? p) => p is not null
                 && new[] { (4618d, 3594d), (4538d, 3534d) }.Any(k => Math.Abs((double)p["x"]! - k.Item1) < 3 && Math.Abs((double)p["y"]! - k.Item2) < 3);
-            Check("坐标与场景小地图位置一致", Known(p0) && Known(p1), $"{p0?["x"]},{p0?["y"]} / {p1?["x"]},{p1?["y"]}");
-            Check("两点位置随小地图变化", distance > 10, $"距离 {distance:0.0}");
+            Check("坐标与场景小地图位置一致", Known(p0) && Known(p1) && Known(p2), $"{p0?["x"]},{p0?["y"]} / {p1?["x"]},{p1?["y"]} / {p2?["x"]},{p2?["y"]}");
+            Check("两点位置随小地图变化", distance > 10, $"相邻途经点距离 {distance:0.0}");
             File.Copy(file, Path.Combine(dir ?? "/tmp", "path-record.json"), true);
             File.Delete(file);
         }
