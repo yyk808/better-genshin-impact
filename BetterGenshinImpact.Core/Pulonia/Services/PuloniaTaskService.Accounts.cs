@@ -13,7 +13,7 @@ public sealed partial class PuloniaTaskService
     private readonly IPuloniaGenshinAccountSwitcher? _accountSwitcher;
 
     /// <summary>一条龙只允许一个有效账号绑定，缺省使用当前账号。</summary>
-    internal static string ResolveOneDragonAccountId(PuloniaTaskPlan plan)
+    public static string ResolveOneDragonAccountId(PuloniaTaskPlan plan)
     {
         var bindings = plan.Accounts.Where(account => account.Enabled).ToArray();
         if (bindings.Length > 1) throw new InvalidOperationException("一条龙配置只能绑定一个账号，请在账号设置中选择。");

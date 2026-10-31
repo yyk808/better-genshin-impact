@@ -80,6 +80,73 @@ public sealed partial class TaskPlanPageViewModel
             });
     }
 
+    /// <summary>
+    /// 编辑选中分组或任务自身的共享设置（对照 WPF EditNodeSharedSettings）：只列出下属任务实际使用的设置项，
+    /// 不使用共享设置的叶子任务不打开；节点设置优先于计划级设置与方案。
+    /// </summary>
+    [RelayCommand]
+    private void EditNodeSettings()
+    {
+        if (SelectedPlan is not { } item || SelectedNode is not { } row) return;
+        var keys = GetSharedSettingKeys(row.Task);
+        if (keys is { Count: 0 })
+        {
+            StatusMessage = $"“{row.Name}”这类任务不使用共享设置，请在任务设置中修改任务参数。";
+            return;
+        }
+
+        var task = row.Task;
+        List<PuloniaTask> chain = [.. row.Chain.Count > 0 ? row.Chain.Take(row.Chain.Count - 1) : [item.Plan.RootTask],
+            new PuloniaTask { Id = task.Id, Name = task.Name, TaskType = task.TaskType, ProfileId = task.ProfileId }];
+        var inherited = BetterGenshinImpact.Pulonia.Services.PuloniaParameterResolver.ResolveSettings(CreateSettingChain(chain)).Values;
+        SharedEditor = new TaskPlanSharedSettingsEditor($"{(task.TaskType == "group" ? "分组" : "任务")}“{task.Name}”的共享设置", task.Settings,
+            key => inherited.TryGetValue(key, out var v) ? v : null,
+            async settings =>
+            {
+                task.Settings = settings;
+                await SaveAndRefreshAsync(item, $"已保存“{task.Name}”的共享设置。");
+                return StatusMessage.StartsWith("已保存", StringComparison.Ordinal);
+            }, keys);
+        SelectedTab = 3;
+    }
+
+    /// <summary>节点下属任务使用的共享设置项；含计划引用时为空（全部设置项）</summary>
+    internal IReadOnlySet<string>? GetSharedSettingKeys(PuloniaTask node)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var unknown = false;
+        Visit(node);
+        return unknown ? null : keys;
+
+        void Visit(PuloniaTask task)
+        {
+            if (task.Source is { Kind: "plan" })
+            {
+                unknown = true;
+                return;
+            }
+
+            if (task.Source is { Kind: "directory", TaskType: { } directoryType })
+            {
+                Add(directoryType);
+                return;
+            }
+
+            if (task.TaskType == "group")
+            {
+                foreach (var child in task.Children) Visit(child);
+                return;
+            }
+
+            Add(task.TaskType);
+        }
+
+        void Add(string taskType)
+        {
+            if (_tasks?.Definitions.FirstOrDefault(d => d.TaskType == taskType) is { } definition) keys.UnionWith(definition.SettingBindings.Keys);
+        }
+    }
+
     /// <summary>编辑选中设置方案的共享设置（影响使用该方案的全部计划）</summary>
     [RelayCommand]
     private void EditProfileSettings()

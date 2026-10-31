@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// <summary>
 /// 共享设置编辑（对照 WPF PuloniaSharedSettingsEditorViewModel）：编辑计划级设置或设置方案中的共享设置项（PuloniaSettingCatalog）。
 /// 勾选“覆盖”的项写入目标，未勾选的项继承上层（方案 / 默认值）；保存前按 Core 的 ValidateSettings 校验。
-/// 路线 CD 等复合值以 JSON 文本编辑。
+/// 路线 CD 使用与 WPF 相同的专用表单（自动识别 / 不检查 / 自定义周期）。
 /// </summary>
 public sealed partial class TaskPlanSharedSettingsEditor : ObservableObject
 {
@@ -19,16 +19,18 @@ public sealed partial class TaskPlanSharedSettingsEditor : ObservableObject
     private readonly Func<JObject, Task<bool>> _save;
     private readonly Func<string, JToken?> _inherited;
 
-    public TaskPlanSharedSettingsEditor(string title, JObject settings, Func<string, JToken?> inherited, Func<JObject, Task<bool>> save)
+    public TaskPlanSharedSettingsEditor(string title, JObject settings, Func<string, JToken?> inherited, Func<JObject, Task<bool>> save,
+        IReadOnlySet<string>? allowedKeys = null)
     {
         Title = title;
         _original = (JObject)settings.DeepClone();
         _inherited = inherited;
         _save = save;
-        Categories = PuloniaSettingCatalog.Categories.OrderBy(c => c.Order).ToList();
-        _selectedCategory = Categories.FirstOrDefault(c => c.Id == PuloniaSettingCatalog.CollectionCategory) ?? Categories[0];
-        foreach (var definition in PuloniaSettingCatalog.Definitions)
+        // 节点只列出其下属任务实际使用的设置项（与 WPF 节点共享设置相同）；目录外或不适用的已有覆盖原样保留
+        foreach (var definition in PuloniaSettingCatalog.Definitions.Where(d => allowedKeys is null || allowedKeys.Contains(d.Key)))
             _all.Add(new TaskPlanSharedSettingRow(definition, _original[definition.Key], inherited(definition.Key)));
+        Categories = PuloniaSettingCatalog.Categories.Where(c => _all.Any(r => r.Definition.Category == c.Id)).OrderBy(c => c.Order).ToList();
+        _selectedCategory = Categories.FirstOrDefault(c => c.Id == PuloniaSettingCatalog.CollectionCategory) ?? Categories.FirstOrDefault();
         Rebuild();
     }
 
@@ -63,6 +65,7 @@ public sealed partial class TaskPlanSharedSettingsEditor : ObservableObject
     public JObject Build()
     {
         var result = new JObject();
+        foreach (var field in _original.Properties().Where(p => _all.All(r => r.Definition.Key != p.Name))) result[field.Name] = field.Value.DeepClone();
         foreach (var row in _all.Where(r => r.IsOverridden)) result[row.Definition.Key] = row.GetValue();
         PuloniaTaskValidator.ValidateSettings(result, "settings");
         return result;
@@ -100,6 +103,22 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
         _numberValue = value.Type is JTokenType.Integer or JTokenType.Float ? value.Value<decimal>() : null;
         _textValue = value.Type == JTokenType.String ? value.Value<string>() ?? "" : value.ToString(Formatting.None);
         ChoiceLabels = definition.Choices.Select(c => c.Label).ToList();
+        if (definition.Editor == PuloniaSettingEditorKind.CollectionCooldown)
+        {
+            // 路线 CD 专用表单（与 WPF 共用 Core 的 PuloniaCollectionCooldownViewModel）
+            Cooldown = new BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaCollectionCooldownViewModel();
+            Cooldown.Load(value, own is not null ? "本层设置" : "继承");
+            Cooldown.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(Cooldown.Choice) or nameof(Cooldown.CustomMode) or nameof(Cooldown.Hours)
+                    or nameof(Cooldown.Days) or nameof(Cooldown.ResetHour) or nameof(Cooldown.ResetWeekday))
+                {
+                    IsOverridden = true;
+                    OnPropertyChanged(nameof(CdChoiceIndex));
+                    OnPropertyChanged(nameof(CdModeIndex));
+                }
+            };
+        }
         var index = definition.Choices.ToList().FindIndex(c => JToken.DeepEquals(c.Value, value));
         _choiceIndex = Math.Max(0, index);
     }
@@ -120,9 +139,60 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
 
     public bool IsChoice => Definition.Editor == PuloniaSettingEditorKind.Choice && ChoiceLabels.Count > 0;
 
-    public bool IsText => !IsBoolean && !IsNumber && !IsChoice;
+    public bool IsText => !IsBoolean && !IsNumber && !IsChoice && !IsCooldown;
 
-    public bool IsJson => Definition.Editor == PuloniaSettingEditorKind.CollectionCooldown || Definition.DefaultValue.Type is JTokenType.Object or JTokenType.Array;
+    /// <summary>路线 CD 专用表单；其他设置项为空</summary>
+    public BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaCollectionCooldownViewModel? Cooldown { get; }
+
+    public bool IsCooldown => Cooldown is not null;
+
+    public IReadOnlyList<string> CdChoiceLabels => Cooldown?.Choices.Values.ToList() ?? [];
+
+    public int CdChoiceIndex
+    {
+        get => Cooldown is null ? -1 : Cooldown.Choices.Keys.ToList().IndexOf(Cooldown.Choice);
+        set
+        {
+            if (Cooldown is null || value < 0) return;
+            Cooldown.Choice = Cooldown.Choices.Keys.ElementAt(value);
+        }
+    }
+
+    public IReadOnlyList<string> CdModeLabels => Cooldown?.CustomModes.Values.ToList() ?? [];
+
+    public int CdModeIndex
+    {
+        get => Cooldown is null ? -1 : Cooldown.CustomModes.Keys.ToList().IndexOf(Cooldown.CustomMode);
+        set
+        {
+            if (Cooldown is null || value < 0) return;
+            Cooldown.CustomMode = Cooldown.CustomModes.Keys.ElementAt(value);
+        }
+    }
+
+    public IReadOnlyList<string> CdHourLabels { get; } = Enumerable.Range(0, 24).Select(h => $"{h:00}:00").ToList();
+
+    public IReadOnlyList<string> CdWeekdayLabels => Cooldown?.Weekdays.Values.ToList() ?? [];
+
+    public int CdResetHourIndex
+    {
+        get => Cooldown?.ResetHour ?? 0;
+        set
+        {
+            if (Cooldown is not null && value >= 0) Cooldown.ResetHour = value;
+        }
+    }
+
+    public int CdWeekdayIndex
+    {
+        get => (Cooldown?.ResetWeekday ?? 1) - 1;
+        set
+        {
+            if (Cooldown is not null && value >= 0) Cooldown.ResetWeekday = value + 1;
+        }
+    }
+
+    public bool IsJson => Definition.DefaultValue.Type is JTokenType.Object or JTokenType.Array;
 
     [ObservableProperty] private bool _isOverridden;
 
@@ -148,6 +218,7 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
 
     public JToken GetValue() => Definition.Editor switch
     {
+        _ when Cooldown is not null => Cooldown.BuildValue(),
         PuloniaSettingEditorKind.Boolean => new JValue(BoolValue),
         PuloniaSettingEditorKind.Integer => new JValue((long)(NumberValue ?? 0)),
         PuloniaSettingEditorKind.Number => new JValue((double)(NumberValue ?? 0)),
@@ -156,6 +227,18 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
         _ => new JValue(TextValue),
     };
 
-    private string Describe(JToken value) => Definition.Choices.FirstOrDefault(c => JToken.DeepEquals(c.Value, value))?.Label
+    private string Describe(JToken value) => Definition.Editor == PuloniaSettingEditorKind.CollectionCooldown ? DescribeCooldown(value) : Definition.Choices.FirstOrDefault(c => JToken.DeepEquals(c.Value, value))?.Label
                                             ?? (value.Type == JTokenType.Boolean ? (value.Value<bool>() ? "开" : "关") : value.ToString(Formatting.None));
+
+    private static string DescribeCooldown(JToken value)
+    {
+        try
+        {
+            return PuloniaCollectionCooldown.DescribeSettings(value);
+        }
+        catch (Exception)
+        {
+            return value.ToString(Formatting.None);
+        }
+    }
 }

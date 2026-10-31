@@ -195,6 +195,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             AddRows([item.Plan.RootTask], 0, true);
         }
 
+        RefreshPlanCooldownSummary();
+
         OnPropertyChanged(nameof(HasNoNodes));
     }
 
@@ -372,6 +374,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         try
         {
             item.Plan = await _store.SavePlanAsync(item.Plan);
+            _allPlans[item.Plan.Id] = item.Plan;
             item.Refresh();
             StatusMessage = message;
         }
@@ -625,15 +628,16 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         {
             var ledger = await _tasks.ListLedgerAsync();
             _cooldownIndex = new PuloniaCollectionCooldownIndex(ledger);
+            await LoadCooldownContextAsync();
             RefreshCooldownBadges();
-            var planKeys = CooldownsForPlanOnly && SelectedPlan is { } plan ? CollectPlanEffectKeys(plan.Plan) : null;
+            var planFilter = CooldownsForPlanOnly && SelectedPlan is { } plan ? CreatePlanCooldownFilter(plan.Plan) : null;
             Cooldowns.Clear();
             foreach (var entry in _cooldownIndex.Entries
                          .Where(e => e.EffectKey.StartsWith(PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal))
-                         .Where(e => planKeys is null || planKeys.Contains(e.EffectKey))
+                         .Where(e => planFilter is null || planFilter(e))
                          .OrderBy(e => e.NextEligibleAt ?? DateTimeOffset.MaxValue))
             {
-                Cooldowns.Add(new TaskPlanCooldownRow(entry));
+                Cooldowns.Add(new TaskPlanCooldownRow(entry, DescribeScope(entry.ScopeKey)));
             }
 
             OnPropertyChanged(nameof(HasNoCooldowns));
@@ -737,6 +741,9 @@ public sealed partial class TaskPlanNodeRow : ObservableObject
     /// <summary>计划根到本节点（含）的模型链，用于解析共享设置与路线 CD</summary>
     public IReadOnlyList<PuloniaTask> Chain { get; init; } = [];
 
+    /// <summary>节点自身有共享设置或挂了方案</summary>
+    public bool HasOwnSettings => Task.Settings.Count > 0 || Task.ProfileId is not null;
+
     [ObservableProperty] private string? _cooldownBadge;
 
     [ObservableProperty] private string? _cooldownTip;
@@ -796,15 +803,13 @@ public sealed class TaskPlanRunRow(PuloniaTaskRunView run)
 }
 
 /// <summary>路线 CD 记录行</summary>
-public sealed class TaskPlanCooldownRow(PuloniaTaskLedgerEntry entry)
+public sealed class TaskPlanCooldownRow(PuloniaTaskLedgerEntry entry, string scope)
 {
     public PuloniaTaskLedgerEntry Entry => entry;
 
     public string Route => entry.EffectKey[PuloniaCollectionCooldown.EffectKeyPrefix.Length..];
 
-    public string Scope => entry.ScopeKey.StartsWith(PuloniaCollectionCooldown.ScopeKeyPrefix, StringComparison.Ordinal)
-        ? entry.ScopeKey[PuloniaCollectionCooldown.ScopeKeyPrefix.Length..] is var id && id == PuloniaCollectionCooldown.DefaultScopeIdentity ? "当前账号" : "UID " + id
-        : entry.ScopeKey;
+    public string Scope => scope;
 
     public string Detail => $"{Scope} · 完成于 {entry.OccurredAt.ToLocalTime():MM-dd HH:mm}"
         // 记录中的下次可执行时间按记录时的规则；当前规则下的状态见任务树标记

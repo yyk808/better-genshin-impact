@@ -80,7 +80,12 @@
                                         <Button Content="↑" Command="{Binding MoveTaskCommand}" CommandParameter="up" Margin="0,0,4,4" ToolTip.Tip="上移" />
                                         <Button Content="↓" Command="{Binding MoveTaskCommand}" CommandParameter="down" Margin="0,0,4,4" ToolTip.Tip="下移" />
                                         <Button Content="删除" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
+                                        <Button Name="NodeSettingsButton" Content="共享设置" Command="{Binding EditNodeSettingsCommand}" Margin="0,0,4,4"
+                                                ToolTip.Tip="编辑选中分组或任务自身的共享设置（优先于计划级设置与方案）" />
                                     </WrapPanel>
+                                    <TextBlock Name="PlanCooldownSummaryText" DockPanel.Dock="Top" Classes="desc" Margin="2,0,0,6" Text="{Binding PlanCooldownSummary}"
+                                               ToolTip.Tip="{Binding PlanCooldownSummaryTip}"
+                                               IsVisible="{Binding PlanCooldownSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                     <Border DockPanel.Dock="Top" Background="#14FFFFFF" CornerRadius="4" Padding="12,6">
                                         <Grid ColumnDefinitions="*,90,44">
                                             <TextBlock Classes="desc" Text="名称" />
@@ -172,6 +177,7 @@
                                                                         IsVisible="{Binding CooldownBadge, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                                                     <TextBlock Text="{Binding CooldownBadge}" FontSize="12" Foreground="#E0B060" />
                                                                 </Border>
+                                                                <TextBlock Text="⚙ 共享设置" FontSize="12" Opacity="0.7" VerticalAlignment="Center" IsVisible="{Binding HasOwnSettings}" />
                                                             </StackPanel>
                                                             <TextBlock Classes="desc" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                                         </StackPanel>
@@ -327,12 +333,31 @@
                                                                     <TextBlock Classes="desc" Text="{Binding Description}" TextWrapping="Wrap" Margin="28,0,0,0"
                                                                                IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                                                     <TextBlock Classes="desc" Text="{Binding InheritedText, StringFormat='继承值：{0}'}" Margin="28,0,0,0" />
+                                                                    <TextBlock Classes="desc" Text="{Binding Cooldown.Preview, FallbackValue=''}" Margin="28,4,0,0" TextWrapping="Wrap"
+                                                                               IsVisible="{Binding IsCooldown}" />
                                                                 </StackPanel>
                                                                 <Panel Grid.Column="1" VerticalAlignment="Center">
                                                                     <ToggleSwitch IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" HorizontalAlignment="Right" />
                                                                     <NumericUpDown Value="{Binding NumberValue}" IsVisible="{Binding IsNumber}" />
                                                                     <ComboBox ItemsSource="{Binding ChoiceLabels}" SelectedIndex="{Binding ChoiceIndex}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
                                                                     <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsText}" TextWrapping="Wrap" />
+                                                                    <StackPanel Spacing="6" IsVisible="{Binding IsCooldown}">
+                                                                        <ComboBox Name="CdChoiceBox" ItemsSource="{Binding CdChoiceLabels}" SelectedIndex="{Binding CdChoiceIndex}" HorizontalAlignment="Stretch" />
+                                                                        <ComboBox Name="CdModeBox" ItemsSource="{Binding CdModeLabels}" SelectedIndex="{Binding CdModeIndex}" HorizontalAlignment="Stretch"
+                                                                                  IsVisible="{Binding Cooldown.ShowCustom, FallbackValue=False}" />
+                                                                        <DockPanel IsVisible="{Binding Cooldown.ShowHours, FallbackValue=False}">
+                                                                            <TextBlock DockPanel.Dock="Right" Text="小时" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                                                            <TextBox Name="CdHoursBox" Text="{Binding Cooldown.Hours, FallbackValue=''}" />
+                                                                        </DockPanel>
+                                                                        <DockPanel IsVisible="{Binding Cooldown.ShowDays, FallbackValue=False}">
+                                                                            <TextBlock DockPanel.Dock="Right" Text="天" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                                                            <TextBox Name="CdDaysBox" Text="{Binding Cooldown.Days, FallbackValue=''}" />
+                                                                        </DockPanel>
+                                                                        <ComboBox ItemsSource="{Binding CdWeekdayLabels}" SelectedIndex="{Binding CdWeekdayIndex}" HorizontalAlignment="Stretch"
+                                                                                  IsVisible="{Binding Cooldown.ShowWeekday, FallbackValue=False}" />
+                                                                        <ComboBox ItemsSource="{Binding CdHourLabels}" SelectedIndex="{Binding CdResetHourIndex}" HorizontalAlignment="Stretch"
+                                                                                  IsVisible="{Binding Cooldown.ShowResetHour, FallbackValue=False}" ToolTip.Tip="服务器时间重置时刻" />
+                                                                    </StackPanel>
                                                                 </Panel>
                                                             </Grid>
                                                         </DataTemplate>
