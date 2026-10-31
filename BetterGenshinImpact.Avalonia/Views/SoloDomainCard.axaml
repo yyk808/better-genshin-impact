@@ -86,18 +86,16 @@
                     <TextBlock Classes="desc" Text="默认关闭，奖励识别失败即结束任务。开启后，当前材料按原预规划树脂预算继续，不再动态估算" />
                 </StackPanel>
             </DockPanel>
+            <!-- 与 WPF 相同：备选秘境与“周日或限时”在同一行 -->
             <DockPanel Classes="param">
-                <ComboBox x:Name="SdFallbackDomain" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FallbackDomainNames}" SelectedItem="{Binding FallbackDomainChoice}" />
+                <StackPanel Orientation="Horizontal" Spacing="8" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <ComboBox x:Name="SdFallbackDomain" Width="220" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FallbackDomainNames}" SelectedItem="{Binding FallbackDomainChoice}" />
+                    <TextBlock Text="周日或限时" VerticalAlignment="Center" />
+                    <ComboBox x:Name="SdFallbackSunday" Width="80" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.SundayChoices}" SelectedItem="{Binding Config.TrainingGuideFallbackSundaySelectedValue}" />
+                </StackPanel>
                 <StackPanel>
                     <TextBlock Text="备选秘境" />
-                    <TextBlock Classes="desc" Text="培养计划完成或无可刷秘境时使用" />
-                </StackPanel>
-            </DockPanel>
-            <DockPanel Classes="param">
-                <ComboBox x:Name="SdFallbackSunday" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.SundayChoices}" SelectedItem="{Binding Config.TrainingGuideFallbackSundaySelectedValue}" />
-                <StackPanel>
-                    <TextBlock Text="周日或限时" />
-                    <TextBlock Classes="desc" Text="选择序号" />
+                    <TextBlock Classes="desc" Text="培养计划完成或无可刷秘境时使用；周日或限时：选择序号" />
                 </StackPanel>
             </DockPanel>
             <DockPanel Classes="param">
@@ -125,16 +123,14 @@
                 <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding DomainResin.Problem}" IsVisible="{Binding DomainResin.HasProblem}" />
             </StackPanel>
         </DockPanel>
+        <!-- 与 WPF 相同：最高星级与分解开关在同一行 -->
         <DockPanel Classes="param">
-            <ToggleSwitch x:Name="SdArtifactSalvage" IsChecked="{Binding Config.AutoArtifactSalvage}" OnContent="" OffContent="" />
+            <StackPanel Orientation="Horizontal" Spacing="12" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                <ComboBox x:Name="SdMaxStar" Width="80" ItemsSource="{x:Static vm:SoloDomainSettingsViewModel.ArtifactStarChoices}" SelectedItem="{Binding Salvage.MaxArtifactStar}" IsEnabled="{Binding Config.AutoArtifactSalvage}" />
+                <ToggleSwitch x:Name="SdArtifactSalvage" IsChecked="{Binding Config.AutoArtifactSalvage}" OnContent="" OffContent="" MinWidth="0" />
+            </StackPanel>
             <StackPanel>
                 <TextBlock Text="结束后自动分解圣遗物" />
-            </StackPanel>
-        </DockPanel>
-        <DockPanel Classes="param" IsEnabled="{Binding Config.AutoArtifactSalvage}">
-            <ComboBox x:Name="SdMaxStar" ItemsSource="{x:Static vm:SoloDomainSettingsViewModel.ArtifactStarChoices}" SelectedItem="{Binding Salvage.MaxArtifactStar}" />
-            <StackPanel>
-                <TextBlock Text="分解的最高星级" />
                 <TextBlock Classes="desc" Text="需要快速分解圣遗物的最高星级" />
             </StackPanel>
         </DockPanel>

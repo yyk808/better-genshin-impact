@@ -1317,6 +1317,12 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 Check("队伍名称输入框", party is not null);
                 if (party is not null) party.Text = "M40 队伍";
                 await Settle();
+                var strategy = dialog.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Tag as string == "combat_strategy_path")
+                    ?.GetVisualDescendants().OfType<ComboBox>().FirstOrDefault(c => c.IsEffectivelyVisible);
+                Check("战斗策略显示默认（根据队伍自动选择）", strategy?.SelectedItem as string == GameTask.AutoFight.Strategy.CombatStrategyResolver.AutoSelectName,
+                    strategy?.SelectedItem as string);
+                dialog.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault()?.ScrollToHome();
+                await Settle();
                 Shot(dialog, "avalonia-resin-plan-subtask.png");
                 OnClickMethod.Invoke(NamedIn<Button>(dialog, "SubTaskConfirmButton")!, null);
                 await WaitFor(() => ResinPlanSubTaskWindow.Current is null ? "closed" : null);

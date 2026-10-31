@@ -3,45 +3,47 @@
         xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
         xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
         xmlns:pulonia="using:BetterGenshinImpact.ViewModel.Pages.Pulonia"
+        xmlns:services="using:BetterGenshinImpact.Avalonia.Services"
         x:Class="BetterGenshinImpact.Avalonia.Views.ResinPlanSubTaskWindow"
         x:DataType="tasksVm:ResinPlanSubTaskSettingsViewModel"
-        Width="560" Height="640" WindowStartupLocation="CenterOwner" Title="{Binding Title}">
+        Width="600" Height="680" WindowStartupLocation="CenterOwner" Title="{Binding Title}">
     <!-- 体力计划子任务设置（对照 WPF ResinPlanSubTaskSettingsWindow；字段模型为 Core 的一条龙参数字段） -->
     <Window.Styles>
         <Style Selector="TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Opacity" Value="0.75" /></Style>
     </Window.Styles>
     <Window.DataTemplates>
         <DataTemplate DataType="pulonia:PuloniaOneDragonParameterFieldViewModel">
-            <StackPanel Margin="0,6" Spacing="3" Tag="{Binding Name}">
-                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                <TextBlock Classes="desc" Text="{Binding Description}" />
-                <ToggleSwitch IsChecked="{Binding BooleanValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" />
-                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
-                <ComboBox ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}" SelectedItem="{Binding TextValue}" IsVisible="{Binding IsCombatStrategy}" HorizontalAlignment="Stretch" />
-                <StackPanel IsVisible="{Binding IsSourcedDomain}" Orientation="Horizontal" Spacing="12">
-                    <RadioButton Content="跟随培养计划" GroupName="{Binding Name}" IsChecked="{Binding IsFollowTrainingPlan}" />
-                    <RadioButton Content="指定秘境" GroupName="{Binding Name}" IsChecked="{Binding IsManualDomain}" />
+            <!-- 与 WPF 卡片相同：标题与说明在左，开关 / 下拉 / 输入框在同一行右侧；对象与树脂使用等复合字段在下方展开 -->
+            <Border Margin="0,4" Padding="12,8" CornerRadius="6" Background="#14808080">
+                <StackPanel Spacing="6" Tag="{Binding Name}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                            <TextBlock Classes="desc" Text="{Binding Description}" />
+                        </StackPanel>
+                        <Panel Grid.Column="1" VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding BooleanValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" MinWidth="0" />
+                            <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" IsVisible="{Binding IsChoice}" Width="200" />
+                            <ComboBox ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}"
+                                      SelectedItem="{Binding TextValue, Converter={x:Static services:Converters.CombatStrategyValue}}"
+                                      IsVisible="{Binding IsCombatStrategy}" Width="200" />
+                            <StackPanel IsVisible="{Binding IsSourcedDomain}" Orientation="Horizontal" Spacing="12">
+                                <RadioButton Content="跟随培养计划" GroupName="{Binding Name}" IsChecked="{Binding IsFollowTrainingPlan}" />
+                                <RadioButton Content="指定秘境" GroupName="{Binding Name}" IsChecked="{Binding IsManualDomain}" />
+                            </StackPanel>
+                            <ComboBox ItemsSource="{Binding DomainItems}" SelectedItem="{Binding SelectedDomainItem}" Width="200" IsVisible="{Binding IsPlainDomain}" />
+                            <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsNumber}" Width="140" />
+                            <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsText}" Width="200" />
+                            <Button Content="设置" Command="{Binding Resin.EditCommand, FallbackValue={x:Null}}" IsVisible="{Binding IsResinUsage}" MinWidth="88" />
+                        </Panel>
+                    </Grid>
+                    <TextBlock Classes="desc" Text="{Binding Resin.Summary, FallbackValue=''}" IsVisible="{Binding IsResinUsage}" />
+                    <TextBlock Classes="desc" Text="{Binding DomainSourceDescription}" IsVisible="{Binding IsSourcedDomain}" />
+                    <ComboBox ItemsSource="{Binding DomainItems}" SelectedItem="{Binding SelectedDomainItem}" HorizontalAlignment="Stretch" IsVisible="{Binding IsSourcedDomain}" IsEnabled="{Binding IsManualDomain}" />
+                    <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsAdvancedJson}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" />
+                    <ItemsControl ItemsSource="{Binding Children}" IsVisible="{Binding IsObject}" Margin="8,0,0,0" />
                 </StackPanel>
-                <TextBlock Classes="desc" Text="{Binding DomainSourceDescription}" IsVisible="{Binding IsSourcedDomain}" />
-                <ComboBox ItemsSource="{Binding DomainItems}" SelectedItem="{Binding SelectedDomainItem}" HorizontalAlignment="Stretch">
-                    <ComboBox.IsVisible>
-                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
-                            <Binding Path="IsPlainDomain" />
-                            <Binding Path="IsManualDomain" />
-                        </MultiBinding>
-                    </ComboBox.IsVisible>
-                </ComboBox>
-                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsNumber}" />
-                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsText}" />
-                <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsAdvancedJson}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" />
-                <StackPanel IsVisible="{Binding IsResinUsage}" Spacing="3">
-                    <TextBlock Classes="desc" Text="{Binding Resin.Summary, FallbackValue=''}" />
-                    <Button Content="设置" Command="{Binding Resin.EditCommand, FallbackValue={x:Null}}" HorizontalAlignment="Left" MinWidth="88" />
-                </StackPanel>
-                <Border IsVisible="{Binding IsObject}" BorderBrush="#30808080" BorderThickness="1" CornerRadius="6" Padding="10,4">
-                    <ItemsControl ItemsSource="{Binding Children}" />
-                </Border>
-            </StackPanel>
+            </Border>
         </DataTemplate>
     </Window.DataTemplates>
     <DockPanel>
