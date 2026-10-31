@@ -35,6 +35,9 @@
         <DataTemplate DataType="vm:EnvironmentPageViewModel">
             <views:EnvironmentPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:TaskHistoryPageViewModel">
+            <views:TaskHistoryPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:PlaceholderPageViewModel">
             <StackPanel Classes="page">
                 <TextBlock Classes="pagetitle" Text="{Binding Title}" />

@@ -6,16 +6,15 @@ using BetterGenshinImpact.Pulonia.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Wpf.Ui.Controls;
 
-namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
+namespace BetterGenshinImpact.Pulonia.Presentation;
 
 /// <summary>
 /// 节点尝试的类型专属详情，只使用运行快照与真实结果，不读取已经编辑过的计划或资源。
 /// 结果键与核验边界由 <see cref="PuloniaTaskResultInterpreter"/> 解释，本类只负责格式化展示。
 /// 展示分三层：结果（默认可见）、当次使用的设置与技术详情（默认收起，排查问题时查看）。
 /// </summary>
-public sealed class PuloniaTaskNodeResultViewModel : ObservableObject
+public class PuloniaTaskNodeResultItem : ObservableObject
 {
     /// <summary>
     /// 合并后的展示状态，状态文字、颜色与图标都由它派生。
@@ -55,12 +54,12 @@ public sealed class PuloniaTaskNodeResultViewModel : ObservableObject
     /// <summary>
     /// 运行摘要中归入的类别。
     /// </summary>
-    internal string StatusBucket => _status.Bucket;
+    public string StatusBucket => _status.Bucket;
 
     /// <summary>
     /// 着色分类，供默认选中失败或待核对的节点。
     /// </summary>
-    internal PuloniaTaskRunStatusCategory StatusCategory => _status.Category;
+    public PuloniaTaskRunStatusCategory StatusCategory => _status.Category;
 
     /// <summary>
     /// 视图触发器使用的着色键，与运行状态共用同一套样式。
@@ -70,7 +69,7 @@ public sealed class PuloniaTaskNodeResultViewModel : ObservableObject
     /// <summary>
     /// 状态图标；中性状态（跳过、停止）使用减号圆圈。
     /// </summary>
-    public SymbolRegular StatusIcon => PuloniaTaskHistoryText.CategoryIcon(_status.Category, SymbolRegular.SubtractCircle24);
+    public string StatusIconName => PuloniaTaskHistoryText.CategoryIcon(_status.Category, "SubtractCircle24");
 
     /// <summary>
     /// 是否实际调用过执行器；未启用、续跑沿用和路线 CD 跳过的节点没有执行时间。
@@ -134,7 +133,7 @@ public sealed class PuloniaTaskNodeResultViewModel : ObservableObject
     /// <summary>
     /// 从固定快照建立类型专属展示，旧历史缺少输入时明确说明。
     /// </summary>
-    public PuloniaTaskNodeResultViewModel(PuloniaTaskNodeResult result, PuloniaTaskPreparedTask? task,
+    public PuloniaTaskNodeResultItem(PuloniaTaskNodeResult result, PuloniaTaskPreparedTask? task,
         string typeText, IEnumerable<PuloniaTaskConfirmedEffect> confirmedEffects)
     {
         Result = result;

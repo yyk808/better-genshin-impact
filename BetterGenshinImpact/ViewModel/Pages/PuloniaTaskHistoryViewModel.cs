@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using BetterGenshinImpact.Pulonia.Models;
+using BetterGenshinImpact.Pulonia.Presentation;
 using BetterGenshinImpact.Pulonia.Services;
 using BetterGenshinImpact.View.Windows;
 using BetterGenshinImpact.ViewModel.Pages.Pulonia;
@@ -59,7 +60,7 @@ public partial class PuloniaTaskHistoryViewModel : ViewModel, IDisposable
     /// 运行详情中选中的节点尝试，用于明确指定续跑起点。
     /// </summary>
     [ObservableProperty]
-    private PuloniaTaskNodeResultViewModel? _selectedRunNodeResult;
+    private PuloniaTaskNodeResultItem? _selectedRunNodeResult;
 
     /// <summary>
     /// 计划页固定过滤的当前计划 ID，全局页为空；为空时展示全部计划的记录。
@@ -359,7 +360,7 @@ public partial class PuloniaTaskHistoryViewModel : ViewModel, IDisposable
     /// <summary>
     /// 节点结果选择变化后刷新从节点续跑命令。
     /// </summary>
-    partial void OnSelectedRunNodeResultChanged(PuloniaTaskNodeResultViewModel? value)
+    partial void OnSelectedRunNodeResultChanged(PuloniaTaskNodeResultItem? value)
     {
         OnPropertyChanged(nameof(HasSelectedNode));
         OnPropertyChanged(nameof(CanResumeFromNode));

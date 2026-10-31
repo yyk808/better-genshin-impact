@@ -1,4 +1,4 @@
-namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
+namespace BetterGenshinImpact.Pulonia.Presentation;
 
 /// <summary>
 /// 执行详情的一项可选择、可复制的文本内容。

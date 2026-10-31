@@ -1,9 +1,8 @@
 using System;
 using BetterGenshinImpact.Pulonia.Models;
 using BetterGenshinImpact.Pulonia.Services;
-using Wpf.Ui.Controls;
 
-namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
+namespace BetterGenshinImpact.Pulonia.Presentation;
 
 /// <summary>
 /// 历史列表和详情共用的中文状态与时间格式，不把调度状态等同于业务核验结果。
@@ -74,13 +73,13 @@ public static class PuloniaTaskHistoryText
     /// 着色分类对应的状态图标；中性状态由调用方区分排队与跳过。
     /// </summary>
     /// <param name="category">着色分类。</param>
-    /// <param name="neutral">中性状态使用的图标。</param>
-    public static SymbolRegular CategoryIcon(PuloniaTaskRunStatusCategory category, SymbolRegular neutral) => category switch
+    /// <param name="neutral">中性状态使用的图标（Fluent System Icons 名称，与 WPF-UI SymbolRegular 同名）。</param>
+    public static string CategoryIcon(PuloniaTaskRunStatusCategory category, string neutral) => category switch
     {
-        PuloniaTaskRunStatusCategory.Running => SymbolRegular.ArrowSync24,
-        PuloniaTaskRunStatusCategory.Success => SymbolRegular.CheckmarkCircle24,
-        PuloniaTaskRunStatusCategory.Failed => SymbolRegular.DismissCircle24,
-        PuloniaTaskRunStatusCategory.Attention => SymbolRegular.Warning24,
+        PuloniaTaskRunStatusCategory.Running => "ArrowSync24",
+        PuloniaTaskRunStatusCategory.Success => "CheckmarkCircle24",
+        PuloniaTaskRunStatusCategory.Failed => "DismissCircle24",
+        PuloniaTaskRunStatusCategory.Attention => "Warning24",
         _ => neutral
     };
 

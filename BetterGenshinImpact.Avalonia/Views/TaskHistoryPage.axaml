@@ -1,0 +1,207 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:p="using:BetterGenshinImpact.Pulonia.Presentation"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="BetterGenshinImpact.Avalonia.Views.TaskHistoryPage"
+             x:DataType="vm:TaskHistoryPageViewModel">
+    <UserControl.Styles>
+        <!-- 状态颜色与 WPF 版 PuloniaTaskHistoryView 相同：成功绿、失败红、待核对橙、运行中强调色 -->
+        <Style Selector="ui|FAIconSourceElement.status">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
+        <Style Selector="ui|FAIconSourceElement.success">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+        </Style>
+        <Style Selector="ui|FAIconSourceElement.failed">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+        </Style>
+        <Style Selector="ui|FAIconSourceElement.attention">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+        </Style>
+        <Style Selector="ui|FAIconSourceElement.running">
+            <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        </Style>
+        <Style Selector="SelectableTextBlock.field">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- 与 WPF 版 PuloniaTaskHistoryPage 相同：标题与说明、“运行记录 / 路线 CD”两个选项卡；运行记录左侧列表、右侧详情 -->
+    <Grid RowDefinitions="Auto,*" Margin="16,12,16,16">
+        <StackPanel Margin="0,0,0,14">
+            <TextBlock FontSize="26" FontWeight="SemiBold" Text="执行记录" />
+            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="查看任务计划和一条龙每次执行的结果，以及各条路线的 CD。记录只保存在本机，重启后仍可查看。" />
+            <TextBlock Classes="desc" Margin="0,4,0,0" Text="{Binding StatusMessage}" IsVisible="{Binding HasStatusMessage}" TextWrapping="Wrap" />
+        </StackPanel>
+        <TabControl Grid.Row="1" Padding="0">
+            <TabItem Header="运行记录">
+                <Grid ColumnDefinitions="300,*" Margin="0,12,0,0">
+                    <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6,0,0,6">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="8,6">
+                                <Button x:Name="RefreshRunsButton" DockPanel.Dock="Right" Classes="icon" Padding="6" ToolTip.Tip="刷新"
+                                        Command="{Binding RefreshRunsCommand}" Content="{svc:FluentIcon ArrowClockwise24, Size=14}" />
+                                <TextBlock Text="{Binding CountText}" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <Panel>
+                                <TextBlock IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="12"
+                                           Text="暂无执行记录&#x0a;执行任务计划或一条龙后，结果会显示在这里。" />
+                                <ListBox x:Name="RunList" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}" IsVisible="{Binding !IsEmpty}" Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:HistoryRunRow">
+                                            <Grid ColumnDefinitions="26,*" Margin="0,4">
+                                                <ui:FAIconSourceElement Classes="status" Classes.success="{Binding IsSuccess}"
+                                                                        Classes.failed="{Binding IsFailed}"
+                                                                        Classes.attention="{Binding IsAttention}"
+                                                                        Classes.running="{Binding IsRunning}"
+                                                                        IconSource="{Binding Icon}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                                <StackPanel Grid.Column="1" Spacing="2">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Classes="desc" Text="{Binding Item.TimeText}" />
+                                                        <TextBlock Text="{Binding Item.PlanName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    </DockPanel>
+                                                    <TextBlock Classes="desc" Text="{Binding Item.SubtitleText}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Panel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Background="{DynamicResource LayerFillColorDefaultBrush}" CornerRadius="0,6,6,0" Padding="16,12">
+                        <Panel>
+                            <StackPanel IsVisible="{Binding !HasSelectedRun}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                                <ContentControl Content="{svc:FluentIcon History24, Size=32}" HorizontalAlignment="Center" Opacity="0.8" />
+                                <TextBlock Text="选择左侧的一条记录，查看每个任务的执行结果。" />
+                            </StackPanel>
+                            <Grid RowDefinitions="Auto,Auto,*" IsVisible="{Binding HasSelectedRun}">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+                                        <Button Content="停止" Command="{Binding CancelRunCommand}" IsVisible="{Binding CanCancelRun}" />
+                                        <Button Content="继续剩余" Command="{Binding ResumeRunCommand}" IsVisible="{Binding CanResumeRun}" />
+                                        <Button Content="从选中任务开始" Command="{Binding ResumeFromNodeCommand}" IsVisible="{Binding SelectedRun.Item.IsHistorical, FallbackValue=False}" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding SelectedRun.Item.PlanName, FallbackValue=''}" />
+                                        <TextBlock x:Name="RunStatusText" Text="{Binding SelectedRun.Item.StatusText, FallbackValue=''}" />
+                                        <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SelectedRun.Item.SummaryText, FallbackValue=''}" />
+                                        <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SelectedRun.Item.DetailMessage, FallbackValue=''}" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <ItemsControl Grid.Row="1" Margin="0,8,0,4" ItemsSource="{Binding SelectedRun.Item.InfoFields, FallbackValue={x:Null}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
+                                            <Grid ColumnDefinitions="90,*">
+                                                <TextBlock Classes="desc" Text="{Binding Label}" />
+                                                <SelectableTextBlock Grid.Column="1" Classes="field" Text="{Binding Value}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,6,0,0">
+                                    <ListBox x:Name="NodeList" ItemsSource="{Binding SelectedRun.Nodes, FallbackValue={x:Null}}" SelectedItem="{Binding SelectedNode}" Background="Transparent">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:HistoryNodeRow">
+                                                <Grid ColumnDefinitions="26,*" Margin="0,3">
+                                                    <ui:FAIconSourceElement Classes="status" Classes.success="{Binding IsSuccess}"
+                                                                            Classes.failed="{Binding IsFailed}"
+                                                                            Classes.attention="{Binding IsAttention}"
+                                                                            Classes.running="{Binding IsRunning}"
+                                                                            IconSource="{Binding Icon}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                                    <StackPanel Grid.Column="1">
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right" Classes="desc" Text="{Binding Item.StatusText}" />
+                                                            <TextBlock Text="{Binding Item.TaskName}" TextTrimming="CharacterEllipsis" />
+                                                        </DockPanel>
+                                                        <TextBlock Classes="desc" Text="{Binding Item.TypeText}" />
+                                                        <TextBlock Classes="desc" Text="{Binding Item.BriefText}" TextWrapping="Wrap" IsVisible="{Binding Item.BriefText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <ScrollViewer Grid.Column="1" Margin="10,0,0,0" IsVisible="{Binding HasSelectedNode}">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedNode.Item.TaskName, FallbackValue=''}" />
+                                            <TextBlock Classes="desc" Text="{Binding SelectedNode.Item.TimingText, FallbackValue=''}" />
+                                            <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SelectedNode.Item.VerificationNote, FallbackValue=''}" />
+                                            <SelectableTextBlock Classes="field" Text="{Binding SelectedNode.Item.Message, FallbackValue=''}" />
+                                            <TextBlock Text="结果" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                            <ItemsControl ItemsSource="{Binding SelectedNode.Item.ResultFields, FallbackValue={x:Null}}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
+                                                        <StackPanel>
+                                                            <TextBlock Classes="desc" Text="{Binding Label}" />
+                                                            <SelectableTextBlock Classes="field" Text="{Binding Value}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Expander Header="当次使用的设置" HorizontalAlignment="Stretch">
+                                                <ItemsControl ItemsSource="{Binding SelectedNode.Item.SettingsFields, FallbackValue={x:Null}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
+                                                            <StackPanel>
+                                                                <TextBlock Classes="desc" Text="{Binding Label}" />
+                                                                <SelectableTextBlock Classes="field" Text="{Binding Value}" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Expander>
+                                            <Expander Header="技术详情" HorizontalAlignment="Stretch">
+                                                <ItemsControl ItemsSource="{Binding SelectedNode.Item.TechnicalFields, FallbackValue={x:Null}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
+                                                            <StackPanel>
+                                                                <TextBlock Classes="desc" Text="{Binding Label}" />
+                                                                <SelectableTextBlock Classes="field" Text="{Binding Value}" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Expander>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Grid>
+                        </Panel>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="路线 CD">
+                <DockPanel Margin="0,12,0,0" DataContext="{Binding TaskPlan}" x:DataType="vm:TaskPlanPageViewModel">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Left" Content="刷新" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
+                        <TextBlock VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap"
+                                   Text="地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。" />
+                    </DockPanel>
+                    <Panel>
+                        <TextBlock Text="暂无路线 CD 记录。" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
+                        <ListBox ItemsSource="{Binding Cooldowns}" IsVisible="{Binding !HasNoCooldowns}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TaskPlanCooldownRow">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="清除" VerticalAlignment="Center"
+                                                Command="{Binding $parent[DockPanel].((vm:TaskPlanPageViewModel)DataContext).ClearCooldownCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Route}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Detail}" FontSize="12" Opacity="0.65" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Panel>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

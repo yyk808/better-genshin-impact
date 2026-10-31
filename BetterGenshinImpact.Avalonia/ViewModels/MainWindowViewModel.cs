@@ -33,6 +33,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ScriptControl = new ScriptControlPageViewModel(host, log);
         Auto = new AutoPageViewModel(host, ScriptControl, log);
         TaskPlan = new TaskPlanPageViewModel(host, log);
+        History = new TaskHistoryPageViewModel(host, TaskPlan, log);
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
             taskId => Tasks.ToggleAsync(taskId));
@@ -44,7 +45,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new("独立任务", "TaskListSquareLtr24", Tasks),
             new("任务计划", "BranchFork24", TaskPlan),
             new("新一条龙", "AnimalTurtle24", Placeholder("新一条龙", "Pulonia 新一条龙（PuloniaOneDragonPage）"), isAvailable: false),
-            new("执行记录", "History24", Placeholder("执行记录", "Pulonia 任务执行记录（PuloniaTaskHistoryPage）"), isAvailable: false),
+            new("执行记录", "History24", History),
             new("狛荷屋(test)", "Box24", Placeholder("狛荷屋(test)", "账号记录（AccountRecordsPage）"), isAvailable: false),
             new("一条龙", "AnimalTurtle24", OneDragon),
             new("全自动", "Bot24", Auto, () => Auto.SelectedTab = 0)
@@ -94,6 +95,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public TaskPlanPageViewModel TaskPlan { get; }
 
     public SettingsPageViewModel Settings { get; }
+
+    public TaskHistoryPageViewModel History { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

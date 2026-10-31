@@ -47,6 +47,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "dev-hotkeys": await DevHotkeysAsync(); break;
                 case "notify-channels": await NotifyChannelsAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
+                case "history": await HistoryAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2070,6 +2071,113 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     }
 
     private ListBox? CooldownList() => Named<ListBox>("CooldownList");
+
+    // —— 执行记录 ——
+
+    /// <summary>
+    /// 执行记录页（--ui-test history）：新建只含一个 Shell 任务的计划并运行两次（成功 / 失败），
+    /// 在执行记录页读取真实运行记录（Pulonia 历史文件），核对状态、节点详情，并对失败的记录“继续剩余”。
+    /// 计划与历史写在 User/Pulonia，自测前后由外部脚本备份恢复
+    /// </summary>
+    private async Task HistoryAsync()
+    {
+        const string planName = "M51 记录自测";
+        vm.Navigate("任务计划");
+        var page = vm.TaskPlan;
+        await page.ReloadAsync();
+        await Settle(800);
+        foreach (var old in page.Plans.Where(p => p.Name == planName).ToList())
+        {
+            page.SelectedPlan = old;
+            await page.DeletePlanCommand.ExecuteAsync(null);
+        }
+
+        page.NewPlanName = planName;
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        if (page.SelectedPlan?.Name != planName)
+        {
+            Check("新建计划", false);
+            return;
+        }
+
+        page.SelectedAddOption = page.AddOptions.First(o => o.Definition.TaskType == "shell");
+        await Settle();
+        await Click(ButtonByText("＋ 添加"), "添加 Shell");
+        page.SelectedNode = page.Nodes.First(n => n.Task.TaskType == "shell");
+        await Settle();
+
+        async Task<string?> RunShellAsync(string file)
+        {
+            Named<TextBox>("NodeNameBox")!.Text = "M51 Shell";
+            FieldBox("file_name")!.Text = file;
+            await Settle();
+            await Click(Named<Button>("ApplyNodeButton"), "应用 " + file);
+            var runId = await page.RunPlanAsync(page.SelectedPlan);
+            if (runId is null) return null;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await page.WaitForRunAsync(runId, cts.Token);
+            return runId;
+        }
+
+        var okRun = await RunShellAsync("/bin/true");
+        page.SelectedNode = page.Nodes.First(n => n.Task.TaskType == "shell");
+        await Settle();
+        var failRun = await RunShellAsync("/bin/false");
+        Check("两次运行已提交", okRun is not null && failRun is not null, $"{okRun} {failRun}");
+        if (okRun is null || failRun is null) return;
+
+        // 执行记录页：读取真实运行记录
+        vm.Navigate("执行记录");
+        await Settle(800);
+        var history = vm.History;
+        await history.RefreshAsync();
+        await Settle();
+        var files = Directory.Exists(Global.Absolute(@"User\Pulonia\history"))
+            ? Directory.GetDirectories(Global.Absolute(@"User\Pulonia\history")).Sum(d => Directory.GetFiles(d, "*.json").Length) : 0;
+        Check("列表包含两次运行", history.Runs.Any(r => r.Item.RunId == okRun) && history.Runs.Any(r => r.Item.RunId == failRun), history.CountText);
+        Check("最新的记录在最上面", history.Runs.FirstOrDefault()?.Item.RunId == failRun);
+        Check("记录数显示", Named<ListBox>("RunList") is not null && history.CountText == $"共 {history.Runs.Count} 条", $"{history.CountText}，历史文件 {files} 个");
+
+        // 成功的记录：选中后显示状态与节点详情
+        var okRow = history.Runs.First(r => r.Item.RunId == okRun);
+        Named<ListBox>("RunList")!.SelectedItem = okRow;
+        await Settle();
+        Check("成功记录状态", okRow.Item.Run.Status == Pulonia.Models.PuloniaTaskRunStatus.Succeeded && okRow.IsSuccess, okRow.Item.StatusText);
+        Check("详情显示计划与状态", Named<TextBlock>("RunStatusText")?.Text == okRow.Item.StatusText);
+        Check("节点详情", history.SelectedNode?.Item.TaskName == "M51 Shell" && Named<ListBox>("NodeList")?.ItemCount == 1, history.SelectedNode?.Item.TaskName);
+        Check("成功记录不可继续", !history.CanResumeRun && ButtonByText("继续剩余") is null);
+        Shot("avalonia-history-ok.png");
+
+        // 失败的记录：继续剩余（沿用原快照重新执行失败的任务）
+        var failRow = history.Runs.First(r => r.Item.RunId == failRun);
+        Named<ListBox>("RunList")!.SelectedItem = failRow;
+        await Settle();
+        Check("失败记录状态", failRow.IsFailed, failRow.Item.StatusText + " " + failRow.Item.Message);
+        Check("默认选中失败的任务", history.SelectedNode?.IsFailed == true, history.SelectedNode?.Item.StatusText);
+        Shot("avalonia-history-failed.png");
+        var before = history.Runs.Count;
+        await Click(ButtonByText("继续剩余"), "继续剩余");
+        await WaitFor(() => history.Runs.Count > before ? "ok" : null);
+        var resumed = history.Runs.FirstOrDefault();
+        Check("继续剩余新增关联运行", resumed is not null && resumed.Item.Run.ResumedFromRunId == failRun, resumed?.Item.Run.ResumedFromRunId);
+        if (resumed is not null)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await page.WaitForRunAsync(resumed.Item.RunId, cts.Token);
+        }
+
+        // 路线 CD 选项卡
+        var cdTab = All<TabItem>().FirstOrDefault(t => t.Header as string == "路线 CD");
+        if (cdTab is not null) cdTab.IsSelected = true;
+        await Settle();
+        Check("路线 CD 选项卡", cdTab is not null && ButtonByText("刷新") is not null);
+        if (cdTab is not null) All<TabItem>().First(t => t.Header as string == "运行记录").IsSelected = true;
+
+        vm.Navigate("任务计划");
+        await Settle();
+        page.SelectedPlan = page.Plans.First(p => p.Plan.Id == failRow.Item.Run.PlanId);
+        await page.DeletePlanCommand.ExecuteAsync(null);
+    }
 
     private TextBox? FieldBox(string name)
         => All<StackPanel>().FirstOrDefault(p => p.Tag as string == name && p.IsEffectivelyVisible)?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();

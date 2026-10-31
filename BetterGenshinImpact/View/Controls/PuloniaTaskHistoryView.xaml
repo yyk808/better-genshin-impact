@@ -4,6 +4,7 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:converters="clr-namespace:BetterGenshinImpact.View.Converters"
              xmlns:pulonia="clr-namespace:BetterGenshinImpact.ViewModel.Pages.Pulonia"
+             xmlns:presentation="clr-namespace:BetterGenshinImpact.Pulonia.Presentation;assembly=BetterGenshinImpact.Core"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}"
              ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
              ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
@@ -160,7 +161,7 @@
         </Style>
 
         <!-- 详情字段：标题在上，内容可选择复制，长内容在框内滚动。 -->
-        <DataTemplate x:Key="FieldTemplate" DataType="{x:Type pulonia:PuloniaTaskHistoryField}">
+        <DataTemplate x:Key="FieldTemplate" DataType="{x:Type presentation:PuloniaTaskHistoryField}">
             <StackPanel Margin="0,0,0,10">
                 <TextBlock FontSize="12"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -173,7 +174,7 @@
         </DataTemplate>
 
         <!-- 运行信息：标题与内容同行的紧凑列表。 -->
-        <DataTemplate x:Key="InfoRowTemplate" DataType="{x:Type pulonia:PuloniaTaskHistoryField}">
+        <DataTemplate x:Key="InfoRowTemplate" DataType="{x:Type presentation:PuloniaTaskHistoryField}">
             <Grid Margin="0,3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="80" />
