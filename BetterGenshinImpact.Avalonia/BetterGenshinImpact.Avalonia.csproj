@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<!--
-		Avalonia 宿主（纯 net10.0，Avalonia 12 + 自带 Fluent 主题）：Linux 上的图形界面。
+		Avalonia 宿主（纯 net10.0，Avalonia 12 + FluentAvaloniaUI 主题）：Linux 上的图形界面。
 		启动引导与无界面宿主共用 BetterGenshinImpact.Host.Common 的 GameHost；
 		UiHost（UI 线程、消息框、剪贴板）由本项目提供 Avalonia 实现。
 		OpenCvSharpExtern / onnxruntime 原生库由 Host.Common 引用（本地构建见 Build/Linux/build-opencvsharp.sh）。
@@ -26,6 +26,10 @@
 		<EmbeddedResource Include="..\BetterGenshinImpact\Resources\JavaScript\ys-input-inject.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.ys-input-inject.js" Link="Resources\ys-input-inject.js" />
 	</ItemGroup>
 	<ItemGroup>
+		<!-- 导航与卡片图标字体：Fluent UI System Icons（MIT，https://github.com/microsoft/fluentui-system-icons），取自 WPF-UI 4.3.0 内嵌的同一字体 -->
+		<AvaloniaResource Include="Assets\Fonts\FluentSystemIcons-Regular.ttf" />
+	</ItemGroup>
+	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />
 	</ItemGroup>
 
@@ -36,6 +40,8 @@
 		<PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+		<!-- Fluent Design 组件（NavigationView、SettingsExpander、InfoBar、ContentDialog 等），对应 WPF 版的 WPF-UI -->
+		<PackageReference Include="FluentAvaloniaUI" Version="3.1.0" />
 	</ItemGroup>
 
 </Project>

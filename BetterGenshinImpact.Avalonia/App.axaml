@@ -1,9 +1,15 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sty="using:FluentAvalonia.Styling"
              x:Class="BetterGenshinImpact.Avalonia.App"
              RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <!-- Fluent System Icons（与 WPF 版 WPF-UI 的 SymbolIcon 同一字体，MIT 许可） -->
+        <FontFamily x:Key="FluentSystemIcons">avares://bgi-avalonia/Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular</FontFamily>
+    </Application.Resources>
     <Application.Styles>
-        <FluentTheme />
+        <!-- FluentAvalonia 主题（Fluent Design / WinUI 风格），深色；强调色用 Windows 默认蓝（与 WPF 版默认一致） -->
+        <sty:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" CustomAccentColor="#0078D4" />
         <StyleInclude Source="avares://bgi-avalonia/Styles.axaml" />
     </Application.Styles>
 </Application>

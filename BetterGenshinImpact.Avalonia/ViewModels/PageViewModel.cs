@@ -22,12 +22,12 @@ public sealed class PlaceholderPageViewModel(string title, string description) :
 }
 
 /// <summary>导航项</summary>
-public sealed class NavItem(string title, string iconData, PageViewModel page, bool isAvailable = true)
+public sealed class NavItem(string title, string glyph, PageViewModel page, bool isAvailable = true)
 {
     public string Title => title;
 
-    /// <summary>图标的路径数据（24×24）</summary>
-    public string IconData => iconData;
+    /// <summary>图标字符（Fluent System Icons，与 WPF 版 WPF-UI 的 SymbolIcon 使用同一字体与码位）</summary>
+    public string Glyph => glyph;
 
     public PageViewModel Page => page;
 

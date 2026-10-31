@@ -13,15 +13,15 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// <summary>主窗口：左侧导航 + 内容区 + 底部日志面板 + 轻提示</summary>
 public sealed partial class MainWindowViewModel : ObservableObject
 {
-    // 24×24 图标路径
-    private const string IconHome = "M3,11 L12,3 L21,11 L19,11 L19,21 L14,21 L14,15 L10,15 L10,21 L5,21 L5,11 Z";
-    private const string IconBolt = "M13,2 L4,14 L11,14 L10,22 L20,9 L13,9 Z";
-    private const string IconTask = "M4,4 H20 V7 H4 Z M4,10.5 H20 V13.5 H4 Z M4,17 H20 V20 H4 Z";
-    private const string IconCalendar = "F0 M3,5 H21 V21 H3 Z M5,10 H19 V19 H5 Z M7,2 H9 V7 H7 Z M15,2 H17 V7 H15 Z";
-    private const string IconDragon = "M12,2 L15,9 L22,9 L16.5,13.5 L18.5,21 L12,16.5 L5.5,21 L7.5,13.5 L2,9 L9,9 Z";
-    private const string IconAuto = "M12,4 A8,8 0 1 1 4,12 H7 A5,5 0 1 0 12,7 Z M12,4 L12,1 L16,5 L12,9 Z";
-    private const string IconChip = "F0 M6,6 H18 V18 H6 Z M9,9 H15 V15 H9 Z M9,2 H11 V6 H9 Z M13,2 H15 V6 H13 Z M9,18 H11 V22 H9 Z M13,18 H15 V22 H13 Z M2,9 H6 V11 H2 Z M2,13 H6 V15 H2 Z M18,9 H22 V11 H18 Z M18,13 H22 V15 H18 Z";
-    private const string IconSettings = "M12,8 A4,4 0 1 1 12,16 A4,4 0 1 1 12,8 Z M11,1 H13 L13.5,4.5 L17,6 L20,4 L21.5,5.5 L19.5,8.5 L21,12 L23,12.5 V14.5 L19.5,15 L18,18.5 L20,21.5 L18.5,23 L15.5,21 L12,22.5 L11,23 L10.5,19.5 L7,18 L4,20 L2.5,18.5 L4.5,15.5 L3,12 L1,11.5 V9.5 L4.5,9 L6,5.5 L4,2.5 L5.5,1 L8.5,3 Z";
+    // 导航图标：Fluent System Icons（Regular）码位，与 WPF 版 MainWindow.xaml 的 SymbolRegular 相同
+    private const string IconHome = "\uF606"; // Play24
+    private const string IconBolt = "\uF827"; // Timer24
+    private const string IconTask = "\uEC9A"; // TaskListSquareLtr24
+    private const string IconCalendar = "\uE1DF"; // BranchFork24
+    private const string IconDragon = "\uE056"; // AnimalTurtle24
+    private const string IconAuto = "\uF1F9"; // Bot24
+    private const string IconChip = "\uF35C"; // DeveloperBoard24（WPF 版没有“环境”页）
+    private const string IconSettings = "\uF6AA"; // Settings24
 
     private readonly DispatcherTimer _toastTimer;
 

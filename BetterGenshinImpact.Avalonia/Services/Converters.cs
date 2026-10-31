@@ -23,6 +23,15 @@ public static class Converters
     /// <summary>日志面板展开状态 → 按钮文字</summary>
     public static readonly IValueConverter ExpandGlyph = new FuncValueConverter<bool, string>(expanded => expanded ? "收起" : "展开");
 
+    /// <summary>轻提示类型（DialogKind 名称）→ InfoBar 严重程度</summary>
+    public static readonly IValueConverter InfoBarSeverity = new FuncValueConverter<string, FluentAvalonia.UI.Controls.FAInfoBarSeverity>(kind => kind switch
+    {
+        "Success" => FluentAvalonia.UI.Controls.FAInfoBarSeverity.Success,
+        "Warning" => FluentAvalonia.UI.Controls.FAInfoBarSeverity.Warning,
+        "Error" => FluentAvalonia.UI.Controls.FAInfoBarSeverity.Error,
+        _ => FluentAvalonia.UI.Controls.FAInfoBarSeverity.Informational,
+    });
+
     /// <summary>截图器运行状态 → 状态点颜色</summary>
     public static readonly IValueConverter RunningBrush = new FuncValueConverter<bool, IBrush>(running =>
         running ? new SolidColorBrush(Color.Parse("#46A758")) : new SolidColorBrush(Color.Parse("#6B6B6B")));
