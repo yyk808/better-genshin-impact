@@ -44,6 +44,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plan-cooldown": await PlanCooldownAsync(); break;
                 case "plan-profiles-cd": await PlanProfilesCooldownAsync(); break;
                 case "plan-node-cd": await PlanNodeCooldownAsync(); break;
+                case "dev-hotkeys": await DevHotkeysAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1851,6 +1852,130 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             page.SelectedTab = 0;
             await Settle();
             await DeleteTempPlanAsync(page, id);
+        }
+    }
+
+    // —— 开发者快捷键：模板素材制作、路径记录器 / 添加路径点（假游戏带小地图场景，xdotool 按键） ——
+
+    private async Task DevHotkeysAsync()
+    {
+        const string tplRoot = "/tmp/m45-tpl";
+        var settings = vm.Settings;
+        if (Directory.Exists(tplRoot)) Directory.Delete(tplRoot, true);
+        var runtime = await WaitFor(() => vm.Host?.RuntimeService.Current);
+        Check("截图器已启动", runtime is not null);
+        if (runtime is null) return;
+        var keys = new Dictionary<string, string>
+        {
+            ["RecognitionTemplateEditorHotkey"] = "Ctrl + Shift + F10",
+            ["PathRecorderHotkey"] = "Ctrl + Shift + F11",
+            ["AddWaypointHotkey"] = "Ctrl + Shift + F12"
+        };
+        foreach (var (property, key) in keys)
+        {
+            var item = settings.Hotkeys.First(h => h.Property == property);
+            item.Value = key;
+        }
+
+        settings.RegisterHotkeys();
+        foreach (var property in keys.Keys)
+        {
+            var item = settings.Hotkeys.First(h => h.Property == property);
+            Check($"注册 {item.Name}", item.IsSupported && item.Status.StartsWith("已注册"), item.Status);
+        }
+
+        bool Press(string key)
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("xdotool", $"key --delay 120 {key}") { UseShellExecute = false, RedirectStandardError = true };
+            using var proc = System.Diagnostics.Process.Start(psi);
+            proc?.WaitForExit(5000);
+            return proc?.ExitCode == 0;
+        }
+
+        // 1. 模板素材制作：截取画面 → 框选派蒙菜单 → 保存图片与 Recognition.json
+        Check("xdotool 模板素材快捷键", Press("ctrl+shift+F10"));
+        var window = await WaitFor(() => Views.TemplateEditorWindow.Current);
+        Check("快捷键打开模板素材制作窗口", window is not null);
+        if (window?.DataContext is ViewModels.TemplateEditorViewModel editor)
+        {
+            Check("画布为当前游戏截图", editor.CanvasWidth == 1920 && editor.CanvasHeight == 1080, $"{editor.CanvasWidth}x{editor.CanvasHeight}");
+            editor.SetSelection(25, 15, 25 + 40, 15 + 40);
+            editor.RecognitionJsonPath = tplRoot + "/Recognition.json";
+            editor.AssetsRootPath = tplRoot;
+            editor.TemplateFileName = "PaimonMenu Test";
+            await Settle(600);
+            Check("文件名生成对象名", editor.ObjectName == "PaimonMenuTest", editor.ObjectName);
+            Shot(window, "avalonia-template-editor.png");
+            await Click(window.FindControl<Button>("SaveTemplateButton"), "保存模板素材");
+            await Settle(800);
+            var image = tplRoot + "/1920x1080/paimon_menu_test.png";
+            var json = File.Exists(tplRoot + "/Recognition.json") ? File.ReadAllText(tplRoot + "/Recognition.json") : "";
+            using (var saved = File.Exists(image) ? OpenCvSharp.Cv2.ImRead(image) : new OpenCvSharp.Mat())
+            {
+                Check("模板图片按选区裁剪保存", saved.Width == 40 && saved.Height == 40, $"{image} {saved.Width}x{saved.Height}");
+            }
+
+            Check("Recognition.json 写入对象", json.Contains("PaimonMenuTest") && json.Contains("paimon_menu_test.png"), json.Length.ToString());
+            Check("保存后关闭窗口并记住路径", Views.TemplateEditorWindow.Current is null
+                && settings.Config.DevConfig.RecognitionJsonPath == tplRoot + "/Recognition.json", editor.Message);
+
+            // 再次保存同名模板：提示冲突，确认后覆盖
+            Check("xdotool 再次打开", Press("ctrl+shift+F10"));
+            window = await WaitFor(() => Views.TemplateEditorWindow.Current);
+            if (window?.DataContext is ViewModels.TemplateEditorViewModel again)
+            {
+                Check("再次打开沿用上次路径", again.RecognitionJsonPath == tplRoot + "/Recognition.json" && again.AssetsRootPath == tplRoot, again.AssetsRootPath);
+                string? conflict = null;
+                again.ConfirmOverwrite = text =>
+                {
+                    conflict = text;
+                    return Task.FromResult(false);
+                };
+                again.SetSelection(20, 1030, 60, 1070);
+                again.TemplateFileName = "paimon_menu_test";
+                Check("同名冲突需确认，取消后不保存", !await again.SaveAsync() && conflict?.Contains("冲突") == true, conflict ?? again.Message);
+                again.ConfirmOverwrite = _ => Task.FromResult(true);
+                Check("确认后覆盖保存", await again.SaveAsync(), again.Message);
+                window.Close();
+                await Settle(300);
+            }
+        }
+
+        // 2. 路径记录器：开始（初始传送点）→ 添加路径点（画面已切到另一位置）→ 停止并保存
+        var before = Directory.Exists(BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath)
+            ? Directory.GetFiles(BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath, "*.json").ToHashSet() : [];
+        Check("xdotool 启动路径记录器", Press("ctrl+shift+F11"));
+        for (var i = 0; i < 120 && settings.PathRecordCount < 1; i++) await Task.Delay(500);
+        Check("记录初始传送点", settings.IsPathRecording && settings.PathRecordCount == 1, $"{settings.IsPathRecording} {settings.PathRecordCount}");
+        await Task.Delay(4500); // 假游戏每 4 秒切换小地图位置
+        Check("xdotool 添加路径点", Press("ctrl+shift+F12"));
+        for (var i = 0; i < 60 && settings.PathRecordCount < 2; i++) await Task.Delay(500);
+        Check("添加途经点", settings.PathRecordCount == 2, settings.PathRecordCount.ToString());
+        Check("xdotool 停止路径记录器", Press("ctrl+shift+F11"));
+        string? file = null;
+        for (var i = 0; i < 20 && file is null; i++)
+        {
+            await Task.Delay(300);
+            file = settings.LastPathRecordFile;
+        }
+
+        Check("停止后保存路线文件", file is not null && File.Exists(file) && !before.Contains(file) && !settings.IsPathRecording, file);
+        if (file is not null && File.Exists(file))
+        {
+            var route = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(file));
+            var positions = route["positions"] as Newtonsoft.Json.Linq.JArray ?? [];
+            var p0 = positions.Count > 0 ? positions[0] : null;
+            var p1 = positions.Count > 1 ? positions[1] : null;
+            var distance = p0 is null || p1 is null ? 0 : Math.Sqrt(Math.Pow((double)p0["x"]! - (double)p1["x"]!, 2) + Math.Pow((double)p0["y"]! - (double)p1["y"]!, 2));
+            Check("路线含传送点与途经点", positions.Count == 2 && (string?)p0?["type"] == "teleport" && (string?)p1?["type"] == "path",
+                route.ToString(Newtonsoft.Json.Formatting.None));
+            // 场景小地图取自精细地图的已知位置：(4618, 3594) 与 (4538, 3534)
+            bool Known(Newtonsoft.Json.Linq.JToken? p) => p is not null
+                && new[] { (4618d, 3594d), (4538d, 3534d) }.Any(k => Math.Abs((double)p["x"]! - k.Item1) < 3 && Math.Abs((double)p["y"]! - k.Item2) < 3);
+            Check("坐标与场景小地图位置一致", Known(p0) && Known(p1), $"{p0?["x"]},{p0?["y"]} / {p1?["x"]},{p1?["y"]}");
+            Check("两点位置随小地图变化", distance > 10, $"距离 {distance:0.0}");
+            File.Copy(file, Path.Combine(dir ?? "/tmp", "path-record.json"), true);
+            File.Delete(file);
         }
     }
 

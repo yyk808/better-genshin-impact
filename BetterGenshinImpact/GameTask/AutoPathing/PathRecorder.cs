@@ -33,19 +33,8 @@ public class PathRecorder : Singleton<PathRecorder>
 
     public static JsonSerializerOptions JsonOptions => PathingJson.Options;
 
-    private PathingTask _pathingTask = new();
-
-
-    private string GetMapName()
-    {
-        var mapName = Config.DevConfig.RecordMapName;
-        if (string.IsNullOrEmpty(mapName))
-        {
-            mapName = nameof(MapTypes.Teyvat);
-        }
-
-        return mapName;
-    }
+    /// <summary>记录路径点与保存文件的部分在 Core，与 Linux 宿主共用</summary>
+    private readonly PathRecordSession _session = new();
 
     /// <summary>
     /// 开始记录路径点，以当前位置作为初始传送点
@@ -53,33 +42,11 @@ public class PathRecorder : Singleton<PathRecorder>
     /// <param name="runtime">截图所用的运行环境</param>
     public void Start(GameRuntime runtime)
     {
-        var matchingMethod = Config.PathingConditionConfig.MapMatchingMethod;
-        Navigation.WarmUp(matchingMethod);
-        _pathingTask = new PathingTask();
-        TaskControl.Logger.LogInformation("开始路径点记录");
-        if (GetMapName() == nameof(MapTypes.Teyvat))
+        if (_session.Start(runtime) is not { } waypoint)
         {
-            TaskControl.Logger.LogInformation("如果需要切换其他地图，请在 {Msg} 中切换", "地图追踪——开发者工具");
-        }
-
-        var waypoint = new Waypoint();
-        using var screen = runtime.CaptureToRectArea();
-        var position = Navigation.GetPositionStable(screen, GetMapName(), matchingMethod);
-        var nullablePosition = MapManager.GetMap(GetMapName(), matchingMethod).ConvertImageCoordinatesToGenshinMapCoordinates(position);
-        if (nullablePosition == null)
-        {
-            TaskControl.Logger.LogWarning("未识别到当前位置！");
             return;
         }
-        else
-        {
-            position = nullablePosition.Value;
-        }
-        waypoint.X = position.X;
-        waypoint.Y = position.Y;
-        waypoint.Type = WaypointType.Teleport.Code;
-        waypoint.MoveMode = MoveModeEnum.Walk.Code;
-        _pathingTask.Positions.Add(waypoint);
+
         if (_webWindow == null)
         {
             TaskControl.Logger.LogInformation("已创建初始路径点({x},{y})", waypoint.X, waypoint.Y);
@@ -98,45 +65,17 @@ public class PathRecorder : Singleton<PathRecorder>
     /// <param name="waypointType">路径点类型，为空时为途经点</param>
     public void AddWaypoint(GameRuntime runtime, string waypointType = "")
     {
-        Waypoint waypoint = new();
-        using var screen = runtime.CaptureToRectArea();
-        var matchingMethod = Config.PathingConditionConfig.MapMatchingMethod;
-        var position = Navigation.GetPositionStable(screen, GetMapName(), matchingMethod);
-        var nullablePosition = MapManager.GetMap(GetMapName(), matchingMethod).ConvertImageCoordinatesToGenshinMapCoordinates(position);
-        if (nullablePosition == null)
+        if (_session.AddWaypoint(runtime, waypointType) is { } waypoint)
         {
-            TaskControl.Logger.LogWarning("未识别到当前位置！");
-            return;
+            AddPosToEditor(waypoint.X, waypoint.Y);
         }
-        else
-        {
-            position = nullablePosition.Value;
-        }
-
-        waypoint.X = position.X;
-        waypoint.Y = position.Y;
-        waypoint.Type = string.IsNullOrEmpty(waypointType) ? WaypointType.Path.Code : waypointType;
-        _pathingTask.Positions.Add(waypoint);
-        TaskControl.Logger.LogInformation("已添加途径点({x},{y})", waypoint.X, waypoint.Y);
-        AddPosToEditor(waypoint.X, waypoint.Y);
     }
 
     public void Save()
     {
         if (_webWindow == null)
         {
-            var matchingMethod = Config.PathingConditionConfig.MapMatchingMethod;
-            _pathingTask.Info = new PathingTaskInfo
-            {
-                Name = "未命名路线",
-                Type = PathingTaskType.Collect.Code,
-                MapName = GetMapName(),
-                MapMatchMethod = matchingMethod,
-                BgiVersion = Global.Version
-            };
-            var name = $@"{DateTime.Now:yyyyMMdd_HHmmss}.json";
-            _pathingTask.SaveToFile(Path.Combine(PathingPaths.PathJsonPath, name));
-            TaskControl.Logger.LogInformation("录制编辑器未打开，直接保存路径点记录:{Name}", name);
+            _session.SaveToFile();
         }
         else
         {

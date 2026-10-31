@@ -634,3 +634,20 @@ Core 1186 个，主项目 576 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 84 �
 
 
 Core 1187 个，主项目 575 个（CD 表单视图模型移到 Core）；Avalonia 宿主 `.cs` 与 `.axaml` 共 87 个。
+
+## 里程碑 45：开发者快捷键（模板素材制作、路径记录器）、邮件与企业微信通知
+
+- 剩余的开发者快捷键在 Linux 上接通（对照 WPF HotKeyPageViewModel）：
+  - “（开发）模板素材制作”：截取当前游戏画面，打开 Linux 版模板素材制作窗口（对照 WPF RecognitionTemplateEditorWindow）。
+    在截图上拖动框选（或填写 X / Y / 宽 / 高），填写 Recognition.json、Assets 根目录、模板文件名（自动转 snake_case 并生成
+    PascalCase 对象名）与匹配阈值，保存时与 WPF 相同调用 Core 的 `RecognitionTemplateAssetService` 校验并一致性写入图片与配置，
+    同名冲突先确认再覆盖，最近使用的路径记入 `DevConfig`。已打开时再按快捷键只激活窗口；截图器未启动时提示先启动。
+    掩码、二值化、搜索框扩展等高级参数使用默认值。
+  - “启动/停止路径记录器”“添加路径点”：记录逻辑抽到 Core 的 `PathRecordSession`（以小地图位置记录初始传送点与途经点，停止时
+    保存到 `User/AutoPathing`），WPF 的 `PathRecorder` 改为调用它（网页编辑器部分不变，日志与行为相同）。Linux 没有网页路径点编辑器，
+    停止时直接保存文件；地图追踪目录不存在时先创建。
+- 界面自测 `--ui-test dev-hotkeys`（24 项）：假游戏显示带小地图的主界面场景（小地图取自 `MapBack_1` 精细灰度图与彩色图，
+  按 156 像素对应精细图 260 像素缩放，并模拟边缘渐暗与视野扇形提亮，与 BGI 预处理的逆运算对应），两张场景每 4 秒切换；
+  xdotool 按快捷键打开模板窗口、框选保存并核对裁剪图片与 Recognition.json、冲突确认；再按快捷键开始记录、添加路径点、停止保存，
+  核对路线文件中两个点的坐标与场景小地图位置一致（误差小于 1）。
+

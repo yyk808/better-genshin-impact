@@ -220,7 +220,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     /// <summary>
     /// Linux 宿主的快捷键动作，与 WPF HotKeyPageViewModel 中对应条目相同；与界面无关的部分在 Core 的 HotkeyActionCatalog 中。
-    /// 键鼠录制、模板素材制作、路径记录器 / 添加路径点依赖 Windows 版的录制与编辑器，尚未迁移
+    /// 模板素材制作打开 Linux 版框选窗口；路径记录器与添加路径点使用 Core 的 PathRecordSession（不打开 WPF 网页编辑器，直接保存文件）
     /// </summary>
     private Dictionary<string, HotkeyBinding> HotkeyActions
     {
@@ -285,6 +285,16 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                         }
                     });
                 }),
+                ["RecognitionTemplateEditorHotkey"] = new(() => UiHost.Dispatcher.Post(() => _ = Views.TemplateEditorWindow.OpenAsync(_host, Config.DevConfig))),
+                ["PathRecorderHotkey"] = new(TogglePathRecorder),
+                ["AddWaypointHotkey"] = new(() =>
+                {
+                    // 与 WPF 相同：只在记录中且截图器已启动时添加
+                    if (_pathRecording && _host?.RuntimeService.Current is { } runtime)
+                    {
+                        _ = Task.Run(() => RunPathRecorder(() => _pathRecorder.AddWaypoint(runtime)));
+                    }
+                }),
                 ["RecBigMapPosHotkey"] = new(() => WithRuntime(r =>
                 {
                     try
@@ -309,6 +319,67 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             }
 
             return map;
+        }
+    }
+
+    /// <summary>路径记录（与 WPF PathRecorder 共用 Core 的记录逻辑）</summary>
+    private readonly BetterGenshinImpact.GameTask.AutoPathing.PathRecordSession _pathRecorder = new();
+
+    private bool _pathRecording;
+
+    /// <summary>路径记录器正在记录（快捷键切换）</summary>
+    public bool IsPathRecording => _pathRecording;
+
+    /// <summary>当前记录的路径点数</summary>
+    public int PathRecordCount => _pathRecorder.Count;
+
+    /// <summary>最近一次保存的路径记录文件</summary>
+    public string? LastPathRecordFile { get; private set; }
+
+    /// <summary>
+    /// 启动 / 停止路径记录器（与 WPF 相同：停止时保存；启动需要截图器，未启动时不切换状态）。
+    /// Linux 没有网页路径点编辑器，停止时直接保存到地图追踪目录。
+    /// </summary>
+    private void TogglePathRecorder()
+    {
+        if (_pathRecording)
+        {
+            RunPathRecorder(() =>
+            {
+                // 新环境下地图追踪目录可能还不存在（Windows 版安装时已有）
+                Directory.CreateDirectory(BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath);
+                LastPathRecordFile = _pathRecorder.SaveToFile();
+            });
+        }
+        else
+        {
+            if (_host?.RuntimeService.Current is not { } runtime)
+            {
+                WithRuntime(_ => { });
+                return;
+            }
+
+            _ = Task.Run(() => RunPathRecorder(() =>
+            {
+                if (_pathRecorder.Start(runtime) is { } waypoint)
+                {
+                    _log.Information("已创建初始路径点({X},{Y})", waypoint.X, waypoint.Y);
+                }
+            }));
+        }
+
+        _pathRecording = !_pathRecording;
+    }
+
+    private void RunPathRecorder(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "路径记录失败：{Message}", e.Message);
         }
     }
 

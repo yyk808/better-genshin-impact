@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+        x:Class="BetterGenshinImpact.Avalonia.Views.TemplateEditorWindow"
+        x:DataType="vm:TemplateEditorViewModel"
+        Width="1320" Height="760" WindowStartupLocation="CenterOwner"
+        Title="模板素材制作">
+    <!-- 模板素材制作（对照 WPF View/Windows/RecognitionTemplateEditorWindow；保存逻辑在 Core 的 RecognitionTemplateAssetService） -->
+    <Window.Styles>
+        <Style Selector="TextBlock.desc">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.75" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Margin" Value="0,8,0,2" />
+        </Style>
+    </Window.Styles>
+    <Grid ColumnDefinitions="*,340" Margin="12">
+        <Border Background="#20000000" CornerRadius="4" ClipToBounds="True">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                <Canvas Name="SelectionCanvas" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Background="Transparent" Cursor="Cross">
+                    <Image Source="{Binding Image}" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" />
+                    <Border Name="SelectionRect" BorderBrush="#FF3B82F6" BorderThickness="3" Background="#303B82F6" IsHitTestVisible="False" />
+                </Canvas>
+            </Viewbox>
+        </Border>
+        <ScrollViewer Grid.Column="1" Margin="12,0,0,0">
+            <StackPanel>
+                <TextBlock Text="模板区域" FontWeight="SemiBold" />
+                <TextBlock Classes="desc" Text="{Binding CanvasWidth, StringFormat='在截图上拖动框选；截图 {0} 像素宽'}" />
+                <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+                    <TextBox Name="SelXBox" Text="{Binding SelectionX}" Watermark="X" Margin="0,0,4,0" />
+                    <TextBox Grid.Column="1" Name="SelYBox" Text="{Binding SelectionY}" Watermark="Y" Margin="0,0,4,0" />
+                    <TextBox Grid.Column="2" Name="SelWBox" Text="{Binding SelectionWidth}" Watermark="宽" Margin="0,0,4,0" />
+                    <TextBox Grid.Column="3" Name="SelHBox" Text="{Binding SelectionHeight}" Watermark="高" />
+                </Grid>
+                <TextBlock Classes="label" Text="Recognition.json" />
+                <TextBox Name="JsonPathBox" Text="{Binding RecognitionJsonPath}" Watermark="…/Assets/Recognition.json" />
+                <TextBlock Classes="label" Text="Assets 根目录" />
+                <TextBox Name="AssetsRootBox" Text="{Binding AssetsRootPath}" Watermark="图片写入其下的 1920x1080 目录" />
+                <TextBlock Classes="label" Text="模板文件名" />
+                <TextBox Name="TemplateNameBox" Text="{Binding TemplateFileName}" Watermark="snake_case，自动加 .png" />
+                <TextBlock Classes="label" Text="对象名" />
+                <TextBox Name="ObjectNameBox" Text="{Binding ObjectName}" Watermark="随文件名生成 PascalCase" />
+                <TextBlock Classes="label" Text="匹配阈值" />
+                <NumericUpDown Value="{Binding Threshold}" Minimum="0" Maximum="1" Increment="0.05" FormatString="0.00" />
+                <TextBlock Classes="desc" Margin="0,8,0,0" Text="{Binding OutputImagePath, StringFormat='图片：{0}'}" />
+                <TextBlock Classes="desc" Text="其余匹配参数（掩码、二值化、搜索框扩展等）使用默认值。" />
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+                    <Button Name="SaveTemplateButton" Content="保存" Classes="accent" Click="OnSave" />
+                    <Button Content="取消" Click="OnCancel" />
+                </StackPanel>
+                <TextBlock Name="TemplateMessage" Classes="desc" Margin="0,8,0,0" Text="{Binding Message}" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
