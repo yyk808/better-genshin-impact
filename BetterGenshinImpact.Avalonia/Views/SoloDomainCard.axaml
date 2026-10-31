@@ -5,7 +5,7 @@
              xmlns:reward="using:BetterGenshinImpact.GameTask.Common.Reward"
              x:Class="BetterGenshinImpact.Avalonia.Views.SoloDomainCard"
              x:DataType="vm:SoloDomainSettingsViewModel">
-    <!-- 独立任务页自动秘境的配置项（对照 WPF TaskSettingsPage 自动秘境区域；“按材料数量提前结束”尚未迁移） -->
+    <!-- 独立任务页自动秘境的配置项（对照 WPF TaskSettingsPage 自动秘境区域） -->
     <UserControl.Styles>
         <Style Selector="DockPanel.param > ToggleSwitch, DockPanel.param > NumericUpDown">
             <Setter Property="DockPanel.Dock" Value="Right" />

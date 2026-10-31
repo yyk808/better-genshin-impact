@@ -1,0 +1,257 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fight="using:BetterGenshinImpact.GameTask.AutoFight"
+             xmlns:solo="using:BetterGenshinImpact.ViewModel.Pages.SoloTask"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloFightCard"
+             x:DataType="fight:AutoFightConfig">
+    <!-- 独立任务页自动战斗的高级参数（对照 WPF TaskSettingsPage 自动战斗区域；直接绑定 Core AutoFightConfig） -->
+    <UserControl.Styles>
+        <Style Selector="DockPanel.param > ToggleSwitch, DockPanel.param > NumericUpDown">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="" />
+            <Setter Property="OffContent" Value="" />
+        </Style>
+        <Style Selector="DockPanel.param > ComboBox, DockPanel.param > TextBox, DockPanel.param > ToggleSwitch, DockPanel.param > NumericUpDown">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+        <Style Selector="DockPanel.param > ComboBox, DockPanel.param > TextBox">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+            <Setter Property="Width" Value="220" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="DockPanel.param > StackPanel > TextBlock.desc">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel.indent">
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel Spacing="10">
+        <DockPanel Classes="param">
+            <TextBox x:Name="SfActionSchedulerByCd" Text="{Binding ActionSchedulerByCd}" />
+            <StackPanel>
+                <TextBlock Text="根据技能CD优化出招人员" />
+                <TextBlock Classes="desc" Text="根据填入人或人和cd，来决定当此人元素战技cd未结束时，跳过此人出招，来优化战斗流程，可填入人名或人名数字（用英文逗号分隔），多种用分号分隔，例如：白术；钟离与12。如果人名，则用内置cd检查（或填入数字也小于0），如果是人名和数字，则把数字当做出招cd(秒)。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SfFinishDetect" IsChecked="{Binding FightFinishDetectEnabled}" />
+            <StackPanel>
+                <TextBlock Text="自动检测战斗结束" />
+                <TextBlock Classes="desc" Text="检测到战斗已经结束的情况下，停止自动战斗功能" />
+            </StackPanel>
+        </DockPanel>
+        <StackPanel Classes="indent" Spacing="10" IsVisible="{Binding FightFinishDetectEnabled}">
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding FinishDetectConfig.FastCheckEnabled}" />
+            <StackPanel>
+                <TextBlock Text="更快触发战斗结束检查" />
+                <TextBlock Classes="desc" Text="快速检查战斗结束，完成一轮动作后，如果满足条件，则触发一次战斗结束检查。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <TextBox Text="{Binding FinishDetectConfig.FastCheckParams}" />
+            <StackPanel>
+                <TextBlock Text="更快触发战斗结束检查参数" />
+                <TextBlock Classes="desc" Text="快速检查战斗结束的参数，填写数字（秒）时距离上次检查超过该时间则触发检查，填写人名时对应角色动作后触发检查。多项时使用分号分隔，格式如5或5;白术;" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding FinishDetectConfig.CheckAfterSwitchAvatar}" />
+            <StackPanel>
+                <TextBlock Text="切人后再执行战斗结束检查" />
+                <TextBlock Classes="desc" Text="将触发战斗结束检查的时机调整为切人后，无需等待上一个动作后摇。目前仅 JSON 策略下生效。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SfSkipWhenEnemyVisible" IsChecked="{Binding FinishDetectConfig.SkipFightEndCheckWhenEnemyVisible}" />
+            <StackPanel>
+                <TextBlock Text="敌人可见时跳过战斗结束检查" />
+                <TextBlock Classes="desc" Text="检测到敌人血条时跳过战斗结束检查。与“旋转寻找敌人位置”互斥。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <NumericUpDown Width="160" Minimum="0" Maximum="10" Increment="0.5" FormatString="0.0" Value="{Binding FinishDetectConfig.BlockCheckBeforeBattleSeconds}" />
+            <StackPanel>
+                <TextBlock Text="开战后一段时间阻断战斗结束检查（秒）" />
+                <TextBlock Classes="desc" Text="开战后该时间内的战斗结束检查直接视为战斗未结束，默认为0表示不阻断。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding FinishDetectConfig.PaimonEndCheckEnabled}" />
+            <StackPanel>
+                <TextBlock Text="派蒙辅助检测" />
+                <TextBlock Classes="desc" Text="按L后当派蒙头像可见时提前跳出战斗结束检测。默认开启。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param" IsVisible="{Binding FinishDetectConfig.PaimonEndCheckEnabled}">
+            <NumericUpDown Width="160" Minimum="0.05" Maximum="0.4" Increment="0.05" FormatString="0.00" Value="{Binding FinishDetectConfig.PaimonEndCheckDelay}" />
+            <StackPanel>
+                <TextBlock Text="派蒙检测延时（秒）" />
+                <TextBlock Classes="desc" Text="按L后等待该时间再检测派蒙头像，默认为0.1秒" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch x:Name="SfRotateFindEnemy" IsChecked="{Binding FinishDetectConfig.RotateFindEnemyEnabled}" />
+            <StackPanel>
+                <TextBlock Text="旋转寻找敌人位置" />
+                <TextBlock Classes="desc" Text="(建议配合1秒左右“更快检测结束战斗”) 打开队伍界面检测战斗结束前，先检测敌人，判断是否需靠近敌或旋转寻找敌人。" />
+            </StackPanel>
+        </DockPanel>
+        <StackPanel Classes="indent" Spacing="10" IsVisible="{Binding FinishDetectConfig.RotateFindEnemyEnabled}">
+        <DockPanel Classes="param">
+            <NumericUpDown Width="160" Minimum="1" Maximum="13" Increment="1" FormatString="0" Value="{Binding FinishDetectConfig.RotaryFactor}" />
+            <StackPanel>
+                <TextBlock Text="旋转速度" />
+                <TextBlock Classes="desc" Text="建议单次360°左右" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding FinishDetectConfig.CheckBeforeBurst}" />
+            <StackPanel>
+                <TextBlock Text="Q前检测" />
+                <TextBlock Classes="desc" Text="释放Q技能前检测是否结束战斗" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding FinishDetectConfig.IsFirstCheck}" />
+            <StackPanel>
+                <TextBlock Text="尝试面敌" />
+                <TextBlock Classes="desc" Text="开战寻敌，战斗尝试面向敌人" />
+            </StackPanel>
+        </DockPanel>
+        </StackPanel>
+        <DockPanel Classes="param">
+            <TextBox Text="{Binding FinishDetectConfig.CheckEndDelay}" />
+            <StackPanel>
+                <TextBlock Text="检查战斗结束的延时" />
+                <TextBlock Classes="desc" Text="触发战斗结束检查时，先等待该延时以确保角色动作后摇结束。也可为角色单独指定延时，格式如 0.4 或 0.4;钟离与1.5" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <TextBox Text="{Binding FinishDetectConfig.BeforeDetectDelay}" />
+            <StackPanel>
+                <TextBlock Text="按键触发后检查延时" />
+                <TextBlock Classes="desc" Text="按下切换队伍后去检查屏幕色块的延时，默认为0.45秒。若出现无法结束战斗可以适当提高这个值，比如0.75。但不要太大，确保这个延时不会真的把队伍配置界面切出来。" />
+            </StackPanel>
+        </DockPanel>
+        </StackPanel>
+        <TextBlock Classes="section2" Text="战斗中视觉识别配置" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding EnableCombatTargeting}" />
+            <StackPanel>
+                <TextBlock Text="战斗中持续索敌" />
+                <TextBlock Classes="desc" Text="战斗过程中情况允许时持续尝试面朝敌人" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <NumericUpDown Width="160" Minimum="0" Maximum="10" Increment="0.1" FormatString="0.0" Value="{Binding LockLostWaitTime}" />
+            <StackPanel>
+                <TextBlock Text="脱锁等待时间（秒）" />
+                <TextBlock Classes="desc" Text="敌人不可见时等待一定时间后开始旋转索敌" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ComboBox x:Name="SfDamageNumberMode" ItemsSource="{x:Static solo:SoloTaskSettingsChoices.DamageNumberRecognitionModes}" SelectedValueBinding="{Binding Value, DataType=solo:SoloTaskChoice}" SelectedValue="{Binding DamageNumberRecognitionMode}" DisplayMemberBinding="{Binding Name, DataType=solo:SoloTaskChoice}" />
+            <StackPanel>
+                <TextBlock Text="伤害数字识别模式" />
+                <TextBlock Classes="desc" Text="当血条不可见或传奇等固定位置血条时使用伤害数字辅助定位敌人" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <NumericUpDown Width="160" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding TargetingDetectionInterval}" />
+            <StackPanel>
+                <TextBlock Text="索敌识别间隔（毫秒）" />
+                <TextBlock Classes="desc" Text="每次索敌识别之间的间隔时间" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding DrawRecognitionResults}" />
+            <StackPanel>
+                <TextBlock Text="绘制识别结果位置" />
+                <TextBlock Classes="desc" Text="在遮罩窗口上显示血条、伤害数字等识别结果的边框" />
+            </StackPanel>
+        </DockPanel>
+        <TextBlock Classes="section2" Text="盾奶位角色优先释放技能" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <DockPanel Classes="param">
+            <ComboBox x:Name="SfGuardianAvatar" ItemsSource="{x:Static solo:SoloTaskSettingsChoices.AvatarIndexList}" SelectedItem="{Binding GuardianAvatar}" />
+            <StackPanel>
+                <TextBlock Text="盾奶位角色在队伍中的位置" />
+                <TextBlock Classes="desc" Text="战斗过程实时检测和释放盾奶位角E战技（空选为关闭此功能）" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding GuardianCombatSkip}" />
+            <StackPanel>
+                <TextBlock Text="禁用该角色的战斗策略" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding GuardianAvatarHold}" />
+            <StackPanel>
+                <TextBlock Text="长按战技" />
+                <TextBlock Classes="desc" Text="检测盾奶位战技短按或长按，禁用:短按 / 启用:长按" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding BurstEnabled}" />
+            <StackPanel>
+                <TextBlock Text="自动释放 Q 爆发" />
+                <TextBlock Classes="desc" Text="自动释放E或Q战技：E战技始终释放，开启后同时释放Q爆发" />
+            </StackPanel>
+        </DockPanel>
+        <TextBlock Classes="section2" Text="战斗后拾取动作" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding PickDropsAfterFightEnabled}" />
+            <StackPanel>
+                <TextBlock Text="扫描掉落物光柱" />
+                <TextBlock Classes="desc" Text="战斗结束后旋转视角寻找掉落物光柱并靠近（仅在无万叶和琴时备用）" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param" IsVisible="{Binding PickDropsAfterFightEnabled}">
+            <NumericUpDown Width="160" Minimum="0" Maximum="600" Increment="1" FormatString="0" Value="{Binding PickDropsAfterFightSeconds}" />
+            <StackPanel>
+                <TextBlock Text="扫描掉落物光柱最大时长" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding KazuhaPickupEnabled}" />
+            <StackPanel>
+                <TextBlock Text="聚集材料动作" />
+                <TextBlock Classes="desc" Text="战斗结束后，如存在(万叶/琴)，则执行长E聚集材料动作" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param" IsVisible="{Binding KazuhaPickupEnabled}">
+            <ToggleSwitch IsChecked="{Binding QinDoublePickUp}" />
+            <StackPanel>
+                <TextBlock Text="二次拾取" />
+                <TextBlock Classes="desc" Text="琴首次拾取空，再次拾取。万叶即使刚使用过技能，也会强制再次拾取。" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding ExpBasedPickupEnabled}" />
+            <StackPanel>
+                <TextBlock Text="基于经验值判断拾取(经验值57/58/60，不含传奇120等数字)" />
+                <TextBlock Classes="desc" Text="未能检测到经验值图标时跳过战斗后拾取动作" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <NumericUpDown x:Name="SfTimeout" Width="160" Minimum="0" Maximum="100000" Increment="10" FormatString="0" Value="{Binding Timeout}" />
+            <StackPanel>
+                <TextBlock Text="自动战斗超时(秒)" />
+                <TextBlock Classes="desc" Text="到达指定时间后，自动停止战斗" />
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Classes="param">
+            <ToggleSwitch IsChecked="{Binding SwimmingEnabled}" />
+            <StackPanel>
+                <TextBlock Text="游泳检测(自动战斗过程中)" />
+                <TextBlock Classes="desc" Text="先回战斗节点，失败则去七天神像" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</UserControl>

@@ -63,6 +63,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "settings-more": await SettingsMoreAsync(); break;
                 case "settings-general": await SettingsGeneralAsync(); break;
                 case "trigger-more": await TriggerMoreAsync(); break;
+                case "solo-params": await SoloParamsAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2708,6 +2709,76 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         nc.WebSocketNotificationEnabled = wasOn;
         nc.WebSocketEndpoint = wasEp;
         await Settle();
+    }
+
+    /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>
+    private async Task SoloParamsAsync()
+    {
+        vm.Navigate("独立任务");
+        await Settle(600);
+        var cfg = vm.Tasks.Config;
+        string Snap() => System.Text.Json.JsonSerializer.Serialize(new object[] { cfg.AutoFightConfig, cfg.AutoWoodConfig, cfg.AutoGeniusInvokationConfig,
+            cfg.AutoStygianOnslaughtConfig, cfg.AutoBossConfig, cfg.AutoFishingConfig, cfg.AutoArtifactSalvageConfig });
+        var json = Snap();
+        foreach (var ex in All<FluentAvalonia.UI.Controls.FASettingsExpander>()) ex.IsExpanded = true;
+        await Settle(800);
+        var f = cfg.AutoFightConfig;
+        var saved = (f.ActionSchedulerByCd, f.FightFinishDetectEnabled, f.FinishDetectConfig.RotateFindEnemyEnabled, f.FinishDetectConfig.SkipFightEndCheckWhenEnemyVisible,
+            f.DamageNumberRecognitionMode, f.GuardianAvatar, f.Timeout, cfg.AutoWoodConfig.UseWonderlandRefresh, cfg.AutoWoodConfig.AfterZSleepDelay,
+            cfg.AutoGeniusInvokationConfig.SleepDelay, cfg.AutoStygianOnslaughtConfig.BossNum, cfg.AutoStygianOnslaughtConfig.FightTeamName,
+            cfg.AutoBossConfig.TeamName, cfg.AutoFishingConfig.AutoThrowRodTimeOut, cfg.AutoFishingConfig.FishingTimePolicy);
+        Check("自动战斗高级参数卡片", Named<Views.SoloFightCard>("SoloFightCard") is not null && Named<TextBox>("SfActionSchedulerByCd") is not null);
+        Named<TextBox>("SfActionSchedulerByCd")!.Text = "白术;钟离,12";
+        Named<ToggleSwitch>("SfFinishDetect")!.IsChecked = true;
+        await Settle();
+        Named<ToggleSwitch>("SfSkipWhenEnemyVisible")!.IsChecked = true;
+        await Settle();
+        Named<ToggleSwitch>("SfRotateFindEnemy")!.IsChecked = true;
+        await Settle();
+        Check("旋转寻敌与“敌人可见时跳过”互斥（Core 配置逻辑）", f.FinishDetectConfig.RotateFindEnemyEnabled && !f.FinishDetectConfig.SkipFightEndCheckWhenEnemyVisible
+            && Named<ToggleSwitch>("SfSkipWhenEnemyVisible")?.IsChecked == false);
+        Named<ComboBox>("SfDamageNumberMode")!.SelectedIndex = 1;
+        Named<ComboBox>("SfGuardianAvatar")!.SelectedItem = "2";
+        Named<NumericUpDown>("SfTimeout")!.Value = 180;
+        await Settle();
+        Check("出招 CD / 伤害数字模式 / 盾奶位 / 超时写入配置", f.ActionSchedulerByCd == "白术;钟离,12"
+            && f.DamageNumberRecognitionMode == BetterGenshinImpact.GameTask.AutoFight.DamageNumberRecognitionMode.Ocr && f.GuardianAvatar == "2" && f.Timeout == 180,
+            $"{f.DamageNumberRecognitionMode} {f.GuardianAvatar} {f.Timeout}");
+        Named<Views.SoloFightCard>("SoloFightCard")!.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-solo-fight.png");
+
+        Named<ToggleSwitch>("WoodWonderlandSwitch")!.IsChecked = !saved.UseWonderlandRefresh;
+        Named<NumericUpDown>("WoodAfterZDelayBox")!.Value = 300;
+        Named<NumericUpDown>("TcgSleepDelayBox")!.Value = 200;
+        Named<ComboBox>("StygianBossNumBox")!.SelectedItem = 3;
+        Named<TextBox>("StygianTeamBox")!.Text = "m56队伍";
+        Named<TextBox>("BossTeamNameBox")!.Text = "m56首领队";
+        Named<NumericUpDown>("FishThrowTimeoutBox")!.Value = 25;
+        var fishBox = Named<ComboBox>("FishTimePolicyBox")!;
+        Check("钓鱼昼夜策略显示当前值", fishBox.SelectedItem is BetterGenshinImpact.ViewModel.Pages.SoloTask.SoloTaskChoice c0 && Equals(c0.Value, saved.FishingTimePolicy), fishBox.SelectedItem?.ToString());
+        fishBox.SelectedIndex = 2;
+        await Settle();
+        Check("伐木 / 打牌 / 幽境危战 / 首领 / 钓鱼参数写入配置", cfg.AutoWoodConfig.UseWonderlandRefresh == !saved.UseWonderlandRefresh && cfg.AutoWoodConfig.AfterZSleepDelay == 300
+            && cfg.AutoGeniusInvokationConfig.SleepDelay == 200 && cfg.AutoStygianOnslaughtConfig.BossNum == 3 && cfg.AutoStygianOnslaughtConfig.FightTeamName == "m56队伍"
+            && cfg.AutoBossConfig.TeamName == "m56首领队" && cfg.AutoFishingConfig.AutoThrowRodTimeOut == 25
+            && cfg.AutoFishingConfig.FishingTimePolicy == BetterGenshinImpact.GameTask.AutoFishing.FishingTimePolicy.Nighttime);
+        Named<ComboBox>("StygianBossNumBox")!.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-solo-stygian.png");
+        Named<ComboBox>("FishTimePolicyBox")!.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-solo-fishing.png");
+        // 还原
+        f.ActionSchedulerByCd = saved.ActionSchedulerByCd; f.FightFinishDetectEnabled = saved.FightFinishDetectEnabled;
+        f.FinishDetectConfig.SkipFightEndCheckWhenEnemyVisible = saved.SkipFightEndCheckWhenEnemyVisible; f.FinishDetectConfig.RotateFindEnemyEnabled = saved.RotateFindEnemyEnabled;
+        f.DamageNumberRecognitionMode = saved.DamageNumberRecognitionMode; f.GuardianAvatar = saved.GuardianAvatar; f.Timeout = saved.Timeout;
+        cfg.AutoWoodConfig.UseWonderlandRefresh = saved.UseWonderlandRefresh; cfg.AutoWoodConfig.AfterZSleepDelay = saved.AfterZSleepDelay;
+        cfg.AutoGeniusInvokationConfig.SleepDelay = saved.SleepDelay; cfg.AutoStygianOnslaughtConfig.BossNum = saved.BossNum;
+        cfg.AutoStygianOnslaughtConfig.FightTeamName = saved.FightTeamName; cfg.AutoBossConfig.TeamName = saved.TeamName;
+        cfg.AutoFishingConfig.AutoThrowRodTimeOut = saved.AutoThrowRodTimeOut; cfg.AutoFishingConfig.FishingTimePolicy = saved.FishingTimePolicy;
+        await Settle();
+        Check("还原后配置与开始时相同", Snap() == json);
     }
 
     /// <summary>实时触发补项：拾取 OCR 引擎、黑白名单规则对话框、自动剧情/邀约/吃药/快速传送参数、地图遮罩、冷却提示与角色 CD 配置</summary>

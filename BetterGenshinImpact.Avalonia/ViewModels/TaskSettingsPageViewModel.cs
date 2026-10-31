@@ -331,7 +331,7 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
 
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
 
-    // 各任务的参数区（其余配置项尚未迁移，使用配置文件中的值）
+    // 各任务的参数区（对照 WPF 独立任务页；未迁的项使用配置文件中的值）
     public bool IsWood => TaskId == AutoWoodTask.TaskId;
     public bool IsFight => TaskId == AutoFightEntryTask.TaskId;
     public bool IsDomain => TaskId == AutoDomainTask.TaskId;
@@ -343,6 +343,9 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
     public bool IsRedeem => TaskId == UseRedemptionCodeTask.TaskId;
     public bool IsInventory => _descriptor.ParamType == typeof(InventoryCountComparisonParam);
     public bool IsSalvage => TaskId == AutoArtifactSalvageTask.TaskId;
+
+    /// <summary>已迁移 WPF 全部参数的任务（不再显示“其余参数使用配置文件中的值”）</summary>
+    public bool HasFullSettings => IsFight || IsDomain || IsWood || IsStygian || IsTcg || IsFishing;
 
     [RelayCommand]
     private Task Toggle() => _page.ToggleAsync(TaskId);

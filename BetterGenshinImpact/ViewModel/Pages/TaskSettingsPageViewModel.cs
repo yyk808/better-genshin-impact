@@ -165,13 +165,13 @@ public partial class TaskSettingsPageViewModel : ViewModel, ISoloTaskParamInputs
     [ObservableProperty]
     private List<string> _domainNameList;
 
-    public static List<string> ArtifactSalvageStarList = ["4", "3", "2", "1"];
+    public static List<string> ArtifactSalvageStarList = BetterGenshinImpact.ViewModel.Pages.SoloTask.SoloTaskSettingsChoices.ArtifactSalvageStarList;
 
-    public static List<int> BossNumList = [1, 2, 3];
+    public static List<int> BossNumList = BetterGenshinImpact.ViewModel.Pages.SoloTask.SoloTaskSettingsChoices.BossNumList;
 
     public static List<string> AutoBossNameList = [.. AutoBossData.SupportedBossNames];
 
-    public static List<string> AvatarIndexList = ["", "1", "2", "3", "4"];
+    public static List<string> AvatarIndexList = BetterGenshinImpact.ViewModel.Pages.SoloTask.SoloTaskSettingsChoices.AvatarIndexList;
     public static List<string> CombatAvatarNameList = [.. AvatarProfiles.GetProfileNames()];
     public static List<string> LeyLineOutcropTypeList = [.. BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonChoices.LeyLineOutcropTypes];
     public static List<string> LeyLineOutcropCountryList = [.. BetterGenshinImpact.ViewModel.Pages.Pulonia.PuloniaOneDragonSettingChoices.LeyLineOutcropCountries];
