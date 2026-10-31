@@ -89,12 +89,21 @@ internal static class AvaloniaHostProgram
             mask = new MaskWindowController(host, options.Host.Display, log);
         }
 
+        // 脚本 HTML 遮罩（WebKitGTK 透明窗口），任务结束时由 Core 关闭
+        GtkHtmlMaskWindowHost? htmlMask = null;
+        if (host is not null)
+        {
+            htmlMask = new GtkHtmlMaskWindowHost(host, log);
+            BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current = htmlMask;
+        }
+
         viewModel = new MainWindowViewModel(host, hostError, log);
         window = new MainWindow { DataContext = viewModel };
         desktop.MainWindow = window;
         desktop.Exit += (_, _) =>
         {
             mask?.Dispose();
+            htmlMask?.Dispose();
             // 注销快捷键（X11 XGrabKey），再释放平台连接
             viewModel?.Settings.Dispose();
             if (host is not null)

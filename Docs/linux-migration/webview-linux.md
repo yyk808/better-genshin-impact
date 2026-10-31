@@ -31,6 +31,7 @@ Windows 版用到网页的地方有两处：
    - 先用 `NativeWebView` 的离屏模式（`ExperimentalOffscreen`）在透明 Avalonia 遮罩窗口中验证透明度与刷新性能；鼠标穿透沿用现有 Avalonia 遮罩窗口的 X11 输入形状；脚本 → 页面用 `InvokeScript`，页面 → 脚本用 `invokeCSharpAction`；
    - 如果离屏模式不能保留透明背景，再改为直接 P/Invoke 创建 RGBA 的 GTK 窗口承载 WebKitWebView。
    - 不建议为遮罩引入 CefGlue。
+   - 结论（里程碑 37）：离屏模式不能保留透明背景，已改用 RGBA 的 GTK 窗口，见下文“HTML 遮罩窗口”。
 3. Wayland：WebKitGTK 路径依赖 XWayland（`ForceX11GdkBackend` 默认开启），与 BGI 当前只支持 X11/XWayland 一致；WPE 路径以后可用于纯 Wayland。
 
 ## 最小实现（里程碑 36）
@@ -40,3 +41,48 @@ Windows 版用到网页的地方有两处：
 - 配置组中“JS设置”：脚本只提供 `settings_html` 时打开该窗口（与 Windows 版相同，设置值保存到配置组文件）。
 - 环境页显示网页引擎（WebKitGTK 版本或未安装原因）。
 - 与 Windows 版的差异：`window.close()` 不会关闭窗口（NativeWebView 没有对应事件，页面需调用关闭接口）；开发者工具未开放。
+
+## HTML 遮罩窗口（里程碑 37）
+
+### NativeWebView 透明度验证
+
+在透明、置顶的 Avalonia 窗口（`TransparencyLevelHint = Transparent`，实际透明级别 `Transparent`）中放一个 `NativeWebView`，页面背景透明，
+画一个红色方块和一个半透明蓝色方块，在假游戏 + picom 上截屏比较（Xvfb，WebKitGTK 2.52.6）：
+
+| 模式 | 页面空白处 | 半透明蓝块 |
+| --- | --- | --- |
+| 嵌入窗口（默认） | 白色（不透明） | 与白色混合 |
+| 离屏 `ExperimentalOffscreen` | 白色（不透明） | 与白色混合 |
+| 上面两种 + `webkit_web_view_set_background_color(透明)` | GTK 主题背景色（不透明） | 与背景色混合 |
+| **GTK RGBA 顶层窗口 + WebKitWebView（透明背景）** | **游戏画面** | **与游戏画面正确混合** |
+
+即 `NativeWebView` 两种模式都会画出不透明的背景，不能用于遮罩。
+
+### 实现
+
+- `Avalonia/Services/GtkHtmlMaskWindowHost`（`IHtmlMaskWindowHost` 的 Linux 实现，宿主启动时设为 `HtmlMaskWindowHost.Current`）：
+  - 每个遮罩是一个 GTK 顶层窗口：RGBA 视觉、`app-paintable`、无边框、置顶、不在任务栏；WebKitWebView 背景色设为透明。
+    GTK 调用都在 Avalonia 的 GTK 线程上执行（公开 API `Avalonia.X11.Interop.GtkInteropHelper.RunOnGlibThread`，与 `NativeWebView` 共用一个 GTK 主循环）。
+  - 点击穿透：GTK 输入形状置空（与现有遮罩相同的 X11 SHAPE 输入区域），同时不接受焦点；关闭穿透时恢复输入形状并激活遮罩，重新穿透时把焦点还给游戏窗口。
+  - 位置大小每 500 毫秒跟随游戏画面（截图器未启动时不移动）；最多 5 个窗口，指定 ID 时先关闭同 ID 的窗口；任务结束时由 Core 关闭全部。
+  - 脚本目录映射到 `bgi-mask://hm-xxxx.bettergi.local/`（与 Windows 版的 https 虚拟主机同名，由 `WebKitSchemeHandler` 提供文件；路径或链接越出脚本目录时 403）。
+  - 消息桥：文档创建时注入 `window.chrome.webview`（`postMessage` / `addEventListener('message')`，经 WebKit 脚本消息处理器转给宿主）和与 Windows 版相同的 `window.htmlMask`；脚本 → 页面用 `webkit_web_view_evaluate_javascript` 投递。
+  - 网络请求：WebKit 内容过滤规则先拦截全部请求，再放行本页面虚拟主机、`data:` / `blob:`、页面自身地址，以及启用 JS HTTP 权限时 `http_allowed_urls` 中的地址（`*` 通配）。不允许打开新窗口和下载，`alert` 等对话框不弹出。
+  - 网站数据（localStorage 等）保存在 `Data/WebKit/HtmlMask`，与其他网页隔离（对应 Windows 版的 HtmlMask 配置文件）。
+- Core `HtmlMaskPage`：虚拟主机名、页面地址映射、页面消息解析、HTTP 权限校验与消息桥脚本，Windows 版 `HtmlMaskWindow` 改为调用它（行为不变）。
+
+### 与 Windows 版的差异
+
+- 需要合成器（如 picom），否则透明部分为黑色（与现有遮罩相同，启动时有警告）。
+- 截图方式为“MIT-SHM 屏幕区域”等屏幕截图时，截图器画面会包含遮罩页面的内容；打开 HTML 遮罩时会提示改用“Composite 窗口图像”（或启用遮罩窗口，启用后自动改用）。Windows 截取的是游戏窗口本身，没有这个问题。
+- 被拦截的网络请求不在日志中逐条记录（WebKit 内容过滤在网页进程中执行），页面中表现为请求失败；页面来源是 `bgi-mask://` 而不是 `https://`。
+
+### 验证（假游戏 1920×1080 + picom，界面自测 `--ui-test html-mask`，16 项全部通过）
+
+- 打开遮罩、默认穿透；页面 `htmlMask.request` → 脚本 `Respond` → 页面 Promise 完成；脚本 `Send` → 页面回复；脚本 `Request` → 页面返回值；
+  页面读取脚本目录内文件成功，读取目录外文件失败，访问外网被拦截，`window.open` 返回空；关闭、切换穿透，关闭窗口。
+- 屏幕截图：红块处为红色、半透明蓝块与游戏画面混合、其余为游戏画面；关闭后恢复游戏画面。
+- 穿透时在红块上点击，假游戏收到点击、页面收不到；关闭穿透后页面收到点击。
+- 遮罩打开时用截图方式 Composite 窗口图像抓帧，红块位置是游戏画面（截图器画面不含遮罩内容）；
+  对照：截图方式为 MIT-SHM 屏幕区域时抓到红色（该项不通过，其余 15 项通过），并输出改用 Composite 的提示。
+

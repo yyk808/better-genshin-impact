@@ -444,9 +444,23 @@ Core 1110 个（新增上述 5 个），主项目 642 个；Avalonia 宿主 `.cs
 - `Avalonia/Services/WebKitSchemeHandler`：在 WebKitWebView 的上下文注册 `bgi-settings://` 自定义协议，页面全部请求交给 Core 的 `ScriptSettingsRequestHandler`（与 Windows 版拦截 WebView2 请求相同，不联网、不监听端口），响应头含相同的内容安全策略。
 - `Avalonia/Views/HtmlSettingsWindow`：对应 WPF `JsScriptHtmlSettingsWindow`；调度器中只提供 `settings_html` 的脚本点“JS设置”时打开，保存写回配置组文件，标题显示保存时间。没有 WebKitGTK 时提示安装 `libwebkit2gtk-4.1-0`。环境页显示网页引擎版本。
 - 界面自测 `--ui-test html-settings`（8 项）：新建自测专用配置组，加入演示脚本，点击“JS设置”打开网页窗口，演示页读取上下文与设置、访问外网被拦截、自动保存一次，核对配置组文件中的文本 / 数字 / 数组与窗口标题，最后删除该配置组（不动已有配置组）。
-- HTML 遮罩（`IHtmlMaskWindowHost`）尚未实现，建议见对比文档。
+- HTML 遮罩（`IHtmlMaskWindowHost`）里程碑 37 实现。
 
 ### 文件数（口径同上）
 
 Core 1131 个（剧情语音 20 个文件移入，新增 `GameFrameGrabber`），主项目 623 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 53 个。
+
+## 里程碑 37：HTML 遮罩窗口
+
+- 剧情语音播放失败的提示不再写“WASAPI”：输出名由宿主设置（Linux 为 PulseAudio 或“静音输出”），Windows 文字不变。
+- HTML 遮罩：`NativeWebView` 的嵌入与离屏模式在透明窗口里都画出不透明背景，改为直接用 WebKitGTK 建 RGBA 顶层窗口
+  （`Avalonia/Services/GtkHtmlMaskWindowHost`），透明、置顶、SHAPE 输入形状点击穿透、跟随游戏画面；脚本目录映射到 `bgi-mask://` 虚拟主机，
+  消息桥与 Windows 版相同，网络请求用 WebKit 内容过滤规则按 `http_allowed_urls` 放行。地址映射、消息解析、HTTP 权限校验移入 Core `HtmlMaskPage`，
+  WPF `HtmlMaskWindow` 改为调用它。详见 [webview-linux.md](webview-linux.md)。
+- 界面自测 `--ui-test html-mask`（16 项）：假游戏 + picom 上核对透明显示、消息收发与请求应答、资源访问限制、穿透 / 可交互切换时的点击去向，
+  以及 Composite 窗口截图不含遮罩内容。截图方式为屏幕区域时截图器画面会含遮罩内容，打开遮罩时有提示。
+
+### 文件数（口径同上）
+
+Core 1132 个（新增 `HtmlMaskPage`），主项目 623 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 54 个。
 

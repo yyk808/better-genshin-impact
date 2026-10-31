@@ -30,6 +30,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
+                case "html-mask": await HtmlMaskAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -91,6 +92,130 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         if (dir is null) return;
         Directory.CreateDirectory(dir);
         AvaloniaHostProgram.SaveScreenshotPublic(window, Path.Combine(dir, file), log);
+    }
+
+    // —— HTML 遮罩 ——
+
+    private const string MaskTestPage = """
+        <!doctype html><html><head><meta charset="utf-8"><style>html,body{background:transparent;margin:0;height:100%}</style></head><body>
+        <div id="red" style="position:absolute;left:100px;top:100px;width:300px;height:200px;background:rgb(255,0,0)"></div>
+        <div style="position:absolute;left:500px;top:100px;width:300px;height:200px;background:rgba(0,0,255,0.5)"></div>
+        <script>
+        var post = function (url, data) { window.chrome.webview.postMessage(JSON.stringify({ url: url, data: data })); };
+        window.htmlMask.onMessage = function (msg) {
+            if (msg.url === '/ping') { post('/pong', { n: msg.data.n }); return; }
+            if (msg.url === '/ask') return { answer: 42 };
+        };
+        document.addEventListener('mousedown', function (e) { post('/clicked', { x: e.clientX, y: e.clientY }); });
+        window.htmlMask.request('/hello', { a: 1 }).then(function (r) { post('/resolved', r.data); });
+        fetch('sub/data.json').then(function (r) { return r.json(); }).then(function (j) { post('/fetch-local', { ok: true, value: j.value }); }, function (e) { post('/fetch-local', { ok: false, error: String(e) }); });
+        fetch('../outside.txt').then(function (r) { post('/fetch-outside', { status: r.status }); }, function (e) { post('/fetch-outside', { status: -1, error: String(e) }); });
+        fetch('https://example.com/').then(function (r) { post('/fetch-remote', { status: r.status }); }, function (e) { post('/fetch-remote', { status: -1, error: String(e) }); });
+        var w = window.open('https://example.com/'); post('/open', { opened: !!w });
+        </script></body></html>
+        """;
+
+    /// <summary>
+    /// HTML 遮罩（--ui-test html-mask）：在临时目录生成测试页面，经 Core 的 HtmlMask 打开遮罩，核对消息收发、请求应答、
+    /// 资源访问限制、点击穿透切换；遮罩打开期间抓一帧截图器画面，核对画面里没有遮罩内容（红框位置不是红色）。
+    /// 日志中的“HTMLMASK-PHASE”行供外部脚本截屏、模拟点击
+    /// </summary>
+    private async Task HtmlMaskAsync()
+    {
+        var root = Path.Combine(BetterGenshinImpact.Infrastructure.Storage.AppPaths.Temp, "html-mask-selftest");
+        var workDir = Path.Combine(root, "mask");
+        Directory.CreateDirectory(Path.Combine(workDir, "sub"));
+        await File.WriteAllTextAsync(Path.Combine(workDir, "mask.html"), MaskTestPage);
+        await File.WriteAllTextAsync(Path.Combine(workDir, "sub", "data.json"), "{\"value\":7}");
+        await File.WriteAllTextAsync(Path.Combine(root, "outside.txt"), "secret");
+
+        using var mask = new BetterGenshinImpact.Core.Script.Dependence.HtmlMask(workDir);
+        var id = mask.Show("mask.html", "selftest");
+        Check("打开遮罩", mask.Exists(id), id);
+        var host = BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current;
+        Check("默认点击穿透", host.GetClickThrough(id));
+
+        var received = new Dictionary<string, JObject>();
+        async Task<JObject?> WaitMessage(string url, int ms = 10000)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < ms)
+            {
+                if (received.TryGetValue(url, out var found)) return found;
+                if (mask.Poll(id) is { } raw)
+                {
+                    var msg = JObject.Parse(raw);
+                    log.Information("遮罩消息 {Message}", raw);
+                    received[msg.Value<string>("url") ?? ""] = msg;
+                    continue;
+                }
+
+                await Task.Delay(50);
+            }
+
+            return received.GetValueOrDefault(url);
+        }
+
+        var hello = await WaitMessage("/hello");
+        Check("页面请求 /hello（带 requestId）", hello?.Value<string>("requestId") is { Length: > 0 }, hello?.ToString(Newtonsoft.Json.Formatting.None));
+        if (hello?.Value<string>("requestId") is { } requestId)
+        {
+            mask.Respond(id, requestId, "{\"ok\":true}");
+            var resolved = await WaitMessage("/resolved");
+            Check("脚本应答后页面 Promise 完成", resolved?["data"]?.Value<bool>("ok") == true, resolved?.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        mask.Send(id, "/ping", "{\"n\":5}");
+        var pong = await WaitMessage("/pong");
+        Check("脚本发送 → 页面回复", pong?["data"]?.Value<int>("n") == 5, pong?.ToString(Newtonsoft.Json.Formatting.None));
+        var answer = await mask.Request(id, "/ask", "{}", 5000);
+        Check("脚本请求 → 页面返回值", answer?.Contains("42") == true, answer);
+        var local = await WaitMessage("/fetch-local");
+        Check("页面读取脚本目录内文件", local?["data"]?.Value<int>("value") == 7, local?.ToString(Newtonsoft.Json.Formatting.None));
+        var outside = await WaitMessage("/fetch-outside");
+        Check("页面不能读取脚本目录外文件", outside?["data"]?.Value<int>("status") is not 200, outside?.ToString(Newtonsoft.Json.Formatting.None));
+        var remote = await WaitMessage("/fetch-remote");
+        Check("未授权网络请求被拦截", remote?["data"]?.Value<int>("status") == -1, remote?.ToString(Newtonsoft.Json.Formatting.None));
+        var opened = await WaitMessage("/open");
+        Check("不能打开新窗口", opened?["data"]?.Value<bool>("opened") == false, opened?.ToString(Newtonsoft.Json.Formatting.None));
+
+        // 截图器画面不含遮罩内容：红框中心（相对游戏画面 250,200）
+        await Task.Delay(1000);
+        if (vm.Host?.RuntimeService.Current?.Window is { } game)
+        {
+            using var frame = BetterGenshinImpact.GameTask.GameFrameGrabber.Grab(game.Handle, vm.Host.Config);
+            if (frame is null)
+            {
+                Check("截图器画面", false, "抓帧失败");
+            }
+            else
+            {
+                var px = frame.At<OpenCvSharp.Vec3b>(200, 250);
+                log.Information("截图器画面 {W}x{H} (250,200) BGR={B},{G},{R}；截图方式 {Mode}", frame.Width, frame.Height, px.Item0, px.Item1, px.Item2,
+                    BetterGenshinImpact.Host.Common.GameHost.EffectiveCaptureMode(vm.Host.LinuxConfig));
+                Check("截图器画面不含遮罩红框", !(px.Item2 > 200 && px.Item1 < 50 && px.Item0 < 50), $"BGR {px.Item0},{px.Item1},{px.Item2}");
+            }
+        }
+        else
+        {
+            Check("截图器已启动", false);
+        }
+
+        log.Information("HTMLMASK-PHASE clickthrough");
+        await Task.Delay(8000);
+        Check("穿透时页面收不到点击", !received.ContainsKey("/clicked") && await WaitMessage("/clicked", 200) is null);
+
+        mask.SetClickThrough(id, false);
+        Check("关闭点击穿透", !mask.GetClickThrough(id));
+        log.Information("HTMLMASK-PHASE interactive");
+        var clicked = await WaitMessage("/clicked", 12000);
+        Check("可交互时页面收到点击", clicked is not null, clicked?.ToString(Newtonsoft.Json.Formatting.None));
+
+        mask.ToggleClickThrough(id);
+        Check("切换回点击穿透", mask.GetClickThrough(id));
+        log.Information("HTMLMASK-PHASE closing");
+        Check("关闭遮罩", mask.Close(id) && !mask.Exists(id));
+        Directory.Delete(root, true);
     }
 
     // —— HTML 设置页 ——
