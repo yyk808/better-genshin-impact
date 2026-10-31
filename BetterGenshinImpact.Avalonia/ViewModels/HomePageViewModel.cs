@@ -160,6 +160,27 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
     }
 
+    /// <summary>打开云原神窗口（登录、排队或直接操作页面）</summary>
+    [RelayCommand]
+    private void OpenCloudGameWindow()
+    {
+        if (_host?.CloudGamePage is not { } page)
+        {
+            return;
+        }
+
+        try
+        {
+            page.ShowForInteraction(_host.CloudGameUrl);
+            StatusText = "云原神窗口已打开：请完成登录并进入游戏，然后启动截图器";
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "打开云原神窗口失败");
+            StatusText = "打开云原神窗口失败：" + e.Message;
+        }
+    }
+
     public override string Title => "启动";
 
     public AllConfig? Config => _host?.Config;

@@ -121,6 +121,15 @@ public sealed class GameHost : IAsyncDisposable
     /// <summary>剧情语音（自动配音）服务</summary>
     public QuestVoiceService QuestVoice { get; }
 
+    /// <summary>云原神页面宿主（图形界面宿主注册；无界面宿主为 null）</summary>
+    public ICloudGamePageHost? CloudGamePage => _provider.GetService<ICloudGamePageHost>();
+
+    /// <summary>当前设置的云原神页面地址（为空时用默认地址）</summary>
+    public string CloudGameUrl => CloudUrl(LinuxConfig);
+
+    private static string CloudUrl(LinuxHostConfig c) =>
+        string.IsNullOrWhiteSpace(c.CloudGameUrl) ? LinuxHostConfig.DefaultCloudGameUrl : c.CloudGameUrl.Trim();
+
     public InferenceRuntimeService Inference => _provider.GetRequiredService<InferenceRuntimeService>();
 
     /// <summary>截图器启动以来处理的帧数（跨多次启动累计）</summary>
@@ -228,6 +237,11 @@ public sealed class GameHost : IAsyncDisposable
                 if (options.CaptureMode is { } captureMode) c.CaptureMode = captureMode;
                 if (options.MaskWindow is { } mask) c.MaskWindowEnabled = mask;
                 if (options.MaskDrawAllRecognition is { } drawAll) c.MaskDrawAllRecognition = drawAll;
+                if (!string.IsNullOrWhiteSpace(options.CloudGameUrl))
+                {
+                    c.CloudGameEnabled = true;
+                    c.CloudGameUrl = options.CloudGameUrl;
+                }
             }
 
             if (linuxConfigStore is not null)
@@ -290,10 +304,21 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());
             services.AddSingleton(linuxConfig);
             services.AddSingleton(manualWindow);
-            services.AddSingleton<IGameRuntimeProvider>(sp => ActivatorUtilities.CreateInstance<PlatformRuntimeProvider>(sp,
-                (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames)),
-                (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)),
-                (Func<IPlatformWindow?>)manualWindow.Open));
+            services.AddSingleton<IGameRuntimeProvider>(sp =>
+            {
+                var local = ActivatorUtilities.CreateInstance<PlatformRuntimeProvider>(sp,
+                    (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames)),
+                    (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)),
+                    (Func<IPlatformWindow?>)manualWindow.Open);
+                // 云原神：页面宿主由图形界面宿主注册（无界面宿主没有），按设置在启动截图器时选择
+                var pageHost = sp.GetService<ICloudGamePageHost>();
+                var cloud = pageHost is null
+                    ? null
+                    : ActivatorUtilities.CreateInstance<CloudWebRuntimeProvider>(sp, pageHost,
+                        (Func<string>)(() => CloudUrl(linuxConfig)),
+                        (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)));
+                return new SwitchingRuntimeProvider(local, cloud, () => linuxConfig.CloudGameEnabled);
+            });
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
             services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
             // OCR / ONNX 推理（CPU）
@@ -384,7 +409,7 @@ public sealed class GameHost : IAsyncDisposable
     /// <summary>启动截图器（找窗 → 截图 → 输入 → 触发器调度）；找不到游戏窗口等失败时返回 null</summary>
     public async Task<GameRuntime?> StartAsync(CancellationToken ct = default)
     {
-        if (ManualWindow.Handle is null && LinuxConfig.LaunchGameEnabled && !IsGameWindowPresent())
+        if (ManualWindow.Handle is null && !LinuxConfig.CloudGameEnabled && LinuxConfig.LaunchGameEnabled && !IsGameWindowPresent())
         {
             // 同时启动游戏：找不到游戏窗口时按设置的命令启动，等待窗口出现
             if (!await LaunchGameAndWaitAsync(ct))

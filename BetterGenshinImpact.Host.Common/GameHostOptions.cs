@@ -42,9 +42,12 @@ public sealed record GameHostOptions
     /// <summary>遮罩上显示全部识别结果（调试）；为空时用 linux-host.json 中的设置</summary>
     public bool? MaskDrawAllRecognition { get; init; }
 
+    /// <summary>云原神页面地址：设置后本次运行使用云原神（网页版）作为游戏；为空时用 linux-host.json 中的设置</summary>
+    public string? CloudGameUrl { get; init; }
+
     /// <summary>
     /// 解析宿主共用的命令行参数（--display、--assets、--process、--interval、--pick / --no-pick、--skip / --no-skip、
-    /// --auto-enter / --no-auto-enter、--config 文件、--save-config / --no-save-config、--capture 截图方式、--mask / --no-mask、--mask-recognition）。
+    /// --auto-enter / --no-auto-enter、--config 文件、--save-config / --no-save-config、--capture 截图方式、--mask / --no-mask、--mask-recognition、--cloud 地址）。
     /// 这些开关只在本次运行有效，不写回配置文件；
     /// 不认识的参数返回 null，由宿主自己处理
     /// </summary>
@@ -65,6 +68,7 @@ public sealed record GameHostOptions
         "--mask" => this with { MaskWindow = true },
         "--no-mask" => this with { MaskWindow = false },
         "--mask-recognition" => this with { MaskDrawAllRecognition = true },
+        "--cloud" => this with { CloudGameUrl = nextValue() },
         "--auto-enter" => this with { AutoEnterGame = true },
         "--no-auto-enter" => this with { AutoEnterGame = false },
         _ => null,

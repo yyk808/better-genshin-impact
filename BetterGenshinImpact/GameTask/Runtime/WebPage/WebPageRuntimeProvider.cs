@@ -69,7 +69,7 @@ public sealed class WebPageRuntimeProvider(
             capture.Start(window, GameCaptureSettings.From(configService.Get()));
 
             // 输入坐标与截图使用同一块画面区域
-            var input = new WebSdkInputBackend(host.Bridge!, () => window.Viewport.ScreenRect);
+            var input = new WebSdkInputBackend(host.Bridge!, () => window.Viewport.ScreenRect, () => BetterGenshinImpact.Helpers.PrimaryScreen.WorkingArea);
             return new GameRuntime(Kind, window, capture, input, systemInfo, maskWindowDrawingBoard, maskWindowMapState);
         }
         catch

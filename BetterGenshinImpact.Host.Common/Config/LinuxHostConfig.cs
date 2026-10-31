@@ -53,6 +53,18 @@ public sealed partial class LinuxHostConfig : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _logFileEnabled = true;
 
+    /// <summary>
+    /// 云原神（网页版）：启动截图器时打开云原神窗口（WebKitGTK），以网页画面作为游戏画面，
+    /// 键鼠经页面 SDK（与 Windows 网页版实例相同的 ys-input-inject.js）发往云端，不需要前台
+    /// </summary>
+    [ObservableProperty] private bool _cloudGameEnabled;
+
+    /// <summary>云原神页面地址（与 Windows 网页版相同；测试时可改成本地页面）</summary>
+    [ObservableProperty] private string _cloudGameUrl = DefaultCloudGameUrl;
+
+    /// <summary>Windows 网页版实例使用的地址：autobegin=1 让页面加载后自动开始游戏</summary>
+    public const string DefaultCloudGameUrl = "https://ys.mihoyo.com/cloud/?autobegin=1";
+
     /// <summary>预置的启动命令（界面下拉框用）</summary>
     [JsonIgnore]
     public static IReadOnlyList<LaunchPreset> Presets { get; } =

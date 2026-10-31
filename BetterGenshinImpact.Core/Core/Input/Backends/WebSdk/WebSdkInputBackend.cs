@@ -1,7 +1,7 @@
-using BetterGenshinImpact.Helpers;
+using BetterGenshinImpact.Platform;
 using Microsoft.Extensions.Logging;
 using System;
-using Vanara.PInvoke;
+using System.Drawing;
 
 namespace BetterGenshinImpact.Core.Input.Backends.WebSdk;
 
@@ -12,7 +12,7 @@ namespace BetterGenshinImpact.Core.Input.Backends.WebSdk;
 /// 指针位置由 SDK 保存（setAbsPosition），按键和相对移动默认使用它；按住时长使用 SDK 的默认值
 /// （keyHoldMs 60 ms、clickHoldMs 35 ms），需要调整时通过 <c>Sdk.Invoke("setDefaults", …)</c>。
 /// </para>
-/// 由 WebPageRuntimeProvider 创建，GameRuntimeService 负责 InputHub.Attach。
+/// 由运行环境提供者创建（Windows：WebPageRuntimeProvider；Linux：CloudWebRuntimeProvider），GameRuntimeService 负责 InputHub.Attach。
 /// </summary>
 public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
 {
@@ -27,13 +27,16 @@ public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
     private const int WheelDeltaPerClick = 120;
 
     private readonly Func<PixelRect> _canvasRect;
+    private readonly Func<Size> _desktopSize;
 
     /// <param name="sdk">SDK 调用桥，由宿主持有并释放</param>
     /// <param name="canvasRect">游戏画面在屏幕上的物理像素矩形，应与截图区域一致</param>
-    public WebSdkInputBackend(IWebInputBridge sdk, Func<PixelRect> canvasRect)
+    /// <param name="desktopSize">0~65535 绝对坐标对应的屏幕物理像素尺寸（与调用方换算绝对坐标时使用的尺寸一致）</param>
+    public WebSdkInputBackend(IWebInputBridge sdk, Func<PixelRect> canvasRect, Func<Size> desktopSize)
     {
         Sdk = sdk ?? throw new ArgumentNullException(nameof(sdk));
         _canvasRect = canvasRect ?? throw new ArgumentNullException(nameof(canvasRect));
+        _desktopSize = desktopSize ?? throw new ArgumentNullException(nameof(desktopSize));
     }
 
     /// <summary>
@@ -86,7 +89,7 @@ public sealed class WebSdkInputBackend : InputChannelBase, IInputBackend
             return;
         }
 
-        var screen = PrimaryScreen.WorkingArea;
+        var screen = _desktopSize();
         var x = Math.Clamp((absX * screen.Width / 65535d - rect.Left) / rect.Width, 0d, 1d);
         var y = Math.Clamp((absY * screen.Height / 65535d - rect.Top) / rect.Height, 0d, 1d);
 

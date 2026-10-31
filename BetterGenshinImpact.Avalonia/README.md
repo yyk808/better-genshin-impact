@@ -77,5 +77,6 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--ui-selftest` | `UiHost` 自检：后台线程调度、剪贴板读回、配置防抖保存、轻提示、消息框 |
 | `--mask` / `--no-mask` | 打开 / 关闭遮罩窗口（透明、置顶、点击穿透，显示识别框和日志框；需要合成器；启用时截图默认改用 `CompositeWindow`） |
 | `--mask-recognition` | 遮罩上显示全部识别结果（调试） |
+| `--cloud 地址` | 本次运行使用云原神（网页版）：启动截图器时打开 WebKitGTK 云原神窗口，进入游戏后截取该窗口，键鼠经页面 SDK（`ys-input-inject.js`，与 Windows 网页版实例相同）发送；不写回设置。界面上在“启动”页的“云原神（网页版）”中开启 |
 | `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |
 | `--solo-task 任务标识` / `--solo-stop-after 秒` | 无人值守：在独立任务页启动该任务，到时停止并等待结束（并截图） |

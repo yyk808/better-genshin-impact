@@ -22,6 +22,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- 云原神输入 SDK：与 Windows 主程序共用同一个脚本文件 -->
+		<EmbeddedResource Include="..\BetterGenshinImpact\Resources\JavaScript\ys-input-inject.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.ys-input-inject.js" Link="Resources\ys-input-inject.js" />
+	</ItemGroup>
+	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />
 	</ItemGroup>
 

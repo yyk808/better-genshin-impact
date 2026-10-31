@@ -148,6 +148,32 @@
                 </StackPanel>
             </Expander>
 
+            <!-- 云原神（网页版）：WebKitGTK 窗口作为游戏画面，键鼠经页面 SDK 发往云端 -->
+            <Expander Classes="card" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch DockPanel.Dock="Right" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"
+                                      IsChecked="{Binding LinuxConfig.CloudGameEnabled}" />
+                        <PathIcon Classes="cardIcon" Data="F0 M6,19 A5,5 0 0 1 6,9 A7,7 0 0 1 19,10 A4.5,4.5 0 0 1 18,19 Z M7,17 H18 A2.5,2.5 0 0 0 17.5,12 L17,12 A5,5 0 0 0 7.5,11 L7,11 A3,3 0 0 0 7,17 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="云原神（网页版）" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap" Text="启用后启动截图器时打开云原神窗口，以网页画面作为游戏画面；键鼠经页面接口发往云端，不需要窗口在前台" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="96,*">
+                        <TextBlock Text="页面地址" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding LinuxConfig.CloudGameUrl}" FontFamily="monospace" PlaceholderText="https://ys.mihoyo.com/cloud/?autobegin=1" />
+                    </Grid>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="打开云原神窗口" Command="{Binding OpenCloudGameWindowCommand}" />
+                        <TextBlock Classes="desc" TextWrapping="Wrap" VerticalAlignment="Center"
+                                   Text="首次使用先打开窗口登录（登录状态保存在 WebKit/CloudGame 目录）；进入游戏后再启动截图器。截图方式建议用 Composite 窗口图像" />
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+
             <Border Classes="card">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Right" Text="{Binding WindowText}" VerticalAlignment="Center" Foreground="{StaticResource BgiSubTextBrush}" />
