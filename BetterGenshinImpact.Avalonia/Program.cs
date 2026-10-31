@@ -128,7 +128,15 @@ internal static class AvaloniaHostProgram
             if (host is not null)
             {
                 // 退出时（关闭主窗口或 Shutdown）停止截图器并释放平台连接（X11），避免输入线程使用已关闭的连接
-                host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                // 释放在线程池上进行，同时处理 UI 线程上排队的任务：任务计划服务等的收尾续接可能投递到 UI 线程，
+                // 直接在 UI 线程上同步等待会互相等待，直到被外部超时结束
+                var disposing = Task.Run(async () => await host.DisposeAsync());
+                while (!disposing.Wait(20))
+                {
+                    Dispatcher.UIThread.RunJobs();
+                }
+
+                disposing.GetAwaiter().GetResult();
                 log.Information("已停止截图器并释放平台连接");
             }
         };
