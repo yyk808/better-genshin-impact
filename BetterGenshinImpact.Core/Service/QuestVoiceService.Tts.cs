@@ -8,7 +8,6 @@ using BetterGenshinImpact.GameTask.QuestVoice.Core.Tts;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Audio;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Routing;
 using BetterGenshinImpact.GameTask.QuestVoice.Features.Tts;
-using NAudio.Wave;
 
 namespace BetterGenshinImpact.Service;
 
@@ -33,7 +32,8 @@ public sealed partial class QuestVoiceService
             if (reason is not null) throw new VoiceException(VoiceErrorCode.Configuration, reason);
             settings = settings with { Protocol = settings.Protocol! with { StreamingMode = false, StreamPlayback = false } };
             using var provider = TtsProviderRegistry.Create(settings.Provider!.ProviderId);
-            using var player = new WasapiAudioPlayer(() => new WasapiOut());
+            // 输出设备由宿主设置（Windows 为 WasapiOut，与迁移前相同）
+            using var player = new WasapiAudioPlayer(QuestVoiceAudioHost.OutputFactory);
             lock (_captureGate)
             {
                 _testCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);

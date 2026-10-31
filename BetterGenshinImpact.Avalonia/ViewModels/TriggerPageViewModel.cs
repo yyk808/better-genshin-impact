@@ -1,5 +1,6 @@
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoPick;
+using BetterGenshinImpact.Service;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -14,9 +15,10 @@ public sealed partial class TriggerPageViewModel : PageViewModel
     [ObservableProperty] private bool _isBlacklistAutoPickMode;
     [ObservableProperty] private bool _isWhitelistAutoPickMode;
 
-    public TriggerPageViewModel(AllConfig? config)
+    public TriggerPageViewModel(AllConfig? config, QuestVoiceService? questVoice = null)
     {
         Config = config ?? new AllConfig();
+        QuestVoice = config is not null && questVoice is not null ? new QuestVoiceCardViewModel(config, questVoice) : null;
         IsAvailable = config is not null;
         PickButtonNames = ["F", "E", "G"];
         if (!string.IsNullOrEmpty(Config.AutoPickConfig.PickKey)
@@ -33,6 +35,9 @@ public sealed partial class TriggerPageViewModel : PageViewModel
     public override string Title => "实时触发";
 
     public AllConfig Config { get; }
+
+    /// <summary>自动配音卡片（宿主初始化失败时为空，不显示）</summary>
+    public QuestVoiceCardViewModel? QuestVoice { get; }
 
     /// <summary>配置来自正在运行的宿主（平台初始化失败时为占位配置，修改无效）</summary>
     public bool IsAvailable { get; }

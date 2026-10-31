@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "taskplan": await TaskPlanAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
+                case "quest-voice": await QuestVoiceAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -92,6 +93,67 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         if (dir is null) return;
         Directory.CreateDirectory(dir);
         AvaloniaHostProgram.SaveScreenshotPublic(window, Path.Combine(dir, file), log);
+    }
+
+    // —— 自动配音卡片 ——
+
+    /// <summary>
+    /// 自动配音（--ui-test quest-voice）：实时触发页的卡片显示、展开、校验配置；打开开关后服务随截图器启动、关闭后停止。
+    /// 开关写入 config.json，自测前后由外部脚本备份恢复
+    /// </summary>
+    private async Task QuestVoiceAsync()
+    {
+        vm.Navigate("实时触发");
+        await Settle(800);
+        var card = await WaitFor(() => Named<Expander>("QuestVoiceCard"));
+        Check("自动配音卡片显示", card is not null);
+        var qv = vm.Trigger.QuestVoice;
+        Check("卡片绑定 Core 服务", qv is not null);
+        if (card is null || qv is null) return;
+        if (ButtonByText("收起") is { } collapseLog)
+        {
+            // 收起日志面板，截图与原版对照
+            await Click(collapseLog, "收起日志");
+        }
+
+        card.IsExpanded = true;
+        card.BringIntoView();
+        await Settle(800);
+        Shot("questvoice-stopped.png");
+        Check("初始状态已停止", !qv.Status.IsRunning, qv.Status.OverallStatus);
+
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "校验配置"), "校验配置");
+        await Task.Delay(3000);
+        log.Information("校验结果：{Validation}", qv.Status.Validation);
+        Check("校验配置有结果", qv.Status.Validation != "尚未校验", qv.Status.Validation);
+
+        var toggle = card.GetVisualDescendants().OfType<ToggleSwitch>().FirstOrDefault();
+        Check("找到开关", toggle is not null);
+        if (toggle is null) return;
+        toggle.IsChecked = true;
+        var changed = false;
+        for (var i = 0; i < 100 && !changed; i++)
+        {
+            await Task.Delay(100);
+            changed = qv.Status.IsRunning || qv.Status.IsBusy || qv.Status.HasError || qv.Status.Session != "已停止";
+        }
+
+        await Task.Delay(3000);
+        log.Information("开启后状态：{Overall} / {Session} / {Game} / {Error} / {Summary}", qv.Status.OverallStatus, qv.Status.Session, qv.Status.Game, qv.Status.Error, qv.Status.StageSummary);
+        Check("打开开关后服务响应", changed && qv.Config.Enabled, qv.Status.Session);
+        Shot("questvoice-enabled.png");
+
+        toggle.IsChecked = false;
+        var stopped = false;
+        for (var i = 0; i < 100 && !stopped; i++)
+        {
+            await Task.Delay(100);
+            stopped = !qv.Status.IsRunning && !qv.Status.IsBusy;
+        }
+
+        Check("关闭开关后停止", stopped && !qv.Config.Enabled, qv.Status.Session);
+        await Settle(800);
+        Shot("questvoice-disabled.png");
     }
 
     // —— HTML 遮罩 ——

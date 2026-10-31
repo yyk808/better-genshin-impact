@@ -107,6 +107,113 @@
                     </StackPanel>
             </Expander>
 
+            <!-- 自动配音：开关、运行状态（对应 WPF QuestVoiceCard；设置窗口尚未迁移） -->
+            <Expander Classes="card" IsVisible="{Binding QuestVoice, Converter={x:Static ObjectConverters.IsNotNull}}" x:Name="QuestVoiceCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding QuestVoice.Config.Enabled, FallbackValue=False}" />
+                        <PathIcon Classes="cardIcon" Data="M3,9 H7 L12,4 V20 L7,15 H3 Z M15,8 A5,5 0 0 1 15,16 M17.5,5 A9,9 0 0 1 17.5,19" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="自动配音（实验性）" />
+                            <TextBlock Classes="desc" Text="识别剧情对白的人物和台词，用语音朗读；截图器启动后自动开始，独立任务运行时暂停" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                <StackPanel Spacing="12" DataContext="{Binding QuestVoice}" x:DataType="vm:QuestVoiceCardViewModel">
+                    <!-- 状态 -->
+                    <Grid ColumnDefinitions="88,*,Auto">
+                        <TextBlock Classes="desc" Text="状态" />
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{Binding Status.OverallStatusState, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Status.OverallStatus}" Foreground="{Binding Status.OverallStatusState, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            </StackPanel>
+                            <TextBlock Classes="desc" TextWrapping="Wrap">
+                                <Run Text="{Binding Status.Session}" /><Run Text=" · " /><Run Text="{Binding Status.Game}" />
+                            </TextBlock>
+                            <TextBlock Foreground="#C42B1C" TextWrapping="Wrap" Text="{Binding Status.Error}" IsVisible="{Binding Status.HasError}" />
+                            <TextBlock Foreground="#C42B1C" TextWrapping="Wrap" Text="{Binding CommandError}" IsVisible="{Binding HasCommandError}" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding Status.Validation}" />
+                        </StackPanel>
+                        <Button Grid.Column="2" VerticalAlignment="Top" Content="确认后端已重启" Command="{Binding ConfirmBackendRestartedCommand}" IsVisible="{Binding Status.BackendUnknown}" />
+                    </Grid>
+                    <Separator />
+                    <!-- 进度：对话界面 → OCR → 角色 → 声线 → 合成 → 播放 -->
+                    <!-- 节点：未开始为空心圆，进行中 / 完成 / 异常为实心；连线颜色取左侧节点的状态（与 WPF 卡片相同） -->
+                    <Grid ColumnDefinitions="*,*,*,*,*,*" RowDefinitions="Auto,Auto">
+                        <Grid Grid.Column="0" ColumnDefinitions="*,*" Height="16">
+                            <Border Grid.Column="1" Height="2" VerticalAlignment="Center" Background="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <Grid Grid.Column="1" ColumnDefinitions="*,*" Height="16">
+                            <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Border Grid.Column="1" Height="2" VerticalAlignment="Center" Background="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <Grid Grid.Column="2" ColumnDefinitions="*,*" Height="16">
+                            <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Border Grid.Column="1" Height="2" VerticalAlignment="Center" Background="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <Grid Grid.Column="3" ColumnDefinitions="*,*" Height="16">
+                            <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Border Grid.Column="1" Height="2" VerticalAlignment="Center" Background="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <Grid Grid.Column="4" ColumnDefinitions="*,*" Height="16">
+                            <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Border Grid.Column="1" Height="2" VerticalAlignment="Center" Background="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <Grid Grid.Column="5" ColumnDefinitions="*,*" Height="16">
+                            <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                            <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
+                        </Grid>
+                        <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="0,6,0,0" Text="对话界面" Foreground="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Margin="0,6,0,0" Text="OCR" Foreground="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" Margin="0,6,0,0" Text="角色" Foreground="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" Margin="0,6,0,0" Text="声线" Foreground="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="4" HorizontalAlignment="Center" Margin="0,6,0,0" Text="合成" Foreground="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="5" HorizontalAlignment="Center" Margin="0,6,0,0" Text="播放" Foreground="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                    </Grid>
+                    <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding Status.StageSummary}" />
+                    <Separator />
+                    <!-- 当前处理内容 -->
+                    <Grid ColumnDefinitions="88,*">
+                        <TextBlock Classes="desc" Text="当前" />
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock TextWrapping="Wrap"><Run Text="{Binding Status.Character}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding Status.Voice}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Text="{Binding Status.Dialogue}" />
+                            <TextBlock Classes="desc" TextWrapping="Wrap">
+                                <Run Text="{Binding Status.DialogueState}" /><Run Text=" · 合成：" /><Run Text="{Binding Status.Tts}" /><Run Text=" · 播放：" /><Run Text="{Binding Status.Playback}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                    <Separator />
+                    <!-- 最近事件 -->
+                    <Grid ColumnDefinitions="88,*">
+                        <TextBlock Classes="desc" Text="最近事件" />
+                        <StackPanel Grid.Column="1">
+                            <ItemsControl ItemsSource="{Binding Status.RecentEvents}" IsVisible="{Binding Status.HasRecentEvents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Margin="0,2" Text="{Binding}" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Classes="desc" Text="暂无最近运行事件（最多保留 8 条）。" IsVisible="{Binding !Status.HasRecentEvents}" />
+                        </StackPanel>
+                    </Grid>
+                    <Separator />
+                    <!-- 操作 -->
+                    <WrapPanel>
+                        <Button Margin="0,0,8,4" Content="校验配置" Command="{Binding ValidateCommand}" />
+                        <Button Margin="0,0,8,4" Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
+                        <TextBlock Classes="desc" VerticalAlignment="Center" Text="引擎与角色目录的设置窗口尚未迁移，可在 Windows 版设置后复制 User/config.json" />
+                    </WrapPanel>
+                </StackPanel>
+            </Expander>
+
             <!-- 自动邀约 -->
             <Border Classes="card">
                 <DockPanel>

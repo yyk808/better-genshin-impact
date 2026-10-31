@@ -1,3 +1,4 @@
+using BetterGenshinImpact.GameTask.QuestVoice;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.Core.Recorder;
@@ -64,6 +65,8 @@ public sealed class GameHost : IAsyncDisposable
         _log = log;
         Dispatcher = provider.GetRequiredService<TaskTriggerDispatcher>();
         RuntimeService = provider.GetRequiredService<GameRuntimeService>();
+        // 与 WPF 相同在启动时创建，订阅截图器与开关状态
+        QuestVoice = provider.GetRequiredService<QuestVoiceService>();
         Dispatcher.TickExceptionObserver = OnTickException;
         Dispatcher.FrameCaptured += _ => Interlocked.Increment(ref _frames);
     }
@@ -114,6 +117,9 @@ public sealed class GameHost : IAsyncDisposable
     public IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot> MaskDrawing => _provider.GetRequiredService<IMaskWindowSnapshotSource<MaskWindowDrawingSnapshot>>();
 
     public GameRuntimeService RuntimeService { get; }
+
+    /// <summary>剧情语音（自动配音）服务</summary>
+    public QuestVoiceService QuestVoice { get; }
 
     public InferenceRuntimeService Inference => _provider.GetRequiredService<InferenceRuntimeService>();
 
@@ -301,6 +307,11 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<InferenceRuntimeService>();
             services.AddSingleton<BgiOnnxFactory>();
             services.AddSingleton<OcrFactory>();
+            // 剧情语音（自动配音）：会话与服务都在 Core，与 WPF 注册方式相同；开关打开且截图器运行时自动启停
+            services.AddSingleton(sp => new QuestVoiceSessionFactory(config.QuestVoiceConfig, Global.StartUpPath, sp.GetRequiredService<BgiOnnxFactory>()));
+            services.AddSingleton<IQuestVoiceSessionFactory>(sp => sp.GetRequiredService<QuestVoiceSessionFactory>());
+            services.AddSingleton<QuestVoiceSessionController>();
+            services.AddSingleton<QuestVoiceService>();
             // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
             services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
             services.AddSingleton<KeyMouseRecordService>();
@@ -497,6 +508,7 @@ public sealed class GameHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        await QuestVoice.StopAsync(applicationExit: true);
         if (RuntimeService.IsRunning)
         {
             await RuntimeService.StopAsync();
