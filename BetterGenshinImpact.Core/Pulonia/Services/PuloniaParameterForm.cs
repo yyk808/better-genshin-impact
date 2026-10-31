@@ -81,17 +81,21 @@ public static class PuloniaParameterForm
     {
         if (schema["enum"] is JArray values && values.All(v => v.Type == JTokenType.String))
             return (PuloniaParameterFieldKind.Choice, values.Values<string>().OfType<string>().ToList());
-        var type = schema["type"] is JArray types ? types.Values<string>().FirstOrDefault(t => t != "null") : schema.Value<string>("type");
+        var type = TypeOf(schema);
         return type switch
         {
             "boolean" => (PuloniaParameterFieldKind.Boolean, []),
             "integer" => (PuloniaParameterFieldKind.Integer, []),
             "number" => (PuloniaParameterFieldKind.Number, []),
             "string" => (PuloniaParameterFieldKind.Text, []),
-            "array" when schema["items"] is JObject items && items.Value<string>("type") == "string" => (PuloniaParameterFieldKind.StringList, []),
+            "array" when schema["items"] is JObject items && TypeOf(items) == "string" => (PuloniaParameterFieldKind.StringList, []),
             _ => (PuloniaParameterFieldKind.Json, []),
         };
     }
+
+    /// <summary>Schema 的 type 可为字符串或数组（如 ["string","null"]），取第一个非 null 类型</summary>
+    private static string? TypeOf(JObject schema)
+        => schema["type"] is JArray types ? types.Values<string>().FirstOrDefault(t => t != "null") : schema.Value<string>("type");
 
     /// <summary>把输入解析为参数值；无法解析时抛出带字段名的 <see cref="FormatException"/></summary>
     public static JToken Parse(PuloniaParameterField field, string? text, bool? boolean = null)

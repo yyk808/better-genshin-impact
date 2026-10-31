@@ -544,6 +544,8 @@ public partial class App : Application
         BetterGenshinImpact.Platform.UiHost.Dialogs = new BetterGenshinImpact.Service.Ui.WpfDialogService();
         BetterGenshinImpact.Platform.UiHost.Clipboard = new BetterGenshinImpact.Service.Ui.WpfClipboardService();
         BetterGenshinImpact.Platform.UiHost.Lifetime = new BetterGenshinImpact.Service.Ui.WpfAppLifetime();
+        // 树脂设置弹窗只在真实应用中从服务容器获取（原为 Application.Current is App 判断）
+        BetterGenshinImpact.ViewModel.Resin.ResinUsageViewModelSupport.ResolveDialogsFromServices = true;
         // Wine 平台适配
         WinePlatformAddon.ApplyApplicationConfig();
         base.OnStartup(e);

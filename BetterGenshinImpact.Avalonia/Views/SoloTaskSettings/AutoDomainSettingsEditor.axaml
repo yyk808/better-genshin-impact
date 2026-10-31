@@ -1,0 +1,163 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.AutoDomainSettingsEditor"
+             x:DataType="tasksVm:AutoDomainSettingsViewModel">
+    <!-- 自动秘境专属参数（对照 WPF View/Pages/SoloTaskSettings/AutoDomainSettingsView.xaml；VM 在 Core） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row">
+            <Setter Property="Spacing" Value="3" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style Selector="StackPanel.row > TextBlock.desc">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel.row > ComboBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Border.group">
+            <Setter Property="BorderBrush" Value="#30808080" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style Selector="StackPanel.indent">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel x:Name="AutoDomainEditorRoot">
+        <TextBlock Text="自动秘境设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+
+        <StackPanel Classes="row">
+            <TextBlock Text="战斗策略" />
+            <TextBlock Classes="desc" Text="选择此任务使用的秘境战斗策略。" />
+            <ComboBox x:Name="AdStrategy" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}" SelectedItem="{Binding StrategyName}" />
+        </StackPanel>
+
+        <Border Classes="group">
+            <StackPanel>
+                <TextBlock Text="秘境配置" FontWeight="SemiBold" />
+                <TextBlock Classes="desc" FontSize="12" Text="设置每次执行使用的队伍、秘境和奖励。" />
+                <StackPanel Classes="row">
+                    <TextBlock Text="队伍名称" />
+                    <TextBlock Classes="desc" Text="填写游戏内的队伍名称；留空则不切换。" />
+                    <TextBox x:Name="AdPartyName" Text="{Binding PartyName}" Watermark="留空则不切换队伍" />
+                </StackPanel>
+                <StackPanel Classes="row">
+                    <TextBlock Text="秘境来源" />
+                    <TextBlock Classes="desc" Text="按游戏内养成计划，从提升指南中选择秘境。" IsVisible="{Binding DomainSource.IsTrainingPlan}" />
+                    <TextBlock Classes="desc" Text="传送到选定的秘境刷取。" IsVisible="{Binding DomainSource.IsManualDomain}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <RadioButton x:Name="AdSourceTraining" GroupName="AdDomainSource" Content="跟随培养计划" IsChecked="{Binding DomainSource.IsTrainingPlan}" />
+                        <RadioButton x:Name="AdSourceManual" GroupName="AdDomainSource" Content="指定秘境" IsChecked="{Binding DomainSource.IsManualDomain}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel IsVisible="{Binding DomainSource.IsManualDomain}">
+                    <StackPanel Classes="row">
+                        <TextBlock Text="秘境" />
+                        <TextBlock Classes="desc" Text="选择要刷取的秘境。" />
+                        <ComboBox x:Name="AdDomainName" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.DomainNames}" SelectedItem="{Binding ManualDomainChoice}" />
+                    </StackPanel>
+                    <StackPanel Classes="row">
+                        <TextBlock Text="周日或限时奖励" />
+                        <TextBlock Classes="desc" Text="按游戏内从左到右的顺序选择奖励。" />
+                        <ComboBox x:Name="AdSunday" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.SundayChoices}" SelectedItem="{Binding SundayValue}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel IsVisible="{Binding DomainSource.IsTrainingPlan}">
+                    <TextBlock Text="培养计划设置" FontWeight="SemiBold" Margin="0,6,0,0" />
+                    <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap" Text="需求以游戏内养成计划为准，请先把要培养的角色加入养成计划。" />
+                    <StackPanel Classes="row">
+                        <TextBlock Text="自动计算今日刷取次数" />
+                        <TextBlock Classes="desc" Text="在秘境入口读取培养材料并计算次数，可连续刷多个秘境；关闭时只刷提升指南中的第一个秘境，下方缩进的设置不生效。" />
+                        <ToggleSwitch x:Name="AdCalculateRuns" IsChecked="{Binding TrainingGuideCalculateRunsEnabled}" OnContent="" OffContent="" />
+                    </StackPanel>
+                    <StackPanel Classes="indent" IsEnabled="{Binding IsTrainingGuidePlanning}">
+                        <StackPanel Classes="row">
+                            <TextBlock Text="刷取偏好" />
+                            <TextBlock Classes="desc" Text="适量刷取依靠合成天赋收益补足材料；充分刷取直到满足养成计划需求。" />
+                            <ComboBox x:Name="AdRunPreference" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.RunPreferences}" SelectedIndex="{Binding TrainingGuideRunPreference}" />
+                        </StackPanel>
+                        <StackPanel Classes="row" IsEnabled="{Binding IsTrainingGuideReservePercentEditable}">
+                            <TextBlock Text="合成收益预留率（%）" />
+                            <TextBlock Classes="desc" Text="适量刷取时为合成额外收益预留的比例，默认 7%，范围 0%～20%；数值越高刷取次数越少，也更可能需要补刷。" />
+                            <NumericUpDown x:Name="AdReservePercent" Minimum="0" Maximum="20" Increment="1" FormatString="0"
+                                           Value="{Binding TrainingGuideCraftingBonusReservePercent}" />
+                        </StackPanel>
+                        <StackPanel Classes="row">
+                            <TextBlock Text="按领奖结果更新养成库存" />
+                            <TextBlock Classes="desc" Text="每轮领奖后识别奖励并更新库存，动态调整刷取次数；需要 1920×1080 分辨率。" />
+                            <ToggleSwitch x:Name="AdGuideReward" IsChecked="{Binding TrainingGuideRewardRecognitionEnabled}" OnContent="" OffContent="" />
+                        </StackPanel>
+                        <StackPanel Classes="row indent" IsEnabled="{Binding TrainingGuideRewardRecognitionEnabled}">
+                            <TextBlock Text="识别失败时按固定预算继续" />
+                            <TextBlock Classes="desc" Text="关闭时奖励识别失败即结束任务；开启后当前材料按首次估算的树脂预算继续。" />
+                            <ToggleSwitch x:Name="AdFailureBudget" IsChecked="{Binding TrainingGuideRewardFailureBudgetEnabled}" OnContent="" OffContent="" />
+                        </StackPanel>
+                        <StackPanel Classes="row">
+                            <TextBlock Text="备选秘境" />
+                            <TextBlock Classes="desc" Text="养成需求全部完成或没有可刷秘境时，用剩余树脂刷取；留空则保留剩余树脂。" />
+                            <ComboBox x:Name="AdFallbackDomain" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FallbackDomainNames}" SelectedItem="{Binding FallbackDomainChoice}" />
+                        </StackPanel>
+                        <StackPanel Classes="row">
+                            <TextBlock Text="备选秘境的周日或限时奖励" />
+                            <TextBlock Classes="desc" Text="备选秘境在周日或限时全开时领取的奖励序号。" />
+                            <ComboBox x:Name="AdFallbackSunday" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.SundayChoices}" SelectedItem="{Binding TrainingGuideFallbackSundayValue}" />
+                        </StackPanel>
+                        <StackPanel Classes="row">
+                            <TextBlock Text="低冒险等阶适配" />
+                            <TextBlock Classes="desc" Text="冒险等阶较低时检查入口是否解锁，并自动降低难度。" />
+                            <ToggleSwitch x:Name="AdLowAr" IsChecked="{Binding TrainingGuideLowArAdaptationEnabled}" OnContent="" OffContent="" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="开发者工具" FontWeight="SemiBold" Margin="0,6,0,0" />
+                    <StackPanel Classes="row" IsEnabled="{Binding IsTrainingGuidePlanning}">
+                        <TextBlock Text="培养计划详细诊断" />
+                        <TextBlock Classes="desc" Text="排查问题时开启，下次任务生效；保存 OCR 原文、匹配分数、判断过程及诊断截图至 User/Diagnostics。" />
+                        <ToggleSwitch x:Name="AdDiagnostics" IsChecked="{Binding TrainingGuideDiagnosticsEnabled}" OnContent="" OffContent="" />
+                    </StackPanel>
+                    <StackPanel Classes="row">
+                        <TextBlock Text="自定义培养目标" />
+                        <TextBlock Classes="desc" Text="填写后按这里的目标库存刷取，不读取游戏内养成计划；留空则跟随养成计划。格式：[{&quot;material&quot;:&quot;材料完整名称&quot;,&quot;target&quot;:28}]" />
+                        <TextBox x:Name="AdTrainingTargets" Text="{Binding TrainingTargetsJson}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" MaxHeight="120"
+                                 Watermark="留空则跟随养成计划" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="group">
+            <StackPanel Classes="row">
+                <TextBlock Text="树脂使用" FontWeight="SemiBold" />
+                <TextBlock x:Name="AdResinSummary" Classes="desc" Text="{Binding Resin.Summary}" />
+                <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding Resin.Problem}" IsVisible="{Binding Resin.HasProblem}" />
+                <TextBlock Classes="desc" Text="Linux 版暂未提供树脂设置对话框，当前设置保持不变。" IsVisible="{Binding !Resin.CanEdit}" />
+                <Button Content="设置" Command="{Binding Resin.EditCommand}" IsVisible="{Binding Resin.CanEdit}" />
+            </StackPanel>
+        </Border>
+
+        <Border Classes="group">
+            <StackPanel>
+                <StackPanel Classes="row">
+                    <TextBlock Text="结束后分解圣遗物" FontWeight="SemiBold" />
+                    <TextBlock Classes="desc" Text="开启后按指定最高星级分解，避免背包占满。" />
+                    <ToggleSwitch x:Name="AdArtifactSalvage" IsChecked="{Binding AutoArtifactSalvage}" OnContent="" OffContent="" />
+                </StackPanel>
+                <StackPanel Classes="row indent" IsEnabled="{Binding AutoArtifactSalvage}">
+                    <TextBlock Text="最高星级" />
+                    <TextBlock Classes="desc" Text="只分解不高于此星级的圣遗物。" />
+                    <ComboBox x:Name="AdMaxStar" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.ArtifactStarChoices}" SelectedItem="{Binding MaxArtifactStar}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Classes="row">
+            <TextBlock Text="奖励识别" />
+            <TextBlock Classes="desc" Text="每轮领奖后识别奖励名称与数量，测试功能，如有问题请提交截图反馈。" />
+            <ToggleSwitch x:Name="AdRewardRecognition" IsChecked="{Binding RewardRecognitionEnabled}" OnContent="" OffContent="" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -1,5 +1,4 @@
 using System;
-using System.Windows;
 using BetterGenshinImpact.GameTask.AutoBoss;
 using BetterGenshinImpact.GameTask.AutoDomain;
 using BetterGenshinImpact.GameTask.AutoLeyLineOutcrop;
@@ -36,10 +35,13 @@ public static class ResinUsageViewModelSupport
             _ => null
         };
 
+    /// <summary>宿主应用启动后置为 true（WPF 在 App 中设置）；隔离容器和离屏测试保持 false，不从服务容器取弹窗。</summary>
+    public static bool ResolveDialogsFromServices { get; set; }
+
     /// <summary>静态 Schema 字段工厂没有 DI，允许显式注入，否则仅在真实应用中获取服务；隔离容器和离屏测试不启动 App。</summary>
     public static IResinSettingsDialogs? ResolveDialogs(IResinSettingsDialogs? dialogs)
     {
-        if (dialogs is not null || Application.Current is not App) return dialogs;
+        if (dialogs is not null || !ResolveDialogsFromServices) return dialogs;
         try { return CoreServices.GetService<IResinSettingsDialogs>(); }
         catch (InvalidOperationException) { return null; }
     }

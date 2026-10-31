@@ -5,7 +5,6 @@ using BetterGenshinImpact.GameTask.Common.Resin;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.ViewModel.Resin;
 using Microsoft.Extensions.DependencyInjection;
-using BetterGenshinImpact.ViewModel.Pages.Pulonia;
 using BetterGenshinImpact.ViewModel.Pages.View;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json.Linq;
@@ -210,7 +209,36 @@ public partial class AutoDomainSettingsViewModel : SoloTaskSettingsViewModel
 
     /// <summary>秘境名变化（选择、清空或切换来源）后刷新秘境来源。</summary>
     /// <param name="value">新的秘境名。</param>
-    partial void OnDomainNameChanged(string value) => DomainSource.Refresh();
+    partial void OnDomainNameChanged(string value)
+    {
+        DomainSource.Refresh();
+        OnPropertyChanged(nameof(ManualDomainChoice));
+    }
+
+    partial void OnTrainingGuideFallbackDomainNameChanged(string value) => OnPropertyChanged(nameof(FallbackDomainChoice));
+
+    /// <summary>
+    /// 秘境下拉框的选中项：列表里没有当前值（如跟随培养计划）时选择框会写回 null，这里忽略 null，避免清掉秘境名。
+    /// 供不支持自定义转换器的宿主（Avalonia）绑定；WPF 视图直接绑定 <see cref="DomainName"/>。
+    /// </summary>
+    public string? ManualDomainChoice
+    {
+        get => DomainSource.IsTrainingPlan ? null : DomainName;
+        set
+        {
+            if (value is not null) DomainName = value;
+        }
+    }
+
+    /// <summary>备选秘境下拉框的选中项，与 <see cref="ManualDomainChoice"/> 一样忽略选择框写回的 null。</summary>
+    public string? FallbackDomainChoice
+    {
+        get => TrainingGuideFallbackDomainName;
+        set
+        {
+            if (value is not null) TrainingGuideFallbackDomainName = value;
+        }
+    }
 
     /// <summary>收集全部卡片输入的真实变化。</summary>
     /// <param name="changes">接收变化的对象。</param>

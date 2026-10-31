@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             xmlns:solo="using:BetterGenshinImpact.Avalonia.Views.SoloTaskSettings"
              x:Class="BetterGenshinImpact.Avalonia.Views.TaskPlanPage"
              x:DataType="vm:TaskPlanPageViewModel">
     <DockPanel Margin="20,16,20,12">
@@ -102,7 +104,16 @@
                                                 </StackPanel>
                                                 <TextBlock Classes="desc" Text="{Binding NodeEditor.FieldsHint, FallbackValue=''}" TextWrapping="Wrap"
                                                            IsVisible="{Binding NodeEditor.FieldsHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}" />
-                                                <TextBlock Text="参数" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />
+                                                <!-- 专属参数编辑器（与 WPF 任务计划的参数编辑相同：有专属界面时优先显示） -->
+                                                <ContentControl x:Name="NodeDedicatedEditor" Content="{Binding NodeEditor.Dedicated, FallbackValue={x:Null}}"
+                                                                IsVisible="{Binding NodeEditor.HasDedicated, FallbackValue=False}">
+                                                    <ContentControl.DataTemplates>
+                                                        <DataTemplate DataType="tasksVm:AutoDomainSettingsViewModel">
+                                                            <solo:AutoDomainSettingsEditor />
+                                                        </DataTemplate>
+                                                    </ContentControl.DataTemplates>
+                                                </ContentControl>
+                                                <TextBlock Text="{Binding NodeEditor.FieldsTitle, FallbackValue=''}" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />
                                                 <ItemsControl ItemsSource="{Binding NodeEditor.Fields, FallbackValue={x:Null}}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="vm:TaskParameterFieldEditor">

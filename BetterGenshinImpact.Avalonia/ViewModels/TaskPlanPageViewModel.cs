@@ -38,6 +38,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     [ObservableProperty] private string _schedulerStatus = "";
     [ObservableProperty] private int _selectedTab;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasNodeEditor))] private TaskNodeEditor? _nodeEditor;
+    private readonly IServiceProvider? _services;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasTriggerEditor))] private TaskTriggerEditor? _triggerEditor;
     [ObservableProperty] private TaskPlanTriggerRow? _selectedTrigger;
 
@@ -45,6 +46,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     {
         _log = log;
         if (host is null) return;
+        _services = host.Services;
         _store = host.Services.GetService<PuloniaTaskStore>();
         _tasks = host.Services.GetService<IPuloniaTaskService>();
         _catalog = host.Services.GetService<PuloniaTaskResourceCatalog>();
@@ -213,7 +215,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     partial void OnSelectedNodeChanged(TaskPlanNodeRow? value)
     {
         var definition = value is null || _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), value.Task);
-        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition);
+        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services);
     }
 
     partial void OnSelectedTriggerChanged(TaskPlanTriggerRow? value)

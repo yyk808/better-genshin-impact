@@ -247,7 +247,7 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
         ApplyStatus(_executor?.GetStatus() ?? SoloTaskStatusSnapshot.Idle());
     }
 
-    private static List<string> LoadStrategyNames(string relativeDir, List<string> fixedNames)
+    internal static List<string> LoadStrategyNames(string relativeDir, List<string> fixedNames)
     {
         var dir = Global.Absolute(relativeDir);
         var names = new List<string>(fixedNames);

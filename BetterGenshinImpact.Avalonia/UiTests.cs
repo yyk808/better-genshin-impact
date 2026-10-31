@@ -35,6 +35,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
+                case "domain-editor": await DomainEditorAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -876,6 +877,130 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         // 删除计划
         page.SelectedTab = 0;
         await Settle();
+        if (page.SelectedPlan?.Plan.Id == id)
+        {
+            await Click(ButtonByText("删除计划"), "删除计划");
+        }
+
+        Check("删除计划文件", !File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json")));
+    }
+
+    // —— 专属参数编辑器：自动秘境（任务计划参数编辑） ——
+
+    private async Task DomainEditorAsync()
+    {
+        const string planName = "M38 秘境编辑器自测";
+        vm.Navigate("任务计划");
+        var page = vm.TaskPlan;
+        await page.ReloadAsync();
+        await Settle(1000);
+        // 截图时收起日志面板，留出编辑区
+        if (ButtonByText("收起") is { } collapse) await Click(collapse, "收起日志");
+        foreach (var old in page.Plans.Where(p => p.Name == planName).ToList())
+        {
+            page.SelectedPlan = old;
+            await Settle(300);
+            if (page.SelectedPlan == old)
+            {
+                await Click(await WaitFor(() => ButtonByText("删除计划")), "删除旧计划");
+            }
+        }
+
+        page.NewPlanName = planName;
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        var id = page.SelectedPlan?.Plan.Id ?? "";
+        var created = page.SelectedPlan?.Name == planName && File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json"));
+        Check("新建计划写入文件", created, id);
+        if (!created)
+        {
+            return;
+        }
+
+        page.SelectedAddOption = page.AddOptions.FirstOrDefault(o => o.Definition.TaskType == "solo.auto_domain");
+        Check("添加选项含自动秘境", page.SelectedAddOption is not null);
+        await Settle(500);
+        await Click(ButtonByText("＋ 添加"), "添加自动秘境");
+        await Settle(500);
+        var kids = Children(ReadPlan(id));
+        Check("存盘：添加自动秘境", kids.Count == 1 && kids[0].Value<string>("task_type") == "solo.auto_domain",
+            string.Join(",", kids.Select(k => k.Value<string>("task_type"))));
+        page.SelectedNode = page.Nodes.FirstOrDefault(n => n.Task.TaskType == "solo.auto_domain");
+        await Settle(800);
+        var editor = page.NodeEditor;
+        Check("显示专属编辑器", editor?.Dedicated is ViewModel.SoloTaskSettings.AutoDomainSettingsViewModel
+                                && All<Views.SoloTaskSettings.AutoDomainSettingsEditor>().Any(e => e.IsEffectivelyVisible), editor?.Dedicated?.GetType().Name);
+        var edited = editor?.Dedicated?.EditedParameterNames ?? [];
+        Check("通用字段不重复专属字段", editor is not null && editor.Fields.All(f => !edited.Contains(f.Name)),
+            string.Join(",", editor?.Fields.Select(f => f.Name) ?? []));
+
+        // 指定秘境
+        Named<TextBox>("AdPartyName")!.Text = "M38 队伍";
+        Named<RadioButton>("AdSourceManual")!.IsChecked = true;
+        await Settle();
+        var domainBox = Named<ComboBox>("AdDomainName");
+        Check("秘境下拉有选项", domainBox?.ItemCount > 0, domainBox?.ItemCount);
+        var domain = domainBox?.ItemCount > 1 ? domainBox.Items[1] as string : null;
+        if (domainBox is not null && domain is not null) domainBox.SelectedItem = domain;
+        Named<ComboBox>("AdSunday")!.SelectedItem = "2";
+        Named<ToggleSwitch>("AdArtifactSalvage")!.IsChecked = true;
+        await Settle();
+        Named<ComboBox>("AdMaxStar")!.SelectedItem = "3";
+        var reward = Named<ToggleSwitch>("AdRewardRecognition")!;
+        var rewardBefore = reward.IsChecked == true;
+        reward.IsChecked = !rewardBefore;
+        await Settle();
+        Named<TextBox>("AdPartyName")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-domain-editor-manual.png");
+        Named<ToggleSwitch>("AdArtifactSalvage")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-domain-editor-manual-2.png");
+        Named<ContentControl>("NodeDedicatedEditor")?.BringIntoView();
+        await Click(Named<Button>("ApplyNodeButton"), "应用（指定秘境）");
+        var p = Children(ReadPlan(id))[0]["parameters"] as JObject ?? new JObject();
+        var pText = p.ToString(Newtonsoft.Json.Formatting.None);
+        Check("存盘：队伍名称", p.Value<string>("party_name") == "M38 队伍", pText);
+        Check("存盘：秘境", domain is not null && p.Value<string>("domain_name") == domain, pText);
+        Check("存盘：周日奖励", p.Value<string>("sunday_selected_value") == "2", pText);
+        Check("存盘：分解圣遗物", p.Value<bool?>("auto_artifact_salvage") == true && p.Value<string>("max_artifact_star") == "3", pText);
+        Check("存盘：奖励识别", p.Value<bool?>("reward_recognition_enabled") == !rewardBefore, pText);
+
+        // 重新选中后编辑器显示已存的值
+        page.SelectedNode = null;
+        await Settle();
+        page.SelectedNode = page.Nodes.FirstOrDefault();
+        await Settle(800);
+        Check("重新打开显示存盘值", Named<TextBox>("AdPartyName")?.Text == "M38 队伍" && Named<ComboBox>("AdDomainName")?.SelectedItem as string == domain
+                                 && Named<RadioButton>("AdSourceManual")?.IsChecked == true);
+
+        // 跟随培养计划
+        Named<RadioButton>("AdSourceTraining")!.IsChecked = true;
+        await Settle();
+        var adVm = page.NodeEditor?.Dedicated as ViewModel.SoloTaskSettings.AutoDomainSettingsViewModel;
+        Check("培养计划设置显示", Named<ToggleSwitch>("AdCalculateRuns") is not null && Named<ComboBox>("AdDomainName") is null,
+            $"domain={adVm?.DomainName} training={adVm?.DomainSource.IsTrainingPlan} radio={Named<RadioButton>("AdSourceTraining")?.IsChecked} same={ReferenceEquals(adVm, editor?.Dedicated)}");
+        if (Named<ComboBox>("AdRunPreference") is null)
+        {
+            return;
+        }
+        Named<ComboBox>("AdRunPreference")!.SelectedIndex = 0;
+        Named<NumericUpDown>("AdReservePercent")!.Value = 12;
+        Named<ToggleSwitch>("AdDiagnostics")!.IsChecked = true;
+        Named<ComboBox>("AdFallbackSunday")!.SelectedItem = "3";
+        await Settle();
+        Named<ToggleSwitch>("AdCalculateRuns")?.BringIntoView();
+        await Settle();
+        Shot("avalonia-domain-editor-training.png");
+        await Click(Named<Button>("ApplyNodeButton"), "应用（培养计划）");
+        p = Children(ReadPlan(id))[0]["parameters"] as JObject ?? new JObject();
+        pText = p.ToString(Newtonsoft.Json.Formatting.None);
+        Check("存盘：跟随培养计划", p.Value<string>("domain_name") == GameTask.AutoDomain.AutoDomainTask.TrainingGuideOption, pText);
+        Check("存盘：预留率", p.Value<int?>("training_guide_crafting_bonus_reserve_percent") == 12, pText);
+        Check("存盘：诊断", p.Value<bool?>("training_guide_diagnostics_enabled") == true, pText);
+        Check("存盘：备选周日奖励", p.Value<string>("training_guide_fallback_sunday_selected_value") == "3", pText);
+        Check("存盘：未改字段保留", p.Value<string>("party_name") == "M38 队伍", pText);
+
+        // 删除计划
         if (page.SelectedPlan?.Plan.Id == id)
         {
             await Click(ButtonByText("删除计划"), "删除计划");

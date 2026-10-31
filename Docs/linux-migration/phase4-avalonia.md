@@ -490,3 +490,19 @@ Core 1135 个（新增 `HtmlMaskPage`，`QuestVoiceService` 3 个文件移入）
 ### 文件数（口径同上）
 
 Core 1154 个（自动配音设置模型 18 个文件移入，新增 `IQuestVoiceSettingsUi`、通用引擎设置模型），主项目 604 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 59 个。
+
+### 专属参数编辑器：自动秘境
+
+- 自动秘境的专属设置模型迁入 Core：`SoloTaskSettingsViewModel`（基类）、`AutoDomainSettingsViewModel`、`SoloTaskSettingsFactory`、`ResinPlanSubTaskSpec`、
+  `DomainSourceViewModel`、树脂入口 `ResinUsageEntryViewModel` / `IResinSettingsDialogs` / `ResinUsageViewModelSupport`（命名空间不变）。
+  `ResinUsageViewModelSupport` 原先用 `Application.Current is App` 判断是否从服务容器取树脂弹窗，改为宿主设置的 `ResolveDialogsFromServices`（WPF 在 `App.OnStartup` 置为 true，行为不变）。
+- Avalonia 任务计划的参数面板：任务有专属编辑器时优先显示（与 WPF `PuloniaTaskSettingsEditorViewModel` 相同），专属编辑器管理的字段不再出现在通用字段中，
+  其余字段显示为“其他参数”；应用时合并两部分的修改。对应关系在 `DedicatedTaskSettings`（目前为自动秘境），视图 `Views/SoloTaskSettings/AutoDomainSettingsEditor`
+  对照 WPF `AutoDomainSettingsView`：战斗策略、队伍、秘境来源（跟随培养计划 / 指定秘境）、秘境与周日奖励、培养计划设置、树脂使用摘要、分解圣遗物、奖励识别。
+  Linux 版暂无树脂设置对话框，树脂使用只显示摘要且保持原值。
+- 修正 `PuloniaParameterForm`：数组项 Schema 的 `type` 为数组（如 `["string","null"]`）时不再抛出类型转换异常（此前选中自动秘境节点会失败；仅 Avalonia 使用）。
+- 界面自测 `--ui-test domain-editor`（19 项）：新建临时计划并添加自动秘境，核对专属编辑器与通用字段不重复，指定秘境 / 周日奖励 / 队伍 / 分解圣遗物 / 奖励识别存盘，
+  重新选中后显示存盘值，切换为跟随培养计划后预留率、诊断、备选周日奖励存盘且未改字段保留，最后删除临时计划。
+- 独立任务页的秘境卡片仍是按配置绑定的少量参数（WPF 独立任务页同样不使用专属设置模型），其余配置项待补；战斗策略、树脂等其他专属编辑器待迁移。
+
+Core 1162 个（上述 8 个文件移入），主项目 596 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 62 个。

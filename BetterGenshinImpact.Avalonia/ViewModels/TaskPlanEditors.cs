@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using BetterGenshinImpact.Pulonia.Models;
 using BetterGenshinImpact.Pulonia.Services;
+using BetterGenshinImpact.ViewModel.SoloTaskSettings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json.Linq;
 
@@ -13,7 +14,7 @@ public sealed partial class TaskNodeEditor : ObservableObject
     [ObservableProperty] private bool _isEnabled;
     [ObservableProperty] private string _repeatText;
 
-    public TaskNodeEditor(TaskPlanNodeRow row, PuloniaTaskDefinition? definition)
+    public TaskNodeEditor(TaskPlanNodeRow row, PuloniaTaskDefinition? definition, IServiceProvider? services = null)
     {
         Row = row;
         Definition = definition;
@@ -23,9 +24,15 @@ public sealed partial class TaskNodeEditor : ObservableObject
         IsGroup = row.Task.TaskType == "group" && row.Task.Source is null;
         if (definition is not null)
         {
+            // 与 WPF PuloniaTaskSettingsEditorViewModel 相同：有专属界面时优先使用，专属界面编辑的字段不再出现在通用字段中
+            Dedicated = DedicatedTaskSettings.TryCreate(definition.TaskType, PuloniaParameterForm.Effective(definition, row.Task), services);
+            var edited = new HashSet<string>(Dedicated?.EditedParameterNames ?? [], StringComparer.Ordinal);
             foreach (var field in PuloniaParameterForm.Describe(definition, row.Task))
             {
-                Fields.Add(new TaskParameterFieldEditor(field));
+                if (!edited.Contains(field.Name))
+                {
+                    Fields.Add(new TaskParameterFieldEditor(field));
+                }
             }
         }
     }
@@ -42,12 +49,21 @@ public sealed partial class TaskNodeEditor : ObservableObject
 
     public bool HasFields => Fields.Count > 0;
 
-    public string FieldsHint => Definition is null ? "未注册的任务类型，只能修改名称与启用状态。" : HasFields ? "" : "此任务没有可编辑的参数。";
+    /// <summary>专属参数编辑器（VM 在 Core）；没有时为 null</summary>
+    public SoloTaskSettingsViewModel? Dedicated { get; }
+
+    public bool HasDedicated => Dedicated is not null;
+
+    public string FieldsHint => Definition is null ? "未注册的任务类型，只能修改名称与启用状态。" : HasFields || HasDedicated ? "" : "此任务没有可编辑的参数。";
+
+    /// <summary>有专属编辑器时通用字段的标题</summary>
+    public string FieldsTitle => HasDedicated ? "其他参数" : "参数";
 
     /// <summary>收集修改过的参数</summary>
     public JObject CollectChanges()
     {
         var changes = new JObject();
+        Dedicated?.CollectChanges(changes);
         foreach (var f in Fields)
         {
             if (f.BuildIfChanged() is { } value)
