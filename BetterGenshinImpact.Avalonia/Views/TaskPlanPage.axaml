@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
              xmlns:solo="using:BetterGenshinImpact.Avalonia.Views.SoloTaskSettings"
              x:Class="BetterGenshinImpact.Avalonia.Views.TaskPlanPage"
@@ -12,7 +13,7 @@
             <Border Grid.Column="0" Classes="card" Margin="0,0,10,0" Padding="10">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="4,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="↻" Padding="8,2" Command="{Binding ReloadCommand}" ToolTip.Tip="重新加载" />
+                        <Button DockPanel.Dock="Right" Content="{svc:FluentIcon ArrowSync24, Size=16}" Padding="8,4" Command="{Binding ReloadCommand}" ToolTip.Tip="重新加载" />
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <TextBlock Text="计划" FontWeight="SemiBold" FontSize="16" />
                             <TextBlock Classes="desc" Text="{Binding PlanCountText}" VerticalAlignment="Center" />
@@ -20,7 +21,7 @@
                     </DockPanel>
                     <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="＋" Margin="6,0,0,0" Command="{Binding NewPlanCommand}" ToolTip.Tip="新建计划" />
+                            <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Add24, Size=16}" Margin="6,0,0,0" Command="{Binding NewPlanCommand}" ToolTip.Tip="新建计划" />
                             <TextBox Watermark="新计划名称" Text="{Binding NewPlanName}" />
                         </DockPanel>
                         <Button Content="删除计划" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -31,7 +32,7 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:TaskPlanItem">
                                 <DockPanel Margin="2,4">
-                                    <Button DockPanel.Dock="Right" Content="▶" Padding="8,2" VerticalAlignment="Center" ToolTip.Tip="运行"
+                                    <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Play24, Size=16}" Padding="8,4" VerticalAlignment="Center" ToolTip.Tip="运行"
                                             Command="{Binding $parent[ListBox].((vm:TaskPlanPageViewModel)DataContext).RunPlanCommand}"
                                             CommandParameter="{Binding}" />
                                     <StackPanel>

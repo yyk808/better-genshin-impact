@@ -1,20 +1,21 @@
 <Styles xmlns="https://github.com/avaloniaui"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- 仿原版 BGI（WPF-UI，深色 Mica）的配色与卡片样式 -->
+    <!-- 原版 BGI（WPF-UI，深色）的配色；卡片、文字颜色取 FluentAvalonia 主题资源（与 WinUI / WPF-UI 同名同值） -->
     <Styles.Resources>
         <SolidColorBrush x:Key="BgiWindowBrush" Color="#1F1F1F" />
         <SolidColorBrush x:Key="BgiPaneBrush" Color="#1A1A1A" />
         <SolidColorBrush x:Key="BgiCardBrush" Color="#2B2B2B" />
         <SolidColorBrush x:Key="BgiCardBorderBrush" Color="#1AFFFFFF" />
         <SolidColorBrush x:Key="BgiSubTextBrush" Color="#A0A0A0" />
-        <SolidColorBrush x:Key="BgiAccentBrush" Color="#4CC2FF" />
+        <SolidColorBrush x:Key="BgiAccentBrush" Color="#4CC2FF" /><!-- 与 FluentAvalonia 深色主题的 AccentTextFillColorPrimary 一致 -->
         <SolidColorBrush x:Key="BgiLogBrush" Color="#181818" />
     </Styles.Resources>
 
     <!-- 卡片：图标 / 标题 / 说明 / 右侧控件，对应 WPF-UI 的 CardControl -->
     <Style Selector="Border.card">
-        <Setter Property="Background" Value="{StaticResource BgiCardBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BgiCardBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="6" />
         <Setter Property="Padding" Value="16,12" />
@@ -22,8 +23,8 @@
     </Style>
     <!-- 列表行（任务计划的项目列表等） -->
     <Style Selector="Border.row">
-        <Setter Property="Background" Value="{StaticResource BgiCardBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BgiCardBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="4" />
         <Setter Property="Padding" Value="12,6" />
@@ -35,7 +36,7 @@
         <Setter Property="Padding" Value="12,4" />
     </Style>
     <Style Selector="Button.danger">
-        <Setter Property="Background" Value="#C42B1C" />
+        <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBrush}" />
         <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="Border.subcard">
@@ -72,7 +73,7 @@
     </Style>
     <Style Selector="TextBlock.desc">
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{StaticResource BgiSubTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="TextBlock.pageTitle">
@@ -92,7 +93,12 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- 左侧导航：选中项左侧显示强调色竖条（WPF-UI NavigationView 的样式） -->
+    <!-- SettingsExpander 之间留出间距（WPF 版 CardExpander 之间有间隔） -->
+    <Style Selector="StackPanel > ui|FASettingsExpander">
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <!-- 旧的 ListBox 导航样式（主窗口已改用 FANavigationView，保留给其余列表） -->
     <Style Selector="ListBox.nav">
         <Setter Property="Background" Value="Transparent" />
     </Style>

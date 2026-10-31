@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.TaskSettingsPage"
              x:DataType="vm:TaskSettingsPageViewModel">
     <UserControl.Styles>
@@ -12,24 +13,21 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="MinWidth" Value="0" />
         </Style>
-        <Style Selector="DockPanel.param > ComboBox, DockPanel.param > TextBox">
-            <Setter Property="DockPanel.Dock" Value="Right" />
+        <Style Selector="ComboBox.param, TextBox.param">
             <Setter Property="Width" Value="220" />
         </Style>
         <Style Selector="Button.run">
-            <Setter Property="DockPanel.Dock" Value="Right" />
             <Setter Property="MinWidth" Value="88" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="12,0,0,0" />
         </Style>
         <Style Selector="Button.run.running">
-            <Setter Property="Background" Value="#C42B1C" />
+            <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBrush}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
     </UserControl.Styles>
     <ScrollViewer>
-        <StackPanel Margin="28,20,28,20">
+        <StackPanel Margin="28,20,28,20" Spacing="4">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="停止当前任务" Command="{Binding StopCommand}"
                         IsEnabled="{Binding IsTaskActive}" VerticalAlignment="Center" />
@@ -49,98 +47,86 @@
                             <ItemsControl ItemsSource="{Binding Tasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SoloTaskCardViewModel">
-                                        <Expander Classes="card">
-                                            <Expander.Header>
-                                                <DockPanel>
-                                                    <Button Classes="run" Classes.running="{Binding IsRunning}"
-                                                            Content="{Binding ButtonText}" Command="{Binding ToggleCommand}"
-                                                            IsEnabled="{Binding CanInteract}" />
-                                                    <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Classes="title" Text="{Binding DisplayName}" />
-                                                        <TextBlock Classes="desc" Text="{Binding Description}" TextWrapping="Wrap"
-                                                                   IsVisible="{Binding HasDescription}" />
-                                                    </StackPanel>
-                                                </DockPanel>
-                                            </Expander.Header>
-                                            <StackPanel Spacing="10">
-                                                <!-- 自动伐木 -->
-                                                <DockPanel Classes="param" IsVisible="{Binding IsWood}">
-                                                    <TextBox Text="{Binding Page.AutoWoodRoundNum}" />
-                                                    <StackPanel>
-                                                        <TextBlock Text="循环次数" />
-                                                        <TextBlock Classes="desc" Text="0 表示无限循环，直到达到每日上限" />
-                                                    </StackPanel>
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsWood}">
-                                                    <TextBox Text="{Binding Page.AutoWoodDailyMaxCount}" />
-                                                    <TextBlock Text="每日木材上限" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <!-- 自动战斗 / 自动秘境：战斗策略 -->
-                                                <DockPanel Classes="param" IsVisible="{Binding IsFight}">
-                                                    <ComboBox ItemsSource="{Binding Page.FightStrategies}"
-                                                              SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
-                                                    <TextBlock Text="战斗策略" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsDomain}">
-                                                    <ComboBox ItemsSource="{Binding Page.FightStrategies}"
-                                                              SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
-                                                    <TextBlock Text="战斗策略（与自动战斗共用）" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsDomain}">
-                                                    <TextBox Text="{Binding Page.AutoDomainRoundNum}" />
-                                                    <StackPanel>
-                                                        <TextBlock Text="刷取次数" />
-                                                        <TextBlock Classes="desc" Text="0 表示直到体力耗尽" />
-                                                    </StackPanel>
-                                                </DockPanel>
-                                                <!-- 自动秘境的其余配置项（对照 WPF 独立任务页） -->
-                                                <Panel IsVisible="{Binding IsDomain}">
-                                                    <views:SoloDomainCard x:Name="SoloDomainCard" DataContext="{Binding Page.Domain}" />
-                                                </Panel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsBoss}">
-                                                    <ComboBox ItemsSource="{Binding Page.FightStrategies}"
-                                                              SelectedItem="{Binding Page.Config.AutoBossConfig.StrategyName}" />
-                                                    <TextBlock Text="战斗策略" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsStygian}">
-                                                    <ComboBox ItemsSource="{Binding Page.FightStrategies}"
-                                                              SelectedItem="{Binding Page.Config.AutoStygianOnslaughtConfig.StrategyName}" />
-                                                    <TextBlock Text="战斗策略" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsTcg}">
-                                                    <ComboBox ItemsSource="{Binding Page.TcgStrategies}"
-                                                              SelectedItem="{Binding Page.Config.AutoGeniusInvokationConfig.StrategyName}" />
-                                                    <TextBlock Text="七圣召唤策略" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel IsVisible="{Binding IsFishing}">
+                                        <!-- 每个独立任务一张 SettingsExpander（对应 WPF 版独立任务页的 CardExpander：标题行右侧为启动 / 停止按钮） -->
+                                        <ui:FASettingsExpander Header="{Binding DisplayName}" Description="{Binding Description}">
+                                            <ui:FASettingsExpander.Footer>
+                                                <Button Classes="run" Classes.running="{Binding IsRunning}"
+                                                        Content="{Binding ButtonText}" Command="{Binding ToggleCommand}"
+                                                        IsEnabled="{Binding CanInteract}" />
+                                            </ui:FASettingsExpander.Footer>
+                                            <ui:FASettingsExpanderItem Content="循环次数" Description="0 表示无限循环，直到达到每日上限" IsVisible="{Binding IsWood}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" Text="{Binding Page.AutoWoodRoundNum}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="每日木材上限" IsVisible="{Binding IsWood}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" Text="{Binding Page.AutoWoodDailyMaxCount}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsFight}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="战斗策略（与自动战斗共用）" IsVisible="{Binding IsDomain}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="刷取次数" Description="0 表示直到体力耗尽" IsVisible="{Binding IsDomain}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" Text="{Binding Page.AutoDomainRoundNum}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <!-- 自动秘境的其余配置项（对照 WPF 独立任务页） -->
+                                            <ui:FASettingsExpanderItem IsVisible="{Binding IsDomain}" HorizontalContentAlignment="Stretch">
+                                                <views:SoloDomainCard x:Name="SoloDomainCard" DataContext="{Binding Page.Domain}" />
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsBoss}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoBossConfig.StrategyName}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsStygian}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoStygianOnslaughtConfig.StrategyName}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="七圣召唤策略" IsVisible="{Binding IsTcg}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.TcgStrategies}" SelectedItem="{Binding Page.Config.AutoGeniusInvokationConfig.StrategyName}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="关键帧保存截图（调试用）" IsVisible="{Binding IsFishing}">
+                                                <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.SaveScreenshotOnKeyTick}" />
-                                                    <TextBlock Text="关键帧保存截图（调试用）" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel IsVisible="{Binding IsMusic}">
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="使用截图管线取色" Description="关闭时按键位直接读取窗口像素（Linux 为 X11 XGetImage）" IsVisible="{Binding IsMusic}">
+                                                <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoMusicGameConfig.UseCapturePipeline}" />
-                                                    <StackPanel>
-                                                        <TextBlock Text="使用截图管线取色" />
-                                                        <TextBlock Classes="desc" Text="关闭时按键位直接读取窗口像素（Linux 为 X11 XGetImage）" />
-                                                    </StackPanel>
-                                                </DockPanel>
-                                                <StackPanel IsVisible="{Binding IsRedeem}" Spacing="4">
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem IsVisible="{Binding IsRedeem}" HorizontalContentAlignment="Stretch">
+                                                <StackPanel Spacing="4">
                                                     <TextBlock Text="兑换码（每行一条）" />
                                                     <TextBox Text="{Binding Page.RedeemCodesText}" AcceptsReturn="True" TextWrapping="Wrap"
                                                              MinHeight="80" PlaceholderText="请在此输入兑换码，每行一条记录" />
                                                 </StackPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsInventory}">
-                                                    <ComboBox ItemsSource="{Binding Page.InventoryTargets}"
-                                                              SelectedItem="{Binding Page.InventoryCountComparisonTarget}" />
-                                                    <TextBlock Text="对比的背包分类" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <DockPanel Classes="param" IsVisible="{Binding IsSalvage}">
-                                                    <TextBox Text="{Binding Page.Config.AutoArtifactSalvageConfig.MaxArtifactStar}" />
-                                                    <TextBlock Text="分解的最高星级" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <TextBlock Classes="desc" TextWrapping="Wrap"
-                                                           Text="其余参数使用配置文件中的值（与 Windows 版共用 User/config.json），详细设置界面尚未迁移" />
-                                            </StackPanel>
-                                        </Expander>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="对比的背包分类" IsVisible="{Binding IsInventory}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.InventoryTargets}" SelectedItem="{Binding Page.InventoryCountComparisonTarget}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="分解的最高星级" IsVisible="{Binding IsSalvage}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" Text="{Binding Page.Config.AutoArtifactSalvageConfig.MaxArtifactStar}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Description="其余参数使用配置文件中的值（与 Windows 版共用 User/config.json），详细设置界面尚未迁移" />
+                                        </ui:FASettingsExpander>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

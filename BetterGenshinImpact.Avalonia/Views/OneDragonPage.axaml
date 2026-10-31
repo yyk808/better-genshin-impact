@@ -3,12 +3,14 @@
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:model="using:BetterGenshinImpact.Model"
              xmlns:cfg="using:BetterGenshinImpact.Core.Config"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.OneDragonPage"
              x:DataType="vm:OneDragonPageViewModel">
     <ScrollViewer>
         <StackPanel Margin="28,20,28,20" Spacing="4">
             <DockPanel>
-                <Button DockPanel.Dock="Right" MinWidth="96" HorizontalContentAlignment="Center" VerticalAlignment="Center"
+                <Button DockPanel.Dock="Right" Classes="accent" MinWidth="96" HorizontalContentAlignment="Center" VerticalAlignment="Center"
                         Content="{Binding Tasks.IsTaskActive, Converter={x:Static vm:OneDragonPageConverters.RunButtonText}}"
                         Command="{Binding ToggleCommand}" />
                 <StackPanel>
@@ -17,57 +19,49 @@
                 </StackPanel>
             </DockPanel>
 
-            <Border Classes="card">
-                <StackPanel Spacing="10">
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="240" ItemsSource="{Binding ConfigList}" SelectedItem="{Binding SelectedConfig}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="cfg:OneDragonFlowConfig">
-                                    <TextBlock Text="{Binding Name}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <StackPanel>
-                            <TextBlock Classes="title" Text="一条龙配置" />
-                            <TextBlock Classes="desc" Text="User/OneDragon 下的配置文件（与 Windows 版共用）" />
-                        </StackPanel>
-                    </DockPanel>
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="240" ItemsSource="{Binding CompletionActionList}"
+            <!-- 配置：SettingsExpander（对应 WPF 版一条龙页右侧的 CardControl） -->
+            <ui:FASettingsExpander Header="一条龙配置" Description="User/OneDragon 下的配置文件（与 Windows 版共用）"
+                                   IconSource="{svc:FluentIconSource AnimalTurtle24}" IsExpanded="True">
+                <ui:FASettingsExpander.Footer>
+                    <ComboBox Width="240" ItemsSource="{Binding ConfigList}" SelectedItem="{Binding SelectedConfig}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="cfg:OneDragonFlowConfig">
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="完成后操作" Description="任务完成后执行的操作">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox Width="240" ItemsSource="{Binding CompletionActionList}"
                                   SelectedItem="{Binding SelectedConfig.CompletionAction}" />
-                        <StackPanel>
-                            <TextBlock Classes="title" Text="完成后操作" />
-                            <TextBlock Classes="desc" Text="任务完成后执行的操作" />
-                        </StackPanel>
-                    </DockPanel>
-                </StackPanel>
-            </Border>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
 
-            <DockPanel Margin="0,8,0,0">
-                <Button DockPanel.Dock="Right" Content="保存配置" Command="{Binding SaveConfigCommand}" />
-                <StackPanel>
-                    <TextBlock Classes="section" Text="任务列表" />
-                    <TextBlock Classes="desc" Text="{Binding NextTaskText}" />
-                </StackPanel>
-            </DockPanel>
-            <ItemsControl ItemsSource="{Binding TaskList}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="model:OneDragonTaskItem">
-                        <Border Classes="subcard">
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" Content="从此执行" Padding="10,3"
-                                        Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).SetTaskAsNextCommand}"
-                                        CommandParameter="{Binding}" />
-                                <TextBlock DockPanel.Dock="Right" Text="▶ 下次从这里开始" Margin="0,0,12,0" VerticalAlignment="Center"
-                                           Foreground="#4CC2FF" IsVisible="{Binding IsNextTask}" />
-                                <CheckBox IsChecked="{Binding IsEnabled}" Margin="0,0,8,0" />
-                                <Ellipse Width="10" Height="10" Fill="Gray" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                            </DockPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- 任务列表（WPF 版为左侧带勾选框的列表） -->
+            <ui:FASettingsExpander Header="任务列表" Description="{Binding NextTaskText}"
+                                   IconSource="{svc:FluentIconSource TaskListSquareLtr24}" IsExpanded="True">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="保存配置" Command="{Binding SaveConfigCommand}" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem HorizontalContentAlignment="Stretch">
+                    <ItemsControl ItemsSource="{Binding TaskList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="model:OneDragonTaskItem">
+                                <DockPanel Margin="0,2">
+                                    <Button DockPanel.Dock="Right" Content="从此执行" Padding="10,3"
+                                            Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).SetTaskAsNextCommand}"
+                                            CommandParameter="{Binding}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="▶ 下次从这里开始" Margin="0,0,12,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" IsVisible="{Binding IsNextTask}" />
+                                    <CheckBox IsChecked="{Binding IsEnabled}" Content="{Binding Name}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
             <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,8,0,0"
                        Text="各任务的详细设置（秘境、首领、地脉花、尘歌壶等）、新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
         </StackPanel>
