@@ -15,6 +15,8 @@ internal sealed class WpfDomainPickerItems : IPuloniaDomainPickerItems
 
     public IReadOnlyList<object> ForPicker(string? picker) => TrainingGuideDomainOptions.ForPicker(picker);
 
+    public IReadOnlyList<object> Empty => System.Array.Empty<ICascadingItem>();
+
     public object? Find(IReadOnlyList<object> items, string? name)
         => TrainingGuideDomainOptions.Find(items as IReadOnlyList<ICascadingItem> ?? items.OfType<ICascadingItem>().ToList(), name);
 

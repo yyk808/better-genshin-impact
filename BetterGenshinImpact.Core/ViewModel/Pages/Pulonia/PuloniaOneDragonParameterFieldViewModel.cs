@@ -168,7 +168,7 @@ public partial class PuloniaOneDragonParameterFieldViewModel : ObservableObject
         DisplayName = schema.Value<string>("title") ?? PuloniaTaskFieldNames.GetDisplayName(displayKey);
         _original = value?.DeepClone();
         _scalar = new(name, schema, value, value is not null, required, dialogs);
-        DomainItems = IsDomain ? PuloniaDomainPickerItems.Current.ForPicker(_scalar.DomainPicker) : [];
+        DomainItems = IsDomain ? PuloniaDomainPickerItems.Current.ForPicker(_scalar.DomainPicker) : PuloniaDomainPickerItems.Current.Empty;
         // 移涌活动秘境：空值或旧版本的“跟随”选项值表示跟随培养计划，其余为指定秘境
         HasDomainSource = IsDomain && TrainingGuideDomainNames.HasTrainingPlanSource(_scalar.DomainPicker);
         _isManualDomain = HasDomainSource && !IsFollowTrainingPlanValue(TextValue);

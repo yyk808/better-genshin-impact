@@ -14,6 +14,9 @@ public interface IPuloniaDomainPickerItems
     /// <summary>按选择框类型（见 TrainingGuideDomainNames 的 *Picker 常量）返回选项。</summary>
     IReadOnlyList<object> ForPicker(string? picker);
 
+    /// <summary>非秘境字段使用的空选项（元素类型须与 <see cref="ForPicker"/> 一致，WPF 级联选择框按类型校验）。</summary>
+    IReadOnlyList<object> Empty { get; }
+
     /// <summary>在选项中查找秘境名对应的选中项；空值或没有对应选项时为 null。</summary>
     object? Find(IReadOnlyList<object> items, string? name);
 
@@ -32,6 +35,8 @@ public static class PuloniaDomainPickerItems
         private IReadOnlyList<object>? _names;
 
         public IReadOnlyList<object> ForPicker(string? picker) => _names ??= Load();
+
+        public IReadOnlyList<object> Empty => Array.Empty<string>();
 
         public object? Find(IReadOnlyList<object> items, string? name)
             => string.IsNullOrWhiteSpace(name) ? null : items.FirstOrDefault(item => item as string == name);

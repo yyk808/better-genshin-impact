@@ -546,5 +546,7 @@ Core 1175 个，主项目 583 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 77 �
   战斗结束等待、小步伐、步行开启秘境、左右移动次数、自动吃药、奖励识别、死亡重试。“按材料数量提前结束”（目标材料列表）尚未迁移。
 - 界面自测：`--ui-test resin-plan-editor`（12 项，临时计划中修改体力上限、合成、首领开关与秘境子任务队伍并核对存盘，最后删除计划）；
   `--ui-test solo-domain`（11 项，修改卡片配置与树脂使用后核对 `config.json`，测试前后由外部脚本备份恢复配置）。
+- Wine 下运行原版对照时发现：非秘境字段的空选项类型变为 `object[]`，WPF 级联选择框按 `IEnumerable<ICascadingItem>` 校验后抛异常，
+  体力计划子任务设置窗口无法打开。`IPuloniaDomainPickerItems` 新增 `Empty`（WPF 返回 `ICascadingItem` 空数组）后修复，原版窗口在 Wine 下正常打开。
 
 Core 1185 个，主项目 576 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 84 个。
