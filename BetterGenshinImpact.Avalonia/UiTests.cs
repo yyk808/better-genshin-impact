@@ -53,6 +53,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
+                case "onedragon-layout": await OneDragonLayoutAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2255,6 +2256,40 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 旧一条龙页（对应 WPF OneDragonFlowPage）：左右两栏（左任务列表与启动，右配置）、勾选写入配置、“从此执行”标记下次开始的任务并保存
+    /// </summary>
+    private async Task OneDragonLayoutAsync()
+    {
+        vm.Navigate("一条龙");
+        await Settle(600);
+        var page = vm.OneDragon;
+        var list = Named<ItemsControl>("OneDragonTaskList");
+        var configBox = Named<ComboBox>("OneDragonConfigBox");
+        var run = Named<Button>("OneDragonRunButton");
+        Check("两栏控件", list is not null && configBox is not null && run is not null && Named<ComboBox>("CompletionActionBox") is not null);
+        if (list is null || configBox is null || run is null) return;
+        var listPos = list.TranslatePoint(new Point(0, 0), window);
+        var configPos = configBox.TranslatePoint(new Point(0, 0), window);
+        Check("任务列表在左、配置在右", listPos is { } l && configPos is { } c && l.X + list.Bounds.Width <= c.X && run.TranslatePoint(new Point(0, 0), window)!.Value.X < c.X,
+            $"{listPos} {configPos}");
+        Check("任务列表项", page.TaskList.Count > 0 && list.ItemCount == page.TaskList.Count, page.TaskList.Count.ToString());
+        Check("配置下拉", page.ConfigList.Count > 0 && configBox.SelectedItem == page.SelectedConfig);
+        var item = page.TaskList[Math.Min(1, page.TaskList.Count - 1)];
+        var box = list.GetVisualDescendants().OfType<CheckBox>().First(b => b.DataContext == item);
+        var was = item.IsEnabled;
+        box.IsChecked = !was;
+        await Settle();
+        Check("勾选写回任务", item.IsEnabled == !was);
+        box.IsChecked = was;
+        var next = list.GetVisualDescendants().OfType<Button>().First(b => b.DataContext == item && b.Content as string == "从此执行");
+        await Click(next, "从此执行");
+        Check("标记下次开始", item.IsNextTask && page.SelectedConfig?.NextTaskId == item.Id && page.NextTaskText.Contains(item.Name), page.NextTaskText);
+        Shot("avalonia-onedragon.png");
+        await Click(next, "取消从此执行");
+        Check("再次点击取消", !item.IsNextTask && page.SelectedConfig?.NextTaskId == "");
     }
 
     /// <summary>
