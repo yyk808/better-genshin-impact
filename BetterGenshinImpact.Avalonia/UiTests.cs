@@ -1362,7 +1362,9 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle();
         var domainBox = Named<ComboBox>("SdDomainName");
         Check("指定秘境时显示秘境下拉", domainBox is not null && Named<ToggleSwitch>("SdCalculateRuns") is null);
-        var domain = domainBox?.ItemCount > 2 ? domainBox.Items[2] as string : null;
+        // 选一个有奖励材料的秘境，供“按材料数量提前结束”使用
+        var domain = domainBox?.Items.OfType<string>().FirstOrDefault(n => GameTask.Common.Reward.TargetItemCatalog.Instance.TryGetDomainItems(n, out var items) && items.Count > 0)
+                     ?? (domainBox?.ItemCount > 2 ? domainBox.Items[2] as string : null);
         if (domainBox is not null && domain is not null) domainBox.SelectedItem = domain;
         Named<ToggleSwitch>("SdArtifactSalvage")!.IsChecked = true;
         await Settle();
@@ -1379,6 +1381,29 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle();
         Shot("avalonia-solo-domain-manual-2.png");
         Check("配置：指定秘境", d.Config.DomainName == domain && domain is not null, d.Config.DomainName);
+
+        // 按材料数量提前结束：开启后添加一项材料，数量 30
+        var targetMode = Named<ToggleSwitch>("SdTargetMode");
+        Check("材料目标开关可用（秘境有奖励材料）", targetMode?.IsEffectivelyEnabled == true, string.Join(",", d.TargetItems.Choices.Select(c => c.Name)));
+        if (targetMode is { IsEffectivelyEnabled: true })
+        {
+            targetMode.IsChecked = true;
+            await Settle();
+            if (d.TargetItems.Items.Count == 0) await Click(Named<Button>("SdTargetAdd"), "添加材料");
+            await Settle();
+            if (d.TargetItems.Items.FirstOrDefault() is { } first) first.TargetCount = 30;
+            await Settle();
+            Named<Border>("SdTargetItems")?.BringIntoView();
+            await Settle();
+            Shot("avalonia-solo-domain-targets.png");
+            Check("未出现重复选择提示", !d.TargetItems.HasDuplicateAttempt);
+            Check("材料目标写入配置", d.Config.TargetItems.Count == 1 && d.Config.TargetItems[0].ItemName.Length > 0 && d.Config.TargetItems[0].TargetCount == 30,
+                string.Join(",", d.Config.TargetItems.Select(t => $"{t.ItemName}×{t.TargetCount}")));
+            // 切换为跟随培养计划后秘境变化会按新候选清理目标（与 WPF 相同），因此在此核对存盘
+            await Task.Delay(3000);
+            var saved = ReadJson(configPath)["autoDomainConfig"]?["targetItems"];
+            Check("config.json：材料目标", (saved as JArray)?.Count == 1 && (int?)saved?[0]?["targetCount"] == 30, saved?.ToString(Newtonsoft.Json.Formatting.None));
+        }
 
         // 跟随培养计划
         Named<RadioButton>("SdSourceTraining")!.IsChecked = true;

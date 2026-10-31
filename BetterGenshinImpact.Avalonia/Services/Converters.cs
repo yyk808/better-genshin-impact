@@ -33,6 +33,17 @@ public static class Converters
     /// </summary>
     public static readonly IValueConverter CombatStrategyValue = new CombatStrategyValueConverter();
 
+    /// <summary>选择框在模板创建或选项变化时写回的空值不写回源（避免被视为清空或重复选择）</summary>
+    public static readonly IValueConverter IgnoreEmptyWriteBack = new IgnoreEmptyWriteBackConverter();
+
+    private sealed class IgnoreEmptyWriteBackConverter : IValueConverter
+    {
+        public object? Convert(object? value, System.Type targetType, object? parameter, System.Globalization.CultureInfo culture) => value;
+
+        public object? ConvertBack(object? value, System.Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+            => value is null or "" ? global::Avalonia.Data.BindingOperations.DoNothing : value;
+    }
+
     private sealed class CombatStrategyValueConverter : IValueConverter
     {
         public object? Convert(object? value, System.Type targetType, object? parameter, System.Globalization.CultureInfo culture)

@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:services="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:reward="using:BetterGenshinImpact.GameTask.Common.Reward"
              x:Class="BetterGenshinImpact.Avalonia.Views.SoloDomainCard"
              x:DataType="vm:SoloDomainSettingsViewModel">
     <!-- 独立任务页自动秘境的配置项（对照 WPF TaskSettingsPage 自动秘境区域；“按材料数量提前结束”尚未迁移） -->
@@ -114,6 +116,37 @@
                     <TextBlock Classes="desc" Text="排查问题时开启，下次任务生效。保存 OCR 原文、匹配分数、判断过程及诊断截图至 User/Diagnostics" />
                 </StackPanel>
             </DockPanel>
+        </StackPanel>
+        <!-- 指定秘境时：按材料数量提前结束（对照 WPF TargetItemListEditorView） -->
+        <StackPanel Spacing="6" IsVisible="{Binding DomainSource.IsManualDomain}">
+            <DockPanel Classes="param">
+                <ToggleSwitch x:Name="SdTargetMode" IsChecked="{Binding TargetItems.IsTargetModeEnabled}" IsEnabled="{Binding TargetItems.HasChoices}" OnContent="" OffContent="" />
+                <StackPanel>
+                    <TextBlock Text="按材料数量提前结束" />
+                    <TextBlock Classes="desc" Text="达到全部目标后停止任务" />
+                </StackPanel>
+            </DockPanel>
+            <TextBlock Classes="desc" Text="当前秘境没有可用的奖励材料，请先选择秘境" IsVisible="{Binding TargetItems.IsUnavailable}" />
+            <Border x:Name="SdTargetItems" IsVisible="{Binding TargetItems.IsTargetModeEnabled}" BorderBrush="#30808080" BorderThickness="1" CornerRadius="8" Padding="12">
+                <StackPanel Spacing="8">
+                    <ItemsControl ItemsSource="{Binding TargetItems.Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="reward:TargetItem">
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                                    <ComboBox MinWidth="240" ItemsSource="{Binding $parent[ItemsControl].((vm:SoloDomainSettingsViewModel)DataContext).TargetItems.Choices}"
+                                              DisplayMemberBinding="{Binding DisplayName, x:DataType=reward:TargetItemOption}"
+                                              SelectedValueBinding="{Binding Name, x:DataType=reward:TargetItemOption}"
+                                              SelectedValue="{Binding ItemName, Converter={x:Static services:Converters.IgnoreEmptyWriteBack}}" />
+                                    <NumericUpDown Width="130" Minimum="1" Increment="1" FormatString="0" Value="{Binding TargetCount}" />
+                                    <Button Content="删除" Command="{Binding $parent[ItemsControl].((vm:SoloDomainSettingsViewModel)DataContext).TargetItems.RemoveCommand}" CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="同一材料只能添加一次" Foreground="#FF6B6B" IsVisible="{Binding TargetItems.HasDuplicateAttempt}" />
+                    <Button x:Name="SdTargetAdd" Content="添加材料" Command="{Binding TargetItems.AddCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
         </StackPanel>
         <DockPanel Classes="param">
             <Button x:Name="SdResinButton" Content="设置" Command="{Binding DomainResin.EditCommand}" MinWidth="88" DockPanel.Dock="Right" VerticalAlignment="Center" />

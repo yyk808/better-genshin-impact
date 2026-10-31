@@ -2,6 +2,7 @@ using System.ComponentModel;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask.AutoArtifactSalvage;
 using BetterGenshinImpact.GameTask.AutoDomain;
+using BetterGenshinImpact.GameTask.Common.Reward;
 using BetterGenshinImpact.ViewModel.Pages.View;
 using BetterGenshinImpact.ViewModel.Resin;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,7 +22,19 @@ public sealed partial class SoloDomainSettingsViewModel : ObservableObject
         // 树脂使用整体替换配置中的 ResinUsage（与 WPF 相同的绑定方式）
         DomainResin = ResinUsageConfigBinding.Create("自动秘境", AutoDomainTask.ResinCapability, Config,
             Config.EnsureResinUsage, value => Config.ResinUsage = value, dialogs);
+        // 按材料数量提前结束：候选物品随秘境刷新（与 WPF 独立任务页相同）
+        TargetItems = new TargetItemListEditorViewModel(Config.TargetItems);
+        RefreshTargetItemChoices();
         Config.PropertyChanged += OnConfigChanged;
+    }
+
+    /// <summary>按材料数量提前结束的材料目标列表</summary>
+    public TargetItemListEditorViewModel TargetItems { get; }
+
+    private void RefreshTargetItemChoices()
+    {
+        TargetItemCatalog.Instance.TryGetDomainItems(Config.DomainName, out var items);
+        TargetItems.ApplyChoices(items);
     }
 
     public AutoDomainConfig Config { get; }
@@ -66,6 +79,7 @@ public sealed partial class SoloDomainSettingsViewModel : ObservableObject
         {
             case nameof(AutoDomainConfig.DomainName):
                 DomainSource.Refresh();
+                RefreshTargetItemChoices();
                 OnPropertyChanged(nameof(ManualDomainChoice));
                 break;
             case nameof(AutoDomainConfig.TrainingGuideFallbackDomainName):
