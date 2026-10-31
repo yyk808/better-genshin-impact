@@ -64,6 +64,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "settings-general": await SettingsGeneralAsync(); break;
                 case "trigger-more": await TriggerMoreAsync(); break;
                 case "solo-params": await SoloParamsAsync(); break;
+                case "script-more": await ScriptMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2709,6 +2710,86 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         nc.WebSocketNotificationEnabled = wasOn;
         nc.WebSocketEndpoint = wasEp;
         await Settle();
+    }
+
+    /// <summary>调度器“更多功能”：重命名 / 复制组、根据文件夹更新 / 移除、打开所在目录</summary>
+    private async Task ScriptMoreAsync()
+    {
+        vm.Navigate("调度器");
+        await Settle(600);
+        var page = vm.Auto.Scheduler;
+        page.Reload();
+        await Settle();
+        var dir = Path.Combine(BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath, "m56测试目录");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "m56-a.json"), "{}");
+        File.WriteAllText(Path.Combine(dir, "m56-b.json"), "{}");
+        try
+        {
+            page.NewGroupName = "m56测试组";
+            page.AddScriptGroupCommand.Execute(null);
+            await Settle();
+            var g = page.SelectedScriptGroup!;
+            g.AddProject(ScriptGroupProject.BuildPathingProject("m56-a.json", "m56测试目录"));
+            g.AddProject(ScriptGroupProject.BuildShellProject("echo m56"));
+            await Settle();
+            Check("“更多功能”按钮", Named<Button>("GroupMoreButton") is not null);
+            page.UpdateByFolderCommand.Execute(null);
+            await Settle();
+            Check("根据文件夹更新补齐新路线并保留其它项目", g.Projects.Count == 3 && g.Projects.Count(p => p.Type == "Pathing") == 2,
+                string.Join(",", g.Projects.Select(p => p.Name)));
+            var rowMenu = All<Border>().Select(b => b.ContextMenu).FirstOrDefault(m => m is not null);
+            rowMenu?.Open(All<Border>().First(b => b.ContextMenu == rowMenu));
+            await Settle(400);
+            Check("项目行右键菜单：打开所在目录 / 根据文件夹移除", rowMenu?.Items.OfType<MenuItem>().Select(i => i.Header as string).SequenceEqual(["打开所在目录", "根据文件夹移除"]) == true);
+            Shot("avalonia-script-more-rowmenu.png");
+            rowMenu?.Close();
+            await Settle();
+            Shot("avalonia-script-more.png");
+
+            var last = Services.FluentMessageBox.Current;
+            var rename = page.RenameScriptGroupCommand.ExecuteAsync(null);
+            var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            var box = (dialog?.Content as Panel)?.Children.OfType<TextBox>().FirstOrDefault();
+            if (box is not null) box.Text = "m56测试组改";
+            dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            await rename;
+            await Settle();
+            Check("重命名配置组并移动文件", g.Name == "m56测试组改" && File.Exists(ScriptGroupStore.FilePath("m56测试组改")) && !File.Exists(ScriptGroupStore.FilePath("m56测试组")));
+
+            last = Services.FluentMessageBox.Current;
+            var copy = page.CopyScriptGroupCommand.ExecuteAsync(null);
+            dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            box = (dialog?.Content as Panel)?.Children.OfType<TextBox>().FirstOrDefault();
+            if (box is not null) box.Text = "m56测试组副本";
+            dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            await copy;
+            await Settle();
+            var c2 = page.ScriptGroups.FirstOrDefault(x => x.Name == "m56测试组副本");
+            Check("复制组（深拷贝、写文件、选中副本）", c2 is not null && c2 != g && c2.Projects.Count == 3 && File.Exists(ScriptGroupStore.FilePath("m56测试组副本")) && page.SelectedScriptGroup == c2);
+
+            page.SelectedScriptGroup = g;
+            await Settle();
+            var missing = ScriptGroupProject.BuildPathingProject("x.json", "m56不存在的目录");
+            page.OpenProjectFolderCommand.Execute(missing);
+            Check("目录不存在时不打开", page.LastOpenedFolder is null);
+            // 通过行右键菜单移除（菜单项的 DataContext 是该行项目）
+            var pathingRow = All<Border>().First(b => b.ContextMenu is not null && b.DataContext is ScriptGroupProject { Type: "Pathing" });
+            var delItem = pathingRow.ContextMenu!.Items.OfType<MenuItem>().Last();
+            pathingRow.ContextMenu.Open(pathingRow);
+            await Settle(300);
+            delItem.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            pathingRow.ContextMenu.Close();
+            await Settle();
+            Check("根据文件夹移除（右键菜单）", g.Projects.Count == 1 && g.Projects[0].Type == "Shell");
+            page.DeleteScriptGroupCommand.Execute(c2);
+            page.DeleteScriptGroupCommand.Execute(g);
+            await Settle();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>

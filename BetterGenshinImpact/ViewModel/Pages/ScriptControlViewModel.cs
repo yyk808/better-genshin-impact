@@ -509,40 +509,11 @@ public partial class ScriptControlViewModel : ViewModel
     [RelayCommand]
     private void UpdateTasks()
     {
-        List<ScriptGroupProject> projects = new();
         List<ScriptGroupProject> oldProjects = new();
         oldProjects.AddRange(SelectedScriptGroup?.Projects ?? []);
         var oldcount = oldProjects.Count;
-        List<string> folderNames = new();
-        foreach (var project in oldProjects)
-        {
-            if (project.Type == "Pathing")
-            {
-                if (!folderNames.Contains(project.FolderName))
-                {
-                    folderNames.Add(project.FolderName);
-                    //根据文件夹更新
-                    var dirPath = $@"{MapPathingViewModel.PathJsonPath}\{project.FolderName}";
-                    foreach (var jsonFile in GetJsonFiles(dirPath))
-                    {
-                        var fileInfo = new FileInfo(jsonFile);
-                        var oldProject = oldProjects.FirstOrDefault(item => item.Name == fileInfo.Name);
-                        if (oldProject == null)
-                        {
-                            projects.Add(ScriptGroupProject.BuildPathingProject(fileInfo.Name, project.FolderName));
-                        }
-                        else
-                        {
-                            projects.Add(oldProject);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                projects.Add(project);
-            }
-        }
+        //根据文件夹更新
+        var projects = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.UpdateByFolder(oldProjects);
 
         SelectedScriptGroup?.Projects.Clear();
         foreach (var scriptGroupProject in projects)
@@ -550,7 +521,7 @@ public partial class ScriptControlViewModel : ViewModel
             SelectedScriptGroup?.AddProject(scriptGroupProject);
         }
 
-        Toast.Success($"增加了{projects.Count - oldcount}个地图追踪任务");
+        Toast.Success(BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.UpdatedText(projects.Count - oldcount));
         if (SelectedScriptGroup != null) WriteScriptGroup(SelectedScriptGroup);
     }
 
@@ -587,15 +558,15 @@ public partial class ScriptControlViewModel : ViewModel
             textBox.SelectAll();
         };
 
-        var str = PromptDialog.Prompt("请输入配置组名称", "复制配置组", textBox, item.Name);
+        var str = PromptDialog.Prompt(BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.PromptText, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.CopyTitle, textBox, item.Name);
         if (!string.IsNullOrEmpty(str))
         {
             // 检查是否已存在
             if (ScriptGroups.Any(x => x.Name == str))
             {
                 _snackbarService.Show(
-                    "配置组已存在",
-                    $"配置组 {str} 已经存在，复制失败",
+                    BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.ExistsTitle,
+                    BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.CopyConflictText(str),
                     ControlAppearance.Caution,
                     null,
                     TimeSpan.FromSeconds(2)
@@ -603,8 +574,7 @@ public partial class ScriptControlViewModel : ViewModel
             }
             else
             {
-                var newScriptGroup = ScriptGroup.FromJson(JsonSerializer.Serialize(item));
-                newScriptGroup.Name = str;
+                var newScriptGroup = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.Copy(item, str);
                 ScriptGroups.Add(newScriptGroup);
             }
         }
@@ -628,7 +598,7 @@ public partial class ScriptControlViewModel : ViewModel
             textBox.SelectAll();
         };
 
-        var str = PromptDialog.Prompt("请输入配置组名称", "重命名配置组", textBox, item.Name);
+        var str = PromptDialog.Prompt(BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.PromptText, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RenameTitle, textBox, item.Name);
         if (!string.IsNullOrEmpty(str))
         {
             if (item.Name == str)
@@ -640,8 +610,8 @@ public partial class ScriptControlViewModel : ViewModel
             if (ScriptGroups.Any(x => x.Name == str))
             {
                 _snackbarService.Show(
-                    "配置组已存在",
-                    $"配置组 {str} 已经存在，重命名失败",
+                    BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.ExistsTitle,
+                    BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RenameConflictText(str),
                     ControlAppearance.Caution,
                     null,
                     TimeSpan.FromSeconds(2)
@@ -649,12 +619,7 @@ public partial class ScriptControlViewModel : ViewModel
             }
             else
             {
-                File.Move(Path.Combine(ScriptGroupPath, $"{item.Name}.json"), Path.Combine(ScriptGroupPath, $"{str}.json"));
-                item.Name = str;
-                if (item.NextFlag)
-                {
-                    _config.NextScriptGroupName = item.Name;
-                }
+                BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.Rename(ScriptGroupPath, item, str, _config);
                 WriteScriptGroup(item);
             }
         }
@@ -1690,9 +1655,7 @@ public partial class ScriptControlViewModel : ViewModel
 
         if (SelectedScriptGroup != null)
         {
-            var toBeDeletedProjects = SelectedScriptGroup.Projects
-                .Where(item2 => item2.FolderName == item.FolderName)
-                .ToList();
+            var toBeDeletedProjects = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.SameFolder(SelectedScriptGroup, item);
 
             foreach (var project in toBeDeletedProjects)
             {
@@ -1700,8 +1663,8 @@ public partial class ScriptControlViewModel : ViewModel
             }
 
             _snackbarService.Show(
-                "脚本配置移除成功",
-                $"已移除 {item.FolderName} 下的所有关联配置",
+                BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RemovedTitle,
+                BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RemovedByFolderText(item.FolderName),
                 ControlAppearance.Success,
                 null,
                 TimeSpan.FromSeconds(2)
@@ -1737,19 +1700,7 @@ public partial class ScriptControlViewModel : ViewModel
 
         try
         {
-            string? path = null;
-            switch (item.Type)
-            {
-                case "Javascript":
-                    path = Path.Combine(Global.ScriptPath(), item.FolderName);
-                    break;
-                case "KeyMouse":
-                    path = Global.Absolute(@"User\KeyMouseScript");
-                    break;
-                case "Pathing":
-                    path = Path.Combine(MapPathingViewModel.PathJsonPath, item.FolderName);
-                    break;
-            }
+            string? path = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.ProjectFolder(item);
 
             if (path != null && Directory.Exists(path))
             {

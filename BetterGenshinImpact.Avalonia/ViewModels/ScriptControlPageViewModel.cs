@@ -233,6 +233,108 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
         }
     }
 
+    /// <summary>重命名配置组（与 WPF 右键菜单“重命名”相同：改文件名，连续执行起点同步）</summary>
+    [RelayCommand]
+    private async Task RenameScriptGroup(ScriptGroup? item)
+    {
+        item ??= SelectedScriptGroup;
+        if (item is null) return;
+        var str = await Services.FluentMessageBox.PromptAsync(BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.PromptText, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RenameTitle, item.Name);
+        if (string.IsNullOrEmpty(str) || str == item.Name) return;
+        if (ScriptGroups.Any(x => x.Name == str))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RenameConflictText(str));
+            return;
+        }
+
+        try
+        {
+            _loading = true;
+            BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.Rename(ScriptGroupStore.Folder, item, str, Config);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "重命名配置组失败");
+            UiHost.Dialogs.Toast(DialogKind.Error, $"重命名失败：{e.Message}");
+            return;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        Write(item);
+        OnPropertyChanged(nameof(SelectedGroupTitle));
+    }
+
+    /// <summary>复制配置组（与 WPF 右键菜单“复制组”相同）</summary>
+    [RelayCommand]
+    private async Task CopyScriptGroup(ScriptGroup? item)
+    {
+        item ??= SelectedScriptGroup;
+        if (item is null) return;
+        var str = await Services.FluentMessageBox.PromptAsync(BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.PromptText, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.CopyTitle, item.Name);
+        if (string.IsNullOrEmpty(str)) return;
+        if (ScriptGroups.Any(x => x.Name == str))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.CopyConflictText(str));
+            return;
+        }
+
+        var copy = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.Copy(item, str);
+        Hook(copy);
+        ScriptGroups.Add(copy);
+        Write(copy);
+        SelectedScriptGroup = copy;
+    }
+
+    /// <summary>根据文件夹更新：地图追踪项目按所在文件夹补齐新增的路线（与 WPF“更多功能”相同）</summary>
+    [RelayCommand]
+    private void UpdateByFolder()
+    {
+        if (SelectedScriptGroup is not { } g) return;
+        var old = g.Projects.ToList();
+        var projects = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.UpdateByFolder(old);
+        g.Projects.Clear();
+        foreach (var p in projects) g.AddProject(p);
+        Write(g);
+        UiHost.Dialogs.Toast(DialogKind.Success, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.UpdatedText(projects.Count - old.Count));
+    }
+
+    /// <summary>根据文件夹移除（与 WPF 项目右键菜单相同）</summary>
+    [RelayCommand]
+    private void DeleteProjectsByFolder(ScriptGroupProject? item)
+    {
+        if (item is null || SelectedScriptGroup is not { } g) return;
+        foreach (var p in BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.SameFolder(g, item)) g.Projects.Remove(p);
+        UiHost.Dialogs.Toast(DialogKind.Success, BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.RemovedByFolderText(item.FolderName));
+    }
+
+    /// <summary>项目所在目录（用 xdg-open 打开）</summary>
+    public string? LastOpenedFolder { get; private set; }
+
+    [RelayCommand]
+    private void OpenProjectFolder(ScriptGroupProject? item)
+    {
+        if (item is null) return;
+        var path = BetterGenshinImpact.ViewModel.Pages.ScriptControl.ScriptGroupEditing.ProjectFolder(item);
+        if (path is null || !Directory.Exists(path))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "打开失败：目录不存在");
+            return;
+        }
+
+        LastOpenedFolder = path;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("xdg-open") { ArgumentList = { path }, UseShellExecute = false });
+        }
+        catch (Exception e)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Error, $"打开失败：{e.Message}");
+        }
+    }
+
     [RelayCommand]
     private void MoveGroup(string direction)
     {

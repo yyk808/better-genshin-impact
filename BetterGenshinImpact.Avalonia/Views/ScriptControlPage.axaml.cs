@@ -35,6 +35,17 @@ public partial class ScriptControlPage : UserControl
         }
     }
 
+    // 项目行右键菜单（弹出层不在页面可视树内，命令在这里转给页面 ViewModel）
+    private void OnRowOpenFolder(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is BetterGenshinImpact.Core.Script.Group.ScriptGroupProject p) _vm?.OpenProjectFolderCommand.Execute(p);
+    }
+
+    private void OnRowDeleteByFolder(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is BetterGenshinImpact.Core.Script.Group.ScriptGroupProject p) _vm?.DeleteProjectsByFolderCommand.Execute(p);
+    }
+
     /// <summary>按当前设置面板生成表单</summary>
     private void BuildEditor()
     {
