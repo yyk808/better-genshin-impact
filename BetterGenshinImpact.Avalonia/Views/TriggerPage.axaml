@@ -302,7 +302,7 @@
                         <Button Margin="0,0,8,4" Content="校验配置" Command="{Binding ValidateCommand}" />
                         <Button Margin="0,0,8,4" Content="打开日志" Command="{Binding OpenLogFileCommand}" />
                         <Button Margin="0,0,8,4" Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
-                        <TextBlock Classes="desc" VerticalAlignment="Center" Text="引擎与角色目录的设置窗口尚未迁移，可在 Windows 版设置后复制 User/config.json" />
+                        <TextBlock Classes="desc" VerticalAlignment="Center" x:Name="QuestVoiceSettingsHint" IsVisible="{Binding !CanOpenSettings}" Text="主程序服务未就绪，暂不能打开引擎与角色目录设置窗口" />
                     </WrapPanel>
                 </StackPanel>
             </Expander>

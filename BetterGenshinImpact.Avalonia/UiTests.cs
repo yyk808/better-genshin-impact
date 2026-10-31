@@ -238,6 +238,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         var open = await WaitFor(() => Named<Button>("QuestVoiceSettingsButton"));
         Check("卡片有“设置…”按钮", open is not null);
         if (open is null) return;
+        Check("不再显示“设置窗口尚未迁移”旧提示", Named<TextBlock>("QuestVoiceSettingsHint") is null);
         Services.AvaloniaQuestVoiceSettingsUi.TestConfirm = message =>
         {
             log.Information("确认框：{Message}", message);
