@@ -208,6 +208,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             Check("Linux 不列出 Windows SAPI", !ids.Contains("windows-sapi"));
             var espeak = settings.Engines.FirstOrDefault(e => e.Provider.Id == "espeak-ng");
             Check("espeak-ng 以通用设置追加", espeak?.Settings is BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettings.GenericEngineSettingsViewModel);
+            var addGpt = NamedIn<Button>(win, "AddGptProfile");
+            Check("GPT-SoVITS 声线“新增”可用", addGpt?.IsEffectivelyEnabled == true);
             Shot(win, "qvs-engine-gpt.png");
 
             var list = NamedIn<ListBox>(win, "EngineList");

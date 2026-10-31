@@ -38,7 +38,7 @@
         <DataTemplate x:Key="EngineConnection" x:DataType="eng:EngineSettingsViewModel">
             <StackPanel>
                 <TextBlock Classes="h" Text="服务实例" Margin="0,12,0,8" />
-                <ToggleSwitch Content="使用远程实例" IsChecked="{Binding EngineConfig.UseRemote}" />
+                <StackPanel Orientation="Horizontal" Spacing="10"><ToggleSwitch IsChecked="{Binding EngineConfig.UseRemote}" OnContent="" OffContent="" MinWidth="0" /><TextBlock Text="使用远程实例" VerticalAlignment="Center" TextWrapping="Wrap" /></StackPanel>
                 <TextBlock Classes="label" Text="本地 / 默认 Base URL" />
                 <TextBox x:Name="LocalUrl" Text="{Binding LocalUrlDraft}" Watermark="http://127.0.0.1:端口/，保留反向代理路径" />
                 <TextBlock Classes="label" Text="远程 Base URL（远程模式使用）" />
@@ -105,7 +105,7 @@
                 <TextBlock Classes="engineTitle" Text="GPT-SoVITS" />
                 <TextBlock Classes="tip" Text="连接自行启动的 api_v2 服务；声线由 GPT 权重、SoVITS 权重和参考音频组成。" Margin="0,8,0,12" />
                 <TextBlock Classes="h" Text="服务" Margin="0,4,0,8" />
-                <ToggleSwitch Content="使用远程实例（本地与远程地址分别保留）" IsChecked="{Binding Config.UseRemoteService}" Margin="0,0,0,8" />
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8"><ToggleSwitch IsChecked="{Binding Config.UseRemoteService}" OnContent="" OffContent="" MinWidth="0" /><TextBlock Text="使用远程实例（本地与远程地址分别保留）" VerticalAlignment="Center" TextWrapping="Wrap" /></StackPanel>
                 <TextBlock Text="服务地址" Margin="0,0,0,6" />
                 <TextBox x:Name="GptServiceUrl" Text="{Binding ServiceUrl}" />
                 <TextBlock Text="{Binding UrlValidationMessage}" Foreground="#C42B1C" TextWrapping="Wrap" Margin="0,4,0,0" />
@@ -114,7 +114,7 @@
                     <Button Content="测试连接" Command="{Binding ProbeCommand}" Margin="0,0,12,0" />
                     <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </WrapPanel>
-                <ToggleSwitch Content="按句流式合成与增量播放（实验性，关闭时完整合成）" IsChecked="{Binding Config.StreamingEnabled}" Margin="0,12,0,0" />
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,12,0,0"><ToggleSwitch IsChecked="{Binding Config.StreamingEnabled}" OnContent="" OffContent="" MinWidth="0" /><TextBlock Text="按句流式合成与增量播放（实验性，关闭时完整合成）" VerticalAlignment="Center" TextWrapping="Wrap" /></StackPanel>
                 <TextBlock Classes="tip" Text="需要后端支持当前 api_v2 的按句流式协议；试听始终完整接收后播放。" Margin="0,4,0,0" />
                 <TextBlock Classes="h" Text="声线" Margin="0,18,0,8" />
                 <StackPanel DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel">
@@ -322,7 +322,7 @@
                     <StackPanel Margin="0,0,12,12">
                         <Border Classes="section" IsEnabled="{Binding IsConfigEditable}">
                             <StackPanel>
-                                <ToggleSwitch x:Name="RoutingEnabled" Content="启用角色声线" IsChecked="{Binding Config.RoutingEnabled}" />
+                                <StackPanel Orientation="Horizontal" Spacing="10"><ToggleSwitch x:Name="RoutingEnabled" IsChecked="{Binding Config.RoutingEnabled}" OnContent="" OffContent="" MinWidth="0" /><TextBlock Text="启用角色声线" VerticalAlignment="Center" TextWrapping="Wrap" /></StackPanel>
                                 <TextBlock Classes="tip" Text="关闭时所有台词使用默认引擎的默认声音；开启后按角色分配的声线朗读，未匹配的角色使用默认 NPC 声线。" Margin="0,6,0,0" />
                             </StackPanel>
                         </Border>

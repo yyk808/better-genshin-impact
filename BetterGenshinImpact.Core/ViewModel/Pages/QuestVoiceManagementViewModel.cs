@@ -141,6 +141,7 @@ public partial class QuestVoiceManagementViewModel : ObservableObject
         ExportCommand.NotifyCanExecuteChanged(); ValidateDraftCommand.NotifyCanExecuteChanged();
         AddSpeakerCommand.NotifyCanExecuteChanged(); DeleteSpeakerCommand.NotifyCanExecuteChanged();
         DeleteProfileCommand.NotifyCanExecuteChanged(); PreviewProfileCommand.NotifyCanExecuteChanged();
+        AddGptProfileCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>所有写命令都在执行入口再次检查冻结状态。</summary>
