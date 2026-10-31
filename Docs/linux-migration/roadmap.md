@@ -41,7 +41,7 @@ Linux 上原神运行在 Wine / Proton 中，游戏窗口是 X11（或 XWayland�
    - ClearScript 的 Linux 原生包（`Microsoft.ClearScript.V8.Native.linux-x64` 7.4.5）已实测可用。
    - 里程碑 10–13 解开了任务层的界面映射、键鼠钩子、WPF 颜色、网页窗口和 Win32 `RECT` 引用，并把第一批 106 个任务层文件移入 Core。
    - 里程碑 14–16 又移入 206 个任务层文件：自动战斗、路径追踪、大地图、脚本组、七圣召唤、秘境等。
-   - 里程碑 18–19 移入音游与剧情语音的播放 / 解码；Linux 的 MP3 解码用 NLayer，音频输出先用空实现（里程碑 36 改为 PulseAudio / PipeWire 输出，不可用时静音；剧情语音会话与 TTS 引擎移入 Core，Linux 可选 espeak-ng 系统语音）。
+   - 里程碑 18–19 移入音游与剧情语音的播放 / 解码；Linux 的 MP3 解码用 NLayer，音频输出先用空实现（里程碑 36 改为 PulseAudio / PipeWire 输出，不可用时静音；剧情语音会话与 TTS 引擎移入 Core，Linux 可选 espeak-ng 系统语音；里程碑 37 配音服务 `QuestVoiceService` 移入 Core，Avalonia 实时触发页有自动配音卡片，设置窗口待迁移）。
    - 里程碑 20 移入 `TaskRunner`、`SoloTaskExecutionService`、`RedeemCodeManager`。
    - 里程碑 21 移入 `TaskTriggerDispatcher`、`GameTaskManager`；里程碑 22 移入 `GameRuntimeService` 并新增基于 `IPlatformServices` 的 `PlatformRuntimeProvider`。
    - 里程碑 23–24 新增无界面宿主 `BetterGenshinImpact.Host.Headless`：X11 找窗、截图、CPU OCR / ONNX、按帧调度触发器，已在假游戏上验证自动拾取发出 F 键、自动剧情点击选项；剩余步骤见 phase2-progress.md 里程碑 24。
