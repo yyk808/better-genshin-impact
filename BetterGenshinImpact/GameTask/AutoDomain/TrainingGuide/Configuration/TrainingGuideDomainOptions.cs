@@ -14,13 +14,13 @@ namespace BetterGenshinImpact.GameTask.AutoDomain.TrainingGuide;
 public static class TrainingGuideDomainOptions
 {
     /// <summary>选择框类型：备选秘境，列出全部秘境。</summary>
-    public const string FallbackPicker = "fallback";
+    public const string FallbackPicker = TrainingGuideDomainNames.FallbackPicker;
 
     /// <summary>选择框类型：盛材移涌秘境，只列出精通秘境与炼武秘境。</summary>
-    public const string MaterialOverflowPicker = "material_overflow";
+    public const string MaterialOverflowPicker = TrainingGuideDomainNames.MaterialOverflowPicker;
 
     /// <summary>选择框类型：祝圣移涌秘境，只列出祝圣秘境。</summary>
-    public const string BlessingOverflowPicker = "blessing_overflow";
+    public const string BlessingOverflowPicker = TrainingGuideDomainNames.BlessingOverflowPicker;
 
     /// <summary>
     /// “跟随培养计划”的显示文字，用于体力计划的执行记录。
@@ -60,7 +60,7 @@ public static class TrainingGuideDomainOptions
     /// <summary>选择框类型是否带“秘境来源”（跟随培养计划 / 指定秘境）：移涌活动秘境为空时跟随培养计划。</summary>
     /// <param name="picker">选择框类型。</param>
     /// <returns>移涌活动秘境返回 true；备选秘境返回 false。</returns>
-    public static bool HasTrainingPlanSource(string? picker) => picker is MaterialOverflowPicker or BlessingOverflowPicker;
+    public static bool HasTrainingPlanSource(string? picker) => TrainingGuideDomainNames.HasTrainingPlanSource(picker);
 
     /// <summary>在选项中查找参数值对应的叶节点。</summary>
     /// <param name="items">选择框的选项。</param>

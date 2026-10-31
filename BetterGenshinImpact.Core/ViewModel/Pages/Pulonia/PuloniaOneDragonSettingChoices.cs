@@ -1,9 +1,9 @@
+using System.Collections.Generic;
 using BetterGenshinImpact.GameTask.AutoFight.Strategy;
 using System;
 using System.IO;
 using System.Linq;
 using BetterGenshinImpact.Core.Config;
-using BetterGenshinImpact.ViewModel.Pages;
 using BetterGenshinImpact.GameTask.AutoBoss;
 using BetterGenshinImpact.GameTask.AutoDomain;
 using BetterGenshinImpact.GameTask.AutoDomain.TrainingGuide;
@@ -17,8 +17,11 @@ using Newtonsoft.Json.Linq;
 namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
 
 /// <summary>一条龙设置卡片的展示选项；只修饰界面副本，不改变执行器 Schema。</summary>
-internal static class PuloniaOneDragonSettingChoices
+public static class PuloniaOneDragonSettingChoices
 {
+    /// <summary>地脉花可选地区（WPF 独立任务页的 LeyLineOutcropCountryList 以此初始化）。</summary>
+    public static IReadOnlyList<string> LeyLineOutcropCountries { get; } = ["蒙德", "璃月", "稻妻", "须弥", "枫丹", "纳塔", "挪德卡莱", "至冬"];
+
     /// <summary>
     /// 自动秘境的任务类型；与独立自动战斗一样允许选择自动连招。
     /// </summary>
@@ -51,9 +54,9 @@ internal static class PuloniaOneDragonSettingChoices
         // 体力计划的移涌活动秘境同样使用秘境选择框，只列出对应类型，并带“跟随培养计划 / 指定秘境”来源单选项；标记值为选项列表类型。
         var domainPicker = key switch
         {
-            "training_guide_fallback_domain_name" => TrainingGuideDomainOptions.FallbackPicker,
-            "material_overflow_domain_name" => TrainingGuideDomainOptions.MaterialOverflowPicker,
-            "blessing_overflow_domain_name" => TrainingGuideDomainOptions.BlessingOverflowPicker,
+            "training_guide_fallback_domain_name" => TrainingGuideDomainNames.FallbackPicker,
+            "material_overflow_domain_name" => TrainingGuideDomainNames.MaterialOverflowPicker,
+            "blessing_overflow_domain_name" => TrainingGuideDomainNames.BlessingOverflowPicker,
             _ => null
         };
         if (domainPicker is not null)
@@ -66,7 +69,7 @@ internal static class PuloniaOneDragonSettingChoices
             "domain_name" => ["", .. MapLazyAssets.Get().DomainNameList],
             "training_guide_fallback_sunday_selected_value" => ["", "1", "2", "3"],
             "boss_name" => ["", .. AutoBossData.SupportedBossNames],
-            "country" when taskType == LeyLineTaskType => [.. TaskSettingsPageViewModel.LeyLineOutcropCountryList],
+            "country" when taskType == LeyLineTaskType => [.. LeyLineOutcropCountries],
             "ley_line_outcrop_type" => ["启示之花", "藏金之花"],
             // 战斗策略使用独立字段形态，由选择控件扫描目录。
             "sunday_selected_value" => ["", "1", "2", "3"],

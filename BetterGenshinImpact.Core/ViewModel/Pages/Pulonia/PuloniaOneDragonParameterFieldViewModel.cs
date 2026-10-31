@@ -11,7 +11,6 @@ using BetterGenshinImpact.ViewModel.Resin;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Wpf.Ui.Violeta.Controls;
 
 namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
 
@@ -65,17 +64,17 @@ public partial class PuloniaOneDragonParameterFieldViewModel : ObservableObject
     /// <summary>秘境选择框类型是否带秘境来源，由字段的选择框类型决定。</summary>
     private bool HasDomainSource { get; }
     /// <summary>秘境选择框的选项，按字段类型筛选（备选秘境、盛材移涌、祝圣移涌）；非秘境字段为空。</summary>
-    public IReadOnlyList<ICascadingItem> DomainItems { get; }
+    public IReadOnlyList<object> DomainItems { get; }
     /// <summary>
     /// 秘境选择框的选中项，与 <see cref="TextValue"/> 互转；选项只含真实秘境，跟随培养计划由秘境来源单选项选择。
     /// 选择框给出空选项时不改写，清空由选择框的清空按钮直接写回 <see cref="TextValue"/>。
     /// </summary>
-    public ICascadingItem? SelectedDomainItem
+    public object? SelectedDomainItem
     {
-        get => IsDomain ? TrainingGuideDomainOptions.Find(DomainItems, TextValue) : null;
+        get => IsDomain ? PuloniaDomainPickerItems.Current.Find(DomainItems, TextValue) : null;
         set
         {
-            if (value?.Tag is not string tag || string.IsNullOrWhiteSpace(tag)) return;
+            if (PuloniaDomainPickerItems.Current.ValueOf(value) is not { } tag || string.IsNullOrWhiteSpace(tag)) return;
             TextValue = tag;
         }
     }
@@ -116,10 +115,10 @@ public partial class PuloniaOneDragonParameterFieldViewModel : ObservableObject
     /// <summary>秘境来源的说明：跟随时说明程序怎么选秘境，指定时说明选择框列出哪类秘境。</summary>
     public string DomainSourceDescription => (_scalar.DomainPicker, _isManualDomain) switch
     {
-        (TrainingGuideDomainOptions.MaterialOverflowPicker, false) => "跟随培养计划：按提升指南选择精通或炼武秘境。",
-        (TrainingGuideDomainOptions.MaterialOverflowPicker, true) => "只列出精通秘境与炼武秘境。",
-        (TrainingGuideDomainOptions.BlessingOverflowPicker, false) => "跟随培养计划：刷提升指南中养成角色推荐圣遗物所在的祝圣秘境。",
-        (TrainingGuideDomainOptions.BlessingOverflowPicker, true) => "只列出祝圣秘境。",
+        (TrainingGuideDomainNames.MaterialOverflowPicker, false) => "跟随培养计划：按提升指南选择精通或炼武秘境。",
+        (TrainingGuideDomainNames.MaterialOverflowPicker, true) => "只列出精通秘境与炼武秘境。",
+        (TrainingGuideDomainNames.BlessingOverflowPicker, false) => "跟随培养计划：刷提升指南中养成角色推荐圣遗物所在的祝圣秘境。",
+        (TrainingGuideDomainNames.BlessingOverflowPicker, true) => "只列出祝圣秘境。",
         _ => string.Empty
     };
     /// <summary>当前任务允许的策略类型。</summary>
@@ -169,9 +168,9 @@ public partial class PuloniaOneDragonParameterFieldViewModel : ObservableObject
         DisplayName = schema.Value<string>("title") ?? PuloniaTaskFieldNames.GetDisplayName(displayKey);
         _original = value?.DeepClone();
         _scalar = new(name, schema, value, value is not null, required, dialogs);
-        DomainItems = IsDomain ? TrainingGuideDomainOptions.ForPicker(_scalar.DomainPicker) : [];
+        DomainItems = IsDomain ? PuloniaDomainPickerItems.Current.ForPicker(_scalar.DomainPicker) : [];
         // 移涌活动秘境：空值或旧版本的“跟随”选项值表示跟随培养计划，其余为指定秘境
-        HasDomainSource = IsDomain && TrainingGuideDomainOptions.HasTrainingPlanSource(_scalar.DomainPicker);
+        HasDomainSource = IsDomain && TrainingGuideDomainNames.HasTrainingPlanSource(_scalar.DomainPicker);
         _isManualDomain = HasDomainSource && !IsFollowTrainingPlanValue(TextValue);
         if (Resin is not null)
             Resin.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(Resin.Value)) OnPropertyChanged(nameof(Resin)); };
@@ -208,7 +207,7 @@ public partial class PuloniaOneDragonParameterFieldViewModel : ObservableObject
     /// <returns>跟随培养计划时返回 true。</returns>
     private static bool IsFollowTrainingPlanValue(string? value)
         => string.IsNullOrWhiteSpace(value)
-           || value == TrainingGuideDomainOptions.FollowTrainingPlanOption
+           || value == TrainingGuideDomainNames.FollowTrainingPlanOption
            || value == AutoDomainTask.TrainingGuideOption;
 
     /// <summary>返回变化后的值；未编辑字段保留原始 null、缺失字段和 JSON 类型。</summary>

@@ -10,7 +10,7 @@
                  xmlns:behavior="clr-namespace:BetterGenshinImpact.View.Behavior"
                  xmlns:controls="clr-namespace:BetterGenshinImpact.View.Controls"
                  xmlns:markdown="clr-namespace:BetterGenshinImpact.View.Controls.Markdown"
-                 xmlns:pulonia="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia"
+                 xmlns:pulonia="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia" xmlns:puloniaCore="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia;assembly=BetterGenshinImpact.Core"
                  Title="{Binding WindowTitle}"
                  Width="1000"
                  Height="740"
@@ -225,7 +225,7 @@
         </Style>
 
         <!-- 所有能力共用同一份 Schema 字段模板，避免创建弹窗和后续参数编辑出现两套语义。 -->
-        <DataTemplate x:Key="ParameterFieldTemplate" DataType="{x:Type pulonia:PuloniaTaskParameterFieldViewModel}">
+        <DataTemplate x:Key="ParameterFieldTemplate" DataType="{x:Type puloniaCore:PuloniaTaskParameterFieldViewModel}">
             <StackPanel Margin="0,0,0,14">
                 <ui:CardControl Margin="0,0,0,8">
     <ui:CardControl.Style>

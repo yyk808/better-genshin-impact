@@ -2,7 +2,7 @@
  xmlns:combat="clr-namespace:BetterGenshinImpact.View.Controls.CombatStrategy"
  
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
- xmlns:pulonia="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia"
+ xmlns:pulonia="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia" xmlns:puloniaCore="clr-namespace:BetterGenshinImpact.ViewModel.Windows.Pulonia;assembly=BetterGenshinImpact.Core"
  xmlns:controls="clr-namespace:BetterGenshinImpact.View.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/BetterGI;component/View/Controls/Resin/ResinUsageResources.xaml" />
@@ -155,7 +155,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-<DataTemplate x:Key="ParameterFieldTemplate" DataType="{x:Type pulonia:PuloniaTaskParameterFieldViewModel}">
+<DataTemplate x:Key="ParameterFieldTemplate" DataType="{x:Type puloniaCore:PuloniaTaskParameterFieldViewModel}">
     <!--
         旧任务计划参数字段模板：改为与 PuloniaOneDragonParameterResources 中
         OneDragonParameterFieldTemplate 一致的老一条龙卡片视觉（ui:CardControl / ui:CardExpander）。

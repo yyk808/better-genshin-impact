@@ -92,25 +92,7 @@ public sealed class PuloniaTaskSettingsEditorViewModel : ObservableObject
     /// <returns>设置字段。</returns>
     internal static IReadOnlyList<PuloniaOneDragonParameterFieldViewModel> CreateFields(
         PuloniaTaskDefinition? definition, JObject values, IResinSettingsDialogs? dialogs = null)
-    {
-        if (definition?.ParameterSchema["properties"] is not JObject properties)
-            return [];
-        var required = new HashSet<string>(
-            (definition.ParameterSchema["required"] as JArray ?? new JArray()).Values<string>().OfType<string>(),
-            StringComparer.Ordinal);
-        // 共享设置覆盖的顶层参数只能在共享设置中修改，任务参数表单不显示
-        var sharedRoots = definition.SettingBindings.Values.Select(path => path.Split('.')[0]).ToHashSet(StringComparer.Ordinal);
-        return properties.Properties()
-            .Where(property => !sharedRoots.Contains(property.Name))
-            .Select(property =>
-            {
-                var schema = PuloniaOneDragonSettingChoices.Decorate(property.Name, property.Value as JObject ?? new JObject(),
-                    values[property.Name], definition.TaskType);
-                return new PuloniaOneDragonParameterFieldViewModel(property.Name, schema, values[property.Name],
-                    required.Contains(property.Name), dialogs);
-            })
-            .ToArray();
-    }
+        => PuloniaParameterFieldFactory.CreateFields(definition, values, dialogs);
 
     /// <summary>
     /// 收集相对打开时快照真实发生变化的参数。

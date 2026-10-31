@@ -86,7 +86,7 @@ public sealed partial class ResinPlanSubTaskSettingsViewModel : ObservableObject
             DisplayName = spec.DisplayName,
             ParameterSchema = visible
         };
-        Fields = PuloniaTaskSettingsEditorViewModel.CreateFields(definition, values, resinDialogs);
+        Fields = PuloniaParameterFieldFactory.CreateFields(definition, values, resinDialogs);
     }
 
     /// <summary>
