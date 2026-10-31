@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using Avalonia.Platform.Storage;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Avalonia.Services;
 using BetterGenshinImpact.Host.Common;
@@ -43,6 +44,111 @@ public sealed partial class HomePageViewModel : PageViewModel
     }
 
     public LinuxHostConfig? LinuxConfig => _host?.LinuxConfig;
+
+    /// <summary>默认横幅图（WPF Resources/Images/banner.jpg）</summary>
+    public const string DefaultBannerUri = "avares://bgi-avalonia/Assets/Images/banner.jpg";
+
+    private global::Avalonia.Media.Imaging.Bitmap? _bannerImage;
+
+    /// <summary>首页横幅图片：与 WPF 相同，有 User/Images/custom_banner.jpg 时用它，否则用默认图</summary>
+    public global::Avalonia.Media.Imaging.Bitmap? BannerImage => _bannerImage ??= LoadBannerImage();
+
+    private void ReloadBanner()
+    {
+        var old = _bannerImage;
+        _bannerImage = LoadBannerImage();
+        OnPropertyChanged(nameof(BannerImage));
+        OnPropertyChanged(nameof(IsCustomBanner));
+        old?.Dispose();
+    }
+
+    /// <summary>更换背景图片：选择本地图片（与 WPF 相同复制为 User/Images/custom_banner.jpg）</summary>
+    [RelayCommand]
+    private async Task ChangeBannerImage()
+    {
+        if (AvaloniaPickers.MainWindow?.StorageProvider is not { CanOpen: true } storage) return;
+        var files = await storage.OpenFilePickerAsync(new global::Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = HomeBannerImage.PickTitle,
+            AllowMultiple = false,
+            FileTypeFilter = [new global::Avalonia.Platform.Storage.FilePickerFileType("图片文件") { Patterns = HomeBannerImage.ImagePatterns }, global::Avalonia.Platform.Storage.FilePickerFileTypes.All],
+        });
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path) ApplyCustomBanner(path);
+    }
+
+    /// <summary>把图片设为自定义横幅</summary>
+    public void ApplyCustomBanner(string path)
+    {
+        try
+        {
+            // 先释放当前位图再覆盖文件
+            var old = _bannerImage;
+            _bannerImage = null;
+            old?.Dispose();
+            HomeBannerImage.CopyToCustom(path);
+            ReloadBanner();
+            UiHost.Dialogs.Toast(DialogKind.Success, HomeBannerImage.ChangedText);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "更换背景图片失败");
+            ReloadBanner();
+            UiHost.Dialogs.Toast(DialogKind.Error, $"更换背景图片失败: {e.Message}");
+        }
+    }
+
+    /// <summary>恢复默认图片（删除自定义图片；网络图片未迁移）</summary>
+    [RelayCommand]
+    private void ResetBannerImage()
+    {
+        var old = _bannerImage;
+        _bannerImage = null;
+        old?.Dispose();
+        try
+        {
+            HomeBannerImage.DeleteCustom();
+            ReloadBanner();
+            UiHost.Dialogs.Toast(DialogKind.Success, HomeBannerImage.ResetText);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "恢复默认背景图片失败");
+            ReloadBanner();
+            UiHost.Dialogs.Toast(DialogKind.Warning, HomeBannerImage.ResetDeleteFailedText);
+        }
+    }
+
+    /// <summary>当前横幅是否为自定义图片</summary>
+    public bool IsCustomBanner { get; private set; }
+
+    private global::Avalonia.Media.Imaging.Bitmap? LoadBannerImage()
+    {
+        try
+        {
+            if (HomeBannerImage.ResolveCustomFile() is { } custom)
+            {
+                IsCustomBanner = true;
+                _log.Information("已加载自定义背景图片");
+                return new global::Avalonia.Media.Imaging.Bitmap(custom);
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "初始化背景图片失败，使用默认图片");
+        }
+
+        IsCustomBanner = false;
+        try
+        {
+            using var stream = global::Avalonia.Platform.AssetLoader.Open(new Uri(DefaultBannerUri));
+            return new global::Avalonia.Media.Imaging.Bitmap(stream);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "加载默认背景图片失败");
+            return null;
+        }
+    }
 
     public IReadOnlyList<CaptureMethodInfo> CaptureMethods => GameHost.CaptureMethods;
 

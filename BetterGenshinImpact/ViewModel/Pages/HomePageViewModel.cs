@@ -146,7 +146,7 @@ public partial class HomePageViewModel : ViewModel, IDisposable
     private ImageSource? _cloudWebPreviewImageSource;
 
     private const string DefaultBannerImagePath = "pack://application:,,,/Resources/Images/banner.jpg";
-    private readonly string _customBannerImagePath = Global.Absolute("User/Images/custom_banner.jpg");
+    private readonly string _customBannerImagePath = HomeBannerImage.CustomPath;
     [ObservableProperty]
     private bool _isCustomNetworkBanner = false;
     private readonly ChildSessionService _childSessionService;
@@ -912,15 +912,8 @@ public partial class HomePageViewModel : ViewModel, IDisposable
                 
                 var selectedFile = openFileDialog.FileName;
 
-                // 确保目标目录存在
-                var directory = Path.GetDirectoryName(_customBannerImagePath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // 复制图片到自定义路径
-                File.Copy(selectedFile, _customBannerImagePath, true);
+                // 确保目标目录存在并复制图片到自定义路径
+                HomeBannerImage.CopyToCustom(selectedFile);
 
                 // 更新UI
                 var bitmap = new BitmapImage();
@@ -930,7 +923,7 @@ public partial class HomePageViewModel : ViewModel, IDisposable
                 bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache; 
                 bitmap.EndInit();
                 BannerImageSource = bitmap;
-                Toast.Success("背景图片更换成功！");
+                Toast.Success(HomeBannerImage.ChangedText);
             }
         }
         catch (Exception ex)
@@ -1011,18 +1004,15 @@ public partial class HomePageViewModel : ViewModel, IDisposable
             defaultBitmap.EndInit();
             BannerImageSource = defaultBitmap;
             
-            if (File.Exists(customImageFullPath))
-            {
-                File.Delete(customImageFullPath);
-            }
+            HomeBannerImage.DeleteCustom();
             _bannerImageService.ResetNetworkImage();
             IsCustomNetworkBanner = false;
-            Toast.Success("已恢复为默认背景图片！");
+            Toast.Success(HomeBannerImage.ResetText);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "恢复默认背景图片失败");
-            Toast.Warning("已恢复为默认背景图片！但清除自定义图片失败，请手动删除文件。");
+            Toast.Warning(HomeBannerImage.ResetDeleteFailedText);
         }
     }
 

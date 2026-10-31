@@ -30,6 +30,8 @@
 		<AvaloniaResource Include="Assets\Fonts\FluentSystemIcons-Regular.ttf" />
 		<!-- WPF 版图标字体（与 WPF 共用同一文件） -->
 		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Fonts\Fgi-Regular.ttf" Link="Assets\Fonts\Fgi-Regular.ttf" />
+		<!-- 首页横幅默认图：直接使用 WPF 的资源 -->
+		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Images\banner.jpg" Link="Assets\Images\banner.jpg" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />

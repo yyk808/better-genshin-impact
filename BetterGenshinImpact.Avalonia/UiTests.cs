@@ -58,6 +58,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "onedragon-domain": await OneDragonDomainAsync(); break;
                 case "onedragon-more": await OneDragonMoreAsync(); break;
                 case "onedragon-edit": await OneDragonEditAsync(); break;
+                case "home-banner": await HomeBannerAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2658,6 +2659,39 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("尘歌壶进壶方式与购买设置写回", pot is { SereniteaPotTpType: "尘歌壶道具" } && string.Join("/", pot.SecretTreasureObjects) == "星期三/布匹/摩拉",
             pot is null ? null : string.Join("/", pot.SecretTreasureObjects));
         Shot("avalonia-onedragon-more.png");
+    }
+
+    /// <summary>首页横幅：与 WPF 相同使用角色背景图（默认 WPF Resources/Images/banner.jpg）</summary>
+    private async Task HomeBannerAsync()
+    {
+        vm.Navigate("启动");
+        await Settle(600);
+        var banner = Named<Border>("HomeBannerImage");
+        var brush = banner?.Background as global::Avalonia.Media.ImageBrush;
+        var bitmap = brush?.Source as global::Avalonia.Media.Imaging.Bitmap;
+        Check("横幅为图片背景", bitmap is not null && bitmap.PixelSize.Width > 0, bitmap?.PixelSize.ToString());
+        Check("未设置自定义图片时使用默认图", !vm.Home.IsCustomBanner && bitmap?.PixelSize == new global::Avalonia.PixelSize(2538, 1157) || vm.Home.IsCustomBanner, bitmap?.PixelSize.ToString());
+        Check("横幅左下向右上渐隐", banner?.OpacityMask is global::Avalonia.Media.LinearGradientBrush);
+        Check("标题文字", Named<Grid>("HomeBanner")?.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text == "BetterGI") == true);
+        Shot("avalonia-home-banner.png");
+
+        // 更换背景图片（本地文件；文件选择框由 ChangeBannerImageCommand 打开，这里直接应用测试图片）与恢复默认
+        var menu = Named<Grid>("HomeBanner")?.ContextMenu;
+        Check("横幅右键菜单（更换背景图片 / 恢复默认图片）", menu?.Items.OfType<MenuItem>().Select(m => m.Header as string).SequenceEqual(new[] { "更换背景图片", "恢复默认图片" }) == true);
+        var test = Path.Combine(Path.GetTempPath(), "m54-banner.png");
+        using (var rt = new global::Avalonia.Media.Imaging.RenderTargetBitmap(new global::Avalonia.PixelSize(64, 32))) rt.Save(test);
+        vm.Home.ApplyCustomBanner(test);
+        await Settle();
+        bitmap = (Named<Border>("HomeBannerImage")?.Background as global::Avalonia.Media.ImageBrush)?.Source as global::Avalonia.Media.Imaging.Bitmap;
+        Check("更换后显示自定义图片并复制到 User/Images/custom_banner.jpg", vm.Home.IsCustomBanner && bitmap?.PixelSize == new global::Avalonia.PixelSize(64, 32)
+            && File.Exists(BetterGenshinImpact.Core.Config.HomeBannerImage.CustomPath), bitmap?.PixelSize.ToString());
+        Shot("avalonia-home-banner-custom.png");
+        vm.Home.ResetBannerImageCommand.Execute(null);
+        await Settle();
+        bitmap = (Named<Border>("HomeBannerImage")?.Background as global::Avalonia.Media.ImageBrush)?.Source as global::Avalonia.Media.Imaging.Bitmap;
+        Check("恢复默认：删除自定义图片并显示默认图", !vm.Home.IsCustomBanner && !File.Exists(BetterGenshinImpact.Core.Config.HomeBannerImage.CustomPath)
+            && bitmap?.PixelSize == new global::Avalonia.PixelSize(2538, 1157), bitmap?.PixelSize.ToString());
+        File.Delete(test);
     }
 
     /// <summary>
