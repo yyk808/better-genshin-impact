@@ -402,7 +402,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
     /// <param name="keyword">用户输入的关键字</param>
     private void ApplyFilter(string? keyword)
     {
-        var trimmedKeyword = keyword?.Trim() ?? string.Empty;
+        var trimmedKeyword = HotkeyFilter.Normalize(keyword);
         var anyVisible = false;
         foreach (var model in HotKeySettingModels)
         {
@@ -446,8 +446,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
     /// </summary>
     private static bool IsFilterMatch(HotKeySettingModel model, string keyword)
     {
-        return model.LocalizedFunctionName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-               || model.FunctionName.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+        return HotkeyFilter.IsMatch(keyword, model.LocalizedFunctionName, model.FunctionName);
     }
 
     public static List<HotKeySettingModel> GetAllNonDirectoryHotkey(IEnumerable<HotKeySettingModel> modelList)

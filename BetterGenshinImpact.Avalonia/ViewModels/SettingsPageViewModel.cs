@@ -36,6 +36,12 @@ public sealed partial class HotkeyItemViewModel : ObservableObject
     [ObservableProperty] private bool _isRecording;
     [ObservableProperty] private string _status = string.Empty;
 
+    /// <summary>筛选后是否显示</summary>
+    [ObservableProperty] private bool _isFilterVisible = true;
+
+    /// <summary>在本行上方显示分组标题（分组内第一个显示的行）</summary>
+    [ObservableProperty] private bool _showGroupHeader;
+
     public HotkeyItemViewModel(HotKeyConfig config, string group, string name, string property, bool supported)
     {
         _config = config;
@@ -176,6 +182,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             });
         }
 
+        ApplyHotkeyFilter();
         RegisterHotkeys();
     }
 
@@ -217,6 +224,30 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public bool IsAvailable { get; }
 
     public ObservableCollection<HotkeyItemViewModel> Hotkeys { get; } = [];
+
+    /// <summary>快捷键筛选关键字（与 WPF HotKeyPage 相同：分组名匹配显示整组，功能名匹配显示该项及分组标题）</summary>
+    [ObservableProperty] private string _hotkeyFilterText = string.Empty;
+
+    /// <summary>筛选无结果</summary>
+    [ObservableProperty] private bool _isHotkeyFilterEmpty;
+
+    partial void OnHotkeyFilterTextChanged(string value) => ApplyHotkeyFilter();
+
+    private void ApplyHotkeyFilter()
+    {
+        var keyword = BetterGenshinImpact.Model.HotkeyFilter.Normalize(HotkeyFilterText);
+        var shownGroups = new HashSet<string>();
+        var any = false;
+        foreach (var item in Hotkeys)
+        {
+            var visible = BetterGenshinImpact.Model.HotkeyFilter.IsMatch(keyword, item.Name, item.Group);
+            item.IsFilterVisible = visible;
+            item.ShowGroupHeader = visible && !string.IsNullOrEmpty(item.Group) && shownGroups.Add(item.Group);
+            any |= visible;
+        }
+
+        IsHotkeyFilterEmpty = !any;
+    }
 
     public List<string> GameLanguages { get; } = ["zh-Hans", "zh-Hant", "en", "fr", "ja", "ko", "ru", "es", "de", "pt", "it", "tr", "th", "vi", "id"];
 
@@ -495,6 +526,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     /// <summary>企业微信渠道测试结果</summary>
     [ObservableProperty] private string _workweixinStatus = string.Empty;
+
+    /// <summary>WebSocket 渠道测试结果</summary>
+    [ObservableProperty] private string _webSocketStatus = string.Empty;
+
+    /// <summary>测试 WebSocket 通知（对照 WPF OnTestWebSocketNotification）</summary>
+    [RelayCommand]
+    public async Task TestWebSocketNotificationAsync() => WebSocketStatus = await TestNotifierAsync<BetterGenshinImpact.Service.Notifier.WebSocketNotifier>("WebSocket");
 
     /// <summary>测试邮件通知（对照 WPF OnTestEmailNotification）</summary>
     [RelayCommand]

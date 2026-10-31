@@ -60,6 +60,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "onedragon-edit": await OneDragonEditAsync(); break;
                 case "home-banner": await HomeBannerAsync(); break;
                 case "key-bindings": await KeyBindingsAsync(); break;
+                case "settings-more": await SettingsMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2660,6 +2661,51 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("尘歌壶进壶方式与购买设置写回", pot is { SereniteaPotTpType: "尘歌壶道具" } && string.Join("/", pot.SecretTreasureObjects) == "星期三/布匹/摩拉",
             pot is null ? null : string.Join("/", pot.SecretTreasureObjects));
         Shot("avalonia-onedragon-more.png");
+    }
+
+    /// <summary>设置页补项：快捷键筛选框（Core HotkeyFilter）、通知 WebSocket 卡片</summary>
+    private async Task SettingsMoreAsync()
+    {
+        vm.Navigate("快捷键");
+        await Settle(600);
+        var page = vm.Settings;
+        var box = Named<TextBox>("HotkeyFilterBox");
+        Check("快捷键筛选框", box is not null && box.Watermark as string == "按功能名称筛选");
+        var total = page.Hotkeys.Count;
+        var target = page.Hotkeys.First(h => !string.IsNullOrEmpty(h.Group));
+        box!.Text = target.Name;
+        await Settle();
+        var shown = page.Hotkeys.Where(h => h.IsFilterVisible).ToList();
+        Check("按功能名筛选只显示匹配项并显示其分组标题", shown.Contains(target) && shown.Count < total && shown.All(h => h.Name.Contains(target.Name) || h.Group.Contains(target.Name))
+            && target.ShowGroupHeader, $"{shown.Count}/{total}");
+        Shot("avalonia-settings-hotkey-filter.png");
+        box.Text = "  " + target.Group.ToUpperInvariant() + " ";
+        await Settle();
+        Check("按分组名筛选显示整组（忽略首尾空白）", page.Hotkeys.Where(h => h.Group == target.Group).All(h => h.IsFilterVisible));
+        box.Text = "不存在的功能xyz";
+        await Settle();
+        Check("无结果时显示“没有匹配的功能”", page.Hotkeys.All(h => !h.IsFilterVisible) && Named<TextBlock>("HotkeyFilterEmptyText") is not null);
+        box.Text = "";
+        await Settle();
+        Check("清空后全部显示", page.Hotkeys.All(h => h.IsFilterVisible));
+
+        vm.Navigate("通知");
+        await Settle(600);
+        var nc = page.Config.NotificationConfig;
+        var (wasOn, wasEp) = (nc.WebSocketNotificationEnabled, nc.WebSocketEndpoint);
+        if (Named<FluentAvalonia.UI.Controls.FASettingsExpander>("WebSocketCard") is { } card) card.IsExpanded = true;
+        await Settle();
+        Named<ToggleSwitch>("WebSocketSwitch")!.IsChecked = !wasOn;
+        Named<TextBox>("WebSocketEndpointBox")!.Text = "ws://127.0.0.1:9/m55";
+        await Settle();
+        Check("WebSocket 开关与端点写入配置", nc.WebSocketNotificationEnabled == !wasOn && nc.WebSocketEndpoint == "ws://127.0.0.1:9/m55");
+        await Click(Named<Button>("WebSocketTestButton"), "测试 WebSocket");
+        await Until(() => !string.IsNullOrEmpty(page.WebSocketStatus), 8000);
+        Check("测试 WebSocket 显示结果（无服务时为失败信息）", !string.IsNullOrEmpty(page.WebSocketStatus), page.WebSocketStatus);
+        Shot("avalonia-settings-notify-websocket.png");
+        nc.WebSocketNotificationEnabled = wasOn;
+        nc.WebSocketEndpoint = wasEp;
+        await Settle();
     }
 
     /// <summary>按键绑定设置（WPF 通用设置“按键绑定设置”打开的窗口）：树、改键写回 KeyBindingsConfig、全局按键映射开关</summary>

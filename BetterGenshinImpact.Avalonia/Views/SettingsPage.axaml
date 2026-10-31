@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:model="using:BetterGenshinImpact.Model"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.SettingsPage"
@@ -179,6 +180,7 @@
                     <TextBlock Classes="pagesection" Text="快捷键设置" />
                     <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,0,0,12"
                                Text="全局热键：只支持组合键和功能键，经 X11 XGrabKey 注册，游戏收不到该键。键鼠监听：支持任意键盘单键，经 XInput2 监听、不拦截按键，只在游戏位于前台时触发（推荐）。点击类型按钮可以切换快捷键类型；点击右侧按键后按下组合键即可绑定（Esc 取消，Backspace 清除）。其中存在长按需求的功能不能使用全局热键。" />
+                    <TextBox x:Name="HotkeyFilterBox" Margin="0,0,0,8" Watermark="{x:Static model:HotkeyFilter.Placeholder}" Text="{Binding HotkeyFilterText}" />
                     <Border Classes="card" Padding="0,8">
                         <StackPanel>
                             <Grid ColumnDefinitions="*,110,130,60" Margin="16,4,16,8">
@@ -189,8 +191,8 @@
                             <ItemsControl ItemsSource="{Binding Hotkeys}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:HotkeyItemViewModel">
-                                        <StackPanel Margin="16,0">
-                                            <TextBlock Text="{Binding Group, StringFormat='⌄ {0}'}" IsVisible="{Binding IsGroupStart}" Margin="12,6,0,4" />
+                                        <StackPanel Margin="16,0" IsVisible="{Binding IsFilterVisible}">
+                                            <TextBlock Text="{Binding Group, StringFormat='⌄ {0}'}" IsVisible="{Binding ShowGroupHeader}" Margin="12,6,0,4" />
                                             <Grid ColumnDefinitions="*,110,130,60" MinHeight="40">
                                                 <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="{Binding Indent}">
                                                     <TextBlock Text="{Binding Name}" />
@@ -212,6 +214,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <TextBlock x:Name="HotkeyFilterEmptyText" Classes="desc" Margin="16,8" Text="{x:Static model:HotkeyFilter.EmptyText}" IsVisible="{Binding IsHotkeyFilterEmpty}" />
                         </StackPanel>
                     </Border>
                     <DockPanel Margin="0,12,0,0">
@@ -262,6 +265,22 @@
                         <ui:FASettingsExpanderItem Content="Webhook 地址">
                             <ui:FASettingsExpanderItem.Footer>
                                 <TextBox Width="360" Text="{Binding Config.NotificationConfig.WebhookEndpoint}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <!-- 对照 WPF NotificationSettingsPage 的 WebSocket 卡片 -->
+                    <ui:FASettingsExpander x:Name="WebSocketCard" Header="启用 WebSocket" Description="WebSocket 相关设置" IconSource="{svc:FluentIconSource CloudArrowUp24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="WebSocketSwitch" IsChecked="{Binding Config.NotificationConfig.WebSocketNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="WebSocket 端点" Description="填写 WebSocket 端点">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox x:Name="WebSocketEndpointBox" Width="360" Watermark="ws://" Text="{Binding Config.NotificationConfig.WebSocketEndpoint}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="测试 WebSocket 通知" Description="{Binding WebSocketStatus}">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <Button Name="WebSocketTestButton" Content="测试" Command="{Binding TestWebSocketNotificationCommand}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
