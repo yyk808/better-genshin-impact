@@ -3,7 +3,7 @@ using BetterGenshinImpact.GameTask.Music.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.Music.Service;
 
