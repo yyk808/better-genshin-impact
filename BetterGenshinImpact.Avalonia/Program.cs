@@ -82,6 +82,16 @@ internal static class AvaloniaHostProgram
             log.Error(e, "平台服务初始化失败（是否设置了 DISPLAY / 能否连接 X 服务器？）");
         }
 
+        // 软件日志文件（log 目录）：按 Linux 宿主设置启用；平台初始化失败时不写
+        if (host is not null)
+        {
+            LogFiles.Attach(host.LinuxConfig);
+        }
+        else
+        {
+            HostLogging.FileLog.Disable();
+        }
+
         // 遮罩窗口（透明、置顶、点击穿透），截图器运行且启用遮罩时显示
         MaskWindowController? mask = null;
         if (host is not null)

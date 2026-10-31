@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -84,16 +83,19 @@ public sealed partial class QuestVoiceCardViewModel : ObservableObject
 
     private bool CanConfirmBackendRestarted() => Status.BackendUnknown && !Status.IsRunning && !Status.IsBusy;
 
+    /// <summary>打开最新的日志文件；尚无日志文件时打开日志目录</summary>
+    [RelayCommand]
+    private void OpenLogFile()
+    {
+        try { Services.LogFiles.OpenLatest(); }
+        catch (Exception exception) { CommandError = exception.Message; }
+    }
+
     /// <summary>用系统文件管理器打开日志目录（xdg-open）</summary>
     [RelayCommand]
     private void OpenLogFolder()
     {
-        try
-        {
-            var logFolder = Global.Absolute("log");
-            Directory.CreateDirectory(logFolder);
-            Process.Start(new ProcessStartInfo("xdg-open") { ArgumentList = { logFolder }, UseShellExecute = false });
-        }
+        try { Services.LogFiles.OpenFolder(); }
         catch (Exception exception) { CommandError = exception.Message; }
     }
 }

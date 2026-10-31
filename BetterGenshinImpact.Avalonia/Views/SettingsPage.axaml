@@ -143,6 +143,19 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+                    <Border Classes="card" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <Button Content="打开日志" Command="{Binding OpenLogFileCommand}" />
+                                <Button Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
+                                <ToggleSwitch x:Name="LogFileToggle" IsChecked="{Binding LinuxConfig.LogFileEnabled, FallbackValue=False}" OnContent="" OffContent="" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="保存日志文件" />
+                                <TextBlock Classes="desc" Text="与 Windows 版相同写到 log 目录（better-genshin-impact日期.log，按天滚动，保留 31 个）；关闭后日志只显示在界面" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

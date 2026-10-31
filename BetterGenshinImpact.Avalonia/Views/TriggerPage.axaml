@@ -208,6 +208,7 @@
                     <!-- 操作 -->
                     <WrapPanel>
                         <Button Margin="0,0,8,4" Content="校验配置" Command="{Binding ValidateCommand}" />
+                        <Button Margin="0,0,8,4" Content="打开日志" Command="{Binding OpenLogFileCommand}" />
                         <Button Margin="0,0,8,4" Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
                         <TextBlock Classes="desc" VerticalAlignment="Center" Text="引擎与角色目录的设置窗口尚未迁移，可在 Windows 版设置后复制 User/config.json" />
                     </WrapPanel>

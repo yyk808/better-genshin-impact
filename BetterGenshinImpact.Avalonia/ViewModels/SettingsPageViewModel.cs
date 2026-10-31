@@ -172,6 +172,27 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public AllConfig Config { get; }
 
+    /// <summary>Linux 宿主设置（日志文件等）；平台初始化失败时为空</summary>
+    public BetterGenshinImpact.Host.Common.Config.LinuxHostConfig? LinuxConfig => _host?.LinuxConfig;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenLogFile() => TryOpen(Services.LogFiles.OpenLatest);
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenLogFolder() => TryOpen(Services.LogFiles.OpenFolder);
+
+    private void TryOpen(Action open)
+    {
+        try
+        {
+            open();
+        }
+        catch (Exception e)
+        {
+            _log.Warning("打开日志失败：{Message}", e.Message);
+        }
+    }
+
     public bool IsAvailable { get; }
 
     public ObservableCollection<HotkeyItemViewModel> Hotkeys { get; } = [];

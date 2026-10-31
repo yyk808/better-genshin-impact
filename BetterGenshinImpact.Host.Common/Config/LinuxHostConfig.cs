@@ -47,6 +47,12 @@ public sealed partial class LinuxHostConfig : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _maskDrawAllRecognition;
 
+    /// <summary>
+    /// 保存软件日志文件：与 Windows 版相同写到 log/better-genshin-impact日期.log（按天滚动，保留 31 个）。
+    /// 关闭时日志只显示在界面和控制台
+    /// </summary>
+    [ObservableProperty] private bool _logFileEnabled = true;
+
     /// <summary>预置的启动命令（界面下拉框用）</summary>
     [JsonIgnore]
     public static IReadOnlyList<LaunchPreset> Presets { get; } =

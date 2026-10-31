@@ -32,6 +32,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
+                case "log-file": await LogFileAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -93,6 +94,48 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         if (dir is null) return;
         Directory.CreateDirectory(dir);
         AvaloniaHostProgram.SaveScreenshotPublic(window, Path.Combine(dir, file), log);
+    }
+
+    // —— 日志文件 ——
+
+    /// <summary>
+    /// 日志文件（--ui-test log-file）：启动前的日志也写入 log 目录的当天文件；在设置页关闭“保存日志文件”后不再写入，重新打开后恢复。
+    /// 开关写入 linux-host.json，自测前后由外部脚本备份恢复
+    /// </summary>
+    private async Task LogFileAsync()
+    {
+        static string Read(string? path)
+        {
+            if (path is null) return "";
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return new StreamReader(stream).ReadToEnd();
+        }
+
+        var file = BetterGenshinImpact.Host.Common.HostLogging.FileLog.LatestFile();
+        Check("日志文件存在", file is not null && File.Exists(file), file);
+        Check("启动阶段的日志已写入", Read(file).Contains("Linux 宿主设置") || Read(file).Contains("配置文件"));
+
+        vm.Navigate("设置");
+        await Settle(800);
+        var toggle = await WaitFor(() => Named<ToggleSwitch>("LogFileToggle"));
+        Check("设置页有日志文件开关", toggle is not null);
+        if (toggle is null) return;
+        var marker1 = "LOGFILE-MARKER-ON-" + Guid.NewGuid().ToString("N")[..8];
+        log.Information(marker1);
+        toggle.IsChecked = false;
+        await Settle();
+        var marker2 = "LOGFILE-MARKER-OFF-" + Guid.NewGuid().ToString("N")[..8];
+        log.Information(marker2);
+        toggle.IsChecked = true;
+        await Settle();
+        var marker3 = "LOGFILE-MARKER-AGAIN-" + Guid.NewGuid().ToString("N")[..8];
+        log.Information(marker3);
+        await Settle(1500);
+        var text = Read(BetterGenshinImpact.Host.Common.HostLogging.FileLog.LatestFile());
+        Check("开启时写入", text.Contains(marker1));
+        Check("关闭后不写入", !text.Contains(marker2));
+        Check("重新开启后写入", text.Contains(marker3));
+        Shot("settings-logfile.png");
     }
 
     // —— 自动配音卡片 ——
