@@ -144,6 +144,49 @@ public sealed partial class OneDragonPageViewModel : PageViewModel
         _watched = SelectedConfig;
         DomainSettings = SelectedConfig is null ? null : new BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonDomainSettings(SelectedConfig, Config.AutoDomainConfig);
         if (_watched is not null) _watched.PropertyChanged += OnSelectedConfigPropertyChanged;
+        LeyLineRows = SelectedConfig is null ? [] : BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonLeyLineRow.CreateWeek(SelectedConfig);
+        LoadSereniteaPot();
+    }
+
+    /// <summary>地脉花按星期设置（周一至周日）</summary>
+    [ObservableProperty] private IReadOnlyList<BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonLeyLineRow> _leyLineRows = [];
+
+    /// <summary>尘歌壶购买日期（编辑中，点“应用”后写入 SecretTreasureObjects）</summary>
+    [ObservableProperty] private string _sereniteaPotSchedule = "每天重复";
+
+    /// <summary>尘歌壶可购买商品</summary>
+    public ObservableCollection<BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotItemOption> SereniteaPotItems { get; } = [];
+
+    /// <summary>当前保存的购买设置摘要</summary>
+    public string SereniteaPotSummary => SelectedConfig is { SecretTreasureObjects.Count: > 0 } c ? string.Join("、", c.SecretTreasureObjects) : "未设置（每天重复，不购买商品）";
+
+    private void LoadSereniteaPot()
+    {
+        SereniteaPotItems.Clear();
+        var objects = SelectedConfig?.SecretTreasureObjects ?? [];
+        SereniteaPotSchedule = objects.FirstOrDefault() ?? "每天重复";
+        foreach (var item in BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.Items)
+            SereniteaPotItems.Add(new(item, BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.IsSelected(objects, item)));
+        OnPropertyChanged(nameof(SereniteaPotSummary));
+    }
+
+    /// <summary>应用尘歌壶购买设置（与 WPF 弹窗“确认”相同：日期 + 选中商品）</summary>
+    [RelayCommand]
+    private void ApplySereniteaPot()
+    {
+        if (SelectedConfig is null) return;
+        SelectedConfig.SecretTreasureObjects = BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.Build(SereniteaPotSchedule,
+            SereniteaPotItems.Where(i => i.IsSelected).Select(i => i.Name));
+        OnPropertyChanged(nameof(SereniteaPotSummary));
+    }
+
+    /// <summary>清空首领讨伐累计成功领奖次数（与 WPF 相同）</summary>
+    [RelayCommand]
+    private void ResetAutoBossCompletedRunCount()
+    {
+        if (SelectedConfig is null) return;
+        SelectedConfig.AutoBossCompletedRunCount = 0;
+        _log.Information("首领讨伐累计成功领奖次数已清空");
     }
 
     private void OnSelectedConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)

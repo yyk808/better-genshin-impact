@@ -56,6 +56,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plugins": await PluginsAsync(); break;
                 case "onedragon-layout": await OneDragonLayoutAsync(); break;
                 case "onedragon-domain": await OneDragonDomainAsync(); break;
+                case "onedragon-more": await OneDragonMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2567,6 +2568,95 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("周一秘境与队伍写回", config.MondayDomainName == domains[0] && Saved() is { MondayPartyName: "周一队" } saved && saved.MondayDomainName == domains[0],
             $"{config.MondayDomainName} {config.MondayPartyName}");
         Shot("avalonia-onedragon-domain.png");
+    }
+
+    /// <summary>
+    /// 旧一条龙页右栏其余卡片（对照 WPF OneDragonFlowPage）：合成树脂、树脂使用、分解圣遗物、奖励识别、自动首领讨伐、地脉花（按星期）、领取奖励、尘歌壶购买；
+    /// 一条龙配置项每次修改都写回同一份 User/OneDragon 文件，全局项写入 AllConfig
+    /// </summary>
+    private async Task OneDragonMoreAsync()
+    {
+        vm.Navigate("一条龙");
+        await Settle(600);
+        var page = vm.OneDragon;
+        var config = page.SelectedConfig;
+        Check("当前配置", config is not null);
+        if (config is null) return;
+        foreach (var e in All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.Name?.StartsWith("Od") == true)) e.IsExpanded = true;
+        await Settle(400);
+        await Settle(200);
+        BetterGenshinImpact.Core.Config.OneDragonFlowConfig? Saved() => BetterGenshinImpact.Core.Config.OneDragonFlowConfigStore.Load(config.Name);
+        var cards = new[] { "OdCraftCard", "OdResinCard", "OdSalvageCard", "OdRewardCard", "OdBossCard", "OdLeyLineCard", "OdLeyLineDaysCard", "OdGuildCard", "OdRewardPartyCard", "OdPotCard" };
+        var missing = cards.Where(n => Named<FluentAvalonia.UI.Controls.FASettingsExpander>(n) is null).ToList();
+        Check("10 张卡片", missing.Count == 0, string.Join(",", missing));
+
+        // 合成树脂
+        Named<ComboBox>("OdCraftCountry")!.SelectedItem = "璃月";
+        Named<NumericUpDown>("OdMinResin")!.Value = 12;
+        await Settle();
+        Check("合成台地区与保留数量写回", config.CraftingBenchCountry == "璃月" && config.MinResinToKeep == 12 && Saved() is { CraftingBenchCountry: "璃月", MinResinToKeep: 12 });
+
+        // 树脂使用 / 分解 / 奖励识别（全局 AutoDomainConfig）
+        var resinCard = Named<FluentAvalonia.UI.Controls.FASettingsExpander>("OdResinCard");
+        Check("树脂使用摘要与设置按钮", !string.IsNullOrEmpty(resinCard?.Description as string) && Named<Button>("OdResinButton")?.Command is not null, resinCard?.Description as string);
+        var ad = page.Tasks.Domain.Config;
+        var wasSalvage = ad.AutoArtifactSalvage;
+        Named<ToggleSwitch>("OdSalvage")!.IsChecked = !wasSalvage;
+        await Settle();
+        Check("分解圣遗物写入全局配置", ad.AutoArtifactSalvage == !wasSalvage);
+        Named<ToggleSwitch>("OdSalvage")!.IsChecked = wasSalvage;
+        Named<ComboBox>("OdMaxStar")!.SelectedItem = "3";
+        await Settle();
+        Check("最高星级写入全局配置", page.Tasks.Domain.Salvage.MaxArtifactStar == "3");
+        var wasReward = ad.RewardRecognitionEnabled;
+        Named<ToggleSwitch>("OdRewardRecognition")!.IsChecked = !wasReward;
+        await Settle();
+        Check("秘境奖励识别写入全局配置", ad.RewardRecognitionEnabled == !wasReward);
+        Named<ToggleSwitch>("OdRewardRecognition")!.IsChecked = wasReward;
+
+        // 自动首领讨伐
+        var bosses = DedicatedTaskSettingsChoices.BossNames;
+        Named<ComboBox>("OdBossName")!.SelectedItem = bosses[0];
+        Named<TextBox>("OdBossTeam")!.Text = "首领队";
+        Named<ToggleSwitch>("OdBossSpecify")!.IsChecked = true;
+        await Settle(300);
+        Check("首领与队伍写回、开启次数限制显示上限", Saved() is { AutoBossTeamName: "首领队", AutoBossSpecifyRunCount: true } b && b.AutoBossName == bosses[0]
+            && Named<NumericUpDown>("OdBossRunCount") is not null);
+        Named<NumericUpDown>("OdBossRunCount")!.Value = 4;
+        config.AutoBossCompletedRunCount = 7;
+        await Settle();
+        Check("累计次数显示", Named<TextBlock>("OdBossCompleted")?.Text?.Contains("7") == true, Named<TextBlock>("OdBossCompleted")?.Text);
+        await Click(Named<Button>("OdBossReset")!, "清空累计");
+        Check("单次上限写回、清空累计", Saved() is { AutoBossRunCount: 4, AutoBossCompletedRunCount: 0 });
+
+        // 地脉花
+        Named<ToggleSwitch>("OdLeyLineSkip")!.IsChecked = true;
+        Named<NumericUpDown>("OdLeyLineCount")!.Value = 3;
+        var rows = page.LeyLineRows;
+        Check("地脉花 7 行", rows.Count == 7 && Named<ItemsControl>("OdLeyLineRows")?.ItemCount == 7);
+        var list = Named<ItemsControl>("OdLeyLineRows")!;
+        list.GetVisualDescendants().OfType<CheckBox>().First(c => c.DataContext == rows[0]).IsChecked = false;
+        var combos = list.GetVisualDescendants().OfType<ComboBox>().Where(c => c.DataContext == rows[0]).ToList();
+        combos[0].SelectedItem = "藏金之花";
+        combos[1].SelectedItem = "璃月";
+        await Settle();
+        Check("地脉花设置写回（周一不运行、类型、国家）", Saved() is { LeyLineOneDragonMode: true, LeyLineRunCount: 3, LeyLineRunMonday: false, LeyLineMondayType: "藏金之花", LeyLineMondayCountry: "璃月" });
+
+        // 领取奖励
+        Named<ComboBox>("OdGuildCountry")!.SelectedItem = "挪德卡莱";
+        Named<TextBox>("OdRewardParty")!.Text = "好感队";
+        await Settle();
+        Check("冒险者协会与好感队写回", Saved() is { AdventurersGuildCountry: "挪德卡莱", DailyRewardPartyName: "好感队" });
+
+        // 尘歌壶
+        Named<ComboBox>("OdPotTpType")!.SelectedItem = "尘歌壶道具";
+        Named<ComboBox>("OdPotSchedule")!.SelectedItem = "星期三";
+        foreach (var item in page.SereniteaPotItems) item.IsSelected = item.Name is "布匹" or "摩拉";
+        await Click(Named<Button>("OdPotApply")!, "应用");
+        var pot = Saved();
+        Check("尘歌壶进壶方式与购买设置写回", pot is { SereniteaPotTpType: "尘歌壶道具" } && string.Join("/", pot.SecretTreasureObjects) == "星期三/布匹/摩拉",
+            pot is null ? null : string.Join("/", pot.SecretTreasureObjects));
+        Shot("avalonia-onedragon-more.png");
     }
 
     /// <summary>

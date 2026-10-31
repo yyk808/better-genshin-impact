@@ -17,7 +17,7 @@ public partial class OneDragonFlowPage
     
     private readonly Dictionary<CheckBox, string> _checkBoxMappings;
     
-    public static readonly List<string> SereniteaPotSchedule = new List<string> { "每天重复", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日" };
+    public static readonly List<string> SereniteaPotSchedule = [.. BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.Schedules];
 
     public OneDragonFlowPage(OneDragonFlowViewModel viewModel)
     {
@@ -189,8 +189,8 @@ public partial class OneDragonFlowPage
         
         else if (sender.Equals(PopupConfirmButton)) //确认选择
         {
-            var selectedObjects = new List<string>(SereniteaPotComboBox.SelectedItem.ToString().Split('/'))
-                .Concat(_checkBoxMappings.Where(pair => pair.Key.IsChecked == true).Select(pair => pair.Value)).ToList();
+            var selectedObjects = BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.Build(SereniteaPotComboBox.SelectedItem.ToString()!,
+                _checkBoxMappings.Where(pair => pair.Key.IsChecked == true).Select(pair => pair.Value));
 
             ViewModel.SelectedConfig.SecretTreasureObjects = selectedObjects;
             Popup.IsOpen = false;
@@ -198,16 +198,11 @@ public partial class OneDragonFlowPage
         
         else if (sender.Equals(PotButton)) //初始化显示购买信息
         {
-            if (!ViewModel.SelectedConfig.SecretTreasureObjects.Any())
-            {
-                ViewModel.SelectedConfig.SecretTreasureObjects.Add("每天重复"); 
-            }
-          
-            SereniteaPotComboBox.SelectedItem = ViewModel.SelectedConfig.SecretTreasureObjects[0];
+            SereniteaPotComboBox.SelectedItem = BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.EnsureSchedule(ViewModel.SelectedConfig.SecretTreasureObjects);
             
             foreach (var pair in _checkBoxMappings)
             {
-                pair.Key.IsChecked = ViewModel.SelectedConfig.SecretTreasureObjects.Contains(pair.Value);
+                pair.Key.IsChecked = BetterGenshinImpact.ViewModel.Pages.OneDragon.SereniteaPotPurchase.IsSelected(ViewModel.SelectedConfig.SecretTreasureObjects, pair.Value);
             }
 
         }

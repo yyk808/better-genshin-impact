@@ -173,7 +173,7 @@ public partial class TaskSettingsPageViewModel : ViewModel, ISoloTaskParamInputs
 
     public static List<string> AvatarIndexList = ["", "1", "2", "3", "4"];
     public static List<string> CombatAvatarNameList = [.. AvatarProfiles.GetProfileNames()];
-    public static List<string> LeyLineOutcropTypeList = ["启示之花", "藏金之花"];
+    public static List<string> LeyLineOutcropTypeList = [.. BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonChoices.LeyLineOutcropTypes];
     public static List<string> LeyLineOutcropCountryList = [.. BetterGenshinImpact.ViewModel.Pages.Pulonia.PuloniaOneDragonSettingChoices.LeyLineOutcropCountries];
     public static List<string> LeyLineOutcropTypeListWithEmpty = ["", .. LeyLineOutcropTypeList];
     public static List<string> LeyLineOutcropCountryListWithEmpty = ["", .. LeyLineOutcropCountryList];

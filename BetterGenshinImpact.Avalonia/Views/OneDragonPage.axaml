@@ -64,6 +64,16 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <!-- 合成树脂（对照 WPF OneDragonFlowPage） -->
+                    <TextBlock Text="合成树脂" FontSize="14" Margin="4,12,0,4" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <ui:FASettingsExpander x:Name="OdCraftCard" Header="合成树脂合成台" Description="指定地区合成树脂；合成后保留原粹树脂数量" IconSource="{svc:FluentIconSource WeatherMoon24}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox x:Name="OdCraftCountry" Width="100" ItemsSource="{x:Static od:OneDragonChoices.CraftingBenchCountries}" SelectedItem="{Binding SelectedConfig.CraftingBenchCountry}" />
+                                <NumericUpDown x:Name="OdMinResin" Width="120" Minimum="0" Maximum="2000" FormatString="0" Value="{Binding SelectedConfig.MinResinToKeep}" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
                     <!-- 自动秘境（对照 WPF OneDragonFlowPage：每日 / 培养计划 / 每周按星期分队伍） -->
                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,12,0,4">
                         <TextBlock Text="自动秘境" FontSize="14" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -150,8 +160,178 @@
                             </StackPanel>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <!-- 树脂使用 / 分解圣遗物 / 奖励识别：复用独立任务自动秘境 VM（Tasks.Domain，读写全局 AutoDomainConfig，与 WPF 一条龙页相同） -->
+                    <ui:FASettingsExpander x:Name="OdResinCard" Header="树脂使用" Description="{Binding Tasks.Domain.DomainResin.Summary}" IconSource="{svc:FluentIconSource Drop24}">
+                        <ui:FASettingsExpander.Footer>
+                            <Button x:Name="OdResinButton" Content="设置" MinWidth="88" Command="{Binding Tasks.Domain.DomainResin.EditCommand}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdSalvageCard" Header="分解圣遗物" Description="最高的星级" IconSource="{svc:FluentIconSource Delete24}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <ComboBox x:Name="OdMaxStar" Width="80" ItemsSource="{x:Static vm:SoloDomainSettingsViewModel.ArtifactStarChoices}" SelectedItem="{Binding Tasks.Domain.Salvage.MaxArtifactStar}" />
+                                <ToggleSwitch x:Name="OdSalvage" IsChecked="{Binding Tasks.Domain.Config.AutoArtifactSalvage}" OnContent="" OffContent="" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdRewardCard" Header="启用奖励识别" Description="每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈" IconSource="{svc:FluentIconSource Gift24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="OdRewardRecognition" IsChecked="{Binding Tasks.Domain.Config.RewardRecognitionEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <!-- 自动首领讨伐（对照 WPF OneDragonFlowPage） -->
+                    <TextBlock Text="自动首领讨伐" FontSize="14" Margin="4,12,0,4" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <ui:FASettingsExpander x:Name="OdBossCard" Header="自动首领讨伐配置" Description="自动传送、战斗并领取奖励" IconSource="{svc:FluentIconSource Trophy24}">
+                        <ui:FASettingsExpanderItem Content="选择战斗策略" Description="仅用于首领讨伐，不覆盖其他策略设置">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="OdBossStrategy" Width="220" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}" SelectedItem="{Binding SelectedConfig.AutoBossStrategyName}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="选择首领" Description="部分首领因机制问题未添加">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="OdBossName" Width="220" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.BossNames}" SelectedItem="{Binding SelectedConfig.AutoBossName}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="切换队伍" Description="留空则不更换队伍">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox x:Name="OdBossTeam" Width="220" Watermark="例如：首领队" Text="{Binding SelectedConfig.AutoBossTeamName}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="成功领奖次数限制" Description="开启后，可分别限制单次运行和跨运行累计的成功领奖次数">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="OdBossSpecify" IsChecked="{Binding SelectedConfig.AutoBossSpecifyRunCount}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem IsVisible="{Binding SelectedConfig.AutoBossSpecifyRunCount}">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="单次运行上限：" VerticalAlignment="Center" />
+                                    <NumericUpDown x:Name="OdBossRunCount" Width="120" Minimum="1" Increment="1" FormatString="0" Value="{Binding SelectedConfig.AutoBossRunCount}" />
+                                    <TextBlock Text="原粹不足时使用须臾树脂补充：" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                    <CheckBox IsChecked="{Binding SelectedConfig.AutoBossUseTransientResin}" />
+                                    <TextBlock Text="原粹不足时使用脆弱树脂补充：" VerticalAlignment="Center" />
+                                    <CheckBox IsChecked="{Binding SelectedConfig.AutoBossUseFragileResin}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="累计运行上限：" VerticalAlignment="Center" />
+                                    <NumericUpDown x:Name="OdBossTotalLimit" Width="120" Minimum="0" Increment="1" FormatString="0" Value="{Binding SelectedConfig.AutoBossTotalRunCountLimit}" />
+                                    <TextBlock x:Name="OdBossCompleted" VerticalAlignment="Center" Text="{Binding SelectedConfig.AutoBossCompletedRunCount, StringFormat='当前已累计成功领奖 {0} 次；累计上限为 0 时不限制'}" />
+                                    <Button x:Name="OdBossReset" Content="清空" Command="{Binding ResetAutoBossCompletedRunCountCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="每轮讨伐后返回七天神像" Description="开启后每次领奖后先回血，再重新前往首领">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding SelectedConfig.AutoBossReturnToStatueAfterEachRound}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="启用奖励识别" Description="每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="OdBossReward" IsChecked="{Binding SelectedConfig.AutoBossRewardRecognitionEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="角色死亡后重试次数" Description="战斗中存在角色死亡时，复活后重新讨伐当前首领">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <NumericUpDown x:Name="OdBossRetry" Width="120" Minimum="0" Increment="1" FormatString="0" Value="{Binding SelectedConfig.AutoBossReviveRetryCount}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+
+                    <!-- 自动地脉花 -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,12,0,4">
+                        <TextBlock Text="自动地脉花" FontSize="14" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Text="（具体参数在 独立任务-自动地脉花 中配置）" FontSize="11" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ui:FASettingsExpander x:Name="OdLeyLineCard" Header="自动地脉花" Description="跳过准备流程、树脂耗尽模式、刷取次数" IconSource="{svc:FluentIconSource Flash24}">
+                        <ui:FASettingsExpanderItem Content="跳过准备流程" Description="跳过部分准备流程（例如传送回七天神像）。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="OdLeyLineSkip" IsChecked="{Binding SelectedConfig.LeyLineOneDragonMode}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="树脂耗尽模式" Description="按当前树脂与库存自动计算可刷次数，结束后自动停止。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding SelectedConfig.LeyLineResinExhaustionMode}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="刷取次数取小值" Description="与手动次数取最小值，避免超过树脂可用次数。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding SelectedConfig.LeyLineOpenModeCountMin}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="刷取次数" Description="填 0 则使用独立任务配置。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <NumericUpDown x:Name="OdLeyLineCount" Width="120" Minimum="0" Increment="1" FormatString="0" Value="{Binding SelectedConfig.LeyLineRunCount}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdLeyLineDaysCard" Header="运行日期与地脉花设置" Description="仅在勾选的星期执行；若未勾选任何星期，则每天执行。类型/国家留空时使用独立任务默认设置。" IconSource="{svc:FluentIconSource CalendarClock24}">
+                        <ui:FASettingsExpanderItem>
+                            <StackPanel Spacing="4">
+                                <Grid ColumnDefinitions="56,60,*,*">
+                                    <TextBlock Text="日期" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="1" Text="运行" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="2" Text="类型" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="3" Text="国家" FontWeight="SemiBold" />
+                                </Grid>
+                                <ItemsControl x:Name="OdLeyLineRows" ItemsSource="{Binding LeyLineRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="od:OneDragonLeyLineRow">
+                                            <Grid ColumnDefinitions="56,60,*,*" Margin="0,2">
+                                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                                <CheckBox Grid.Column="1" IsChecked="{Binding Run}" />
+                                                <ComboBox Grid.Column="2" Margin="0,0,8,0" HorizontalAlignment="Stretch" ItemsSource="{x:Static od:OneDragonChoices.LeyLineOutcropTypesWithEmpty}" SelectedItem="{Binding Type}" />
+                                                <ComboBox Grid.Column="3" HorizontalAlignment="Stretch" ItemsSource="{x:Static od:OneDragonChoices.LeyLineOutcropCountriesWithEmpty}" SelectedItem="{Binding Country}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+
+                    <!-- 领取奖励 -->
+                    <TextBlock Text="领取奖励" FontSize="14" Margin="4,12,0,4" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <ui:FASettingsExpander x:Name="OdGuildCard" Header="领取奖励的冒险者协会" Description="前往指定地区冒险者协会领取" IconSource="{svc:FluentIconSource Gift24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox x:Name="OdGuildCountry" Width="120" ItemsSource="{x:Static od:OneDragonChoices.AdventurersGuildCountries}" SelectedItem="{Binding SelectedConfig.AdventurersGuildCountry}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdRewardPartyCard" Header="领取前切换队伍（好感队）" Description="用于给指定队伍加好感度" IconSource="{svc:FluentIconSource People24}">
+                        <ui:FASettingsExpander.Footer>
+                            <TextBox x:Name="OdRewardParty" Width="200" Watermark="填写好感队名称" Text="{Binding SelectedConfig.DailyRewardPartyName}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <!-- 尘歌壶 -->
+                    <TextBlock Text="尘歌壶配置" FontSize="14" Margin="4,12,0,4" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <ui:FASettingsExpander x:Name="OdPotCard" Header="进壶方式选择" Description="{Binding SereniteaPotSummary, StringFormat='购买日期和商品：{0}'}" IconSource="{svc:FluentIconSource Home24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox x:Name="OdPotTpType" Width="140" ItemsSource="{x:Static od:OneDragonChoices.SereniteaPotTpTypes}" SelectedItem="{Binding SelectedConfig.SereniteaPotTpType}" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="购买日期和商品" Description="日期不影响领取好感和钱币；修改后点“应用”">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="OdPotSchedule" Width="120" ItemsSource="{x:Static od:SereniteaPotPurchase.Schedules}" SelectedItem="{Binding SereniteaPotSchedule}" />
+                                    <Button x:Name="OdPotApply" Content="应用" Command="{Binding ApplySereniteaPotCommand}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem>
+                            <ItemsControl x:Name="OdPotItems" ItemsSource="{Binding SereniteaPotItems}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="od:SereniteaPotItemOption">
+                                        <CheckBox Margin="0,0,16,0" Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                     <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,8,0,0"
-                               Text="其余任务的详细设置（树脂使用、合成树脂、分解圣遗物、首领、地脉花、尘歌壶等）、新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
+                               Text="新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>
