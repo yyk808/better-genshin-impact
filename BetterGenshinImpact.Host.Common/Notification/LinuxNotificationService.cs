@@ -7,6 +7,8 @@ using BetterGenshinImpact.Service.Notification;
 using BetterGenshinImpact.Service.Notification.Model;
 using BetterGenshinImpact.Service.Notification.Model.Enum;
 using BetterGenshinImpact.Service.Notifier;
+using BetterGenshinImpact.Service.Notifier.Exception;
+using BetterGenshinImpact.Service.Notifier.Interface;
 using Microsoft.Extensions.Logging;
 
 namespace BetterGenshinImpact.Host.Common.Notification;
@@ -55,15 +57,22 @@ public sealed class LinuxNotificationService : INotificationHub, IDisposable
                 notifiers.Add(new FreedesktopNotifier { LogFailure = m => _logger.LogDebug("{Message}", m) });
             }
 
+            // 邮件与 Windows 版 NotificationService.InitializeEmailNotifier 相同
+            if (config.EmailNotificationEnabled)
+            {
+                notifiers.Add(new EmailNotifier(config.SmtpServer, config.SmtpPort, config.SmtpUsername, config.SmtpPassword,
+                    config.FromEmail, config.FromName, config.ToEmail));
+            }
+
             foreach (var notifier in notifiers)
             {
                 _manager.RegisterNotifier(notifier);
             }
 
             NotifierNames = notifiers.Select(n => n.Name).ToList();
-            if (config.EmailNotificationEnabled || config.WechatClawbotNotificationEnabled)
+            if (config.WechatClawbotNotificationEnabled)
             {
-                _logger.LogInformation("通知：邮件 / 微信 Clawbot 在 Linux 宿主中尚未接入");
+                _logger.LogInformation("通知：微信 Clawbot（扫码绑定的个人微信）在 Linux 宿主中尚未接入，企业微信机器人可用");
             }
         }
     }
@@ -127,8 +136,8 @@ public sealed class LinuxNotificationService : INotificationHub, IDisposable
         }
     }
 
-    /// <summary>向当前启用的全部通知器发送一条测试通知（不经事件订阅过滤），返回各通知器的结果</summary>
-    public async Task<string> SendTestAsync()
+    /// <summary>与 Windows 版 CreateTestNotificationData 相同：截图器已启动时附带截图</summary>
+    private BaseNotificationData CreateTestData()
     {
         var data = new BaseNotificationData
         {
@@ -149,6 +158,41 @@ public sealed class LinuxNotificationService : INotificationHub, IDisposable
             }
         }
 
+        return data;
+    }
+
+    /// <summary>
+    /// 测试单个通知渠道（与 Windows 版 NotificationService.TestNotifierAsync 相同）：按当前配置重建通知器后只向该类通知器发送，
+    /// 返回是否成功与提示（未启用、发送失败原因）
+    /// </summary>
+    public async Task<(bool Success, string Message)> TestNotifierAsync<T>() where T : INotifier
+    {
+        RefreshNotifiers();
+        var data = CreateTestData();
+        try
+        {
+            var error = await _manager.SendTestAsync<T>(data);
+            return error is null ? (true, "测试通知发送成功") : (false, error);
+        }
+        catch (NotifierException ex)
+        {
+            return (false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"测试通知时发生未知错误: {ex.Message}");
+        }
+        finally
+        {
+            data.Screenshot?.Dispose();
+            data.Screenshot = null;
+        }
+    }
+
+    /// <summary>向当前启用的全部通知器发送一条测试通知（不经事件订阅过滤），返回各通知器的结果</summary>
+    public async Task<string> SendTestAsync()
+    {
+        var data = CreateTestData();
         try
         {
             var names = NotifierNames;

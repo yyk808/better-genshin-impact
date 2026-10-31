@@ -425,6 +425,122 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+                    <TextBlock Classes="section" Text="企业微信" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="12,0,0,0">
+                                <TextBlock Name="WorkweixinStatus" Text="{Binding WorkweixinStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
+                                <Button Name="WorkweixinTestButton" Content="测试" Command="{Binding TestWorkweixinNotificationCommand}" />
+                                <ToggleSwitch Name="WorkweixinSwitch" IsChecked="{Binding Config.NotificationConfig.WorkweixinNotificationEnabled}" OnContent="" OffContent="" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用企业微信机器人" />
+                                <TextBlock Classes="desc" Text="群机器人 Webhook，消息为文本（附截图时另发图片）" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="WorkweixinUrlBox" Width="360" Text="{Binding Config.NotificationConfig.WorkweixinWebhookUrl}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Webhook 地址" />
+                                <TextBlock Classes="desc" Text="群机器人设置中的 Webhook 地址（https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…）" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Classes="section" Text="邮件" Margin="0,12,0,4" />
+                    <Border Classes="card">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="12,0,0,0">
+                                <TextBlock Name="EmailStatus" Text="{Binding EmailStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
+                                <Button Name="EmailTestButton" Content="测试" Command="{Binding TestEmailNotificationCommand}" />
+                                <ToggleSwitch Name="EmailSwitch" IsChecked="{Binding Config.NotificationConfig.EmailNotificationEnabled}" OnContent="" OffContent="" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="启用邮件通知" />
+                                <TextBlock Classes="desc" Text="通过 SMTP 发送；465 端口用 SSL，587 用 STARTTLS，25 不加密，其余自动协商" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="SmtpServerBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpServer}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="SMTP 服务器" />
+                                <TextBlock Classes="desc" Text="如 smtp.qq.com" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="SmtpPortBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpPort}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="SMTP 端口" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="SmtpUserBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpUsername}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="SMTP 用户名" />
+                                <TextBlock Classes="desc" Text="留空时不登录" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="SmtpPasswordBox" Width="360" Text="{Binding Config.NotificationConfig.SmtpPassword}" PasswordChar="•" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="SMTP 密码 / 授权码" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="FromEmailBox" Width="360" Text="{Binding Config.NotificationConfig.FromEmail}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="发件人邮箱" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="FromNameBox" Width="360" Text="{Binding Config.NotificationConfig.FromName}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="发件人名称" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <DockPanel>
+                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBox Name="ToEmailBox" Width="360" Text="{Binding Config.NotificationConfig.ToEmail}" />
+                            </ContentControl>
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="收件人邮箱" />
+                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
                     <TextBlock Classes="section" Text="其他通道" Margin="0,12,0,4" />
                     <Border Classes="card">
                         <DockPanel>
@@ -455,17 +571,6 @@
                             </ContentControl>
                             <StackPanel>
                                 <TextBlock Classes="title" Text="Bark" />
-                                <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                    <Border Classes="card">
-                        <DockPanel>
-                            <ContentControl DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
-                                <ToggleSwitch IsChecked="{Binding Config.NotificationConfig.EmailNotificationEnabled}" OnContent="" OffContent="" />
-                            </ContentControl>
-                            <StackPanel>
-                                <TextBlock Classes="title" Text="邮件" />
                                 <TextBlock Classes="desc" Text="" TextWrapping="Wrap" />
                             </StackPanel>
                         </DockPanel>

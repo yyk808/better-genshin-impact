@@ -649,5 +649,16 @@ Core 1187 个，主项目 575 个（CD 表单视图模型移到 Core）；Avalon
 - 界面自测 `--ui-test dev-hotkeys`（24 项）：假游戏显示带小地图的主界面场景（小地图取自 `MapBack_1` 精细灰度图与彩色图，
   按 156 像素对应精细图 260 像素缩放，并模拟边缘渐暗与视野扇形提亮，与 BGI 预处理的逆运算对应），两张场景每 4 秒切换；
   xdotool 按快捷键打开模板窗口、框选保存并核对裁剪图片与 Recognition.json、冲突确认；再按快捷键开始记录、添加路径点、停止保存，
-  核对路线文件中两个点的坐标与场景小地图位置一致（误差小于 1）。
+  核对路线文件中两个点的坐标与场景小地图位置一致（误差小于 1）。- 邮件与企业微信通知：
+  - `EmailNotifier` 从 WPF 工程移到 Core（命名空间不变，Core 增加与主项目同版本的 MailKit 引用），Linux 通知服务按配置创建，
+    与 Windows 版 `InitializeEmailNotifier` 相同；企业微信机器人（`WorkWeixinNotifier`）此前已由 Core 的通知器工厂创建。
+  - Avalonia 通知设置页新增“企业微信”（开关、Webhook 地址）与“邮件”（开关、SMTP 服务器 / 端口 / 用户名 / 密码、发件人、收件人）两组，
+    每组有“测试”按钮：与 WPF `TestNotifierAsync<T>` 相同，按当前配置重建通知器后只向该类通知器发送测试通知（截图器已启动时附带截图），
+    显示成功或失败原因（未启用、收件人为空、连接失败等）。
+  - 微信 Clawbot（扫码绑定的个人微信）仍未接入 Linux 宿主。
+- 界面自测 `--ui-test notify-channels`（10 项）：外部脚本在回环地址启动假 SMTP 与假 Webhook 服务器并记录收到的内容；测试先确认其它通知渠道
+  全部未启用，再在界面填写地址并点“测试”，核对假 Webhook 收到截图与文本两条消息、假 SMTP 收到发件人 / 收件人正确且带截图附件的邮件，
+  以及未启用、收件人为空时的提示。不向任何外部地址发送。
+
+Core 1189 个，主项目 574 个（`EmailNotifier` 移到 Core，新增 `PathRecordSession`）；Avalonia 宿主 `.cs` 与 `.axaml` 共 90 个。
 

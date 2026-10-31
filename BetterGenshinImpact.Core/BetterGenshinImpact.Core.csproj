@@ -31,6 +31,8 @@
 		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.21.0" />
 		<!-- ImageRegion 的图像缓存（主项目经 YoloSharp 间接引用的同一版本） -->
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+		<!-- 邮件通知（EmailNotifier，纯托管，Windows 主程序与 Linux 宿主共用），版本与主项目一致 -->
+		<PackageReference Include="MailKit" Version="4.16.0" />
 		<!-- YOLO 推理（跨平台；依赖的 Microsoft.ML.OnnxRuntime 含 Windows / Linux 原生库），版本与主项目一致 -->
 		<PackageReference Include="YoloSharp" Version="6.0.3" />
 		<!-- 简繁转换（纯托管），I18nService 使用，版本与主项目一致 -->

@@ -45,6 +45,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plan-profiles-cd": await PlanProfilesCooldownAsync(); break;
                 case "plan-node-cd": await PlanNodeCooldownAsync(); break;
                 case "dev-hotkeys": await DevHotkeysAsync(); break;
+                case "notify-channels": await NotifyChannelsAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1977,6 +1978,84 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             File.Copy(file, Path.Combine(dir ?? "/tmp", "path-record.json"), true);
             File.Delete(file);
         }
+    }
+
+    // —— 邮件与企业微信通知：只发往本机假 SMTP（127.0.0.1:18025）与假 Webhook（127.0.0.1:18045），由外部脚本记录收到的内容 ——
+
+    private async Task NotifyChannelsAsync()
+    {
+        var settings = vm.Settings;
+        var n = settings.Config.NotificationConfig;
+        var outDir = Environment.GetEnvironmentVariable("FAKE_SERVER_OUT") ?? "/tmp/m45-fake";
+        // 防护：其它渠道必须都未启用，避免向外部地址发送
+        var others = typeof(BetterGenshinImpact.Service.Notification.NotificationConfig).GetProperties()
+            .Where(p => p.PropertyType == typeof(bool) && p.Name.EndsWith("NotificationEnabled") && p.Name is not ("EmailNotificationEnabled" or "WorkweixinNotificationEnabled" or "JsNotificationEnabled"))
+            .Where(p => (bool)p.GetValue(n)!).Select(p => p.Name).ToList();
+        others.AddRange(n.WebhookEnabled ? ["WebhookEnabled"] : []);
+        Check("其它通知渠道均未启用", others.Count == 0, string.Join(",", others));
+        if (others.Count > 0) return;
+
+        await WaitFor(() => vm.Host?.RuntimeService.Current);
+        vm.Navigate("设置");
+        await Settle(800);
+        var tab = All<TabItem>().FirstOrDefault(t => t.Header as string == "通知");
+        if (tab is not null) tab.IsSelected = true;
+        await Settle(800);
+
+        // 未启用时测试：与 WPF 相同提示“通知类型未启用”
+        await Click(Named<Button>("WorkweixinTestButton"), "测试企业微信（未启用）");
+        await WaitFor(() => string.IsNullOrEmpty(settings.WorkweixinStatus) ? null : "ok");
+        Check("未启用时提示", settings.WorkweixinStatus.Contains("未启用"), settings.WorkweixinStatus);
+
+        // 企业微信：界面填写地址并启用
+        Named<TextBox>("WorkweixinUrlBox")!.Text = "http://127.0.0.1:18045/cgi-bin/webhook/send?key=m45-selftest";
+        Named<ToggleSwitch>("WorkweixinSwitch")!.IsChecked = true;
+        await Settle(300);
+        Check("企业微信设置写入配置", n.WorkweixinNotificationEnabled && n.WorkweixinWebhookUrl.Contains("18045"), n.WorkweixinWebhookUrl);
+        settings.WorkweixinStatus = "";
+        await Click(Named<Button>("WorkweixinTestButton"), "测试企业微信");
+        await WaitFor(() => string.IsNullOrEmpty(settings.WorkweixinStatus) ? null : "ok");
+        Check("企业微信测试发送成功", settings.WorkweixinStatus.Contains("成功"), settings.WorkweixinStatus);
+        var hook = File.Exists(Path.Combine(outDir, "webhook.jsonl")) ? File.ReadAllLines(Path.Combine(outDir, "webhook.jsonl")) : [];
+        Check("假 Webhook 收到截图与文本", hook.Any(l => l.Contains("\"msgtype\": \"image\"") && l.Contains("key=m45-selftest"))
+            && hook.Any(l => l.Contains("\"msgtype\": \"text\"") && l.Contains("这是一条测试通知信息")), $"{hook.Length} 条");
+
+        // 邮件：界面填写 SMTP 设置并启用
+        Named<TextBox>("SmtpServerBox")!.Text = "127.0.0.1";
+        Named<TextBox>("SmtpPortBox")!.Text = "18025";
+        Named<TextBox>("SmtpUserBox")!.Text = "";
+        Named<TextBox>("FromEmailBox")!.Text = "bgi-selftest@example.invalid";
+        Named<TextBox>("FromNameBox")!.Text = "BetterGI 自测";
+        Named<TextBox>("ToEmailBox")!.Text = "";
+        Named<ToggleSwitch>("EmailSwitch")!.IsChecked = true;
+        await Settle(300);
+        Check("SMTP 设置写入配置", n.EmailNotificationEnabled && n.SmtpServer == "127.0.0.1" && n.SmtpPort == 18025, $"{n.SmtpServer}:{n.SmtpPort}");
+        await Click(Named<Button>("EmailTestButton"), "测试邮件（无收件人）");
+        await WaitFor(() => string.IsNullOrEmpty(settings.EmailStatus) ? null : "ok");
+        Check("收件人为空时报错", settings.EmailStatus.Contains("收件人"), settings.EmailStatus);
+        Named<TextBox>("ToEmailBox")!.Text = "player@example.invalid";
+        settings.EmailStatus = "";
+        await Settle(300);
+        await Click(Named<Button>("EmailTestButton"), "测试邮件");
+        await WaitFor(() => string.IsNullOrEmpty(settings.EmailStatus) ? null : "ok");
+        Check("邮件测试发送成功", settings.EmailStatus.Contains("成功"), settings.EmailStatus);
+        var mail = File.Exists(Path.Combine(outDir, "mail.eml")) ? File.ReadAllText(Path.Combine(outDir, "mail.eml")) : "";
+        var envelope = File.Exists(Path.Combine(outDir, "smtp-envelope.txt")) ? File.ReadAllText(Path.Combine(outDir, "smtp-envelope.txt")) : "";
+        Check("假 SMTP 收到邮件", envelope.Contains("<player@example.invalid>") && envelope.Contains("<bgi-selftest@example.invalid>")
+            && mail.Contains("screenshot.jpg") && mail.Contains("Subject:"), $"{mail.Length} 字节");
+        if (ButtonByText("收起") is { } collapse) await Click(collapse, "收起日志");
+        Named<Button>("EmailTestButton")?.BringIntoView();
+        await Settle(600);
+        Shot("avalonia-notify-channels.png");
+
+        // 关闭后测试：提示未启用
+        Named<ToggleSwitch>("EmailSwitch")!.IsChecked = false;
+        settings.EmailStatus = "";
+        await Settle(300);
+        await Click(Named<Button>("EmailTestButton"), "测试邮件（已关闭）");
+        await WaitFor(() => string.IsNullOrEmpty(settings.EmailStatus) ? null : "ok");
+        Check("关闭后不再发送", settings.EmailStatus.Contains("未启用"), settings.EmailStatus);
+        Named<ToggleSwitch>("WorkweixinSwitch")!.IsChecked = false;
     }
 
     private ListBox? CooldownList() => Named<ListBox>("CooldownList");

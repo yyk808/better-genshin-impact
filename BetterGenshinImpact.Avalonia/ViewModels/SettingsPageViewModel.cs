@@ -469,6 +469,33 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         : "未找到 notify-send 或 gdbus，系统通知不会显示（其他通知渠道不受影响）";
 
     /// <summary>向当前启用的全部通知渠道发送测试通知</summary>
+    /// <summary>邮件渠道测试结果</summary>
+    [ObservableProperty] private string _emailStatus = string.Empty;
+
+    /// <summary>企业微信渠道测试结果</summary>
+    [ObservableProperty] private string _workweixinStatus = string.Empty;
+
+    /// <summary>测试邮件通知（对照 WPF OnTestEmailNotification）</summary>
+    [RelayCommand]
+    public async Task TestEmailNotificationAsync() => EmailStatus = await TestNotifierAsync<BetterGenshinImpact.Service.Notifier.EmailNotifier>("邮件");
+
+    /// <summary>测试企业微信机器人通知（对照 WPF OnTestWorkweixinNotification）</summary>
+    [RelayCommand]
+    public async Task TestWorkweixinNotificationAsync() => WorkweixinStatus = await TestNotifierAsync<BetterGenshinImpact.Service.Notifier.WorkWeixinNotifier>("企业微信");
+
+    private async Task<string> TestNotifierAsync<T>(string name) where T : BetterGenshinImpact.Service.Notifier.Interface.INotifier
+    {
+        if (_host?.Services.GetService<LinuxNotificationService>() is not { } service)
+        {
+            return "平台服务未初始化，无法发送通知";
+        }
+
+        var (success, message) = await Task.Run(service.TestNotifierAsync<T>);
+        _log.Information("测试{Name}通知：{Message}", name, message);
+        UiHost.Dialogs.Toast(success ? DialogKind.Success : DialogKind.Error, $"{name}：{message}");
+        return message;
+    }
+
     [RelayCommand]
     public async Task SendTestNotificationAsync()
     {
