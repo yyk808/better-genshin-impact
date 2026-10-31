@@ -1,0 +1,470 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:qv="using:BetterGenshinImpact.ViewModel.Pages"
+        xmlns:eng="using:BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettings"
+        xmlns:tts="using:BetterGenshinImpact.GameTask.QuestVoice.Core.Tts"
+        x:Class="BetterGenshinImpact.Avalonia.Views.QuestVoiceSettingsWindow"
+        x:DataType="qv:QuestVoiceSettingsViewModel"
+        Title="自动配音设置" Width="980" Height="780" MinWidth="760" MinHeight="560"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BgiWindowBrush}">
+    <!-- 对应 WPF QuestVoiceSettingsWindow：引擎与声线 / 角色 / 识别 / 高级四页，模型为 Core 的 QuestVoiceSettingsViewModel -->
+    <Window.Styles>
+        <Style Selector="Border.section">
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Background" Value="{StaticResource BgiCardBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BgiCardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="TextBlock.h">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="TextBlock.engineTitle">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.tip">
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Margin" Value="0,10,0,5" />
+        </Style>
+    </Window.Styles>
+    <Window.Resources>
+        <!-- 服务实例（本地 / 远程地址） -->
+        <DataTemplate x:Key="EngineConnection" x:DataType="eng:EngineSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="h" Text="服务实例" Margin="0,12,0,8" />
+                <ToggleSwitch Content="使用远程实例" IsChecked="{Binding EngineConfig.UseRemote}" />
+                <TextBlock Classes="label" Text="本地 / 默认 Base URL" />
+                <TextBox x:Name="LocalUrl" Text="{Binding LocalUrlDraft}" Watermark="http://127.0.0.1:端口/，保留反向代理路径" />
+                <TextBlock Classes="label" Text="远程 Base URL（远程模式使用）" />
+                <TextBox Text="{Binding RemoteUrlDraft}" Watermark="https://服务器/子路径/" />
+                <TextBlock Text="{Binding UrlValidationMessage}" TextWrapping="Wrap" Margin="0,6,0,6" Foreground="#C42B1C" />
+            </StackPanel>
+        </DataTemplate>
+        <!-- 声音列表与刷新 -->
+        <DataTemplate x:Key="EngineVoiceList" x:DataType="eng:EngineSettingsViewModel">
+            <StackPanel>
+                <ComboBox x:Name="VoiceList" HorizontalAlignment="Stretch" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="tts:TtsVoiceInfo"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Content="刷新声音列表" Command="{Binding RefreshVoicesCommand}" Margin="0,8,0,8" />
+            </StackPanel>
+        </DataTemplate>
+        <!-- 添加为声线、本引擎声线库、试听 -->
+        <DataTemplate x:Key="EnginePreview" x:DataType="eng:EngineSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="h" Text="声线名称（可选）" Margin="0,18,0,8" />
+                <TextBox Text="{Binding VoiceDisplayName}" Watermark="留空使用当前声音名称；添加后可在“角色”页分配" />
+                <Button x:Name="RegisterVoice" Content="添加为声线" Command="{Binding RegisterVoiceCommand}" Margin="0,8,0,4" />
+                <Expander Header="本引擎的声线" IsExpanded="{Binding IsLibraryExpanded}" HorizontalAlignment="Stretch" Margin="0,12,0,8">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="tip" Text="选择已有声线可修改名称或声音 ID；仍被角色或默认规则引用的声线需先解除引用才能删除。" />
+                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding RegisteredProfiles}" SelectedItem="{Binding SelectedRegisteredProfile}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="qv:QuestVoiceManagementProfile"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel IsEnabled="{Binding Management.CanEditDraft}" IsVisible="{Binding SelectedRegisteredProfile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <TextBlock Classes="label" Text="显示名称" />
+                            <TextBox Text="{Binding SelectedRegisteredProfile.Name, FallbackValue=''}" />
+                            <TextBlock Classes="label" Text="声音 ID" />
+                            <TextBox Text="{Binding SelectedRegisteredProfile.ProviderVoiceId, FallbackValue=''}" />
+                        </StackPanel>
+                        <Button Content="删除所选声线" Command="{Binding DeleteRegisteredProfileCommand}" />
+                    </StackPanel>
+                </Expander>
+                <TextBlock Classes="h" Text="试听文本" Margin="0,18,0,8" />
+                <TextBox Text="{Binding TestText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" />
+                <WrapPanel Margin="0,8,0,4">
+                    <Button x:Name="TestVoice" Content="试听当前引擎声音" Command="{Binding TestVoiceCommand}" Margin="0,0,8,4" />
+                    <Button Content="停止试听" Command="{Binding CancelTestVoiceCommand}" Margin="0,0,0,4" />
+                </WrapPanel>
+                <TextBlock x:Name="EngineStatus" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,4,0,8" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="RateSlider" x:DataType="eng:EngineSettingsViewModel">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Width="48" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding EngineConfig.Rate, StringFormat={}{0:F2}, FallbackValue=''}" />
+                    <Slider x:Name="RateSlider" Minimum="0.5" Maximum="2" TickFrequency="0.1" IsSnapToTickEnabled="True" Value="{Binding EngineConfig.Rate, FallbackValue=1}" />
+                </DockPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+    <Window.DataTemplates>
+        <!-- 引擎设置按模型类型选择模板（对应 WPF View/Pages/QuestVoiceSettings/*.xaml） -->
+        <DataTemplate DataType="qv:GptSovitsSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="GPT-SoVITS" />
+                <TextBlock Classes="tip" Text="连接自行启动的 api_v2 服务；声线由 GPT 权重、SoVITS 权重和参考音频组成。" Margin="0,8,0,12" />
+                <TextBlock Classes="h" Text="服务" Margin="0,4,0,8" />
+                <ToggleSwitch Content="使用远程实例（本地与远程地址分别保留）" IsChecked="{Binding Config.UseRemoteService}" Margin="0,0,0,8" />
+                <TextBlock Text="服务地址" Margin="0,0,0,6" />
+                <TextBox x:Name="GptServiceUrl" Text="{Binding ServiceUrl}" />
+                <TextBlock Text="{Binding UrlValidationMessage}" Foreground="#C42B1C" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <TextBlock Classes="tip" Text="远程实例的权重和参考音频必须已经在服务器上，填写服务器路径；不会上传本机文件。" Margin="0,4,0,8" />
+                <WrapPanel>
+                    <Button Content="测试连接" Command="{Binding ProbeCommand}" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </WrapPanel>
+                <ToggleSwitch Content="按句流式合成与增量播放（实验性，关闭时完整合成）" IsChecked="{Binding Config.StreamingEnabled}" Margin="0,12,0,0" />
+                <TextBlock Classes="tip" Text="需要后端支持当前 api_v2 的按句流式协议；试听始终完整接收后播放。" Margin="0,4,0,0" />
+                <TextBlock Classes="h" Text="声线" Margin="0,18,0,8" />
+                <StackPanel DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <ComboBox x:Name="GptProfiles" HorizontalAlignment="Stretch" ItemsSource="{Binding GptProfiles}" SelectedItem="{Binding SelectedGptProfile}" MaxDropDownHeight="320">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="qv:QuestVoiceManagementProfile"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="1" x:Name="AddGptProfile" Content="新增" Command="{Binding AddGptProfileCommand}" Margin="8,0,0,0" />
+                        <Button Grid.Column="2" Content="删除" Command="{Binding DeleteProfileCommand}" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Classes="tip" Text="{Binding SelectedProfileDiagnostic}" Margin="0,6,0,8" />
+                    <StackPanel IsEnabled="{Binding CanEditDraft}" IsVisible="{Binding HasSelectedGptProfile}">
+                        <TextBlock Text="名称（修改名称不影响角色对它的引用）" Margin="0,0,0,6" />
+                        <TextBox x:Name="GptProfileName" Text="{Binding SelectedProfile.Name, FallbackValue=''}" Margin="0,0,0,8" />
+                        <TextBlock Text="服务实例" Margin="0,0,0,6" />
+                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding InstanceChoices}" SelectedValueBinding="{Binding Key}" DisplayMemberBinding="{Binding Value}"
+                                  SelectedValue="{Binding SelectedProfile.InstanceId, FallbackValue=''}" Margin="0,0,0,8" />
+                        <TextBlock Text="GPT 权重（.ckpt）" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,8">
+                            <TextBox Text="{Binding SelectedProfile.GptWeightsPath, FallbackValue=''}" />
+                            <Button Grid.Column="1" Content="浏览" Margin="8,0,0,0" IsVisible="{Binding CanBrowseSelectedProfileAssets}" Command="{Binding BrowseProfileAssetCommand}" CommandParameter="gpt" />
+                        </Grid>
+                        <TextBlock Text="SoVITS 权重（.pth）" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,8">
+                            <TextBox Text="{Binding SelectedProfile.SovitsWeightsPath, FallbackValue=''}" />
+                            <Button Grid.Column="1" Content="浏览" Margin="8,0,0,0" IsVisible="{Binding CanBrowseSelectedProfileAssets}" Command="{Binding BrowseProfileAssetCommand}" CommandParameter="sovits" />
+                        </Grid>
+                        <TextBlock Text="参考音频" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,8">
+                            <TextBox Text="{Binding SelectedProfile.ReferenceAudioPath, FallbackValue=''}" />
+                            <Button Grid.Column="1" Content="浏览" Margin="8,0,0,0" IsVisible="{Binding CanBrowseSelectedProfileAssets}" Command="{Binding BrowseProfileAssetCommand}" CommandParameter="audio" />
+                        </Grid>
+                        <TextBlock Text="参考台词（与参考音频逐字一致，当前固定中文）" />
+                        <TextBox Text="{Binding SelectedProfile.PromptText, FallbackValue=''}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56" Margin="0,6,0,8" />
+                    </StackPanel>
+                    <TextBlock Classes="h" Text="试听" Margin="0,10,0,8" />
+                    <TextBox Text="{Binding PreviewText}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48" />
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Classes="accent" Content="试听选中声线" Command="{Binding PreviewProfileCommand}" Margin="0,0,8,0" />
+                        <Button Content="停止试听" Command="{Binding CancelPreviewCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:HuoshanSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="火山翻译 · 三种中文预设音色" />
+                <TextBlock Classes="tip" Text="在线完整合成；只发送试听文本，无需模型或账号。公开端点可能变更或限流。" Margin="0,8,0,12" />
+                <TextBlock Text="默认音色" Margin="0,0,0,6" />
+                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="tts:TtsVoiceInfo"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:WindowsSapiSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="Windows 系统语音（SAPI）" />
+                <TextBlock Classes="tip" Text="使用已安装的系统声音，无需联网；安装新声音后点击刷新。未找到声音时需先安装支持 SAPI 的语音。" Margin="0,8,0,12" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
+                <TextBlock Text="速度倍率（0.5～2）" Margin="0,8,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RateSlider}" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:VoicevoxSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="VOICEVOX" />
+                <TextBlock Classes="tip" Text="连接自行启动的引擎；刷新读取 speaker / talk style。请遵守声音的使用条款与署名要求。" Margin="0,8,0,4" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineConnection}" />
+                <TextBlock Text="声音 / 风格" Margin="0,12,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
+                <TextBlock Text="Style ID（非负整数；刷新保留原值）" Margin="0,4,0,6" />
+                <TextBox Text="{Binding VoiceId}" />
+                <TextBlock Text="速度倍率（0.5～2）" Margin="0,12,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RateSlider}" />
+                <TextBlock Text="音高（-0.15～0.15）" Margin="0,12,0,6" />
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Width="48" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding EngineConfig.Pitch, StringFormat={}{0:F2}, FallbackValue=''}" />
+                    <Slider Minimum="-0.15" Maximum="0.15" TickFrequency="0.01" IsSnapToTickEnabled="True" Value="{Binding EngineConfig.Pitch, FallbackValue=0}" />
+                </DockPanel>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:VitsSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="vits-simple-api" />
+                <TextBlock Classes="tip" Text="支持 VITS 与 BERT-VITS2 文本合成；刷新声音只在点击后连接服务，不会自动安装模型。" Margin="0,8,0,4" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineConnection}" />
+                <TextBlock Text="API Key（可选，只通过请求头发送）" Margin="0,8,0,6" />
+                <TextBox PasswordChar="●" Text="{Binding EngineConfig.ApiKey, FallbackValue=''}" />
+                <TextBlock Text="服务声音" Margin="0,12,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
+                <TextBlock Text="复合声音 ID（例如 VITS:0 或 BERT-VITS2:0）" Margin="0,4,0,6" />
+                <TextBox Text="{Binding VoiceId}" />
+                <TextBlock Text="语言" Margin="0,12,0,6" />
+                <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding EngineConfig.Language, FallbackValue=''}" />
+                <TextBlock Text="速度倍率（0.5～2）" Margin="0,12,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RateSlider}" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:OpenAiSpeechSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="OpenAI 兼容语音 API" />
+                <TextBlock Classes="tip" Text="请填写服务的完整 Base URL（例如 https://api.openai.com/v1/）。声音仅为本地建议，兼容服务可填写自定义 voice ID；模型改变会刷新建议并保留原 ID。" Margin="0,8,0,4" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineConnection}" />
+                <TextBlock Text="API Key（可选，取决于服务要求）" Margin="0,8,0,6" />
+                <TextBox PasswordChar="●" Text="{Binding EngineConfig.ApiKey, FallbackValue=''}" />
+                <TextBlock Text="模型（例如 tts-1 / tts-1-hd / 兼容服务模型）" Margin="0,12,0,6" />
+                <TextBox Text="{Binding EngineConfig.Model, FallbackValue=''}" />
+                <TextBlock Text="本地声音建议" Margin="0,12,0,6" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
+                <TextBlock Text="Voice ID（可手填）" Margin="0,4,0,6" />
+                <TextBox Text="{Binding VoiceId}" />
+                <TextBlock Text="响应格式（PCM 为 24 kHz 单声道 16 位）" Margin="0,12,0,6" />
+                <ComboBox ItemsSource="{Binding AudioFormats}" SelectedItem="{Binding EngineConfig.Format, FallbackValue=''}" />
+                <TextBlock Text="速度倍率（0.25～4）" Margin="0,12,0,6" />
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Width="48" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding EngineConfig.Rate, StringFormat={}{0:F2}, FallbackValue=''}" />
+                    <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding EngineConfig.Rate, FallbackValue=1}" />
+                </DockPanel>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="eng:GoogleTtsSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="Google Translate TTS" />
+                <TextBlock Classes="tip" Text="在线语音合成；使用网页 TTS 协议，需要网络可达，服务没有 Cloud API 的稳定性承诺。语言列表为本地预设。" Margin="0,8,0,12" />
+                <TextBlock Text="语言" Margin="0,0,0,6" />
+                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="tts:TtsVoiceInfo"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="速度（0.5 慢速 / 1 正常）" Margin="0,12,0,6" />
+                <ComboBox ItemsSource="{Binding Rates}" SelectedItem="{Binding EngineConfig.Rate, FallbackValue=1}" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+        <!-- 宿主注册的平台引擎（Linux：espeak-ng）：按能力显示设置 -->
+        <DataTemplate DataType="eng:GenericEngineSettingsViewModel">
+            <StackPanel>
+                <TextBlock Classes="engineTitle" Text="{Binding Provider.DisplayName}" />
+                <TextBlock Classes="tip" Text="{Binding Provider.Description}" Margin="0,8,0,4" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineConnection}" IsVisible="{Binding Provider.Capabilities.ServerConnection}" />
+                <StackPanel IsVisible="{Binding Provider.Capabilities.ApiKey}">
+                    <TextBlock Text="API Key（可选）" Margin="0,8,0,6" />
+                    <TextBox PasswordChar="●" Text="{Binding EngineConfig.ApiKey, FallbackValue=''}" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Provider.Capabilities.PresetVoices}">
+                    <TextBlock Text="声音" Margin="0,12,0,6" />
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
+                </StackPanel>
+                <TextBlock Text="声音 ID（可手填）" Margin="0,4,0,6" />
+                <TextBox x:Name="GenericVoiceId" Text="{Binding VoiceId}" />
+                <StackPanel IsVisible="{Binding Provider.Capabilities.Rate}">
+                    <TextBlock Text="速度倍率（0.5～2）" Margin="0,12,0,6" />
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RateSlider}" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Provider.Capabilities.Pitch}">
+                    <TextBlock Text="音高（-0.15～0.15）" Margin="0,12,0,6" />
+                    <Slider Minimum="-0.15" Maximum="0.15" TickFrequency="0.01" IsSnapToTickEnabled="True" Value="{Binding EngineConfig.Pitch, FallbackValue=0}" />
+                </StackPanel>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid RowDefinitions="*,Auto">
+        <TabControl x:Name="Tabs" Margin="16,4,16,0">
+            <!-- 引擎与声线：左侧引擎列表，★ 为默认引擎；右侧为所选引擎的全部设置 -->
+            <TabItem Header="引擎与声线">
+                <Grid ColumnDefinitions="210,*" Margin="0,12,0,0">
+                    <ListBox x:Name="EngineList" ItemsSource="{Binding Engines}" SelectedItem="{Binding SelectedEngine}" Margin="0,0,12,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="eng:QuestVoiceEngineEntry">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★" Width="18" Foreground="{StaticResource BgiAccentBrush}" IsVisible="{Binding IsDefault}" />
+                                    <TextBlock Text="{Binding Provider.DisplayName}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Grid Grid.Column="1" RowDefinitions="Auto,*">
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                            <TextBlock Classes="tip" VerticalAlignment="Center" Text="★ 为正式配音使用的默认引擎；已分配给角色的声线仍按各自引擎播放。" />
+                            <Button Grid.Column="1" x:Name="SetDefaultEngine" Margin="12,0,0,0" Content="★ 设为默认引擎" Command="{Binding SetDefaultEngineCommand}" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                            <ContentControl x:Name="EngineSettings" Margin="0,0,12,12" Content="{Binding SelectedEngine.Settings, FallbackValue={x:Null}}"
+                                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" />
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- 角色：角色声线开关、默认 NPC 与旁白、旅行者、角色列表 -->
+            <TabItem Header="角色">
+                <ScrollViewer Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,12,12">
+                        <Border Classes="section" IsEnabled="{Binding IsConfigEditable}">
+                            <StackPanel>
+                                <ToggleSwitch x:Name="RoutingEnabled" Content="启用角色声线" IsChecked="{Binding Config.RoutingEnabled}" />
+                                <TextBlock Classes="tip" Text="关闭时所有台词使用默认引擎的默认声音；开启后按角色分配的声线朗读，未匹配的角色使用默认 NPC 声线。" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel" IsEnabled="{Binding CanEditDraft}">
+                            <Border Classes="section">
+                                <StackPanel>
+                                    <TextBlock Classes="h" Text="默认 NPC 声线" />
+                                    <ComboBox x:Name="FallbackVoice" HorizontalAlignment="Stretch" ItemsSource="{Binding VoiceChoices}" SelectedValueBinding="{Binding Id}" DisplayMemberBinding="{Binding DisplayName}" SelectedValue="{Binding SelectedFallbackVoiceId}" />
+                                    <TextBlock Classes="tip" Text="有姓名但没有匹配到角色时使用；不会覆盖已分配给角色的声线。" Margin="0,6,0,12" />
+                                    <TextBlock Classes="h" Text="旁白声线" />
+                                    <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding VoiceChoices}" SelectedValueBinding="{Binding Id}" DisplayMemberBinding="{Binding DisplayName}" SelectedValue="{Binding SelectedNarratorVoiceId}" />
+                                    <TextBlock Classes="tip" Text="旁白识别尚未接通：设置会保存，但暂不生效；姓名识别失败时仍使用默认 NPC 声线。" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="section">
+                                <StackPanel>
+                                    <TextBlock Classes="h" Text="旅行者" />
+                                    <TextBlock Text="游戏内昵称（用于识别，有多个历史昵称时一行一个）" Margin="0,0,0,6" />
+                                    <TextBox x:Name="PlayerNames" Text="{Binding PlayerNames}" AcceptsReturn="True" MinHeight="40" MaxHeight="100" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                    <TextBlock Text="声线" Margin="0,0,0,6" />
+                                    <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding VoiceChoices}" SelectedValueBinding="{Binding Id}" DisplayMemberBinding="{Binding DisplayName}" SelectedValue="{Binding TravelerVoiceId}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="section">
+                                <StackPanel>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                                        <TextBox x:Name="SpeakerSearch" Watermark="搜索名称、别名或识别纠错" Text="{Binding SpeakerSearch}" />
+                                        <Button Grid.Column="1" x:Name="AddSpeaker" Content="添加角色" Command="{Binding AddSpeakerCommand}" Margin="8,0,0,0" />
+                                        <Button Grid.Column="2" x:Name="DeleteSpeaker" Content="删除" Command="{Binding DeleteSpeakerCommand}" Margin="8,0,0,0" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="180,*">
+                                        <ListBox x:Name="SpeakerList" ItemsSource="{Binding FilteredSpeakers}" SelectedItem="{Binding SelectedSpeaker}" Height="300" Margin="0,0,12,0">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="qv:QuestVoiceManagementSpeaker"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <StackPanel Grid.Column="1" IsVisible="{Binding SelectedSpeaker, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                            <TextBlock Text="正式名称（一行一个，至少一项）" />
+                                            <TextBox x:Name="SpeakerNames" Text="{Binding SelectedSpeaker.Names, FallbackValue=''}" AcceptsReturn="True" MinHeight="40" MaxHeight="100" Margin="0,6,0,8" />
+                                            <TextBlock Text="别名（一行一个）" />
+                                            <TextBox Text="{Binding SelectedSpeaker.Aliases, FallbackValue=''}" AcceptsReturn="True" MinHeight="40" MaxHeight="100" Margin="0,6,0,8" />
+                                            <TextBlock Text="识别纠错（OCR 常见误识别的姓名，一行一个）" />
+                                            <TextBox Text="{Binding SelectedSpeaker.Corrections, FallbackValue=''}" AcceptsReturn="True" MinHeight="40" MaxHeight="100" Margin="0,6,0,8" />
+                                            <TextBlock Text="声线（未单独指定时使用默认规则）" />
+                                            <ComboBox x:Name="SpeakerVoice" HorizontalAlignment="Stretch" ItemsSource="{Binding VoiceChoices}" SelectedValueBinding="{Binding Id}" DisplayMemberBinding="{Binding DisplayName}" SelectedValue="{Binding SelectedSpeakerVoiceId}" Margin="0,6,0,8" />
+                                            <TextBlock Text="角色 ID（旅行者等规则引用它，一般不用改）" />
+                                            <TextBox Text="{Binding SelectedSpeaker.Id, FallbackValue=''}" Margin="0,6,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 识别：OCR 使用内置模型，设备跟随硬件加速设置 -->
+            <TabItem Header="识别">
+                <ScrollViewer Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,12,12" IsEnabled="{Binding IsConfigEditable}">
+                        <Border Classes="section">
+                            <StackPanel>
+                                <TextBlock Classes="h" Text="OCR" />
+                                <TextBlock Classes="tip" Text="使用 BetterGI 内置的 PP-OCRv6 识别模型，不需要另外准备模型；推理设备跟随“设置 → 硬件加速”，开启“OCR 使用 CPU”时固定使用 CPU。" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="section">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel>
+                                    <TextBlock Classes="h" Text="采样间隔（毫秒）" />
+                                    <TextBlock Classes="tip" Text="从截图器已有的画面中按此间隔取样（50～500 毫秒），不另外截图。" />
+                                </StackPanel>
+                                <NumericUpDown Grid.Column="1" x:Name="SampleInterval" Width="160" Margin="16,0,0,0" VerticalAlignment="Center" FormatString="0" Increment="10"
+                                               Minimum="50" Maximum="500" Value="{Binding Config.SampleIntervalMilliseconds}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 高级：超时、缺失策略、角色目录文件 -->
+            <TabItem Header="高级">
+                <ScrollViewer Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,12,12">
+                        <Border Classes="section" IsEnabled="{Binding IsConfigEditable}">
+                            <StackPanel>
+                                <TextBlock Classes="h" Text="网络超时（秒，对所有引擎生效）" Margin="0,0,0,8" />
+                                <Grid ColumnDefinitions="*,*,*">
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="连接（1～120）" Margin="0,0,0,6" />
+                                        <NumericUpDown x:Name="ConnectTimeout" Minimum="1" Maximum="120" FormatString="0" Value="{Binding Config.ConnectTimeoutSeconds}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="请求（1～600）" Margin="0,0,0,6" />
+                                        <NumericUpDown Minimum="1" Maximum="600" FormatString="0" Value="{Binding Config.RequestTimeoutSeconds}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="合成（1～600）" Margin="0,0,0,6" />
+                                        <NumericUpDown Minimum="1" Maximum="600" FormatString="0" Value="{Binding Config.SynthesisTimeoutSeconds}" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="section" DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel">
+                            <StackPanel IsEnabled="{Binding CanEditDraft}">
+                                <TextBlock Classes="h" Text="找不到角色声线时" />
+                                <ComboBox x:Name="MissingPolicy" HorizontalAlignment="Stretch" ItemsSource="{Binding MissingPolicyChoices}" SelectedValueBinding="{Binding Key}" DisplayMemberBinding="{Binding Value}"
+                                          SelectedValue="{Binding MissingVoicePolicy}" />
+                                <TextBlock Classes="tip" Text="角色没有绑定声线或声线资源不可用时的处理方式；普通 NPC 总是使用默认 NPC 声线。" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="section">
+                            <StackPanel>
+                                <TextBlock Classes="h" Text="角色目录文件" />
+                                <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding IsConfigEditable}">
+                                    <TextBox x:Name="CatalogPath" Text="{Binding Config.RoutingCatalogPath}" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" Content="浏览" Command="{Binding BrowseRoutingCatalogCommand}" />
+                                </Grid>
+                                <TextBlock Classes="tip" Text="角色、旅行者和声线保存在这个 JSON 文件中，便于分享；更换路径前请先导出或处理当前未保存的修改。" Margin="0,6,0,8" />
+                                <WrapPanel DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel" IsEnabled="{Binding IsEditingAllowed}">
+                                    <Button x:Name="ReloadCatalog" Content="重新加载" Command="{Binding DiscardAndReloadCommand}" Margin="0,0,8,8" />
+                                    <Button x:Name="ValidateCatalog" Content="校验" Command="{Binding ValidateDraftCommand}" Margin="0,0,8,8" />
+                                    <Button x:Name="ImportCatalog" Content="导入…" Command="{Binding ImportCommand}" Margin="0,0,8,8" />
+                                    <Button x:Name="ExportCatalog" Content="导出…" Command="{Binding ExportCommand}" Margin="0,0,8,8" />
+                                    <Button Content="新建空目录" Command="{Binding NewCatalogCommand}" Margin="0,0,8,8" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- 底部固定状态：保存状态、最近操作结果与错误 -->
+        <Border Grid.Row="1" Padding="16,10" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BgiCardBorderBrush}">
+            <StackPanel>
+                <TextBlock x:Name="SaveStatus" DataContext="{Binding Management}" x:DataType="qv:QuestVoiceManagementViewModel" TextWrapping="Wrap">
+                    <Run Text="{Binding SaveStatus}" /><Run Text=" · " /><Run Text="{Binding EditStatus}" />
+                </TextBlock>
+                <TextBlock x:Name="CommandError" Text="{Binding CommandError}" Foreground="#C42B1C" TextWrapping="Wrap" IsVisible="{Binding HasCommandError}" />
+                <TextBlock Classes="tip" Text="修改自动保存。设置窗口打开期间自动配音暂停，关闭窗口后按新设置继续。" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

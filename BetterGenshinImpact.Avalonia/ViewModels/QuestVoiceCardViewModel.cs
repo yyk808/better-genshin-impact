@@ -6,12 +6,14 @@ using BetterGenshinImpact.GameTask.QuestVoice;
 using BetterGenshinImpact.Service;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using BetterGenshinImpact.ViewModel.Pages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BetterGenshinImpact.Avalonia.ViewModels;
 
 /// <summary>
 /// 实时触发页“自动配音”卡片（对应 WPF QuestVoiceCardViewModel）：开关、运行状态、阶段进度、当前对白和最近事件；
-/// 配音生命周期由 Core 的 <see cref="QuestVoiceService"/> 按开关与截图器状态自动管理。设置窗口（引擎、角色目录）尚未迁移
+/// 配音生命周期由 Core 的 <see cref="QuestVoiceService"/> 按开关与截图器状态自动管理。设置窗口见 <see cref="Views.QuestVoiceSettingsWindow"/>
 /// </summary>
 public sealed partial class QuestVoiceCardViewModel : ObservableObject
 {
@@ -26,10 +28,13 @@ public sealed partial class QuestVoiceCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasCommandError))]
     private string _commandError = "";
 
-    public QuestVoiceCardViewModel(AllConfig config, QuestVoiceService service)
+    private readonly IServiceProvider? _services;
+
+    public QuestVoiceCardViewModel(AllConfig config, QuestVoiceService service, IServiceProvider? services = null)
     {
         Config = config.QuestVoiceConfig;
         _service = service;
+        _services = services;
         _status = service.Status;
         service.Changed += OnServiceChanged;
     }
@@ -61,6 +66,38 @@ public sealed partial class QuestVoiceCardViewModel : ObservableObject
             Interlocked.Exchange(ref _updateQueued, 0);
             Status = _service.Status;
         }, DispatcherPriority.Background);
+    }
+
+    /// <summary>设置窗口是否可用（需要宿主的依赖注入容器）</summary>
+    public bool CanOpenSettings => _services is not null;
+
+    /// <summary>
+    /// 打开设置窗口（对应 WPF OpenSettingsAsync）：窗口打开期间暂停配音，关闭后先保存角色目录草稿，再按新设置恢复
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenSettingsAsync()
+    {
+        CommandError = "";
+        if (_services is null) return;
+        using var pause = _service.BeginSettingsEdit();
+        try
+        {
+            var settings = _services.GetRequiredService<QuestVoiceSettingsViewModel>();
+            var ui = _services.GetRequiredService<Services.AvaloniaQuestVoiceSettingsUi>();
+            await settings.Management.EnsureLoadedAsync();
+            var window = new Views.QuestVoiceSettingsWindow(settings, ui);
+            if (Services.AvaloniaPickers.MainWindow is { } owner) await window.ShowDialog(owner);
+            else
+            {
+                var closed = new TaskCompletionSource();
+                window.Closed += (_, _) => closed.TrySetResult();
+                window.Show();
+                await closed.Task;
+            }
+            if (!await settings.FlushSettingsAsync())
+                CommandError = "角色目录有未保存的修改：请在设置窗口修正输入或处理文件冲突。";
+        }
+        catch (Exception exception) { CommandError = exception.Message; }
     }
 
     /// <summary>执行静态配置校验，结果显示在卡片中</summary>

@@ -15,10 +15,10 @@ public sealed partial class TriggerPageViewModel : PageViewModel
     [ObservableProperty] private bool _isBlacklistAutoPickMode;
     [ObservableProperty] private bool _isWhitelistAutoPickMode;
 
-    public TriggerPageViewModel(AllConfig? config, QuestVoiceService? questVoice = null)
+    public TriggerPageViewModel(AllConfig? config, QuestVoiceService? questVoice = null, IServiceProvider? services = null)
     {
         Config = config ?? new AllConfig();
-        QuestVoice = config is not null && questVoice is not null ? new QuestVoiceCardViewModel(config, questVoice) : null;
+        QuestVoice = config is not null && questVoice is not null ? new QuestVoiceCardViewModel(config, questVoice, services) : null;
         IsAvailable = config is not null;
         PickButtonNames = ["F", "E", "G"];
         if (!string.IsNullOrEmpty(Config.AutoPickConfig.PickKey)

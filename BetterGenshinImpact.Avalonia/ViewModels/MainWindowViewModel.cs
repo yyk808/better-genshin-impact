@@ -36,7 +36,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         Host = host;
         Home = new HomePageViewModel(host, log);
-        Trigger = new TriggerPageViewModel(host?.Config, host?.QuestVoice);
+        Trigger = new TriggerPageViewModel(host?.Config, host?.QuestVoice, host?.Services);
         Environment = new EnvironmentPageViewModel(host, hostError, log);
         Tasks = new TaskSettingsPageViewModel(host, log);
         OneDragon = new OneDragonPageViewModel(host, Tasks, log);

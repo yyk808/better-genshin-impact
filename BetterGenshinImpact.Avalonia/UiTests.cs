@@ -1,4 +1,5 @@
 using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.VisualTree;
@@ -33,6 +34,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "html-mask": await HtmlMaskAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
+                case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -136,6 +138,205 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("关闭后不写入", !text.Contains(marker2));
         Check("重新开启后写入", text.Contains(marker3));
         Shot("settings-logfile.png");
+    }
+
+    // —— 自动配音设置窗口 ——
+
+    private static IEnumerable<T> AllIn<T>(Visual root) where T : Control => root.GetVisualDescendants().OfType<T>();
+
+    private static T? NamedIn<T>(Visual root, string name) where T : Control =>
+        AllIn<T>(root).FirstOrDefault(c => c.Name == name && c.IsEffectivelyVisible);
+
+    private static JObject ReadJson(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        return JObject.Parse(new StreamReader(stream).ReadToEnd());
+    }
+
+    /// <summary>
+    /// 自动配音设置窗口（--ui-test quest-voice-settings）：从实时触发页卡片打开设置窗口，核对引擎列表（Linux 不列出 Windows SAPI、
+    /// espeak-ng 以通用设置追加）、设为默认引擎、修改语速与 VITS 地址（写入 config.json）；把 espeak-ng 声音添加为声线，
+    /// 在“角色”页新增角色并分配该声线，等待自动保存后读取磁盘上的角色目录核对；删除角色（确认框由自测替代）、导出草稿；
+    /// 识别 / 高级页修改采样间隔与超时。角色目录指向输出目录中的副本，不改动程序目录下的 routing.json；config.json 由外部脚本备份恢复
+    /// </summary>
+    private async Task QuestVoiceSettingsAsync()
+    {
+        var work = Path.Combine(dir ?? Path.GetTempPath(), "qv-settings");
+        Directory.CreateDirectory(work);
+        var catalog = Path.Combine(work, "routing.json");
+        foreach (var f in Directory.GetFiles(work)) File.Delete(f);
+        var seed = Path.Combine(Global.StartUpPath, "User", "QuestVoice", "routing.json");
+        if (File.Exists(seed)) File.Copy(seed, catalog, true);
+        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+
+        vm.Navigate("实时触发");
+        await Settle(800);
+        var qv = vm.Trigger.QuestVoice;
+        Check("卡片绑定 Core 服务", qv is not null);
+        if (qv is null) return;
+        qv.Config.RoutingCatalogPath = catalog;
+        var card = await WaitFor(() => Named<Expander>("QuestVoiceCard"));
+        if (card is null) return;
+        card.IsExpanded = true;
+        card.BringIntoView();
+        await Settle(600);
+        var open = await WaitFor(() => Named<Button>("QuestVoiceSettingsButton"));
+        Check("卡片有“设置…”按钮", open is not null);
+        if (open is null) return;
+        Services.AvaloniaQuestVoiceSettingsUi.TestConfirm = message =>
+        {
+            log.Information("确认框：{Message}", message);
+            return true;
+        };
+        var exportPath = Path.Combine(work, "routing.export.json");
+        Services.AvaloniaQuestVoiceSettingsUi.TestPickFile = title => title.Contains("导出") ? exportPath : null;
+        try
+        {
+            OnClickMethod.Invoke(open, null);
+            var win = await WaitFor(() => QuestVoiceSettingsWindow.Current);
+            Check("设置窗口打开", win is not null);
+            if (win is null) return;
+            await Settle(1500);
+            var settings = (BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettingsViewModel)win.DataContext!;
+            Check("角色目录已加载", settings.Management.IsLoaded, settings.Management.SaveStatus);
+            Check("设置期间配音暂停（编辑可用）", settings.IsConfigEditable);
+
+            // —— 引擎与声线 ——
+            var ids = settings.Engines.Select(e => e.Provider.Id).ToList();
+            log.Information("引擎列表：{Engines}", string.Join(", ", ids));
+            Check("引擎列表以 GPT-SoVITS 开头", ids.FirstOrDefault() == "gpt-sovits");
+            Check("Linux 不列出 Windows SAPI", !ids.Contains("windows-sapi"));
+            var espeak = settings.Engines.FirstOrDefault(e => e.Provider.Id == "espeak-ng");
+            Check("espeak-ng 以通用设置追加", espeak?.Settings is BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettings.GenericEngineSettingsViewModel);
+            Shot(win, "qvs-engine-gpt.png");
+
+            var list = NamedIn<ListBox>(win, "EngineList");
+            if (espeak is not null && list is not null)
+            {
+                list.SelectedItem = espeak;
+                await Settle(2500);
+                var engine = (BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettings.EngineSettingsViewModel)espeak.Settings;
+                log.Information("espeak-ng 声音 {Count} 项：{Status}", engine.Voices.Count, engine.StatusMessage);
+                Check("进入 espeak-ng 页自动读取声音列表", engine.Voices.Count > 0, engine.StatusMessage);
+                var slider = NamedIn<Slider>(win, "RateSlider");
+                Check("语速滑块显示", slider is not null);
+                if (slider is not null) slider.Value = 1.3;
+                await Click(NamedIn<Button>(win, "SetDefaultEngine"), "设为默认引擎");
+                Check("默认引擎改为 espeak-ng", settings.Config.ProviderId == "espeak-ng" && espeak.IsDefault, settings.Config.ProviderId);
+                var name = NamedIn<TextBox>(win, "GenericVoiceId");
+                Check("声音 ID 输入框显示当前声音", name?.Text == engine.VoiceId, name?.Text);
+                engine.VoiceDisplayName = "自测声线";
+                await Click(NamedIn<Button>(win, "RegisterVoice"), "添加为声线");
+                await Settle(1200);
+                Check("添加为声线", settings.Management.Profiles.Any(p => p.ProviderId == "espeak-ng" && p.Name == "自测声线"), engine.StatusMessage);
+                Shot(win, "qvs-engine-espeak.png");
+            }
+
+            var vits = settings.Engines.FirstOrDefault(e => e.Provider.Id == "vits-simple-api");
+            if (vits is not null && list is not null)
+            {
+                list.SelectedItem = vits;
+                await Settle(800);
+                var url = NamedIn<TextBox>(win, "LocalUrl");
+                Check("VITS 页显示服务地址", url is not null);
+                if (url is not null)
+                {
+                    url.Text = "ftp://bad";
+                    await Settle();
+                    var engine = (BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettings.EngineSettingsViewModel)vits.Settings;
+                    Check("非法地址提示且不写入", engine.UrlValidationMessage.Length > 0 && engine.EngineConfig?.LocalUrl != "ftp://bad");
+                    url.Text = "http://127.0.0.1:23999/";
+                    await Settle();
+                    Check("合法地址写入引擎配置", engine.EngineConfig?.LocalUrl == "http://127.0.0.1:23999/" && engine.UrlValidationMessage.Length == 0);
+                }
+                Shot(win, "qvs-engine-vits.png");
+            }
+
+            // —— 角色 ——
+            var tabs = NamedIn<TabControl>(win, "Tabs")!;
+            tabs.SelectedIndex = 1;
+            await Settle(800);
+            var routing = NamedIn<ToggleSwitch>(win, "RoutingEnabled");
+            if (routing is not null) routing.IsChecked = true;
+            await Click(NamedIn<Button>(win, "AddSpeaker"), "添加角色");
+            var m = settings.Management;
+            var added = m.SelectedSpeaker;
+            Check("新增角色并选中", added is not null, added?.Id);
+            var names = await WaitFor(() => NamedIn<TextBox>(win, "SpeakerNames"));
+            if (names is not null) names.Text = "自测角色";
+            var voiceBox = NamedIn<ComboBox>(win, "SpeakerVoice");
+            var profile = m.Profiles.FirstOrDefault(p => p.Name == "自测声线");
+            if (voiceBox is not null && profile is not null)
+                voiceBox.SelectedItem = m.VoiceChoices.FirstOrDefault(c => c.Id == profile.OriginalId);
+            await Settle(400);
+            Check("角色分配声线", added is not null && profile is not null && added.VoiceId == profile.OriginalId, added?.VoiceId);
+            var player = NamedIn<TextBox>(win, "PlayerNames");
+            if (player is not null) player.Text = "自测旅行者";
+            NamedIn<ListBox>(win, "SpeakerList")?.BringIntoView();
+            await Settle(2000);
+            Shot(win, "qvs-roles.png");
+            var json = ReadJson(catalog);
+            var speaker = json["Speakers"]?.FirstOrDefault(x => x["Names"]?.Any(n => (string?)n == "自测角色") == true);
+            Check("角色目录自动保存：新角色", speaker is not null, m.SaveStatus);
+            Check("角色目录自动保存：声线引用", speaker is not null && (string?)speaker["VoiceId"] == profile?.OriginalId);
+            Check("角色目录自动保存：espeak-ng 声线",
+                json["Voices"]?.Any(x => (string?)x["ProviderId"] == "espeak-ng" && (string?)x["Name"] == "自测声线") == true);
+            Check("角色目录自动保存：旅行者昵称", json["PlayerNames"]?.Any(x => (string?)x == "自测旅行者") == true);
+            Check("备份文件已保留", Directory.GetFiles(work).Any(f => f != catalog && Path.GetFileName(f).StartsWith("routing.json")),
+                string.Join(", ", Directory.GetFiles(work).Select(Path.GetFileName)));
+
+            // 删除新角色（确认框由自测替代）
+            var speakerList = NamedIn<ListBox>(win, "SpeakerList");
+            if (speakerList is not null && added is not null) speakerList.SelectedItem = added;
+            await Click(NamedIn<Button>(win, "DeleteSpeaker"), "删除角色");
+            await Settle(2000);
+            Check("删除角色后自动保存", ReadJson(catalog)["Speakers"]?.Any(x => x["Names"]?.Any(n => (string?)n == "自测角色") == true) == false, m.SaveStatus);
+
+            // —— 识别 / 高级 ——
+            tabs.SelectedIndex = 2;
+            await Settle(600);
+            var sample = NamedIn<NumericUpDown>(win, "SampleInterval");
+            if (sample is not null) sample.Value = 200;
+            Shot(win, "qvs-ocr.png");
+            tabs.SelectedIndex = 3;
+            await Settle(600);
+            var connect = NamedIn<NumericUpDown>(win, "ConnectTimeout");
+            if (connect is not null) connect.Value = 15;
+            await Click(NamedIn<Button>(win, "ValidateCatalog"), "校验目录");
+            Check("校验目录通过", m.EditStatus.Contains("校验通过"), m.EditStatus);
+            await Click(NamedIn<Button>(win, "ExportCatalog"), "导出");
+            await Settle(800);
+            Check("导出草稿", File.Exists(exportPath), m.EditStatus);
+            Shot(win, "qvs-advanced.png");
+            Check("采样间隔与超时写入配置", settings.Config.SampleIntervalMilliseconds == 200 && settings.Config.ConnectTimeoutSeconds == 15);
+
+            win.Close();
+            await Settle(1500);
+            Check("关闭窗口后无未保存草稿", !qv.HasCommandError, qv.CommandError);
+            // 配置文件自动保存（AllConfig 防抖写盘）
+            await Task.Delay(3000);
+            var config = ReadJson(configPath)["questVoiceConfig"];
+            Check("config.json：默认引擎", (string?)config?["providerId"] == "espeak-ng", (string?)config?["providerId"]);
+            Check("config.json：采样间隔 / 超时", (int?)config?["sampleIntervalMilliseconds"] == 200 && (int?)config?["connectTimeoutSeconds"] == 15);
+            Check("config.json：角色声线开关", (bool?)config?["routingEnabled"] == true);
+            Check("config.json：espeak-ng 语速", Math.Abs(((double?)config?["extraProviders"]?["espeak-ng"]?["rate"] ?? 0) - 1.3) < 0.01,
+                (string?)config?["extraProviders"]?["espeak-ng"]?["rate"]);
+            Check("config.json：VITS 地址", (string?)config?["extraProviders"]?["vits-simple-api"]?["localUrl"] == "http://127.0.0.1:23999/");
+            Check("config.json：角色目录指向自测副本", (string?)config?["routingCatalogPath"] == catalog);
+        }
+        finally
+        {
+            Services.AvaloniaQuestVoiceSettingsUi.TestConfirm = null;
+            Services.AvaloniaQuestVoiceSettingsUi.TestPickFile = null;
+            QuestVoiceSettingsWindow.Current?.Close();
+        }
+    }
+
+    private void Shot(Window target, string file)
+    {
+        if (dir is null) return;
+        Directory.CreateDirectory(dir);
+        AvaloniaHostProgram.SaveScreenshotPublic(target, Path.Combine(dir, file), log);
     }
 
     // —— 自动配音卡片 ——

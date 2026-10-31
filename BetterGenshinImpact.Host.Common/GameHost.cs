@@ -312,6 +312,9 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IQuestVoiceSessionFactory>(sp => sp.GetRequiredService<QuestVoiceSessionFactory>());
             services.AddSingleton<QuestVoiceSessionController>();
             services.AddSingleton<QuestVoiceService>();
+            // 自动配音设置窗口的模型（Core）：角色目录存储与设置模型；界面能力 IQuestVoiceSettingsUi 由宿主经 configureServices 注册
+            services.AddSingleton<BetterGenshinImpact.GameTask.QuestVoice.Features.Routing.RoutingCatalogStore>();
+            services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettingsViewModel>();
             // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
             services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
             services.AddSingleton<KeyMouseRecordService>();

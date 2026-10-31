@@ -74,7 +74,13 @@ internal static class AvaloniaHostProgram
         {
             // 独立任务页提供脚本与一条龙解析战斗策略时用到的设置（ITaskSettingsSource，WPF 中为 TaskSettingsPageViewModel）
             host = GameHost.Create(options.Host, log,
-                services => services.AddSingleton<ITaskSettingsSource>(_ => viewModel!.Tasks));
+                services =>
+                {
+                    services.AddSingleton<ITaskSettingsSource>(_ => viewModel!.Tasks);
+                    // 自动配音设置窗口的界面能力（UI 线程投递、计时器、确认框、文件选择）
+                    services.AddSingleton<AvaloniaQuestVoiceSettingsUi>();
+                    services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.IQuestVoiceSettingsUi>(sp => sp.GetRequiredService<AvaloniaQuestVoiceSettingsUi>());
+                });
         }
         catch (Exception e)
         {

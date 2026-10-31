@@ -107,7 +107,7 @@
                     </StackPanel>
             </Expander>
 
-            <!-- 自动配音：开关、运行状态（对应 WPF QuestVoiceCard；设置窗口尚未迁移） -->
+            <!-- 自动配音：开关、运行状态与设置窗口入口（对应 WPF QuestVoiceCard） -->
             <Expander Classes="card" IsVisible="{Binding QuestVoice, Converter={x:Static ObjectConverters.IsNotNull}}" x:Name="QuestVoiceCard">
                 <Expander.Header>
                     <DockPanel>
@@ -207,6 +207,7 @@
                     <Separator />
                     <!-- 操作 -->
                     <WrapPanel>
+                        <Button Margin="0,0,8,4" x:Name="QuestVoiceSettingsButton" Classes="accent" Content="设置…" Command="{Binding OpenSettingsCommand}" IsVisible="{Binding CanOpenSettings}" />
                         <Button Margin="0,0,8,4" Content="校验配置" Command="{Binding ValidateCommand}" />
                         <Button Margin="0,0,8,4" Content="打开日志" Command="{Binding OpenLogFileCommand}" />
                         <Button Margin="0,0,8,4" Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
