@@ -50,6 +50,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "history": await HistoryAsync(); break;
                 case "newonedragon": await NewOneDragonAsync(); break;
                 case "macro": await MacroAsync(); break;
+                case "music": await MusicAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -93,6 +94,18 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     }
 
     /// <summary>等待控件出现（界面切换后布局可能稍晚完成），最多 5 秒</summary>
+    private static async Task<bool> Until(Func<bool> condition, int timeoutMs)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < timeoutMs)
+        {
+            if (condition()) return true;
+            await Task.Delay(50);
+        }
+
+        return condition();
+    }
+
     private static async Task<T?> WaitFor<T>(Func<T?> find) where T : class
     {
         for (var i = 0; i < 50; i++)
@@ -2240,6 +2253,99 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 自动演奏页（对应 WPF MusicPage）：选择曲谱目录、曲目解析与筛选、播放模式与输入方式写入配置；
+    /// 功能性：在假游戏上播放键盘谱（按键顺序与数量）、暂停时不再发键、停止
+    /// </summary>
+    private async Task MusicAsync()
+    {
+        vm.Navigate("自动演奏");
+        await Settle(600);
+        var page = vm.Music;
+        var music = page.Config.MusicConfig;
+        Check("空曲库提示", Named<StackPanel>("EmptyState")?.IsEffectivelyVisible == true);
+        var folder = Path.Combine(dir ?? Path.GetTempPath(), "music-lib");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "song1.json"), "{\"type\":\"keyboard\",\"name\":\"音阶一\",\"author\":\"测试甲\",\"bpm\":300,\"notes\":\" QWERTYU\"}");
+        File.WriteAllText(Path.Combine(folder, "song2.json"), "{\"type\":\"keyboard\",\"name\":\"长曲二\",\"author\":\"测试乙\",\"bpm\":120,\"notes\":\" ASDFGHJASDFGHJ\"}");
+        File.WriteAllText(Path.Combine(folder, "bad.json"), "{\"type\":\"unknown\",\"notes\":\"Q\"}");
+        await page.SelectMusicFolderAsync(folder);
+        await Settle(400);
+        Check("载入曲目", page.AllMusicItems.Count == 3 && page.AllMusicItems.Count(x => x.IsValid) == 2, page.LibraryStatusText);
+        Check("目录写入配置与历史", music.MusicFolder == folder && page.MusicFolderHistory.FirstOrDefault()?.FullPath == folder && page.MusicFolderDisplayText == "music-lib");
+        Check("列表显示", Named<ListBox>("MusicList")?.IsEffectivelyVisible == true && Named<ListBox>("MusicList")!.ItemCount == 3);
+        Check("无效曲谱显示错误", page.AllMusicItems.Any(x => !x.IsValid && !string.IsNullOrEmpty(x.Error)));
+        Named<TextBox>("SearchBox")!.Text = "测试乙";
+        await Settle();
+        Check("搜索作者", page.MusicItems.Count == 1 && page.MusicItems[0].Name == "长曲二");
+        Named<TextBox>("SearchBox")!.Text = "";
+        await Settle();
+        Check("格式筛选项", page.FormatFilters.Count >= 2 && page.FormatFilters[0] == "全部格式", string.Join(",", page.FormatFilters));
+        var mode0 = page.PlaybackMode;
+        await Click(Named<Button>("PlaybackModeButton")!, "播放模式");
+        Check("切换播放模式写入配置", page.PlaybackMode != mode0 && music.PlaybackMode == page.PlaybackMode.ToString(), music.PlaybackMode);
+        while (page.PlaybackMode != GameTask.Music.Model.MusicPlaybackMode.Sequential) page.CyclePlaybackModeCommand.Execute(null);
+        Named<ToggleSwitch>("InputModeToggle")!.IsChecked = false;
+        await Settle();
+        Check("输入方式写入配置", music.InputMode == "ForegroundSendInput" && page.InputModeDisplayText == "前台");
+        Named<ComboBox>("PlayModeBox")!.SelectedIndex = 1;
+        await Settle();
+        Check("引导式跟弹提示不支持", Named<ComboBox>("PlayModeBox")!.SelectedIndex == 0 && page.Message.Contains("暂不支持"), page.Message);
+        var settingsButton = Named<Button>("MusicSettingsButton")!;
+        settingsButton.Flyout!.ShowAt(settingsButton);
+        await Settle(300);
+        T? InFlyout<T>(string name) where T : Control => ((settingsButton.Flyout as Flyout)?.Content as Control)?.GetVisualDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);
+        var speedBox = InFlyout<NumericUpDown>("SpeedBox");
+        Check("设置弹出：速度", speedBox?.Value == (decimal)music.Speed, speedBox?.Value?.ToString());
+        Check("自定义 BPM 关闭时不可编辑", music.UseCustomBpm || InFlyout<NumericUpDown>("CustomBpmBox")?.IsEffectivelyEnabled == false);
+        settingsButton.Flyout.Hide();
+        await Settle();
+        Check("播放模式图标", page.PlaybackModeGlyph != "\u25A1");
+        Shot("avalonia-music.png");
+
+        // —— 假游戏上的演奏 ——
+        var runtime = await WaitFor(() => vm.Host?.RuntimeService.Current);
+        Check("截图器已启动（假游戏）", runtime is not null);
+        if (runtime is null || dir is null) return;
+        var gameLog = Path.Combine(dir, "fakegame.jsonl");
+        List<System.Text.Json.JsonElement> Events(long since) => File.ReadAllLines(gameLog).Select(l => System.Text.Json.JsonDocument.Parse(l).RootElement)
+            .Where(e => e.GetProperty("t").GetInt64() >= since).ToList();
+        long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        List<string> Downs(long since) => Events(since).Where(e => e.GetProperty("ev").GetString() == "key" && e.GetProperty("action").GetString() == "down"
+            && !(e.TryGetProperty("repeat", out var r) && r.GetBoolean())).Select(e => e.GetProperty("key").GetString()!.ToUpperInvariant()).ToList();
+
+        // 谱面开头留一拍休止：Core MusicPlaybackService 从“当前位置”之后的事件开始（开始时位置已略大于 0），时间为 0 的音符会被跳过（WPF 相同，见报告）
+        var song1 = page.AllMusicItems.First(x => x.Name == "音阶一");
+        var start = Now();
+        await page.PlaySelectedCommand.ExecuteAsync(song1);
+        var playing = await Until(() => page.IsPlaying, 5000);
+        Check("开始播放", playing && page.CurrentTrackName.Contains("音阶一"), page.CurrentTrackName);
+        // 顺序播放：第一首结束后续播第二首，第二首开始即停止
+        await Until(() => page.CurrentTrackName.Contains("长曲二"), 8000);
+        var keys1 = Downs(start);
+        Check("假游戏按顺序收到 QWERTYU", string.Join("", keys1.Take(7)) == "QWERTYU", string.Join("", keys1));
+        Check("顺序播放续播下一首", page.CurrentTrackName.Contains("长曲二"), page.CurrentTrackName);
+        await Task.Delay(1200);
+        await Click(Named<Button>("PlayPauseButton")!, "暂停");
+        await Settle(300);
+        Check("暂停", page.IsPaused && !page.IsPlaying);
+        var pausedAt = Now();
+        await Task.Delay(1200);
+        Check("暂停时不发键", Downs(pausedAt).Count == 0, string.Join("", Downs(pausedAt)));
+        await Click(Named<Button>("PlayPauseButton")!, "继续");
+        await Task.Delay(1200);
+        Check("继续后发键", page.IsPlaying && Downs(pausedAt).Count >= 1, string.Join("", Downs(pausedAt)));
+        await Click(Named<Button>("StopButton")!, "停止");
+        await Settle(500);
+        var stoppedAt = Now();
+        await Task.Delay(800);
+        Check("停止", !page.IsPlaying && !page.IsPaused && Downs(stoppedAt).Count == 0 && page.CurrentTimeText == "00:00");
+        var held = Events(start).Where(e => e.GetProperty("ev").GetString() == "key").GroupBy(e => e.GetProperty("key").GetString())
+            .Where(g => g.Last().GetProperty("action").GetString() == "down").Select(g => g.Key).ToList();
+        Check("没有残留按下的键", held.Count == 0, string.Join(",", held));
+        Shot("avalonia-music-playing.png");
     }
 
     /// <summary>

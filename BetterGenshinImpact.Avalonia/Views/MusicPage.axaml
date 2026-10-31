@@ -1,0 +1,140 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:music="using:BetterGenshinImpact.GameTask.Music.Model"
+             x:Class="BetterGenshinImpact.Avalonia.Views.MusicPage"
+             x:DataType="vm:MusicPageViewModel">
+    <!-- 与 WPF MusicPage 相同的布局：上方曲库卡片（目录、筛选、曲目列表），下方播放条（进度、当前曲目、控制按钮、播放模式、输入方式） -->
+    <Grid RowDefinitions="*,Auto" Margin="16,12,16,0">
+        <Border Grid.Row="0" Padding="8" CornerRadius="12" BorderThickness="1"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <Grid RowDefinitions="Auto,Auto,Auto,*">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" Margin="6,4,6,8">
+                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="我的曲库" />
+                    <TextBlock Grid.Column="1" Margin="14,0" VerticalAlignment="Center" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Config.MusicConfig.MusicFolder}">
+                        <Run Text="曲谱目录：" /><Run Text="{Binding MusicFolderDisplayText}" />
+                    </TextBlock>
+                    <Button Grid.Column="2" x:Name="OpenFolderButton" Height="34" Margin="0,0,7,0" ToolTip.Tip="打开当前目录"
+                            Command="{Binding OpenFolderCommand}" Content="{svc:FluentIcon Open24, Size=14}" />
+                    <Button Grid.Column="3" x:Name="ChooseFolderButton" Height="34" Margin="0,0,7,0" Classes="accent" Command="{Binding ChooseFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon FolderOpen24, Size=14}" /><TextBlock Text="选择目录" /></StackPanel>
+                    </Button>
+                    <Button Grid.Column="4" x:Name="DeleteFolderButton" Height="34" Margin="0,0,7,0" Command="{Binding DeleteMusicFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Delete24, Size=14}" /><TextBlock Text="删除记录" /></StackPanel>
+                    </Button>
+                    <Button Grid.Column="5" x:Name="MusicSettingsButton" Height="34" ToolTip.Tip="演奏设置（对应 WPF 设置窗口：速度、自定义 BPM、自动切换乐器）">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Settings24, Size=14}" /><TextBlock Text="设置" /></StackPanel>
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight">
+                                <StackPanel Width="300" Spacing="10">
+                                    <TextBlock FontWeight="SemiBold" Text="演奏设置" />
+                                    <Grid ColumnDefinitions="*,Auto"><TextBlock VerticalAlignment="Center" Text="播放速度" />
+                                        <NumericUpDown Grid.Column="1" x:Name="SpeedBox" Width="140" Minimum="0.1" Maximum="10" Increment="0.1" FormatString="0.0#" Value="{Binding Config.MusicConfig.Speed}" /></Grid>
+                                    <Grid ColumnDefinitions="*,Auto"><TextBlock VerticalAlignment="Center" Text="使用自定义 BPM" />
+                                        <ToggleSwitch Grid.Column="1" x:Name="CustomBpmToggle" OnContent="" OffContent="" MinWidth="0" IsChecked="{Binding Config.MusicConfig.UseCustomBpm}" /></Grid>
+                                    <Grid ColumnDefinitions="*,Auto"><TextBlock VerticalAlignment="Center" Text="自定义 BPM" />
+                                        <NumericUpDown Grid.Column="1" x:Name="CustomBpmBox" Width="140" Minimum="1" Maximum="1000" FormatString="0" IsEnabled="{Binding Config.MusicConfig.UseCustomBpm}" Value="{Binding Config.MusicConfig.CustomBpm}" /></Grid>
+                                    <Grid ColumnDefinitions="*,Auto"><TextBlock VerticalAlignment="Center" Text="开始曲目前自动切换乐器" />
+                                        <ToggleSwitch Grid.Column="1" x:Name="AutoSwitchToggle" OnContent="" OffContent="" MinWidth="0" IsChecked="{Binding Config.MusicConfig.AutoSwitchInstrument}" /></Grid>
+                                    <Button HorizontalAlignment="Right" Content="保存乐器档案" Command="{Binding SaveProfilesCommand}" />
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <StackPanel Grid.Column="6" Margin="16,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="演奏方式" />
+                        <ComboBox x:Name="PlayModeBox" Width="150" Margin="8,0,0,0" ItemsSource="{Binding PlayModes}" SelectedIndex="{Binding PlayModeIndex}"
+                                  ToolTip.Tip="选择自动演奏或引导式跟弹" />
+                    </StackPanel>
+                </Grid>
+                <Grid Grid.Row="1" ColumnDefinitions="150,10,*,112,112,52" Margin="6,0,6,8">
+                    <ComboBox x:Name="FolderHistoryBox" HorizontalAlignment="Stretch" ItemsSource="{Binding MusicFolderHistory}" SelectedItem="{Binding SelectedMusicFolder}"
+                              ToolTip.Tip="历史目录：切换曲谱目录" />
+                    <TextBox Grid.Column="2" x:Name="SearchBox" Margin="0,0,8,0" Watermark="搜索曲名、作者或路径" Text="{Binding SearchText}" />
+                    <ComboBox Grid.Column="3" x:Name="FormatFilterBox" Margin="0,0,8,0" HorizontalAlignment="Stretch" ItemsSource="{Binding FormatFilters}" SelectedItem="{Binding SelectedFormatFilter}" ToolTip.Tip="按格式筛选" />
+                    <ComboBox Grid.Column="4" x:Name="InstrumentFilterBox" HorizontalAlignment="Stretch" ItemsSource="{Binding InstrumentFilters}" SelectedItem="{Binding SelectedInstrumentFilter}" ToolTip.Tip="按乐器筛选" />
+                    <Button Grid.Column="5" x:Name="RefreshButton" Margin="8,0,0,0" Height="34" HorizontalAlignment="Stretch" Command="{Binding RefreshCommand}"
+                            ToolTip.Tip="刷新曲库" Content="{svc:FluentIcon ArrowClockwise24, Size=14}" />
+                </Grid>
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,200,Auto,120,Auto,*" Margin="6,0,6,8" IsVisible="{Binding SelectedMusicItem, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="输出乐器" />
+                    <ComboBox Grid.Column="1" x:Name="ProfileBox" Margin="8,0,16,0" HorizontalAlignment="Stretch" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedInstrumentProfile}">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="music:InstrumentProfile"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="移调" />
+                    <NumericUpDown Grid.Column="3" x:Name="TransposeBox" Margin="8,0,16,0" Minimum="-24" Maximum="24" FormatString="0" Value="{Binding Transpose}" />
+                    <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <Grid Grid.Row="3">
+                    <ListBox x:Name="MusicList" ItemsSource="{Binding MusicItems}" SelectedItem="{Binding SelectedMusicItem}" Background="Transparent"
+                             IsVisible="{Binding HasVisibleItems}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="music:PerformanceScore">
+                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="4,2" Background="Transparent" DoubleTapped="OnItemDoubleTapped">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Author}" /><Run Text="  ·  " /><Run Text="{Binding FormatName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding Instrument}" />
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Foreground="#E0605A" Text="{Binding Error}" IsVisible="{Binding !IsValid}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <TextBlock FontSize="12" HorizontalAlignment="Right" Text="{Binding DurationText}" />
+                                        <TextBlock FontSize="11" Opacity="0.6" HorizontalAlignment="Right"><Run Text="可演奏 " /><Run Text="{Binding PlayableRatioText, Mode=OneWay}" /></TextBlock>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="从头播放" Content="{svc:FluentIcon Play24, Size=14}"
+                                            Command="{Binding $parent[UserControl].((vm:MusicPageViewModel)DataContext).PlaySelectedCommand}" CommandParameter="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding !HasVisibleItems}">
+                        <Border Width="64" Height="64" CornerRadius="16" HorizontalAlignment="Center" Background="{DynamicResource ControlFillColorDefaultBrush}">
+                            <ContentControl Content="{svc:FluentIcon MusicNote224, Size=30}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="{Binding EmptyTitle}" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" Opacity="0.7" Text="{Binding LibraryStatusText}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+        <!-- 播放条 -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto" Margin="-16,8,-16,0" Background="{DynamicResource LayerFillColorDefaultBrush}">
+            <Slider x:Name="SeekSlider" Margin="0,-6,0,-6" Minimum="0" Maximum="{Binding TotalDurationMilliseconds}" Value="{Binding CurrentPositionMilliseconds, Mode=OneWay}" />
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="20,0">
+                <TextBlock x:Name="CurrentTimeText" FontSize="12" Text="{Binding CurrentTimeText}" />
+                <TextBlock Grid.Column="1" x:Name="TotalTimeText" FontSize="12" HorizontalAlignment="Right" Text="{Binding TotalTimeText}" />
+            </Grid>
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,*" Margin="20,6,20,12">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Width="46" Height="46" CornerRadius="6" Background="{DynamicResource AccentFillColorDefaultBrush}">
+                        <ContentControl Content="{svc:FluentIcon MusicNote224, Size=23}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" MaxWidth="260">
+                        <TextBlock x:Name="CurrentTrackText" FontSize="15" FontWeight="SemiBold" Text="{Binding CurrentTrackName}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock FontSize="12" Opacity="0.6"><Run Text="{Binding CurrentMusicItem.FormatName, FallbackValue=''}" /><Run Text=" · " /><Run Text="{Binding CurrentMusicItem.Instrument, FallbackValue='--'}" /></TextBlock>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="PreviousButton" Width="42" Height="42" Command="{Binding PreviousCommand}" ToolTip.Tip="上一首" Content="{svc:FluentIcon Previous24, Size=16}" />
+                    <Button x:Name="PlayPauseButton" Width="50" Height="50" Classes="accent" Command="{Binding PlayPauseCommand}" ToolTip.Tip="播放 / 暂停">
+                        <TextBlock FontFamily="{x:Static svc:FluentSymbols.Font}" FontSize="22" Text="{Binding PlayPauseGlyph}" />
+                    </Button>
+                    <Button x:Name="NextButton" Width="42" Height="42" Command="{Binding NextCommand}" ToolTip.Tip="下一首" Content="{svc:FluentIcon Next24, Size=16}" />
+                    <Button x:Name="StopButton" Width="42" Height="42" Command="{Binding StopCommand}" ToolTip.Tip="停止" Content="{svc:FluentIcon Stop24, Size=16}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="PlaybackModeButton" Width="42" Height="42" Command="{Binding CyclePlaybackModeCommand}" ToolTip.Tip="{Binding PlaybackModeToolTip}">
+                        <TextBlock FontFamily="{x:Static svc:FluentSymbols.Font}" FontSize="20" Text="{Binding PlaybackModeGlyph}" />
+                    </Button>
+                    <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="输入方式" />
+                    <TextBlock VerticalAlignment="Center" FontSize="12" Text="{Binding InputModeDisplayText}" />
+                    <ToggleSwitch x:Name="InputModeToggle" IsChecked="{Binding UseBackgroundInput}" OnContent="" OffContent="" MinWidth="0"
+                                  ToolTip.Tip="开：后台（Linux 无后台通道时游戏在前台才发键）；关：前台" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

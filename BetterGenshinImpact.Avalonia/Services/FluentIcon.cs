@@ -38,6 +38,8 @@ public static class FluentSymbols
         ["ArrowMinimize24"] = 0xF166,
         ["ArrowRedo24"] = 0xF16F,
         ["ArrowRepeatAll24"] = 0xF172,
+        ["ArrowShuffle24"] = 0xEF37,
+        ["ArrowWrap20"] = 0xE132,
         ["ArrowReset24"] = 0xF1A0,
         ["ArrowRight24"] = 0xF182,
         ["ArrowSwap24"] = 0xF18E,

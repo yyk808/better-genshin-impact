@@ -38,6 +38,9 @@
         <DataTemplate DataType="vm:MacroPageViewModel">
             <views:MacroPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:MusicPageViewModel">
+            <views:MusicPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:NewOneDragonPageViewModel">
             <views:NewOneDragonPage />
         </DataTemplate>
