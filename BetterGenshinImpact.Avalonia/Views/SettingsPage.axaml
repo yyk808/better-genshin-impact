@@ -13,7 +13,7 @@
                     <TextBlock Classes="pagetitle" Text="软件设置" />
                     <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
                         <ui:FASettingsExpander.Footer>
-                            <ComboBox Width="160" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
+                            <ComboBox Width="200" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="启用遮罩窗口" Description="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" IconSource="{svc:FluentIconSource SquareHintSparkles24}">
@@ -91,7 +91,7 @@
                     <TextBlock Classes="pagesection" Text="通用功能设置" />
                     <ui:FASettingsExpander Header="地图追踪优先使用的特征匹配方式" Description="影响所有地图追踪功能，重启后生效" IconSource="{svc:FluentIconSource DataTreemap24}">
                         <ui:FASettingsExpander.Footer>
-                            <ComboBox Width="160" ItemsSource="{Binding MapMatchingMethods}" SelectedItem="{Binding Config.PathingConditionConfig.MapMatchingMethod}" />
+                            <ComboBox Width="200" ItemsSource="{Binding MapMatchingMethods}" SelectedItem="{Binding Config.PathingConditionConfig.MapMatchingMethod}" />
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="大地图地图传送设置" Description="用于地图追踪、自动秘境、一条龙等功能中传送功能的配置" IconSource="{svc:FgiIconSource F3C5}">
@@ -126,7 +126,7 @@
                         </ui:FASettingsExpanderItem>
                         <ui:FASettingsExpanderItem Content="服务器时区" Description="用于判断每日刷新、月卡等（亚服 / 国服 UTC+8，欧服 UTC+1，美服 UTC-5）">
                             <ui:FASettingsExpanderItem.Footer>
-                                <ComboBox Width="160" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding Config.OtherConfig.ServerTimeZoneOffset}" />
+                                <ComboBox Width="200" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding Config.OtherConfig.ServerTimeZoneOffset}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                         <ui:FASettingsExpanderItem Content="详细错误日志" Description="任务出错时在日志中输出完整堆栈">
@@ -214,7 +214,7 @@
         <TabItem Header="通知">
             <ScrollViewer>
                 <StackPanel Classes="page">
-                    <TextBlock Classes="pagetitle" Text="通知设置" />
+                    <TextBlock Classes="pagesection" Text="通知设置" />
                     <ui:FASettingsExpander Header="全局通知设置" Description="影响下方所有通知的设置" IconSource="{svc:FluentIconSource Alert24}">
                         <ui:FASettingsExpanderItem Content="测试通知" Description="向当前启用的全部通知渠道发送一条测试通知">
                             <ui:FASettingsExpanderItem.Footer>

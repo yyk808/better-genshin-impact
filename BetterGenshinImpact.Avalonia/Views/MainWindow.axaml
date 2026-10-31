@@ -44,7 +44,7 @@
     </Window.DataTemplates>
 
     <!-- 左侧导航：FluentAvalonia 的 NavigationView（对应 WPF 版 WPF-UI 的 NavigationView，导航项在代码中按 ViewModel 生成） -->
-    <ui:FANavigationView x:Name="RootNavigation" PaneDisplayMode="Left" OpenPaneLength="200"
+    <ui:FANavigationView x:Name="RootNavigation" PaneDisplayMode="Left" OpenPaneLength="160"
                          IsBackButtonVisible="False" IsSettingsVisible="False" IsPaneToggleButtonVisible="True"
                          AlwaysShowHeader="False">
 

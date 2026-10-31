@@ -106,6 +106,11 @@
     <Style Selector="StackPanel.page > ui|FASettingsExpander">
         <Setter Property="Margin" Value="0,0,0,12" />
     </Style>
+    <!-- 卡片说明文字与 WPF 版相同：正文字号、TextFillColorTertiaryBrush -->
+    <Style Selector="ui|FASettingsExpander /template/ :is(Control)#DescriptionText, ui|FASettingsExpanderItem /template/ :is(Control)#DescriptionText">
+        <Setter Property="TextElement.FontSize" Value="14" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    </Style>
     <Style Selector="TextBlock.pagetitle">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="SemiBold" />
