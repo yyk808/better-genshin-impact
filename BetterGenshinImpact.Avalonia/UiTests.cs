@@ -39,6 +39,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
                 case "boss-editors": await BossEditorsAsync(); break;
                 case "resin-plan-editor": await ResinPlanEditorAsync(); break;
+                case "plan-hotkey": await PlanHotkeyAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1447,6 +1448,83 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                                                        && (int?)c?["reviveRetryCount"] == 2 && (int?)c?["leftRightMoveTimes"] == 4);
         Check("config.json：树脂使用", d.Config.ResinUsage?.Mode == GameTask.Common.Resin.ResinUsageMode.RunCount && (int?)c?["resinUsage"]?["runCount"] == 2,
             c?["resinUsage"]?.ToString(Newtonsoft.Json.Formatting.None));
+    }
+
+    // —— 任务计划快捷键触发：编辑器新增快捷键触发、注册（XGrabKey）、xdotool 按键后计划启动 ——
+
+    private async Task PlanHotkeyAsync()
+    {
+        var page = vm.TaskPlan;
+        var services = vm.Host?.Services;
+        var tasks = services?.GetService(typeof(Pulonia.Services.IPuloniaTaskService)) as Pulonia.Services.IPuloniaTaskService;
+        var scheduler = services?.GetService(typeof(Host.Common.PuloniaSchedulerHost)) as Host.Common.PuloniaSchedulerHost;
+        Check("调度与快捷键服务", tasks is not null && scheduler?.Hotkeys is not null);
+        if (tasks is null || scheduler?.Hotkeys is null) return;
+        if (await CreateTempPlanAsync(page, "M42 快捷键自测") is not { } id) return;
+        try
+        {
+            page.SelectedTab = 2;
+            await Settle(600);
+            await Click(Named<Button>("AddHotkeyTriggerButton"), "＋ 快捷键触发");
+            var editor = page.TriggerEditor;
+            Check("快捷键触发编辑器", editor is { IsHotkey: true } && Named<TextBox>("TriggerHotkeyBox") is not null, editor?.Title);
+            if (editor is null) return;
+            // 键位校验：全局热键的普通单键无效
+            editor.Hotkey = "A";
+            await Settle();
+            Check("全局热键拒绝普通单键", !editor.IsValid, editor.PreviewText);
+            // Ctrl + Alt + F1~F12 被 X 服务器当作切换虚拟终端，拒绝
+            editor.Hotkey = "Ctrl + Alt + F9";
+            await Settle();
+            Check("拒绝 Ctrl + Alt + F 键（切换虚拟终端）", !editor.IsValid, editor.PreviewText);
+            // 录制：模拟页面收到 Ctrl + Shift + F9
+            editor.IsRecording = true;
+            editor.OnRecordKey("F9", true, true, false, false);
+            Check("录制快捷键", editor.Hotkey == "Ctrl + Shift + F9" && !editor.IsRecording, editor.Hotkey);
+            Named<CheckBox>("TriggerEnabledBox")!.IsChecked = true;
+            await Settle();
+            Check("预览", editor.IsValid && editor.PreviewText.Contains("Ctrl + Shift + F9"), editor.PreviewText);
+            await Click(Named<Button>("SaveTriggerButton"), "保存触发器");
+            var saved = ReadJson(Global.Absolute($@"User\Pulonia\plans\{id}.json"))["triggers"]?.FirstOrDefault();
+            Check("存盘：快捷键触发", saved?.ToString(Newtonsoft.Json.Formatting.None).Contains("Ctrl + Shift + F9") == true, saved?.ToString(Newtonsoft.Json.Formatting.None));
+
+            // 调度循环读取新计划后注册
+            await WaitFor(() => scheduler.Hotkeys.Registered.Any(r => r.Contains("Ctrl + Shift + F9")) ? "ok" : null);
+            Check("已注册计划快捷键", scheduler.Hotkeys.Registered.Any(r => r.Contains("Ctrl + Shift + F9")),
+                string.Join("；", scheduler.Hotkeys.Registered) + " " + scheduler.Hotkeys.Error);
+            await Settle(1500);
+            Shot("avalonia-plan-hotkey.png");
+
+            // xdotool 在同一显示上按下快捷键
+            var before = (await tasks.ListRunsAsync()).Count(r => r.PlanId == id);
+            var psi = new System.Diagnostics.ProcessStartInfo("xdotool", "key --delay 120 ctrl+shift+F9") { UseShellExecute = false, RedirectStandardError = true };
+            using (var proc = System.Diagnostics.Process.Start(psi))
+            {
+                proc?.WaitForExit(5000);
+                Check("xdotool 按键", proc?.ExitCode == 0, $"DISPLAY={Environment.GetEnvironmentVariable("DISPLAY")} {proc?.StandardError.ReadToEnd()}");
+            }
+            string? runId = null;
+            for (var i = 0; i < 40 && runId is null; i++)
+            {
+                await Task.Delay(500);
+                runId = (await tasks.ListRunsAsync()).Where(r => r.PlanId == id).Skip(before).Select(r => r.RunId).FirstOrDefault();
+            }
+
+            Check("按下快捷键后计划启动", runId is not null, runId);
+            if (runId is not null)
+            {
+                try { await tasks.CancelAsync(runId); } catch (Exception) { }
+                await Settle(1500);
+            }
+        }
+        finally
+        {
+            page.SelectedTab = 0;
+            await Settle();
+            await DeleteTempPlanAsync(page, id);
+            await WaitFor(() => scheduler.Hotkeys.Registered.Count == 0 ? "ok" : null);
+            Check("删除计划后注销快捷键", scheduler.Hotkeys.Registered.Count == 0, string.Join("；", scheduler.Hotkeys.Registered));
+        }
     }
 
     private TextBox? FieldBox(string name)

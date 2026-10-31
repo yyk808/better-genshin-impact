@@ -145,12 +145,12 @@ public sealed class TaskPlanTriggerRow(TaskPlanPageViewModel owner, PuloniaTaskT
 {
     public PuloniaTaskTrigger Trigger => trigger;
 
-    public string KindText => trigger.Kind == PuloniaTaskTriggerKind.Hotkey ? "快捷键（Linux 尚未注册计划快捷键）" : "定时";
+    public string KindText => trigger.Kind == PuloniaTaskTriggerKind.Hotkey ? "快捷键" : "定时";
 
     public string Text => trigger.DisplayText;
 
     public string Detail => trigger.Kind == PuloniaTaskTriggerKind.Hotkey
-        ? ""
+        ? (trigger.HotkeyType == BetterGenshinImpact.Model.HotKeyTypeEnum.KeyboardMonitor ? "键鼠监听（不拦截按键）" : "全局热键（XGrabKey）")
         : $"{PuloniaTriggerEditing.ServerTimeZones.GetValueOrDefault(trigger.ServerTimeZone)} · 允许延迟 {trigger.WindowMinutes} 分钟" + (trigger.CatchUp ? " · 补跑" : "");
 
     public bool Enabled
@@ -171,6 +171,9 @@ public sealed partial class TaskTriggerEditor : ObservableObject
     [ObservableProperty] private string _windowMinutes;
     [ObservableProperty] private bool _catchUp;
     [ObservableProperty] private bool _enabled;
+    [ObservableProperty] private string _hotkey;
+    [ObservableProperty] private int _hotkeyTypeIndex;
+    [ObservableProperty] private bool _isRecording;
     [ObservableProperty] private string _previewText = "";
     [ObservableProperty] private bool _isValid;
 
@@ -184,7 +187,31 @@ public sealed partial class TaskTriggerEditor : ObservableObject
         _windowMinutes = trigger.WindowMinutes.ToString();
         _catchUp = trigger.CatchUp;
         _enabled = trigger.Enabled;
+        _hotkey = trigger.Hotkey;
+        _hotkeyTypeIndex = trigger.HotkeyType == BetterGenshinImpact.Model.HotKeyTypeEnum.KeyboardMonitor ? 1 : 0;
         Refresh();
+    }
+
+    /// <summary>快捷键触发（否则为定时触发）</summary>
+    public bool IsHotkey => _original.Kind == PuloniaTaskTriggerKind.Hotkey;
+
+    public bool IsSchedule => !IsHotkey;
+
+    /// <summary>快捷键方式：全局热键（XGrabKey，游戏收不到该键）/ 键鼠监听（不拦截，只接受单键）</summary>
+    public IReadOnlyList<string> HotkeyTypes { get; } = ["全局热键", "键鼠监听"];
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ToggleRecord() => IsRecording = !IsRecording;
+
+    /// <summary>录制中收到按键（页面隧道阶段调用）；写法与设置页快捷键相同（如 “Ctrl + Alt + F8”）</summary>
+    public bool OnRecordKey(string keyName, bool ctrl, bool shift, bool alt, bool win)
+    {
+        if (!IsRecording) return false;
+        if (keyName is "LeftCtrl" or "RightCtrl" or "LeftShift" or "RightShift" or "LeftAlt" or "RightAlt" or "LWin" or "RWin") return true;
+        IsRecording = false;
+        if (keyName != "Escape")
+            Hotkey = (ctrl ? "Ctrl + " : "") + (shift ? "Shift + " : "") + (alt ? "Alt + " : "") + (win ? "Win + " : "") + keyName;
+        return true;
     }
 
     private static readonly List<PuloniaTaskServerTimeZone> TimeZoneKeys = PuloniaTriggerEditing.ServerTimeZones.Keys.ToList();
@@ -192,7 +219,7 @@ public sealed partial class TaskTriggerEditor : ObservableObject
 
     public bool IsNew { get; }
 
-    public string Title => IsNew ? "新增定时触发" : "编辑定时触发";
+    public string Title => (IsNew ? "新增" : "编辑") + (IsHotkey ? "快捷键触发" : "定时触发");
 
     public IReadOnlyList<string> ServerTimeZones { get; } = PuloniaTriggerEditing.ServerTimeZones.Values.ToList();
 
@@ -203,7 +230,7 @@ public sealed partial class TaskTriggerEditor : ObservableObject
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is not (nameof(PreviewText) or nameof(IsValid)))
+        if (e.PropertyName is not (nameof(PreviewText) or nameof(IsValid) or nameof(IsRecording)))
         {
             Refresh();
         }
@@ -214,6 +241,15 @@ public sealed partial class TaskTriggerEditor : ObservableObject
     {
         var result = _original.Clone();
         result.Enabled = Enabled;
+        if (IsHotkey)
+        {
+            result.Hotkey = Hotkey.Trim();
+            result.HotkeyType = HotkeyTypeIndex == 1 ? BetterGenshinImpact.Model.HotKeyTypeEnum.KeyboardMonitor : BetterGenshinImpact.Model.HotKeyTypeEnum.GlobalRegister;
+            // 键位规则与 Linux 注册入口相同（WPF 编辑器保存前同样校验）
+            BetterGenshinImpact.Host.Common.LinuxPuloniaTriggerHotkeys.Validate(result);
+            return result;
+        }
+
         result.ServerTimeZone = TimeZoneKeys[Math.Max(0, ServerTimeZoneIndex)];
         result.BusyPolicy = PolicyKeys[Math.Max(0, BusyPolicyIndex)];
         result.WindowMinutes = PuloniaTriggerEditing.ParseWindowMinutes(WindowMinutes);
@@ -227,7 +263,10 @@ public sealed partial class TaskTriggerEditor : ObservableObject
     {
         try
         {
-            PreviewText = PuloniaTriggerEditing.PreviewSchedule(Build(), DateTimeOffset.UtcNow);
+            var built = Build();
+            PreviewText = IsHotkey
+                ? $"按下 {built.Hotkey} 时运行本计划" + (built.HotkeyType == BetterGenshinImpact.Model.HotKeyTypeEnum.KeyboardMonitor ? "（键鼠监听，游戏在前台时生效）" : "（全局热键，任何窗口在前台都生效）")
+                : PuloniaTriggerEditing.PreviewSchedule(built, DateTimeOffset.UtcNow);
             IsValid = true;
         }
         catch (Exception ex)

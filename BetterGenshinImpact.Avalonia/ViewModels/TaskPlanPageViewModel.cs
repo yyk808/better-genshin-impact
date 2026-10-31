@@ -17,7 +17,7 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// “任务计划”页（对应 WPF PuloniaTaskPlanPage）：计划列表、任务列表（添加 / 删除 / 排序 / 启用）、运行与停止、执行记录、触发方式。
 /// 计划模型、存储（User/Pulonia，与 Windows 版共用）、执行与调度都在 Core；本页只做编辑与展示。
 /// 任务设置（名称、启用、分组次数、按 Schema 生成的参数）与定时触发的新增/编辑/启停/删除也在本页，规则来自 Core
-/// （PuloniaParameterForm、PuloniaTriggerEditing）。共享设置、路线 CD、计划引用、计划快捷键触发尚未迁移
+/// （PuloniaParameterForm、PuloniaTriggerEditing）。共享设置、路线 CD、计划引用尚未迁移
 /// </summary>
 public sealed partial class TaskPlanPageViewModel : PageViewModel
 {
@@ -65,7 +65,11 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
         if (_scheduler is not null)
         {
-            _scheduler.Scheduler.Changed += (_, _) => Dispatcher.UIThread.Post(() => SchedulerStatus = _scheduler.Scheduler.Status);
+            _scheduler.Scheduler.Changed += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                SchedulerStatus = _scheduler.Scheduler.Status;
+                OnPropertyChanged(nameof(HotkeyStatus));
+            });
             _scheduler.Start();
         }
     }
@@ -222,7 +226,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     {
         if (value is not null)
         {
-            TriggerEditor = value.Trigger.Kind == PuloniaTaskTriggerKind.Schedule ? new TaskTriggerEditor(value.Trigger, false) : null;
+            TriggerEditor = new TaskTriggerEditor(value.Trigger, false);
         }
     }
 
@@ -285,6 +289,20 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         TriggerEditor = new TaskTriggerEditor(new PuloniaTaskTrigger(), true);
     }
 
+    /// <summary>新增快捷键触发草稿（全局热键、关闭；键位默认 Ctrl + Shift + F8——WPF 默认的 Ctrl + Alt + F8 在 Linux 上是切换虚拟终端）</summary>
+    [RelayCommand]
+    public void AddHotkeyTrigger()
+    {
+        if (SelectedPlan is null) return;
+        SelectedTrigger = null;
+        TriggerEditor = new TaskTriggerEditor(new PuloniaTaskTrigger { Kind = PuloniaTaskTriggerKind.Hotkey, Hotkey = "Ctrl + Shift + F8" }, true);
+    }
+
+    /// <summary>计划快捷键的注册状态（Linux 宿主）</summary>
+    public string HotkeyStatus => _scheduler?.Hotkeys is { } h
+        ? (h.Registered.Count > 0 ? "已注册：" + string.Join("；", h.Registered) : "没有已注册的计划快捷键") + (h.Error.Length > 0 ? "。" + h.Error.Trim() : "")
+        : "";
+
     /// <summary>保存定时触发：校验整个计划后写入并保存，保存成功后调度服务读取新配置</summary>
     [RelayCommand]
     public async Task SaveTriggerAsync()
@@ -298,6 +316,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             await SaveAsync(item, trigger.Enabled ? "触发器已保存，稍后开始生效。" : "触发器已保存；使用列表中的开关启用。");
             RebuildTriggers();
             SelectedTrigger = Triggers.FirstOrDefault(t => t.Trigger.Id == trigger.Id);
+            // 调度循环约 1 秒内读取新计划并刷新快捷键注册
+            _ = Task.Delay(2000).ContinueWith(_ => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(HotkeyStatus))));
         }
         catch (Exception e) when (e is FormatException or PuloniaTaskValidationException or ArgumentException or InvalidOperationException)
         {

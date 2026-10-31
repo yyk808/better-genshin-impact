@@ -5,16 +5,19 @@ namespace BetterGenshinImpact.Host.Common;
 
 /// <summary>
 /// Linux 宿主的任务计划调度：在后台运行 Core 的 <see cref="PuloniaTriggerScheduler"/>（定时触发器），
-/// 与 Windows 的 PuloniaTaskTriggerHost 相同的循环。计划快捷键触发尚未接入（不注册热键）
+/// 与 Windows 的 PuloniaTaskTriggerHost 相同的循环；计划快捷键由 <see cref="LinuxPuloniaTriggerHotkeys"/> 注册
 /// </summary>
 public sealed class PuloniaSchedulerHost(PuloniaTaskStore store, IPuloniaTaskService tasks, TimeProvider clock,
-    ILogger<PuloniaSchedulerHost> logger) : IAsyncDisposable
+    ILogger<PuloniaSchedulerHost> logger, LinuxPuloniaTriggerHotkeys? hotkeys = null) : IAsyncDisposable
 {
     private readonly object _gate = new();
     private CancellationTokenSource? _cts;
     private Task? _loop;
 
-    public PuloniaTriggerScheduler Scheduler { get; } = new(store, tasks, clock, logger);
+    public PuloniaTriggerScheduler Scheduler { get; } = new(store, tasks, clock, logger, hotkeys);
+
+    /// <summary>计划快捷键注册（界面展示状态用）</summary>
+    public LinuxPuloniaTriggerHotkeys? Hotkeys => hotkeys;
 
     /// <summary>启动调度循环（重复调用无效）</summary>
     public void Start()
@@ -49,5 +52,6 @@ public sealed class PuloniaSchedulerHost(PuloniaTaskStore store, IPuloniaTaskSer
         }
 
         _cts?.Dispose();
+        hotkeys?.Dispose();
     }
 }

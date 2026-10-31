@@ -351,6 +351,7 @@ public sealed class GameHost : IAsyncDisposable
                 sp.GetRequiredService<TaskStopService>(),
                 sp.GetRequiredService<TimeProvider>(),
                 logger: sp.GetRequiredService<ILogger<PuloniaTaskService>>()));
+            services.AddSingleton<LinuxPuloniaTriggerHotkeys>();
             services.AddSingleton<PuloniaSchedulerHost>();
             configureServices?.Invoke(services);
             var provider = services.BuildServiceProvider();

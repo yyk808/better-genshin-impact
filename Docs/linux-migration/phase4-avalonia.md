@@ -565,3 +565,16 @@ Core 1185 个，主项目 576 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 84 �
   Avalonia 卡片在指定秘境时显示开关、材料目标行（材料、数量、删除）与“添加材料”，候选材料随秘境刷新。界面自测 `--ui-test solo-domain` 增至 15 项。
 
 Core 1186 个，主项目 576 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 84 个。
+
+## 里程碑 42：任务计划快捷键触发
+
+- Linux 宿主实现计划快捷键触发 `LinuxPuloniaTriggerHotkeys`（`IPuloniaTriggerHotkeys`，对照 WPF `PuloniaTaskTriggerHost` 的热键部分）：
+  调度循环读到计划变化后重新注册已启用的快捷键触发；全局热键经平台热键服务（X11 `XGrabKey`），键鼠监听方式经共用的全局键鼠监听（不拦截按键）。
+  键位规则与 WPF 相同（全局热键需组合键或功能键、F12 保留；键鼠监听只接受单键），与软件已有快捷键冲突的不注册。
+  按下后与 WPF 一样调用 `FireHotkeyAsync`，经相同的准入、去抖与忙碌策略提交运行。
+- Linux 额外拒绝 Ctrl + Alt + F1~F12：X 服务器（XKB 默认键位）把它当作切换虚拟终端并吞掉按键，热键永远收不到。
+  WPF 新建快捷键触发的默认键位 Ctrl + Alt + F8 因此在 Avalonia 中改为 Ctrl + Shift + F8（Core 模型默认值不变）。
+- Avalonia 任务计划页“触发方式”页签支持新增 / 编辑快捷键触发：快捷键输入与录制、全局热键 / 键鼠监听、启用与预览；
+  页签底部显示计划快捷键的注册状态。
+- 界面自测 `--ui-test plan-hotkey`（13 项）：临时计划中新增快捷键触发，核对键位校验、录制、存盘与注册，
+  再用 `xdotool` 在同一显示上按下快捷键，核对计划已启动运行，最后删除计划并核对快捷键已注销。
