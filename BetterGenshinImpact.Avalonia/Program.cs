@@ -80,6 +80,8 @@ internal static class AvaloniaHostProgram
                     // 自动配音设置窗口的界面能力（UI 线程投递、计时器、确认框、文件选择）
                     services.AddSingleton<AvaloniaQuestVoiceSettingsUi>();
                     services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.IQuestVoiceSettingsUi>(sp => sp.GetRequiredService<AvaloniaQuestVoiceSettingsUi>());
+                    // 树脂设置对话框（专属参数编辑器的“设置”按钮）
+                    services.AddSingleton<BetterGenshinImpact.ViewModel.Resin.IResinSettingsDialogs, AvaloniaResinSettingsDialogs>();
                 });
         }
         catch (Exception e)

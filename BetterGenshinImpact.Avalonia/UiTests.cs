@@ -36,6 +36,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "log-file": await LogFileAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
+                case "dedicated-editors": await DedicatedEditorsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -1007,6 +1008,208 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         }
 
         Check("删除计划文件", !File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json")));
+    }
+
+    // —— 专属参数编辑器：地脉花、每日奖励、合成浓缩树脂、尘歌壶，以及树脂设置对话框 ——
+
+    /// <summary>新建临时计划（同名旧计划先删除），返回计划 ID；失败返回 null</summary>
+    private async Task<string?> CreateTempPlanAsync(TaskPlanPageViewModel page, string planName)
+    {
+        vm.Navigate("任务计划");
+        await page.ReloadAsync();
+        await Settle(1000);
+        if (ButtonByText("收起") is { } collapse) await Click(collapse, "收起日志");
+        foreach (var old in page.Plans.Where(p => p.Name == planName).ToList())
+        {
+            page.SelectedPlan = old;
+            await Settle(300);
+            if (page.SelectedPlan == old)
+            {
+                await Click(await WaitFor(() => ButtonByText("删除计划")), "删除旧计划");
+            }
+        }
+
+        page.NewPlanName = planName;
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        var id = page.SelectedPlan?.Plan.Id ?? "";
+        var created = page.SelectedPlan?.Name == planName && File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json"));
+        Check("新建计划写入文件", created, id);
+        return created ? id : null;
+    }
+
+    private async Task DeleteTempPlanAsync(TaskPlanPageViewModel page, string id)
+    {
+        if (page.SelectedPlan?.Plan.Id == id)
+        {
+            await Click(ButtonByText("删除计划"), "删除计划");
+        }
+
+        Check("删除计划文件", !File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json")));
+    }
+
+    private async Task AddSoloTaskAsync(TaskPlanPageViewModel page, string taskType)
+    {
+        page.SelectedNode = null;
+        page.SelectedAddOption = page.AddOptions.FirstOrDefault(o => o.Definition.TaskType == taskType);
+        await Settle(300);
+        await Click(ButtonByText("＋ 添加"), "添加 " + taskType);
+        await Settle(300);
+    }
+
+    private async Task<T?> SelectDedicatedAsync<T>(TaskPlanPageViewModel page, string taskType) where T : class
+    {
+        page.SelectedNode = null;
+        await Settle(200);
+        page.SelectedNode = page.Nodes.FirstOrDefault(n => n.Task.TaskType == taskType);
+        await Settle(800);
+        var dedicated = page.NodeEditor?.Dedicated as T;
+        var edited = page.NodeEditor?.Dedicated?.EditedParameterNames ?? [];
+        Check($"{taskType} 显示专属编辑器", dedicated is not null && page.NodeEditor!.Fields.All(f => !edited.Contains(f.Name)),
+            page.NodeEditor?.Dedicated?.GetType().Name);
+        return dedicated;
+    }
+
+    private JObject NodeParams(string id, string taskType)
+        => Children(ReadPlan(id)).FirstOrDefault(k => k.Value<string>("task_type") == taskType)?["parameters"] as JObject ?? new JObject();
+
+    /// <summary>在 UI 线程稍后执行打开树脂对话框的命令（对话框是同步模态），返回打开的对话框</summary>
+    private static async Task<ResinSettingsWindow?> OpenResinDialogAsync(System.Windows.Input.ICommand command)
+    {
+        global::Avalonia.Threading.Dispatcher.UIThread.Post(() => command.Execute(null));
+        var dialog = await WaitFor(() => ResinSettingsWindow.Current);
+        await Settle(600);
+        return dialog;
+    }
+
+    private static T? InDialog<T>(Window dialog, string name) where T : Control
+        => dialog.GetVisualDescendants().OfType<T>().FirstOrDefault(c => c.Name == name && c.IsEffectivelyVisible);
+
+    private async Task DedicatedEditorsAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M39 专属编辑器自测") is not { } id)
+        {
+            return;
+        }
+
+        const string ley = "solo.auto_ley_line_outcrop", daily = "solo.claim_daily_rewards", craft = "solo.craft_condensed_resin", pot = "solo.serenitea_pot_rewards";
+        foreach (var t in new[] { ley, daily, craft, pot })
+        {
+            await AddSoloTaskAsync(page, t);
+        }
+
+        var kids = Children(ReadPlan(id));
+        Check("存盘：添加 4 个任务", kids.Select(k => k.Value<string>("task_type")).SequenceEqual([ley, daily, craft, pot]),
+            string.Join(",", kids.Select(k => k.Value<string>("task_type"))));
+
+        // 地脉花：跳过准备流程 + 树脂对话框（指定领奖次数 3）
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.AutoLeyLineOutcropSettingsViewModel>(page, ley) is { } leyVm)
+        {
+            var oneDragon = leyVm.OneDragonMode;
+            Named<ToggleSwitch>("LeyOneDragonMode")!.IsChecked = !oneDragon;
+            Check("树脂设置按钮可用", leyVm.Resin.CanEdit && Named<Button>("LeyResinButton")?.IsEffectivelyEnabled == true);
+            var before = leyVm.Resin.Summary;
+            Shot("avalonia-ley-editor.png");
+            var dialog = await OpenResinDialogAsync(leyVm.Resin.EditCommand);
+            Check("打开树脂设置对话框", dialog is not null);
+            if (dialog is not null)
+            {
+                Shot(dialog, "avalonia-resin-dialog.png");
+                if (InDialog<RadioButton>(dialog, "ResinModeRunCount") is { IsEffectivelyEnabled: true } runCount)
+                {
+                    runCount.IsChecked = true;
+                    await Settle();
+                    if (InDialog<NumericUpDown>(dialog, "ResinRunCount") is { } count) count.Value = 3;
+                    await Settle();
+                }
+
+                Shot(dialog, "avalonia-resin-dialog-runcount.png");
+                var confirm = InDialog<Button>(dialog, "ResinConfirmButton");
+                Check("对话框可确定", confirm?.IsEffectivelyEnabled == true, InDialog<TextBlock>(dialog, "ResinValidationText")?.Text);
+                if (confirm is { IsEffectivelyEnabled: true }) OnClickMethod.Invoke(confirm, null);
+                else dialog.Close();
+                await WaitFor(() => ResinSettingsWindow.Current is null ? "closed" : null);
+                await Settle();
+            }
+
+            Check("树脂摘要更新", leyVm.Resin.Summary != before, leyVm.Resin.Summary);
+            await Click(Named<Button>("ApplyNodeButton"), "应用（地脉花）");
+            var p = NodeParams(id, ley);
+            Check("存盘：地脉花跳过准备", p.Value<bool?>("one_dragon_mode") == !oneDragon, p.ToString(Newtonsoft.Json.Formatting.None));
+            Check("存盘：地脉花树脂使用", p["resin_usage"] is JObject r && r.ToString().Contains('3'), p["resin_usage"]?.ToString(Newtonsoft.Json.Formatting.None));
+
+            // 取消对话框不改值
+            leyVm = page.NodeEditor?.Dedicated as ViewModel.SoloTaskSettings.AutoLeyLineOutcropSettingsViewModel;
+            if (leyVm is not null)
+            {
+                var summary = leyVm.Resin.Summary;
+                var cancelDialog = await OpenResinDialogAsync(leyVm.Resin.EditCommand);
+                if (cancelDialog is not null)
+                {
+                    if (InDialog<RadioButton>(cancelDialog, "ResinModeExhaust") is { IsEffectivelyEnabled: true } exhaust) exhaust.IsChecked = true;
+                    await Settle();
+                    OnClickMethod.Invoke(InDialog<Button>(cancelDialog, "ResinCancelButton")!, null);
+                    await WaitFor(() => ResinSettingsWindow.Current is null ? "closed" : null);
+                    await Settle();
+                }
+
+                Check("取消对话框不改值", cancelDialog is not null && leyVm.Resin.Summary == summary, leyVm.Resin.Summary);
+            }
+        }
+
+        // 每日奖励
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.ClaimDailyRewardsSettingsViewModel>(page, daily) is not null)
+        {
+            Named<ComboBox>("DailyCountry")!.SelectedItem = "枫丹";
+            Named<TextBox>("DailyPartyName")!.Text = "M39 好感队";
+            await Settle();
+            Shot("avalonia-daily-editor.png");
+            await Click(Named<Button>("ApplyNodeButton"), "应用（每日奖励）");
+            var p = NodeParams(id, daily);
+            Check("存盘：每日奖励地区与队伍", p.Value<string>("country") == "枫丹" && p.Value<string>("party_name") == "M39 好感队", p.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        // 合成浓缩树脂：地区 + 保留 20 原粹树脂
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.CraftCondensedResinSettingsViewModel>(page, craft) is { } craftVm)
+        {
+            Named<ComboBox>("CraftCountry")!.SelectedItem = "稻妻";
+            var dialog = await OpenResinDialogAsync(craftVm.EditResinCommand);
+            Check("打开合成树脂对话框", dialog is not null);
+            if (dialog is not null)
+            {
+                InDialog<RadioButton>(dialog, "CraftKeep")!.IsChecked = true;
+                await Settle();
+                if (InDialog<NumericUpDown>(dialog, "CraftKeepAmount") is { } keep) keep.Value = 20;
+                await Settle();
+                Shot(dialog, "avalonia-craft-resin-dialog.png");
+                OnClickMethod.Invoke(InDialog<Button>(dialog, "ResinConfirmButton")!, null);
+                await WaitFor(() => ResinSettingsWindow.Current is null ? "closed" : null);
+                await Settle();
+            }
+
+            Shot("avalonia-craft-editor.png");
+            await Click(Named<Button>("ApplyNodeButton"), "应用（合成浓缩树脂）");
+            var p = NodeParams(id, craft);
+            Check("存盘：合成地区与保留量", p.Value<string>("country") == "稻妻" && p.Value<int?>("min_resin_to_keep") == 20, p.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        // 尘歌壶：道具进壶、星期三购买布匹和摩拉
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.SereniteaPotSettingsViewModel>(page, pot) is { } potVm)
+        {
+            Named<ComboBox>("PotTeleportType")!.SelectedItem = "尘歌壶道具";
+            Named<ComboBox>("PotPurchaseSchedule")!.SelectedItem = "星期三";
+            foreach (var item in potVm.PurchaseItems) item.IsSelected = item.Name is "布匹" or "摩拉";
+            await Settle();
+            Check("商品勾选框", Named<ItemsControl>("PotPurchaseItems")?.GetVisualDescendants().OfType<CheckBox>().Count(c => c.IsChecked == true) == 2);
+            Shot("avalonia-pot-editor.png");
+            await Click(Named<Button>("ApplyNodeButton"), "应用（尘歌壶）");
+            var p = NodeParams(id, pot);
+            Check("存盘：尘歌壶", p.Value<string>("teleport_type") == "尘歌壶道具"
+                                 && p["secret_treasure_objects"] is JArray a && a.Values<string>().SequenceEqual(["星期三", "布匹", "摩拉"]),
+                p.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        await DeleteTempPlanAsync(page, id);
     }
 
     private TextBox? FieldBox(string name)

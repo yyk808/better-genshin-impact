@@ -506,3 +506,18 @@ Core 1154 个（自动配音设置模型 18 个文件移入，新增 `IQuestVoic
 - 独立任务页的秘境卡片仍是按配置绑定的少量参数（WPF 独立任务页同样不使用专属设置模型），其余配置项待补；战斗策略、树脂等其他专属编辑器待迁移。
 
 Core 1162 个（上述 8 个文件移入），主项目 596 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 62 个。
+
+## 里程碑 39：专属参数编辑器（续）、树脂设置对话框
+
+- 设置模型迁入 Core（命名空间不变）：地脉花、领取每日奖励、合成浓缩树脂、尘歌壶（含商品项）的专属设置模型，
+  以及树脂设置对话框的内容模型 `ResinUsageEditorViewModel`、`CraftResinEditorViewModel`、`ResinKindRowViewModel`、`ResinTierChoice`、`ResinConfirmation`、`IResinSettingsDialogContent`。
+  WPF 视图只改 XAML 命名空间引用。
+- Avalonia 树脂设置对话框 `ResinSettingsWindow`（对照 WPF `ResinSettingsDialog`）：使用方式（刷至耗尽 / 指定领奖次数 / 按树脂分别指定）、领奖次数、可用树脂与次数、
+  原粹树脂档位；合成浓缩树脂的合成方式与保留数量；底部摘要或校验提示、确定 / 取消。`IResinSettingsDialogs` 是同步接口，
+  Avalonia 实现 `AvaloniaResinSettingsDialogs` 以嵌套消息循环等待模态窗口关闭；切换模式时的确认框用宿主消息框。各专属编辑器的“树脂使用 · 设置”因此可用。
+- 任务计划参数面板新增专属编辑器：自动地脉花（跳过准备流程、树脂使用）、领取每日奖励（冒险家协会地区、好感队）、合成浓缩树脂（地区、合成方式）、
+  尘歌壶（进壶方式、购买日期、商品勾选）。
+- 界面自测 `--ui-test dedicated-editors`（19 项）：临时计划中添加四个任务，逐个核对专属编辑器、树脂对话框（改为领奖 3 次并确定；再次打开改模式后取消不改值）、
+  合成保留 20、各项存盘值，最后删除临时计划；`--ui-test domain-editor` 复测 19 项通过。
+
+Core 1173 个（11 个文件移入），主项目 585 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 73 个。

@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.SereniteaPotSettingsEditor"
+             x:DataType="tasksVm:SereniteaPotSettingsViewModel">
+    <!-- 尘歌壶专属参数（对照 WPF SereniteaPotSettingsView） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    </UserControl.Styles>
+    <StackPanel>
+        <TextBlock Text="尘歌壶设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="进壶方式" />
+            <TextBlock Classes="desc" Text="通过地图传送或背包中的尘歌壶道具进入。" />
+            <ComboBox x:Name="PotTeleportType" ItemsSource="{Binding TeleportTypeChoices}" SelectedItem="{Binding TeleportType}" />
+        </StackPanel>
+        <TextBlock Text="洞天百宝购买" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap" Text="购买日期和商品仅影响购买，领取好感与宝钱照常进行。" />
+        <StackPanel Classes="row">
+            <TextBlock Text="购买日期" />
+            <TextBlock Classes="desc" Text="仅在所选日期购买已勾选的商品。" />
+            <ComboBox x:Name="PotPurchaseSchedule" ItemsSource="{Binding PurchaseScheduleChoices}" SelectedItem="{Binding PurchaseSchedule}" />
+        </StackPanel>
+        <TextBlock Classes="desc" FontSize="12" Text="按勾选的商品依次购买。" Margin="0,4,0,0" />
+        <ItemsControl x:Name="PotPurchaseItems" ItemsSource="{Binding PurchaseItems}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="tasksVm:SereniteaPotPurchaseItemViewModel">
+                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="0,0,12,0" MinWidth="120" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

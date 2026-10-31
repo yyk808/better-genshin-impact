@@ -17,6 +17,10 @@ public static class DedicatedTaskSettings
     private static readonly Dictionary<string, Type> ViewModelTypes = new(StringComparer.Ordinal)
     {
         [AutoDomainTask.TaskId] = typeof(AutoDomainSettingsViewModel),
+        [GameTask.AutoLeyLineOutcrop.AutoLeyLineOutcropTask.TaskId] = typeof(AutoLeyLineOutcropSettingsViewModel),
+        [GameTask.Common.Job.ClaimDailyRewardsTask.TaskId] = typeof(ClaimDailyRewardsSettingsViewModel),
+        [GameTask.Common.Job.GoToCraftingBenchTask.TaskId] = typeof(CraftCondensedResinSettingsViewModel),
+        [GameTask.Common.Job.GoToSereniteaPotTask.TaskId] = typeof(SereniteaPotSettingsViewModel),
     };
 
     /// <summary>按任务类型创建专属设置 VM；VM 构造函数接收当前有效参数，其余依赖从服务容器解析（可缺省）</summary>

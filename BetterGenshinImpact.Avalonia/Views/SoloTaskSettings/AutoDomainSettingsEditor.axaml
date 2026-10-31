@@ -134,8 +134,8 @@
                 <TextBlock Text="树脂使用" FontWeight="SemiBold" />
                 <TextBlock x:Name="AdResinSummary" Classes="desc" Text="{Binding Resin.Summary}" />
                 <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding Resin.Problem}" IsVisible="{Binding Resin.HasProblem}" />
-                <TextBlock Classes="desc" Text="Linux 版暂未提供树脂设置对话框，当前设置保持不变。" IsVisible="{Binding !Resin.CanEdit}" />
-                <Button Content="设置" Command="{Binding Resin.EditCommand}" IsVisible="{Binding Resin.CanEdit}" />
+                <TextBlock Classes="desc" Text="未提供树脂设置对话框，当前设置保持不变。" IsVisible="{Binding !Resin.CanEdit}" />
+                <Button x:Name="AdResinButton" Content="设置" Command="{Binding Resin.EditCommand}" IsVisible="{Binding Resin.CanEdit}" HorizontalAlignment="Left" MinWidth="88" />
             </StackPanel>
         </Border>
 

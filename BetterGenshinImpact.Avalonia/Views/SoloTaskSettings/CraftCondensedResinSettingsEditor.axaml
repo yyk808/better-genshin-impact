@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.CraftCondensedResinSettingsEditor"
+             x:DataType="tasksVm:CraftCondensedResinSettingsViewModel">
+    <!-- 合成浓缩树脂专属参数（对照 WPF CraftCondensedResinSettingsView） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    </UserControl.Styles>
+    <StackPanel>
+        <TextBlock Text="合成浓缩树脂设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="合成台所在地区" />
+            <TextBlock Classes="desc" Text="前往所选地区的合成台合成浓缩树脂。" />
+            <ComboBox x:Name="CraftCountry" ItemsSource="{x:Static tasksVm:CraftCondensedResinSettingsViewModel.CountryChoices}" SelectedItem="{Binding Country}" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="树脂使用" FontWeight="SemiBold" />
+            <TextBlock x:Name="CraftResinSummary" Classes="desc" Text="{Binding ResinSummary}" />
+            <Button x:Name="CraftResinButton" Content="设置" Command="{Binding EditResinCommand}" HorizontalAlignment="Left" MinWidth="88" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

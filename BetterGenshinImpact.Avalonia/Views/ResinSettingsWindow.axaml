@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.ViewModel.Resin"
+        x:Class="BetterGenshinImpact.Avalonia.Views.ResinSettingsWindow"
+        x:DataType="vm:IResinSettingsDialogContent"
+        Width="480" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner"
+        Title="树脂使用">
+    <!-- 树脂设置对话框（对照 WPF View/Windows/ResinSettingsDialog 与 View/Controls/Resin；VM 在 Core） -->
+    <Window.Styles>
+        <Style Selector="TextBlock.desc">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,4,0,4" />
+        </Style>
+    </Window.Styles>
+    <Window.DataTemplates>
+        <DataTemplate DataType="vm:ResinUsageEditorViewModel">
+            <StackPanel Margin="20,16" Spacing="6">
+                <TextBlock Classes="section" Text="使用方式" />
+                <RadioButton x:Name="ResinModeExhaust" GroupName="ResinMode" IsChecked="{Binding IsExhaustMode}" IsEnabled="{Binding IsExhaustModeEnabled}">
+                    <StackPanel>
+                        <TextBlock Text="刷至树脂耗尽" />
+                        <TextBlock Classes="desc" Text="{Binding ExhaustModeDescription}" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="ResinModeRunCount" GroupName="ResinMode" IsChecked="{Binding IsRunCountMode}" IsEnabled="{Binding IsRunCountModeEnabled}">
+                    <StackPanel>
+                        <TextBlock Text="指定领奖次数" />
+                        <TextBlock Classes="desc" Text="{Binding RunCountModeDescription}" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="ResinModePerType" GroupName="ResinMode" IsChecked="{Binding IsPerTypeMode}" IsEnabled="{Binding IsPerTypeModeEnabled}">
+                    <StackPanel>
+                        <TextBlock Text="按树脂分别指定" />
+                        <TextBlock Classes="desc" Text="{Binding PerTypeModeDescription}" />
+                    </StackPanel>
+                </RadioButton>
+                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShowRunCount}" Margin="0,6,0,0">
+                    <StackPanel>
+                        <TextBlock Text="领奖次数" />
+                        <TextBlock Classes="desc" Text="只统计成功领取奖励的次数" />
+                    </StackPanel>
+                    <NumericUpDown x:Name="ResinRunCount" Grid.Column="1" Width="140" Minimum="0" Increment="1" FormatString="0" Value="{Binding RunCount}" />
+                </Grid>
+                <Separator Margin="0,6" />
+                <TextBlock Classes="section" Text="{Binding KindsHeader}" />
+                <TextBlock Classes="desc" Text="{Binding KindsDescription}" />
+                <ItemsControl ItemsSource="{Binding Kinds}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:ResinKindRowViewModel">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4" IsEnabled="{Binding IsEditable}" Tag="{Binding DisplayName}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DisplayName}" />
+                                    <TextBlock Classes="desc" Text="{Binding Description}" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <ToggleSwitch IsChecked="{Binding IsAllowed}" IsVisible="{Binding ShowToggle}" OnContent="" OffContent="" />
+                                    <NumericUpDown Width="140" Minimum="0" Increment="1" FormatString="0" Value="{Binding Count}" IsVisible="{Binding ShowCount}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsTierEditable}" Margin="0,6,0,0">
+                    <StackPanel>
+                        <TextBlock Text="原粹树脂档位" />
+                        <TextBlock Classes="desc" Text="{Binding TierDescription}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ResinTier" Grid.Column="1" Width="160" ItemsSource="{Binding TierChoices}" SelectedItem="{Binding SelectedTier}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="vm:ResinTierChoice">
+                                <TextBlock Text="{Binding DisplayName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="vm:CraftResinEditorViewModel">
+            <StackPanel Margin="20,16" Spacing="6">
+                <TextBlock Classes="section" Text="合成方式" />
+                <RadioButton x:Name="CraftDefault" GroupName="CraftMode" IsChecked="{Binding IsDefaultMode}">
+                    <StackPanel>
+                        <TextBlock Text="按默认数量合成" />
+                        <TextBlock Classes="desc" Text="使用合成台默认数量" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="CraftKeep" GroupName="CraftMode" IsChecked="{Binding KeepResin}">
+                    <StackPanel>
+                        <TextBlock Text="保留原粹树脂" />
+                        <TextBlock Classes="desc" Text="合成后至少保留指定数量的原粹树脂" />
+                    </StackPanel>
+                </RadioButton>
+                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShowKeepAmount}" Margin="0,6,0,0">
+                    <TextBlock Text="保留数量" VerticalAlignment="Center" />
+                    <NumericUpDown x:Name="CraftKeepAmount" Grid.Column="1" Width="140" Minimum="1" Maximum="999" Increment="1" FormatString="0" Value="{Binding KeepAmount}" />
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+    </Window.DataTemplates>
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Padding="20,12" Background="#18808080">
+            <Grid ColumnDefinitions="*,Auto">
+                <Panel Margin="0,0,12,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="ResinSummaryText" Text="{Binding Summary}" TextWrapping="Wrap" Opacity="0.75"
+                               IsVisible="{Binding ValidationMessage, Converter={x:Static ObjectConverters.IsNull}}" />
+                    <TextBlock x:Name="ResinValidationText" Text="{Binding ValidationMessage}" TextWrapping="Wrap" Foreground="#E0A000"
+                               IsVisible="{Binding ValidationMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </Panel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="ResinConfirmButton" Content="确定" Classes="accent" MinWidth="72" IsDefault="True" IsEnabled="{Binding CanConfirm}" Click="Confirm_Click" />
+                    <Button x:Name="ResinCancelButton" Content="取消" MinWidth="72" IsCancel="True" Click="Cancel_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <ContentControl Content="{Binding}" />
+    </DockPanel>
+</Window>

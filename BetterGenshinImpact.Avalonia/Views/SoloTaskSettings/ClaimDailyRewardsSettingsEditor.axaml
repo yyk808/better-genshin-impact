@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.ClaimDailyRewardsSettingsEditor"
+             x:DataType="tasksVm:ClaimDailyRewardsSettingsViewModel">
+    <!-- 每日奖励专属参数（对照 WPF ClaimDailyRewardsSettingsView） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    </UserControl.Styles>
+    <StackPanel>
+        <TextBlock Text="领取每日奖励设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="领取奖励的冒险家协会" />
+            <TextBlock Classes="desc" Text="前往所选地区领取每日委托奖励。" />
+            <ComboBox x:Name="DailyCountry" ItemsSource="{x:Static tasksVm:ClaimDailyRewardsSettingsViewModel.CountryChoices}" SelectedItem="{Binding Country}" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="领取前切换好感队" />
+            <TextBlock Classes="desc" Text="填写游戏内队伍名称；留空使用当前队伍。" />
+            <TextBox x:Name="DailyPartyName" Text="{Binding PartyName}" Watermark="留空则不切换队伍" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -111,6 +111,18 @@
                                                         <DataTemplate DataType="tasksVm:AutoDomainSettingsViewModel">
                                                             <solo:AutoDomainSettingsEditor />
                                                         </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:AutoLeyLineOutcropSettingsViewModel">
+                                                            <solo:AutoLeyLineOutcropSettingsEditor />
+                                                        </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:ClaimDailyRewardsSettingsViewModel">
+                                                            <solo:ClaimDailyRewardsSettingsEditor />
+                                                        </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:CraftCondensedResinSettingsViewModel">
+                                                            <solo:CraftCondensedResinSettingsEditor />
+                                                        </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:SereniteaPotSettingsViewModel">
+                                                            <solo:SereniteaPotSettingsEditor />
+                                                        </DataTemplate>
                                                     </ContentControl.DataTemplates>
                                                 </ContentControl>
                                                 <TextBlock Text="{Binding NodeEditor.FieldsTitle, FallbackValue=''}" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />

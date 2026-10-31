@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.AutoLeyLineOutcropSettingsEditor"
+             x:DataType="tasksVm:AutoLeyLineOutcropSettingsViewModel">
+    <!-- 自动地脉花专属参数（对照 WPF AutoLeyLineOutcropSettingsView） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    </UserControl.Styles>
+    <StackPanel>
+        <TextBlock Text="自动地脉花设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="跳过准备流程" />
+            <TextBlock Classes="desc" Text="适合一条龙连续执行，开始前不再传送回七天神像。" />
+            <ToggleSwitch x:Name="LeyOneDragonMode" IsChecked="{Binding OneDragonMode}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="树脂使用" FontWeight="SemiBold" />
+            <TextBlock x:Name="LeyResinSummary" Classes="desc" Text="{Binding Resin.Summary}" />
+            <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding Resin.Problem}" IsVisible="{Binding Resin.HasProblem}" />
+            <Button x:Name="LeyResinButton" Content="设置" Command="{Binding Resin.EditCommand}" HorizontalAlignment="Left" MinWidth="88" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>
