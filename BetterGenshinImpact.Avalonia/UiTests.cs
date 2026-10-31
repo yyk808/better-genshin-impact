@@ -41,6 +41,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "resin-plan-editor": await ResinPlanEditorAsync(); break;
                 case "plan-hotkey": await PlanHotkeyAsync(); break;
                 case "plan-reference": await PlanReferenceAsync(); break;
+                case "plan-cooldown": await PlanCooldownAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1574,6 +1575,41 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle(400);
         await DeleteTempPlanAsync(page, a);
     }
+
+    // —— 路线 CD 记录页签：读取账本中的路线记录 ——
+
+    private async Task PlanCooldownAsync()
+    {
+        var page = vm.TaskPlan;
+        vm.Navigate("任务计划");
+        await page.ReloadAsync();
+        await Settle(800);
+        var tasks = vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaTaskService)) as Pulonia.Services.IPuloniaTaskService;
+        page.SelectedTab = 3;
+        await Settle(400);
+        await Click(Named<Button>("RefreshCooldownsButton"), "刷新路线 CD");
+        var expected = tasks is null ? -1 : (await tasks.ListLedgerAsync()).Select(e => (e.ScopeKey, e.EffectKey)).Distinct()
+            .Count(e => e.EffectKey.StartsWith(Pulonia.Services.PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal));
+        Check("路线 CD 记录与账本一致", page.Cooldowns.Count == expected, $"{page.Cooldowns.Count}/{expected}");
+        Check("路线 CD 页签控件", Named<Button>("RefreshCooldownsButton") is not null
+            && (page.Cooldowns.Count > 0 ? CooldownList() is not null : page.HasNoCooldowns && All<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text == "暂无路线 CD 记录。")));
+        await Settle(400);
+        Shot("avalonia-plan-cooldown.png");
+        // 外部脚本预置的自测记录：点“清除”后从列表与账本中消失
+        if (page.Cooldowns.FirstOrDefault(r => r.Route.Contains("M42自测路线")) is { } seeded && tasks is not null)
+        {
+            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
+            await Click(clear, "清除路线 CD");
+            await Settle(600);
+            var left = (await tasks.ListLedgerAsync()).Count(e => e.EffectKey.Contains("M42自测路线"));
+            Check("清除路线 CD 记录", left == 0 && page.Cooldowns.All(r => r != seeded), page.StatusMessage);
+        }
+
+        page.SelectedTab = 0;
+        await Settle();
+    }
+
+    private ListBox? CooldownList() => Named<ListBox>("CooldownList");
 
     private TextBox? FieldBox(string name)
         => All<StackPanel>().FirstOrDefault(p => p.Tag as string == name && p.IsEffectivelyVisible)?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();

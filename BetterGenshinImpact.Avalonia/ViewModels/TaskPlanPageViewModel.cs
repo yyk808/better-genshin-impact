@@ -61,6 +61,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             }
 
             _tasks.RunChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshRunsAsync());
+            _tasks.LedgerChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
         }
 
         if (_scheduler is not null)
@@ -604,6 +605,51 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         }
     }
 
+    /// <summary>路线 CD 记录（账本中地图追踪路线的完成记录，对照 WPF 路线 CD 总览的记录列表）</summary>
+    public ObservableCollection<TaskPlanCooldownRow> Cooldowns { get; } = [];
+
+    public bool HasNoCooldowns => Cooldowns.Count == 0;
+
+    [RelayCommand]
+    private async Task RefreshCooldownsAsync()
+    {
+        if (_tasks is null) return;
+        try
+        {
+            var ledger = await _tasks.ListLedgerAsync();
+            Cooldowns.Clear();
+            foreach (var entry in new PuloniaCollectionCooldownIndex(ledger).Entries
+                         .Where(e => e.EffectKey.StartsWith(PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal))
+                         .OrderBy(e => e.NextEligibleAt ?? DateTimeOffset.MaxValue))
+            {
+                Cooldowns.Add(new TaskPlanCooldownRow(entry));
+            }
+
+            OnPropertyChanged(nameof(HasNoCooldowns));
+        }
+        catch (Exception e)
+        {
+            StatusMessage = "读取路线 CD 记录失败：" + e.Message;
+        }
+    }
+
+    /// <summary>清除一条路线 CD 记录（与 WPF 相同调用 ClearCollectionCooldownAsync，下次运行不再按 CD 跳过）</summary>
+    [RelayCommand]
+    private async Task ClearCooldownAsync(TaskPlanCooldownRow? row)
+    {
+        if (_tasks is null || row is null) return;
+        try
+        {
+            var count = await _tasks.ClearCollectionCooldownAsync([new PuloniaCollectionCooldownKey(row.Entry.ScopeKey, row.Entry.EffectKey)]);
+            StatusMessage = $"已清除 {count} 条路线 CD 记录。";
+            await RefreshCooldownsAsync();
+        }
+        catch (Exception e)
+        {
+            StatusMessage = "清除路线 CD 记录失败：" + e.Message;
+        }
+    }
+
     [RelayCommand]
     private async Task RefreshRunsAsync()
     {
@@ -727,4 +773,19 @@ public sealed class TaskPlanRunRow(PuloniaTaskRunView run)
     public string SourceText => run.Source switch { "ui" => "手动", "cli" => "命令行", "schedule" or "timer" => "定时", "hotkey" => "快捷键", _ => run.Source };
 
     public string Message => run.Message;
+}
+
+/// <summary>路线 CD 记录行</summary>
+public sealed class TaskPlanCooldownRow(PuloniaTaskLedgerEntry entry)
+{
+    public PuloniaTaskLedgerEntry Entry => entry;
+
+    public string Route => entry.EffectKey[PuloniaCollectionCooldown.EffectKeyPrefix.Length..];
+
+    public string Scope => entry.ScopeKey.StartsWith(PuloniaCollectionCooldown.ScopeKeyPrefix, StringComparison.Ordinal)
+        ? entry.ScopeKey[PuloniaCollectionCooldown.ScopeKeyPrefix.Length..] is var id && id == PuloniaCollectionCooldown.DefaultScopeIdentity ? "当前账号" : "UID " + id
+        : entry.ScopeKey;
+
+    public string Detail => $"{Scope} · 完成于 {entry.OccurredAt.ToLocalTime():MM-dd HH:mm}"
+        + (entry.NextEligibleAt is { } next ? (next > DateTimeOffset.Now ? $" · CD 至 {next.ToLocalTime():MM-dd HH:mm}" : " · 已可再次采集") : " · 一次性路线已完成");
 }

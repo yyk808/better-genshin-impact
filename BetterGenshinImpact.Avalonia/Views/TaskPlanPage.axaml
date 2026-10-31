@@ -267,6 +267,33 @@
                                     </Panel>
                                 </DockPanel>
                             </TabItem>
+                            <TabItem Header="路线 CD">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,4,0,8">
+                                        <Button Name="RefreshCooldownsButton" DockPanel.Dock="Left" Content="刷新" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
+                                        <TextBlock VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap"
+                                                   Text="地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。" />
+                                    </DockPanel>
+                                    <Panel>
+                                        <TextBlock Text="暂无路线 CD 记录。" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
+                                        <ListBox Name="CooldownList" ItemsSource="{Binding Cooldowns}" IsVisible="{Binding !HasNoCooldowns}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TaskPlanCooldownRow">
+                                                    <DockPanel>
+                                                        <Button DockPanel.Dock="Right" Content="清除" VerticalAlignment="Center"
+                                                                Command="{Binding $parent[UserControl].((vm:TaskPlanPageViewModel)DataContext).ClearCooldownCommand}"
+                                                                CommandParameter="{Binding}" />
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Route}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Detail}" FontSize="12" Opacity="0.65" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Panel>
+                                </DockPanel>
+                            </TabItem>
                         </TabControl>
                     </DockPanel>
                 </Panel>
