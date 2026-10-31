@@ -16,6 +16,9 @@ public static class QuestVoiceAudioHost
     public static Func<IWavePlayer> OutputFactory { get; set; } = static () => new SilentWavePlayer();
 
     /// <summary>从完整的 MP3 字节流创建 PCM 读取器</summary>
+    /// <summary>播放失败提示中的输出名称：Windows 为 WASAPI（默认，提示文字与迁移前相同），Linux 宿主按探测结果设为 PulseAudio 等</summary>
+    public static string OutputName { get; set; } = "WASAPI";
+
     public static Func<Stream, WaveStream> Mp3ReaderFactory { get; set; } = CreateManagedMp3Reader;
 
     /// <summary>

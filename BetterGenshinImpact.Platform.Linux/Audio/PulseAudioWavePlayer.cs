@@ -232,11 +232,13 @@ public static class LinuxAudioOutput
         if (Probe() is { } reason)
         {
             QuestVoiceAudioHost.OutputFactory = static () => new SilentWavePlayer();
+            QuestVoiceAudioHost.OutputName = "静音输出";
             AudioStatus = (false, reason + "，音频播放已静音");
         }
         else
         {
             QuestVoiceAudioHost.OutputFactory = static () => new PulseAudioWavePlayer();
+            QuestVoiceAudioHost.OutputName = "PulseAudio";
             AudioStatus = (true, "PulseAudio（或 PipeWire 兼容层）");
         }
 

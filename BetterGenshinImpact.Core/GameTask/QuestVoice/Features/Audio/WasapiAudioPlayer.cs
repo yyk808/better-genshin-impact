@@ -53,7 +53,7 @@ public sealed class WasapiAudioPlayer(Func<IWavePlayer> outputFactory) : IStream
             catch (Exception exception) when (exception is COMException or InvalidOperationException
                 or ArgumentException or FormatException or IOException or MmException)
             {
-                throw new VoiceException(VoiceErrorCode.PlaybackDevice, "WASAPI流式播放失败：" + exception.Message, false, exception);
+                throw new VoiceException(VoiceErrorCode.PlaybackDevice, QuestVoiceAudioHost.OutputName + "流式播放失败：" + exception.Message, false, exception);
             }
             finally
             {
@@ -100,7 +100,7 @@ public sealed class WasapiAudioPlayer(Func<IWavePlayer> outputFactory) : IStream
         catch (Exception exception) when (exception is COMException or InvalidOperationException
             or ArgumentException or FormatException or IOException or MmException)
         {
-            throw new VoiceException(VoiceErrorCode.PlaybackDevice, "WASAPI 播放失败，请检查默认输出设备：" + exception.Message, false, exception);
+            throw new VoiceException(VoiceErrorCode.PlaybackDevice, QuestVoiceAudioHost.OutputName + " 播放失败，请检查默认输出设备：" + exception.Message, false, exception);
         }
     }, cancellationToken);
 
