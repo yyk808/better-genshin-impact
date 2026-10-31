@@ -471,3 +471,22 @@ Core 1131 个（剧情语音 20 个文件移入，新增 `GameFrameGrabber`）�
 
 Core 1135 个（新增 `HtmlMaskPage`，`QuestVoiceService` 3 个文件移入），主项目 620 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 55 个。
 
+
+## 里程碑 38：自动配音设置窗口、日志文件
+
+- Avalonia 宿主可选保存日志文件：`HostLogging` 增加延迟启用的滚动文件输出（启动阶段先缓冲，按 Linux 宿主设置 `LogFileEnabled` 启用，默认开启），
+  写入程序目录 `log/better-genshin-impact<日期>.log`，格式与 Windows 版相同。设置页“其他设置”与自动配音卡片提供“打开日志 / 打开日志目录”（xdg-open）。
+  界面自测 `--ui-test log-file`（6 项）。
+- 自动配音设置模型迁入 Core：`QuestVoiceSettingsViewModel`、角色目录编辑 `QuestVoiceManagementViewModel`、GPT-SoVITS 与各引擎设置模型（命名空间不变）。
+  UI 线程投递、防抖计时器、确认框、文件选择经 `IQuestVoiceSettingsUi` 提供，WPF 实现 `WpfQuestVoiceSettingsUi` 沿用原写法（Background 投递、DispatcherTimer、
+  ThemedMessageBox、系统文件对话框）。当前平台没有实现的内置引擎不列出；宿主额外注册的引擎（Linux 的 espeak-ng）以通用设置模型按能力显示，Windows 列表不变。
+- Avalonia 自动配音设置窗口（对应 WPF `QuestVoiceSettingsWindow`）：引擎与声线（★ 默认引擎、各引擎参数、刷新声音、添加为声线、本引擎声线库、试听）、
+  角色（角色声线开关、默认 NPC / 旁白 / 旅行者声线、角色列表编辑）、识别（采样间隔）、高级（超时、缺失策略、角色目录文件、重新加载 / 校验 / 导入 / 导出 / 新建）。
+  从实时触发页卡片的“设置…”打开，打开期间暂停配音，关闭后保存角色目录草稿再恢复。
+- 界面自测 `--ui-test quest-voice-settings`（35 项）：角色目录指向输出目录中的副本（不动程序目录的 routing.json），核对引擎列表、设为默认引擎、语速与 VITS 地址、
+  espeak-ng 声音添加为声线并分配给新角色、自动保存后磁盘上的 routing.json（含备份文件）、删除角色、校验与导出，以及 config.json 中的各项设置。
+  与 Wine 下原版窗口截图对照，四页布局与文字一致。
+
+### 文件数（口径同上）
+
+Core 1154 个（自动配音设置模型 18 个文件移入，新增 `IQuestVoiceSettingsUi`、通用引擎设置模型），主项目 604 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 59 个。
