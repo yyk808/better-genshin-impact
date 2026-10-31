@@ -42,6 +42,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plan-hotkey": await PlanHotkeyAsync(); break;
                 case "plan-reference": await PlanReferenceAsync(); break;
                 case "plan-cooldown": await PlanCooldownAsync(); break;
+                case "plan-profiles-cd": await PlanProfilesCooldownAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -1585,8 +1586,9 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await page.ReloadAsync();
         await Settle(800);
         var tasks = vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaTaskService)) as Pulonia.Services.IPuloniaTaskService;
-        page.SelectedTab = 3;
+        page.SelectedTab = 4;
         await Settle(400);
+        page.CooldownsForPlanOnly = false;
         await Click(Named<Button>("RefreshCooldownsButton"), "刷新路线 CD");
         var expected = tasks is null ? -1 : (await tasks.ListLedgerAsync()).Select(e => (e.ScopeKey, e.EffectKey)).Distinct()
             .Count(e => e.EffectKey.StartsWith(Pulonia.Services.PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal));
@@ -1607,6 +1609,120 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
 
         page.SelectedTab = 0;
         await Settle();
+    }
+
+    // —— 设置方案、共享设置与路线 CD 标记 / 清除（外部脚本预置一条路线完成记录：local:/tmp/m43-cd/示例路线.json） ——
+
+    private async Task PlanProfilesCooldownAsync()
+    {
+        const string route = "/tmp/m43-cd/示例路线.json";
+        var page = vm.TaskPlan;
+        var tasks = vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaTaskService)) as Pulonia.Services.IPuloniaTaskService;
+        if (tasks is null || await CreateTempPlanAsync(page, "M43 方案与 CD 自测") is not { } id) return;
+        var planFile = Global.Absolute($@"User\Pulonia\plans\{id}.json");
+        string? profileId = null, copyId = null;
+        try
+        {
+            var ledger = await tasks.ListLedgerAsync();
+            Check("预置的路线记录已加载", ledger.Any(e => e.EffectKey.Contains("m43-cd")), string.Join(",", ledger.Select(e => e.EffectKey)));
+            page.SelectedTab = 0;
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M43 CD 自测路线", TaskType = "pathing", Path = route });
+            await Settle(500);
+            TaskPlanNodeRow? Row() => page.Nodes.FirstOrDefault(n => n.Name == "M43 CD 自测路线");
+            Check("路线节点：自动识别未匹配 → 未识别 CD", Row()?.CooldownBadge == "未识别 CD", Row()?.CooldownBadge ?? "无标记");
+
+            // 设置方案：新建、复制、重命名
+            page.SelectedTab = 3;
+            await Settle(500);
+            page.ProfileName = "M43 自测方案";
+            await Click(Named<Button>("CreateProfileButton"), "新建方案");
+            profileId = page.SelectedProfile?.Profile?.Id;
+            Check("新建方案写入文件", profileId is not null && File.Exists(Global.Absolute($@"User\Pulonia\profiles\{profileId}.json")), page.StatusMessage);
+            await Click(Named<Button>("DuplicateProfileButton"), "复制方案");
+            copyId = page.SelectedProfile?.Profile?.Id;
+            Check("复制方案", page.SelectedProfile?.Name == "M43 自测方案 副本" && copyId != profileId, page.StatusMessage);
+            page.ProfileName = "M43 自测方案 改名";
+            await Click(Named<Button>("RenameProfileButton"), "重命名方案");
+            var copyJson = copyId is null ? "" : File.ReadAllText(Global.Absolute($@"User\Pulonia\profiles\{copyId}.json"));
+            Check("重命名方案", copyJson.Contains("M43 自测方案 改名"), page.StatusMessage);
+
+            // 方案共享设置：路线 CD 改为滚动 48 小时
+            page.SelectedProfile = page.Profiles.First(p => p.Profile?.Id == profileId);
+            await Settle(300);
+            await Click(Named<Button>("EditProfileSettingsButton"), "编辑方案设置");
+            var editor = page.SharedEditor!;
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
+            await Settle(300);
+            editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!.TextValue = "{\"mode\":\"rolling\",\"hours\":48}";
+            Named<Border>("SharedSettingsPanel")?.BringIntoView();
+            await Settle(400);
+            Shot("avalonia-plan-profiles.png");
+            await Click(Named<Button>("SaveSharedSettingsButton"), "保存方案设置");
+            var profileJson = File.ReadAllText(Global.Absolute($@"User\Pulonia\profiles\{profileId}.json"));
+            Check("方案设置存盘", profileJson.Contains("rolling") && profileJson.Contains("48"), editor.Message);
+
+            // 计划引用方案 → 标记变为 CD 中
+            page.PlanProfile = page.PlanProfileOptions.First(p => p.Profile?.Id == profileId);
+            await Settle(500);
+            Check("计划引用方案存盘", File.ReadAllText(planFile).Contains($"\"profile_id\": \"{profileId}\""), page.StatusMessage);
+            Check("方案规则生效：CD 中", Row()?.CooldownBadge?.StartsWith("CD 中") == true, Row()?.CooldownBadge ?? "无标记");
+            page.SelectedProfile = page.Profiles.First(p => p.Profile?.Id == profileId);
+            await Settle(200);
+            await Click(Named<Button>("DeleteProfileButton"), "删除使用中的方案");
+            Check("使用中的方案不可删除", page.StatusMessage.Contains("仍在使用") && File.Exists(Global.Absolute($@"User\Pulonia\profiles\{profileId}.json")), page.StatusMessage);
+
+            // 计划级共享设置覆盖方案：一次性路线 → 已完成
+            await Click(Named<Button>("EditPlanSettingsButton"), "编辑计划级共享设置");
+            editor = page.SharedEditor!;
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
+            var cdRow = editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!;
+            Check("计划级设置显示继承自方案", cdRow.InheritedText.Contains("rolling") && !cdRow.IsOverridden, cdRow.InheritedText);
+            cdRow.TextValue = "{\"mode\":\"once\"}";
+            await Click(Named<Button>("SaveSharedSettingsButton"), "保存计划级设置");
+            Check("计划级设置存盘", File.ReadAllText(planFile).Replace(" ", "").Contains("\"mode\":\"once\""), editor.Message);
+            Check("计划级覆盖生效：已完成", Row()?.CooldownBadge == "已完成", Row()?.CooldownBadge ?? "无标记");
+            cdRow.TextValue = "{\"mode\":\"bad\"}";
+            await Click(Named<Button>("SaveSharedSettingsButton"), "保存无效设置");
+            Check("无效设置被拒绝", editor.Message.StartsWith("设置无效"), editor.Message);
+            page.SharedEditor = null;
+            page.SelectedTab = 0;
+            await Settle(500);
+            Shot("avalonia-plan-cd-badge.png");
+
+            // 路线 CD 页签：仅本计划 → 清除
+            page.SelectedTab = 4;
+            page.CooldownsForPlanOnly = true;
+            await Settle(800);
+            Check("按计划筛选的 CD 记录", page.Cooldowns.Count == 1 && page.Cooldowns[0].Route.Contains("m43-cd"), $"{page.Cooldowns.Count}");
+            Shot("avalonia-plan-cd-overview.png");
+            var seeded = page.Cooldowns.FirstOrDefault();
+            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
+            await Click(clear, "清除路线 CD");
+            await Settle(800);
+            var left = (await tasks.ListLedgerAsync()).Count(e => e.EffectKey.Contains("m43-cd"));
+            Check("清除路线 CD 记录", left == 0 && page.Cooldowns.Count == 0, page.StatusMessage);
+            Check("清除后标记消失", Row()?.CooldownBadge is null, Row()?.CooldownBadge);
+        }
+        finally
+        {
+            // 清理：计划改回不用方案后删除方案与计划
+            page.SelectedTab = 3;
+            page.SharedEditor = null;
+            page.PlanProfile = TaskPlanProfileItem.None;
+            await Settle(500);
+            foreach (var pid in new[] { profileId, copyId })
+            {
+                if (pid is null || page.Profiles.FirstOrDefault(p => p.Profile?.Id == pid) is not { } prof) continue;
+                page.SelectedProfile = prof;
+                await Settle(200);
+                await Click(Named<Button>("DeleteProfileButton"), "删除方案");
+                Check("删除方案文件", !File.Exists(Global.Absolute($@"User\Pulonia\profiles\{pid}.json")), page.StatusMessage);
+            }
+
+            page.SelectedTab = 0;
+            await Settle();
+            await DeleteTempPlanAsync(page, id);
+        }
     }
 
     private ListBox? CooldownList() => Named<ListBox>("CooldownList");

@@ -134,7 +134,9 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             OnPropertyChanged(nameof(PlanCountText));
             SelectedPlan = Plans.FirstOrDefault(p => p.Plan.Id == selectedId) ?? Plans.FirstOrDefault();
             StatusMessage = $"已加载 {Plans.Count} 个计划。" + (listed.Failures.Count > 0 ? $" {listed.Failures.Count} 份计划文件无法读取。" : "");
+            await ReloadProfilesAsync();
             await RefreshRunsAsync();
+            await RefreshCooldownsAsync();
         }
         catch (Exception e)
         {
@@ -147,6 +149,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     {
         TriggerEditor = null;
         ReferenceTarget = null;
+        if (CooldownsForPlanOnly) _ = RefreshCooldownsAsync();
+        OnPropertyChanged(nameof(PlanProfile));
         OnPropertyChanged(nameof(ReferencePlans));
         RebuildNodes();
         RebuildTriggers();
@@ -188,18 +192,21 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         Nodes.Clear();
         if (SelectedPlan is { } item)
         {
-            AddRows(item.Plan.RootTask, 0, true);
+            AddRows([item.Plan.RootTask], 0, true);
         }
 
         OnPropertyChanged(nameof(HasNoNodes));
     }
 
-    private void AddRows(PuloniaTask parent, int depth, bool parentEnabled)
+    private void AddRows(List<PuloniaTask> ancestors, int depth, bool parentEnabled)
     {
-        foreach (var child in parent.Children)
+        foreach (var child in ancestors[^1].Children)
         {
-            Nodes.Add(new TaskPlanNodeRow(this, parent, child, depth, parentEnabled));
-            AddRows(child, depth + 1, parentEnabled && child.IsEnabled);
+            List<PuloniaTask> chain = [.. ancestors, child];
+            var row = new TaskPlanNodeRow(this, ancestors[^1], child, depth, parentEnabled) { Chain = chain };
+            row.RefreshCooldown();
+            Nodes.Add(row);
+            AddRows(chain, depth + 1, parentEnabled && child.IsEnabled);
         }
     }
 
@@ -617,9 +624,13 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         try
         {
             var ledger = await _tasks.ListLedgerAsync();
+            _cooldownIndex = new PuloniaCollectionCooldownIndex(ledger);
+            RefreshCooldownBadges();
+            var planKeys = CooldownsForPlanOnly && SelectedPlan is { } plan ? CollectPlanEffectKeys(plan.Plan) : null;
             Cooldowns.Clear();
-            foreach (var entry in new PuloniaCollectionCooldownIndex(ledger).Entries
+            foreach (var entry in _cooldownIndex.Entries
                          .Where(e => e.EffectKey.StartsWith(PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal))
+                         .Where(e => planKeys is null || planKeys.Contains(e.EffectKey))
                          .OrderBy(e => e.NextEligibleAt ?? DateTimeOffset.MaxValue))
             {
                 Cooldowns.Add(new TaskPlanCooldownRow(entry));
@@ -723,6 +734,15 @@ public sealed partial class TaskPlanNodeRow : ObservableObject
 
     public int Depth { get; }
 
+    /// <summary>计划根到本节点（含）的模型链，用于解析共享设置与路线 CD</summary>
+    public IReadOnlyList<PuloniaTask> Chain { get; init; } = [];
+
+    [ObservableProperty] private string? _cooldownBadge;
+
+    [ObservableProperty] private string? _cooldownTip;
+
+    public void RefreshCooldown() => (CooldownBadge, CooldownTip) = _owner.DescribeCooldown(Chain.Count > 0 ? Chain : [Task]);
+
     public Thickness Indent => new(Depth * 20, 0, 0, 0);
 
     public string Name => Task.Name;
@@ -787,5 +807,6 @@ public sealed class TaskPlanCooldownRow(PuloniaTaskLedgerEntry entry)
         : entry.ScopeKey;
 
     public string Detail => $"{Scope} · 完成于 {entry.OccurredAt.ToLocalTime():MM-dd HH:mm}"
-        + (entry.NextEligibleAt is { } next ? (next > DateTimeOffset.Now ? $" · CD 至 {next.ToLocalTime():MM-dd HH:mm}" : " · 已可再次采集") : " · 一次性路线已完成");
+        // 记录中的下次可执行时间按记录时的规则；当前规则下的状态见任务树标记
+        + (entry.NextEligibleAt is { } next ? (next > DateTimeOffset.Now ? $" · 记录时 CD 至 {next.ToLocalTime():MM-dd HH:mm}" : " · 已过记录时的 CD") : "");
 }
