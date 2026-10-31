@@ -71,6 +71,7 @@
 		<InternalsVisibleTo Include="BetterGI" />
 		<InternalsVisibleTo Include="BetterGenshinImpact.UnitTest" />
 		<InternalsVisibleTo Include="BetterGenshinImpact.Core.UnitTest" />
+		<InternalsVisibleTo Include="BetterGenshinImpact.Host.Common" />
 	</ItemGroup>
 
 </Project>

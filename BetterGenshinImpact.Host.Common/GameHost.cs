@@ -336,6 +336,8 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IInferenceModelDiagnostics>(sp => sp.GetRequiredService<InferenceModelDiagnostics>());
             services.AddSingleton<InferenceRuntimeService>();
             services.AddSingleton<BgiOnnxFactory>();
+            // 绑定当前推理运行时的会话工厂，供可插拔实现（如 PP-OCRv6）在构造函数中注入（与 WPF App 相同）
+            services.AddTransient(sp => sp.GetRequiredService<BgiOnnxFactory>().ForCurrentRuntime());
             services.AddSingleton<OcrFactory>();
             // 剧情语音（自动配音）：会话与服务都在 Core，与 WPF 注册方式相同；开关打开且截图器运行时自动启停
             services.AddSingleton(sp => new QuestVoiceSessionFactory(config.QuestVoiceConfig, Global.StartUpPath,
