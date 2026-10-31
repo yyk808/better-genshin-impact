@@ -7,20 +7,32 @@ Linux 上的图形界面宿主（预览）。纯 `net10.0`，Avalonia 12 + Avalo
 
 ## 当前内容
 
+页面与窗口对照 WPF 原版，业务都调用 Core（与 Windows 版同一套代码）：
+
 | 部分 | 说明 |
 | --- | --- |
 | 主窗口外壳 | 左侧导航 + 内容区 + 底部日志面板，配色和卡片样式参照原版（WPF-UI 深色） |
-| 启动 | 启动 / 停止截图器；截图模式、触发器间隔、手动选择捕获窗口（列出 X11 窗口）；同时启动原神（Wine / Proton 等命令可配置）；游戏窗口、已处理帧数 |
-| 实时触发 | 自动拾取（极速模式、黑白名单模式、拾取按键）、自动剧情（快速跳过、选项优先级等）、自动邀约、自动开门、半自动钓鱼、自动吃药、快速传送 |
-| 环境 | 平台探测结果（显示服务器、X 扩展）、推理设备、OpenCV 版本与原生库、OpenCV 模块自检、界面字体、素材目录 |
-| 日志面板 | Serilog 日志实时显示，可切换调试日志、复制（经 `UiHost.Clipboard`）、清空、收起 |
-| `UiHost` | `AvaloniaUiDispatcher`（`Dispatcher.UIThread`）、`AvaloniaDialogService`（模态消息框 + 窗口内轻提示）、`AvaloniaClipboard`（`TopLevel.Clipboard`） |
+| 启动 | 启动 / 停止截图器、截图方式、手动选择捕获窗口、同时启动原神（Wine / Proton 命令可配置）、云原神（网页版） |
+| 实时触发 | 自动拾取、自动剧情、自动邀约、自动开门、半自动钓鱼、自动吃药、快速传送、自动配音（实验性） |
+| 独立任务 | 任务卡片与专属参数编辑器（秘境、首领、地脉花、幽境危战、体力计划等）、树脂设置对话框 |
+| 一条龙 | 选择配置、开关任务、启动 / 停止 |
+| 全自动 | 调度器（配置组、JS 脚本设置、HTML 设置页）、JS 脚本、地图追踪、键鼠录制回放 |
+| 任务计划 | 计划编辑、触发方式与快捷键触发、共享设置与设置方案、路线 CD 记录、计划引用 |
+| 设置 | 通用设置、快捷键（含开发者快捷键：模板素材制作、路径记录器）、通知（系统通知、Webhook、企业微信、邮件，可单独测试） |
+| 环境 | 平台探测（显示服务器、X 扩展）、推理设备、OpenCV 原生库与模块自检、音频输出、网页引擎、界面字体、素材目录 |
+| 遮罩 | 识别框、日志框、HTML 遮罩（透明、置顶、点击穿透，需要合成器） |
+| `UiHost` | `AvaloniaUiDispatcher`、`AvaloniaDialogService`（模态消息框 + 窗口内轻提示）、`AvaloniaClipboard` |
 
-“独立任务”页列出独立任务卡片（关键参数、启动/停止），“一条龙”页可选择配置、开关任务并启动/停止（详细设置界面尚未迁移）。
-其余导航项（任务计划、全自动、设置）目前是说明页。
+尚未迁移的窗口和与 Windows 的差异见 `Docs/linux-migration/MIGRATION.md`。
 
 实时触发页直接绑定 Core 的 `AllConfig`，与 WPF 的 `TriggerSettingsPageViewModel` 绑定的是同一批配置属性；
 触发器每帧读取 `IsEnabledByConfig`，开关立即生效。
+
+## 依赖
+
+除 .NET 10 外，运行需要 X11 / XWayland 会话（libX11、XTest、XInput2、Composite 等）和中文字体；网页设置页、HTML 遮罩、云原神需要
+`libwebkit2gtk-4.1-0`；遮罩透明需要合成器（如 picom）；剧情语音播放需要 libpulse；完整的 OpenCV 功能需要自行编译的
+OpenCvSharpExtern（见 `Build/Linux/README.md`）。完整列表见 `Docs/linux-migration/MIGRATION.md`。
 
 ## 配置文件
 
@@ -80,3 +92,4 @@ dotnet BetterGenshinImpact.Avalonia/bin/Debug/net10.0/bgi-avalonia.dll --assets 
 | `--cloud 地址` | 本次运行使用云原神（网页版）：启动截图器时打开 WebKitGTK 云原神窗口，进入游戏后截取该窗口，键鼠经页面 SDK（`ys-input-inject.js`，与 Windows 网页版实例相同）发送；不写回设置。界面上在“启动”页的“云原神（网页版）”中开启 |
 | `--select-window 标题` | 无人值守：打开窗口选择对话框，选中标题匹配的窗口（并截图） |
 | `--solo-task 任务标识` / `--solo-stop-after 秒` | 无人值守：在独立任务页启动该任务，到时停止并等待结束（并截图） |
+| `--ui-test 名称` | 界面自测（开发用）：按名称运行一组界面操作并核对结果，例如 `taskplan`、`script-settings`、`html-settings`、`solo-domain` |

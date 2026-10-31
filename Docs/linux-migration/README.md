@@ -4,6 +4,7 @@
 
 | 文档 | 内容 |
 |---|---|
+| [MIGRATION.md](MIGRATION.md) | **合并说明（面向上游维护者）**：架构、移入 Core 的模块、Linux 依赖与构建、与 Windows 的差异、已知问题、测试、建议的合并顺序 |
 | [roadmap.md](roadmap.md) | 分阶段路线图、每阶段的目标与验收标准 |
 | [phase1-foundation.md](phase1-foundation.md) | 第一阶段（平台抽象地基）的成果、验证结果与遗留问题 |
 | [phase2-progress.md](phase2-progress.md) | 第二阶段（接入平台服务、清理 Win32 依赖）的里程碑记录与验证结果 |
@@ -14,12 +15,11 @@
 
 分支：`avalonia-linux`（从 `refactor/20260930` 切出）。
 
-## 当前状态（第一阶段完成后）
+## 当前状态
 
-- 新增纯 `net10.0` 的 `BetterGenshinImpact.Core`（平台抽象层 + 输入抽象），`BetterGenshinImpact.Platform.Windows`（封装现有 Win32 实现）、
-  `BetterGenshinImpact.Platform.Linux`（X11 / XWayland 实现）。
-- 输入 / 截图 / 窗口接口签名中的 Win32 类型（`User32.VK`、`RECT`、`nint hWnd`）已替换为 `GameKey`、`PixelRect`、`IPlatformWindow`，Windows 行为不变。
-- 主程序和 UI 仍是 WPF（`net10.0-windows`），尚未在 Linux 上原生运行；UI 迁移见路线图第 4 阶段。
+- 业务代码（识别、任务、脚本、配置、触发器、任务计划等）已移入纯 `net10.0` 的 `BetterGenshinImpact.Core`，WPF 主程序改为调用 Core，Windows 行为不变。
+- Linux（X11 / XWayland）上有无界面宿主 `BetterGenshinImpact.Host.Headless` 和图形界面宿主 `BetterGenshinImpact.Avalonia`，两者共用 `BetterGenshinImpact.Host.Common`。
+- 合并说明见 [MIGRATION.md](MIGRATION.md)。
 
 ## 在 Linux 上编译
 
