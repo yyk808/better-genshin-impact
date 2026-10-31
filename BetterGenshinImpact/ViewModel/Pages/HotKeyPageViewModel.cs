@@ -917,7 +917,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
 
                 try
                 {
-                    var p = new TpTask(runtime, Config, runtime.Stopping).GetPositionFromBigMap(MapTypes.Teyvat.ToString());
+                    var p = Pluggable.Get<ITpTaskFactory>().Create(runtime, Config, runtime.Stopping).GetPositionFromBigMap(MapTypes.Teyvat.ToString());
                     _logger.LogInformation("大地图位置：{Position}", p);
                 }
                 catch (Exception e)
@@ -1024,7 +1024,7 @@ public partial class HotKeyPageViewModel : ObservableObject, IViewModel
                     {
                         try
                         {
-                            await new TpTask(runtime, Config, runtime.Stopping).Tp(7001.6416, -569.6846, nameof(MapTypes.Teyvat));
+                            await Pluggable.Get<ITpTaskFactory>().Create(runtime, Config, runtime.Stopping).Tp(7001.6416, -569.6846, nameof(MapTypes.Teyvat));
                         }
                         catch (Exception e)
                         {

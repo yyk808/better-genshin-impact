@@ -1,4 +1,4 @@
-using BetterGenshinImpact.GameTask.QuestVoice;
+﻿using BetterGenshinImpact.GameTask.QuestVoice;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.Core.Recorder;
@@ -296,6 +296,11 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<KeyMouseRecordController>();
             // 独立任务：注册表只扫描 Core（Linux 宿主没有 WPF 主程序集，一条龙另行迁移），执行走 Core 的 TaskRunner
             services.AddSingleton(new SoloTaskRegistry([typeof(CoreServices).Assembly]));
+            // 可插拔能力（OCR 模型、传送等）：只扫描 Core 中的内置实现；Linux 宿主暂不加载外部插件
+            config.PluginConfig ??= new();
+            var pluggables = new BetterGenshinImpact.Core.Plugins.Pluggables.PluggableRegistry([typeof(CoreServices).Assembly], config.PluginConfig);
+            services.AddSingleton(pluggables);
+            pluggables.RegisterProxies(services);
             services.AddSingleton<SoloTaskExecutionService>();
             // 配置组执行（一条龙中的配置组任务、脚本）
             services.AddSingleton<IScriptService, ScriptService>();
@@ -333,7 +338,8 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<BgiOnnxFactory>();
             services.AddSingleton<OcrFactory>();
             // 剧情语音（自动配音）：会话与服务都在 Core，与 WPF 注册方式相同；开关打开且截图器运行时自动启停
-            services.AddSingleton(sp => new QuestVoiceSessionFactory(config.QuestVoiceConfig, Global.StartUpPath, sp.GetRequiredService<BgiOnnxFactory>()));
+            services.AddSingleton(sp => new QuestVoiceSessionFactory(config.QuestVoiceConfig, Global.StartUpPath,
+                sp.GetRequiredService<OcrFactory>(), sp.GetRequiredService<InferenceRuntimeService>()));
             services.AddSingleton<IQuestVoiceSessionFactory>(sp => sp.GetRequiredService<QuestVoiceSessionFactory>());
             services.AddSingleton<QuestVoiceSessionController>();
             services.AddSingleton<QuestVoiceService>();

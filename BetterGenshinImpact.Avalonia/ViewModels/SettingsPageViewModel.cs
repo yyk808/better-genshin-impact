@@ -299,7 +299,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                 {
                     try
                     {
-                        var p = new TpTask(r, Config, r.Stopping).GetPositionFromBigMap(MapTypes.Teyvat.ToString());
+                        var p = BetterGenshinImpact.Core.Plugins.Pluggable.Get<ITpTaskFactory>().Create(r, Config, r.Stopping).GetPositionFromBigMap(MapTypes.Teyvat.ToString());
                         _log.Information("大地图位置：{Position}", p);
                     }
                     catch (Exception e)
