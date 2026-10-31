@@ -7,10 +7,6 @@ namespace BetterGenshinImpact.ViewModel.Windows;
 
 public partial class AutoPickBlacklistConfigViewModel : AutoPickConfigWindowViewModelBase
 {
-    private const string DoNotPickPath = @"User\pick_black_lists.txt";
-    private const string FuzzyDoNotPickPath = @"User\pick_fuzzy_black_lists.txt";
-    private const string PickPath = @"User\pick_white_lists.txt";
-
     private readonly AutoPickConfig _config;
 
     [ObservableProperty] private bool _pickEnabled;
@@ -25,20 +21,14 @@ public partial class AutoPickBlacklistConfigViewModel : AutoPickConfigWindowView
     {
         _config = config;
         _pickEnabled = config.BlacklistModePickEnabled;
-        _doNotPickText = Global.ReadAllTextIfExist(DoNotPickPath) ?? string.Empty;
-        _fuzzyDoNotPickText = Global.ReadAllTextIfExist(FuzzyDoNotPickPath) ?? string.Empty;
-        _pickText = Global.ReadAllTextIfExist(PickPath) ?? string.Empty;
+        _doNotPickText = BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.Read(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistDoNotPickPath);
+        _fuzzyDoNotPickText = BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.Read(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistFuzzyDoNotPickPath);
+        _pickText = BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.Read(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistPickPath);
     }
 
     [RelayCommand]
     private void Save()
     {
-        SaveAndClose(() =>
-        {
-            Global.WriteAllText(DoNotPickPath, DoNotPickText);
-            Global.WriteAllText(FuzzyDoNotPickPath, FuzzyDoNotPickText);
-            Global.WriteAllText(PickPath, PickText);
-            _config.BlacklistModePickEnabled = PickEnabled;
-        });
+        SaveAndClose(() => BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.SaveBlacklist(_config, DoNotPickText, FuzzyDoNotPickText, PickText, PickEnabled));
     }
 }

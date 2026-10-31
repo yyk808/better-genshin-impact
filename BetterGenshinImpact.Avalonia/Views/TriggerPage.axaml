@@ -46,7 +46,29 @@
                             </StackPanel>
                             <StackPanel>
                                 <TextBlock Text="黑白名单模式" />
-                                <TextBlock Classes="desc" Text="选择自动拾取的基础行为；两种模式互斥，切换后立即生效（名单编辑窗口尚未迁移）" />
+                                <TextBlock Classes="desc" Text="选择自动拾取的基础行为；两种模式互斥，切换后立即生效" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel IsVisible="{Binding IsBlacklistAutoPickMode}">
+                            <Button x:Name="BlacklistRulesButton" DockPanel.Dock="Right" Content="配置规则" Command="{Binding OpenBlacklistModeConfigCommand}" />
+                            <StackPanel>
+                                <TextBlock Text="黑名单模式规则" />
+                                <TextBlock Classes="desc" Text="在独立窗口中配置拾取、不拾取及模糊匹配规则" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel IsVisible="{Binding IsWhitelistAutoPickMode}">
+                            <Button x:Name="WhitelistRulesButton" DockPanel.Dock="Right" Content="配置规则" Command="{Binding OpenWhitelistModeConfigCommand}" />
+                            <StackPanel>
+                                <TextBlock Text="白名单模式规则" />
+                                <TextBlock Classes="desc" Text="在独立窗口中配置拾取列表和精确不拾取规则" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ComboBox x:Name="PickOcrEngineBox" DockPanel.Dock="Right" Width="120" ItemsSource="{Binding PickOcrEngineNames}"
+                                      SelectedItem="{Binding Config.AutoPickConfig.OcrEngine}" />
+                            <StackPanel>
+                                <TextBlock Text="选择自动拾取文字识别引擎" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Paddle可识别所有文字，速度慢，消耗少；Yap可识别部分文字，快且准，消耗大" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
@@ -73,6 +95,24 @@
                     </DockPanel>
                 </Expander.Header>
                     <StackPanel Spacing="10">
+                        <DockPanel Opacity="0.6">
+                            <StackPanel>
+                                <TextBlock Text="启用后台模式（会只用交互键进行剧情）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Linux 版不可用：XTest 输入只有前台通道，没有 Windows PostMessage 那样的后台按键（配置与 Windows 版共用）" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel Opacity="0.6">
+                            <StackPanel>
+                                <TextBlock Text="后台剧情结束后自动切回游戏前台" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="依赖后台模式，Linux 版不可用" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel Opacity="0.6">
+                            <StackPanel>
+                                <TextBlock Text="画中画窗口" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Windows 版小窗功能，Linux 版不可用" />
+                            </StackPanel>
+                        </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.QuicklySkipConversationsEnabled}" />
                             <StackPanel>
@@ -80,6 +120,18 @@
                                 <TextBlock Classes="desc" Text="如果你要听完整的主线语音的话，可以关闭此功能" />
                             </StackPanel>
                         </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch x:Name="CustomPriorityOptionsSwitch" IsChecked="{Binding Config.AutoSkipConfig.CustomPriorityOptionsEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="自定义优先对话选项" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="优先级高于下边的 选择选项优先级" />
+                            </StackPanel>
+                        </DockPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="自定义优先选项文本" />
+                            <TextBlock Classes="desc" Text="多个选项用分号(中英文)分隔，或者换行" />
+                            <TextBox x:Name="CustomPriorityOptionsBox" AcceptsReturn="True" MinHeight="60" Text="{Binding Config.AutoSkipConfig.CustomPriorityOptions}" />
+                        </StackPanel>
                         <DockPanel>
                             <ComboBox DockPanel.Dock="Right" Width="200" ItemsSource="{Binding ClickChatOptionNames}"
                                       SelectedItem="{Binding Config.AutoSkipConfig.ClickChatOption}" />
@@ -89,20 +141,59 @@
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
+                            <NumericUpDown x:Name="ChooseOptionDelayBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.AfterChooseOptionSleepDelay}" />
+                            <StackPanel>
+                                <TextBlock Text="选择对话选项前的延迟（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动剧情的情况下，依旧能够看清楚选项" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel Opacity="0.6">
+                            <StackPanel>
+                                <TextBlock Text="听完语音后再选择对话选项 / Silero VAD 实时诊断" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="依赖 Windows 进程音频捕获（WASAPI 进程环回），Linux 版不可用，使用上方固定延迟" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding Config.AutoSkipConfig.DialogueOptionVoiceMaxWaitSeconds}" />
+                            <StackPanel>
+                                <TextBlock Text="语音结束检测最大等待（秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="超过该时间仍未检测到语音结束时会继续选择（Windows 版语音检测使用）" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.BeforeClickConfirmDelay}" />
+                            <StackPanel>
+                                <TextBlock Text="点击对话框确认按钮之前的延迟（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动剧情的情况下，依旧能够看完全部对话框文字" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.SubmitGoodsEnabled}" />
-                            <TextBlock Text="自动提交物品" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="自动提交物品" />
+                                <TextBlock Classes="desc" Text="对话过程中出现提交物品界面，会自动提交，支持多个物品" />
+                            </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.ClosePopupPagedEnabled}" />
-                            <TextBlock Text="自动关闭弹出页" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="自动关闭弹出页" />
+                                <TextBlock Classes="desc" Text="关闭对话过程中出现的弹出页面，可能会误关地图、相机" />
+                            </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoGetDailyRewardsEnabled}" />
-                            <TextBlock Text="自动领取每日委托奖励" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="凯瑟琳 - 自动领取『每日委托』奖励" />
+                                <TextBlock Classes="desc" Text="在与凯瑟琳对话时，会自动“领取『每日委托』奖励”" />
+                            </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoReExploreEnabled}" />
-                            <TextBlock Text="自动领取已完成探索的奖励，并重新派遣" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="凯瑟琳 - 自动重新派遣" />
+                                <TextBlock Classes="desc" Text="自动领取已完成探索的奖励，并重新派遣" />
+                            </StackPanel>
                         </DockPanel>
                     </StackPanel>
             </Expander>
@@ -217,16 +308,42 @@
             </Expander>
 
             <!-- 自动邀约 -->
-            <Border Classes="card">
-                <DockPanel>
-                    <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutEventEnabled}" />
-                    <PathIcon Classes="cardIcon" Data="M12,21 L4,13 A5,5 0 0 1 12,6 A5,5 0 0 1 20,13 Z" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="自动邀约" />
-                        <TextBlock Classes="desc" Text="自动剧情开启的情况下此功能才会生效，自动选择邀约选项" />
+            <Expander Classes="card" x:Name="HangoutCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutEventEnabled}" />
+                        <PathIcon Classes="cardIcon" Data="M12,21 L4,13 A5,5 0 0 1 12,6 A5,5 0 0 1 20,13 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="自动邀约" />
+                            <TextBlock Classes="desc" Text="自动剧情开启的情况下此功能才会生效，自动选择邀约选项" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutPressSkipEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="存在跳过按钮时自动点击" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="邀约过程中左上角存在跳过按钮时候，自动点击跳过" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ComboBox x:Name="HangoutBranchBox" DockPanel.Dock="Right" Width="200" ItemsSource="{Binding HangoutBranches}"
+                                      SelectedItem="{Binding Config.AutoSkipConfig.AutoHangoutEndChoose}" />
+                            <StackPanel>
+                                <TextBlock Text="选择邀约分支（不支持气泡联想选择）" />
+                                <TextBlock Classes="desc" Text="会按照选择分支的关键词进行选项选择" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.AutoHangoutChooseOptionSleepDelay}" />
+                            <StackPanel>
+                                <TextBlock Text="选择邀约选项前的延迟（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动邀约的情况下，依旧能够看清楚选项" />
+                            </StackPanel>
+                        </DockPanel>
                     </StackPanel>
-                </DockPanel>
-            </Border>
+            </Expander>
 
             <!-- 自动开门 -->
             <Border Classes="card">
@@ -251,26 +368,194 @@
                     </StackPanel>
                 </DockPanel>
             </Border>
-            <Border Classes="card">
-                <DockPanel>
-                    <ToggleSwitch IsChecked="{Binding Config.AutoEatConfig.Enabled}" />
-                    <PathIcon Classes="cardIcon" Data="F0 M8,2 H16 V6 L19,11 V22 H5 V11 L8,6 Z M11,12 H13 V14 H15 V16 H13 V18 H11 V16 H9 V14 H11 Z" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="自动吃药" />
-                        <TextBlock Classes="desc" Text="检测角色红血状态，自动使用便携营养袋回复生命值" />
+            <Expander Classes="card" x:Name="AutoEatCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.AutoEatConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="F0 M8,2 H16 V6 L19,11 V22 H5 V11 L8,6 Z M11,12 H13 V14 H15 V16 H13 V18 H11 V16 H9 V14 H11 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="自动吃药" />
+                            <TextBlock Classes="desc" Text="检测角色红血状态，自动使用便携营养袋回复生命值" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <NumericUpDown x:Name="EatCheckIntervalBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="50" FormatString="0" Value="{Binding Config.AutoEatConfig.CheckInterval}" />
+                            <StackPanel>
+                                <TextBlock Text="触发时间间隔（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="多少时间检查一次是否红血或需要复活" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoEatConfig.EatInterval}" />
+                            <StackPanel>
+                                <TextBlock Text="吃药时间间隔（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="防止频繁吃药" />
+                            </StackPanel>
+                        </DockPanel>
                     </StackPanel>
-                </DockPanel>
-            </Border>
-            <Border Classes="card">
-                <DockPanel>
-                    <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.Enabled}" />
-                    <PathIcon Classes="cardIcon" Data="M12,2 A7,7 0 0 1 19,9 C19,14 12,22 12,22 C12,22 5,14 5,9 A7,7 0 0 1 12,2 Z M12,6 A3,3 0 1 0 12.01,6 Z" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="快速传送" />
-                        <TextBlock Classes="desc" Text="在大地图上点击传送点（或列表中有传送点）时，自动点击传送" />
+            </Expander>
+            <Expander Classes="card" x:Name="QuickTeleportCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="M12,2 A7,7 0 0 1 19,9 C19,14 12,22 12,22 C12,22 5,14 5,9 A7,7 0 0 1 12,2 Z M12,6 A3,3 0 1 0 12.01,6 Z" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="快速传送" />
+                            <TextBlock Classes="desc" Text="在大地图上点击传送点（或列表中有传送点）时，自动点击传送" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <NumericUpDown x:Name="TeleportListClickDelayBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding Config.QuickTeleportConfig.TeleportListClickDelay}" />
+                            <StackPanel>
+                                <TextBlock Text="点击候选列表传送点的间隔时间（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="普通用户请不要修改此配置，需要根据文字识别耗时配置，太低会导致点击失败" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding Config.QuickTeleportConfig.WaitTeleportPanelDelay}" />
+                            <StackPanel>
+                                <TextBlock Text="等待右侧传送弹出界面的时间（毫秒）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="普通用户请不要修改此配置，不建议低于80ms，太低会导致传送按钮识别不到" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.HotkeyTpEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="启用快捷键传送" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="按下" />
+                                    <Button x:Name="GoToHotkeysButton" Classes="link" Padding="0" Background="Transparent" BorderThickness="0" Command="{Binding GoToHotkeysCommand}">
+                                        <TextBlock Classes="desc" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Text="[手动触发快速传送触发快捷键]" />
+                                    </Button>
+                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="后才进行快速传送" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
                     </StackPanel>
-                </DockPanel>
-            </Border>
+            </Expander>
+            <Expander Classes="card" x:Name="MapMaskCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.MapMaskConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="M3,6 L9,3 L15,6 L21,3 V18 L15,21 L9,18 L3,21 Z M9,3 V18 M15,6 V21" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="地图遮罩" />
+                            <TextBlock Classes="desc" Text="在遮罩窗口中显示大地图位置与标点信息" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.MapMaskConfig.MiniMapMaskEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="启用小地图遮罩" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="在小地图上显示点位" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel Opacity="0.6">
+                            <StackPanel>
+                                <TextBlock Text="Linux 版说明" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="点位数据来自米游社地图接口，点位层（MaskMapPointService / MiniMapPointsCanvas）只在 Windows 版遮罩窗口绘制；Linux 版遮罩暂不显示点位，开关与 Windows 版共用" />
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+            </Expander>
+            <Expander Classes="card" x:Name="SkillCdCard">
+                <Expander.Header>
+                    <DockPanel>
+                        <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.Enabled}" />
+                        <PathIcon Classes="cardIcon" Data="M12,3 A9,9 0 1 0 12.01,3 Z M12,7 V12 L15,14" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="title" Text="冷却提示" />
+                            <TextBlock Classes="desc" Text="在头像旁显示角色元素战技剩余冷却时间" />
+                        </StackPanel>
+                    </DockPanel>
+                </Expander.Header>
+                    <StackPanel Spacing="10">
+                        <DockPanel>
+                            <Button x:Name="EditSkillCdButton" DockPanel.Dock="Right" Content="前往配置" Command="{Binding EditSkillCdConfigCommand}" />
+                            <StackPanel>
+                                <TextBlock Text="角色 CD 配置" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="填写此项，为指定的角色配置未识别到 CD 数字时的默认值。如玛薇卡开 E 会显示摩托车，识别不到CD。" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.TriggerOnSkillUse}" />
+                            <StackPanel>
+                                <TextBlock Text="使用战技时触发" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="使用战技时也进行一次识别，否则仅在切人时触发" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.HideWhenZero}" />
+                            <StackPanel>
+                                <TextBlock Text="冷却为0时隐藏" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="开启后倒计时为0时会隐藏计时器" />
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock Text="计时器样式调节" FontWeight="SemiBold" Margin="0,6,0,0" />
+                        <DockPanel>
+                            <NumericUpDown x:Name="SkillCdPxBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="1920" Increment="1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.PX}" />
+                            <StackPanel>
+                                <TextBlock Text="横坐标" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器在界面上的横坐标，范围：0-1920，默认值1520。" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="1080" Increment="1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.PY}" />
+                            <StackPanel>
+                                <TextBlock Text="纵坐标" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器在界面上的纵坐标，范围：0-1080，默认值245。" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="200" Increment="0.1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.Gap}" />
+                            <StackPanel>
+                                <TextBlock Text="计时器间隔" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器之间的间隔，范围：0-200，默认值91.2。" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10" Increment="0.1" FormatString="0.##" Value="{Binding Config.SkillCdConfig.Scale}" />
+                            <StackPanel>
+                                <TextBlock Text="计时器大小" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器大小，范围：0-10，默认值1。" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBox x:Name="SkillCdTextNormalColorBox" DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.TextNormalColor}" />
+                            <StackPanel>
+                                <TextBlock Text="CD ≥ 0.8s 时数字颜色" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.BackgroundNormalColor}" />
+                            <StackPanel>
+                                <TextBlock Text="CD ≥ 0.8s 时背景颜色" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.TextReadyColor}" />
+                            <StackPanel>
+                                <TextBlock Text="CD &lt; 0.8s 时数字颜色" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                            </StackPanel>
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.BackgroundReadyColor}" />
+                            <StackPanel>
+                                <TextBlock Text="CD &lt; 0.8s 时背景颜色" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+            </Expander>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

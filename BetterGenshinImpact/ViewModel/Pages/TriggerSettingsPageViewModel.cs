@@ -23,11 +23,11 @@ namespace BetterGenshinImpact.ViewModel.Pages;
 
 public partial class TriggerSettingsPageViewModel : ViewModel
 {
-    [ObservableProperty] private string[] _clickChatOptionNames = ["优先选择第一个选项", "随机选择选项", "优先选择最后一个选项", "不选择选项"];
+    [ObservableProperty] private string[] _clickChatOptionNames = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.ClickChatOptionNames;
 
-    [ObservableProperty] private string[] _selectChatOptionTypeNames = [SelectChatOptionTypes.UseMouse, SelectChatOptionTypes.UseInteractionKey];
+    [ObservableProperty] private string[] _selectChatOptionTypeNames = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.SelectChatOptionTypeNames;
 
-    [ObservableProperty] private string[] _pickOcrEngineNames = [PickOcrEngineEnum.Paddle.ToString(), PickOcrEngineEnum.Yap.ToString()];
+    [ObservableProperty] private string[] _pickOcrEngineNames = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.PickOcrEngineNames;
 
     [ObservableProperty] private bool _isBlacklistAutoPickMode;
 
@@ -35,12 +35,7 @@ public partial class TriggerSettingsPageViewModel : ViewModel
 
     [ObservableProperty] private List<string> _pickButtonNames;
 
-    [ObservableProperty] private Dictionary<string, string> _pictureInPictureSourceTypeDict =
-        new()
-        {
-            { nameof(PictureSourceType.CaptureLoop), "60帧模式" },
-            { nameof(PictureSourceType.TriggerDispatcher), "截图器供图" }
-        };
+    [ObservableProperty] private Dictionary<string, string> _pictureInPictureSourceTypeDict = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.PictureInPictureSourceTypes;
 
     public AllConfig Config { get; set; }
 
@@ -63,17 +58,10 @@ public partial class TriggerSettingsPageViewModel : ViewModel
         QuestVoice = questVoice;
         VoiceDiagnosticState = voiceDiagnosticState;
         _navigationService = navigationService;
-        _hangoutBranches = HangoutConfig.Instance.HangoutOptionsTitleList;
+        _hangoutBranches = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.HangoutBranches();
         UpdateAutoPickModeVisibility();
 
-        _pickButtonNames = new List<string> { "F", "E", "G" };
-        if (!string.IsNullOrEmpty(Config.AutoPickConfig.PickKey)
-            && Config.AutoPickConfig.PickKey.Length == 1
-            && char.IsUpper(Config.AutoPickConfig.PickKey[0])
-            && !_pickButtonNames.Contains(Config.AutoPickConfig.PickKey))
-        {
-            _pickButtonNames.Add(Config.AutoPickConfig.PickKey);
-        }
+        _pickButtonNames = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.PickButtonNames(Config.AutoPickConfig);
     }
 
     [RelayCommand]

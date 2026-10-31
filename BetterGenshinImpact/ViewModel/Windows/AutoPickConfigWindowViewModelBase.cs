@@ -20,7 +20,7 @@ public abstract partial class AutoPickConfigWindowViewModelBase : ViewModel
         }
         catch (Exception e)
         {
-            ThemedMessageBox.Error("保存自动拾取名单配置失败：" + e);
+            ThemedMessageBox.Error(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.SaveFailedText + e);
         }
     }
 

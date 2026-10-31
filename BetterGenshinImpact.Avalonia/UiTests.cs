@@ -62,6 +62,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "key-bindings": await KeyBindingsAsync(); break;
                 case "settings-more": await SettingsMoreAsync(); break;
                 case "settings-general": await SettingsGeneralAsync(); break;
+                case "trigger-more": await TriggerMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2707,6 +2708,107 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         nc.WebSocketNotificationEnabled = wasOn;
         nc.WebSocketEndpoint = wasEp;
         await Settle();
+    }
+
+    /// <summary>实时触发补项：拾取 OCR 引擎、黑白名单规则对话框、自动剧情/邀约/吃药/快速传送参数、地图遮罩、冷却提示与角色 CD 配置</summary>
+    private async Task TriggerMoreAsync()
+    {
+        vm.Navigate("实时触发");
+        await Settle(600);
+        var page = vm.Trigger;
+        var cfg = page.Config;
+        foreach (var ex in All<Expander>()) ex.IsExpanded = true;
+        await Settle(600);
+        var savedMode = cfg.AutoPickConfig.Mode;
+        var savedEngine = cfg.AutoPickConfig.OcrEngine;
+        var savedEat = cfg.AutoEatConfig.CheckInterval;
+        var savedPrio = cfg.AutoSkipConfig.CustomPriorityOptions;
+        var savedCd = cfg.SkillCdConfig.CustomCdList;
+        var savedPickOn = cfg.AutoPickConfig.BlacklistModePickEnabled;
+        Named<ComboBox>("PickOcrEngineBox")!.SelectedItem = "Yap";
+        Named<NumericUpDown>("EatCheckIntervalBox")!.Value = 300;
+        Named<TextBox>("CustomPriorityOptionsBox")!.Text = "m55选项A;m55选项B";
+        await Settle();
+        Check("拾取引擎/吃药间隔/自定义优先选项写入配置", cfg.AutoPickConfig.OcrEngine == "Yap" && cfg.AutoEatConfig.CheckInterval == 300
+            && cfg.AutoSkipConfig.CustomPriorityOptions == "m55选项A;m55选项B");
+        Check("后台模式 / 画中画 / 语音等待显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text?.StartsWith("Linux 版不可用：XTest") == true)
+            && All<TextBlock>().Any(t => t.Text?.Contains("WASAPI") == true));
+        Check("地图遮罩、冷却提示、快速传送、邀约卡片", Named<Expander>("MapMaskCard") is not null && Named<Expander>("SkillCdCard") is not null
+            && Named<NumericUpDown>("TeleportListClickDelayBox") is not null && Named<ComboBox>("HangoutBranchBox") is { ItemCount: > 0 });
+        Shot("avalonia-trigger-top.png");
+
+        // 黑名单规则对话框：读写 User/pick_black_lists.txt，保存后恢复原文件
+        var file = Global.Absolute(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistDoNotPickPath);
+        var existed = File.Exists(file);
+        var original = existed ? File.ReadAllText(file) : null;
+        page.SetAutoPickModeCommand.Execute(BetterGenshinImpact.GameTask.AutoPick.AutoPickMode.Blacklist);
+        await Settle();
+        var last = Services.FluentMessageBox.Current;
+        var open = page.OpenBlacklistModeConfigCommand.ExecuteAsync(null);
+        var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+        await Settle(400);
+        var boxes = dialog?.GetVisualDescendants().OfType<TextBox>().ToList() ?? [];
+        var doNot = boxes.FirstOrDefault(t => t.Name == "BlacklistDoNotPickBox");
+        Check("黑名单规则对话框显示三个名单", doNot is not null && boxes.Any(t => t.Name == "BlacklistFuzzyBox") && boxes.Any(t => t.Name == "BlacklistPickBox")
+            && doNot.Text == (original ?? ""));
+        if (doNot is not null) doNot.Text = (original ?? "") + "\nm55测试宝箱";
+        Shot("avalonia-trigger-blacklist-dialog.png");
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await open;
+        await Settle();
+        Check("保存写入名单文件", File.Exists(file) && File.ReadAllText(file).Contains("m55测试宝箱"));
+        if (existed) File.WriteAllText(file, original!); else File.Delete(file);
+        foreach (var p in new[] { BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistFuzzyDoNotPickPath, BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.BlacklistPickPath })
+        {
+            var f = Global.Absolute(p);
+            if (File.Exists(f) && File.ReadAllText(f).Length == 0 && File.GetLastWriteTime(f) > DateTime.Now.AddMinutes(-2)) File.Delete(f);
+        }
+
+        // 白名单规则对话框：取消不写文件
+        page.SetAutoPickModeCommand.Execute(BetterGenshinImpact.GameTask.AutoPick.AutoPickMode.Whitelist);
+        await Settle();
+        Check("切到白名单后显示白名单规则按钮", Named<Button>("WhitelistRulesButton") is not null && Named<Button>("BlacklistRulesButton") is null);
+        last = Services.FluentMessageBox.Current;
+        open = page.OpenWhitelistModeConfigCommand.ExecuteAsync(null);
+        dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+        await Settle(400);
+        Check("白名单规则对话框", dialog?.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "WhitelistPickBox") == true);
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+        await open;
+
+        // 角色 CD 配置
+        last = Services.FluentMessageBox.Current;
+        open = page.EditSkillCdConfigCommand.ExecuteAsync(null);
+        dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+        await Settle(400);
+        var add = dialog?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "SkillCdAddRuleButton");
+        add?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        await Settle();
+        var rows = dialog?.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == "SkillCdRulesPanel");
+        var lastRow = rows?.Children.OfType<StackPanel>().LastOrDefault();
+        var tbs = lastRow?.Children.OfType<TextBox>().ToList();
+        if (tbs is { Count: 2 }) { tbs[0].Text = " m55测试角色 "; tbs[1].Text = "12"; }
+        await Settle();
+        Shot("avalonia-trigger-skillcd-dialog.png");
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await open;
+        Check("角色 CD 配置保存（去空白、丢弃空行）", cfg.SkillCdConfig.CustomCdList.Any(r => r.RoleName == "m55测试角色" && r.CdValueText == "12")
+            && cfg.SkillCdConfig.CustomCdList.All(r => !string.IsNullOrWhiteSpace(r.RoleName)), string.Join(",", cfg.SkillCdConfig.CustomCdList.Select(r => r.RoleName)));
+
+        Named<Button>("EditSkillCdButton")?.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-trigger-bottom.png");
+        // 还原
+        cfg.SkillCdConfig.CustomCdList = savedCd;
+        cfg.AutoPickConfig.OcrEngine = savedEngine;
+        cfg.AutoEatConfig.CheckInterval = savedEat;
+        cfg.AutoSkipConfig.CustomPriorityOptions = savedPrio;
+        cfg.AutoPickConfig.BlacklistModePickEnabled = savedPickOn;
+        page.SetAutoPickModeCommand.Execute(savedMode);
+        await Settle();
+        await Click(Named<Button>("GoToHotkeysButton"), "快捷键链接");
+        await Settle(600);
+        Check("“手动触发快速传送触发快捷键”跳转快捷键页", vm.CurrentPage == vm.Settings && vm.Settings.SelectedTab == 1);
     }
 
     /// <summary>通用设置补项：七天神像国家/区域写回点位、准星类型、传送间隔、图标识别模型、米游社、Windows 专属说明、OCR 跳转插件页</summary>

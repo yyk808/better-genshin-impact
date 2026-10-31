@@ -16,25 +16,8 @@ public partial class SkillCdConfigWindow : FluentWindow
     {
         InitializeComponent();
 
-        // 深度复制列表，避免直接修改原配置
-        Rules = new ObservableCollection<SkillCdRule>();
-        if (initialRules != null)
-        {
-            foreach (var rule in initialRules)
-            {
-                Rules.Add(new SkillCdRule
-                {
-                    RoleName = rule.RoleName,
-                    CdValueText = rule.CdValueText
-                });
-            }
-        }
-
-        // 如果为空，添加默认行
-        if (Rules.Count == 0)
-        {
-            Rules.Add(new SkillCdRule());
-        }
+        // 深度复制列表，避免直接修改原配置；为空时添加默认行
+        Rules = BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.CopySkillCdRules(initialRules);
 
         DataContext = this;
 
@@ -56,13 +39,6 @@ public partial class SkillCdConfigWindow : FluentWindow
 
     public List<SkillCdRule> GetValidRules()
     {
-        return Rules
-            .Where(r => !string.IsNullOrWhiteSpace(r.RoleName))
-            .Select(r => new SkillCdRule
-            {
-                RoleName = r.RoleName.Trim(),
-                CdValueText = r.CdValueText?.Trim()
-            })
-            .ToList();
+        return BetterGenshinImpact.ViewModel.Pages.Trigger.TriggerSettingsChoices.ValidSkillCdRules(Rules);
     }
 }

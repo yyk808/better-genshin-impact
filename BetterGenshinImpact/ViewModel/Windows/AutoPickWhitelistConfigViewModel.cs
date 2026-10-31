@@ -7,9 +7,6 @@ namespace BetterGenshinImpact.ViewModel.Windows;
 
 public partial class AutoPickWhitelistConfigViewModel : AutoPickConfigWindowViewModelBase
 {
-    private const string PickPath = @"User\pick_whitelist_mode_pick_lists.txt";
-    private const string DoNotPickPath = @"User\pick_whitelist_mode_do_not_pick_lists.txt";
-
     private readonly AutoPickConfig _config;
 
     [ObservableProperty] private bool _doNotPickEnabled;
@@ -22,18 +19,13 @@ public partial class AutoPickWhitelistConfigViewModel : AutoPickConfigWindowView
     {
         _config = config;
         _doNotPickEnabled = config.WhitelistModeDoNotPickEnabled;
-        _pickText = Global.ReadAllTextIfExist(PickPath) ?? string.Empty;
-        _doNotPickText = Global.ReadAllTextIfExist(DoNotPickPath) ?? string.Empty;
+        _pickText = BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.Read(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.WhitelistPickPath);
+        _doNotPickText = BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.Read(BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.WhitelistDoNotPickPath);
     }
 
     [RelayCommand]
     private void Save()
     {
-        SaveAndClose(() =>
-        {
-            Global.WriteAllText(PickPath, PickText);
-            Global.WriteAllText(DoNotPickPath, DoNotPickText);
-            _config.WhitelistModeDoNotPickEnabled = DoNotPickEnabled;
-        });
+        SaveAndClose(() => BetterGenshinImpact.ViewModel.Pages.Trigger.AutoPickRuleFiles.SaveWhitelist(_config, PickText, DoNotPickText, DoNotPickEnabled));
     }
 }
