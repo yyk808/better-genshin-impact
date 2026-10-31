@@ -98,6 +98,29 @@ internal static class WpfSmokeTest
                 Owner = Application.Current.MainWindow,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
             }.ShowDialog());
+            // 任务计划“编辑任务”窗口：临时计划中逐类插入任务后打开（冒烟脚本运行前后备份恢复 User/Pulonia）
+            var planPage = services.GetRequiredService<PuloniaTaskPlanViewModel>();
+            var session = planPage.Session;
+            var document = session.CreatePlanDocument("WPF 冒烟临时计划");
+            var registry = services.GetService<BetterGenshinImpact.GameTask.SoloTask.SoloTaskRegistry>();
+            var taskDialogs = services.GetService<BetterGenshinImpact.ViewModel.Pages.Pulonia.IPuloniaTaskSettingsDialogs>();
+            var definitions = session.TaskService.Definitions;
+            var picked = definitions.Where(d => d.TaskType is "pathing" or "keymouse" or "javascript" or "shell")
+                .Concat(definitions.Where(d => d.TaskType is "solo.auto_domain" or "solo.resin_plan" or "solo.one_dragon"))
+                .Concat(definitions.Where(d => d.TaskType.StartsWith("solo.", StringComparison.Ordinal)
+                    && BetterGenshinImpact.Pulonia.Executors.PuloniaSoloTaskExecutor.HasEditableParameters(d)).Take(4))
+                .DistinctBy(d => d.TaskType).ToList();
+            foreach (var definition in picked)
+            {
+                var node = document.InsertNode(new BetterGenshinImpact.Pulonia.Models.PuloniaTask { Name = definition.DisplayName, TaskType = definition.TaskType },
+                    document.RootNode, document.RootNode.Children.Count);
+                await Modal($"编辑任务窗口（{definition.DisplayName}）", () => new BetterGenshinImpact.View.Windows.Pulonia.PuloniaTaskNodeSettingsDialog(
+                    new BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaTaskNodeSettingsDialogViewModel(session, node, definition, registry, taskDialogs))
+                {
+                    Owner = Application.Current.MainWindow
+                }.ShowDialog());
+            }
+
             _step = "结束";
             await Task.Delay(1000);
             exitCode = Errors.Count == 0 ? 0 : 1;
