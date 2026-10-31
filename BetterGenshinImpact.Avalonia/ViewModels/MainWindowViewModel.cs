@@ -34,6 +34,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Auto = new AutoPageViewModel(host, ScriptControl, log);
         TaskPlan = new TaskPlanPageViewModel(host, log);
         History = new TaskHistoryPageViewModel(host, TaskPlan, log);
+        Macro = new MacroPageViewModel(host, Navigate, log);
         NewOneDragon = new NewOneDragonPageViewModel(
             new TaskPlanPageViewModel(host, log, BetterGenshinImpact.Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon, TaskPlan), Navigate);
         Settings = new SettingsPageViewModel(host, log,
@@ -60,7 +61,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     new("录制回放", "Record24", Auto, () => Auto.SelectedTab = 3),
                 ],
             },
-            new("辅助操控", "XboxController24", Placeholder("辅助操控", "宏与辅助操控设置（MacroSettingsPage）"), isAvailable: false),
+            new("辅助操控", "XboxController24", Macro),
             new("自动演奏", "MusicNote224", Placeholder("自动演奏", "自动演奏（MusicPage）"), isAvailable: false),
             new("悬浮小窗", "VideoClip24", Placeholder("悬浮小窗", "悬浮小窗设置（GuideWindowSettingsPage）"), isAvailable: false),
             new("快捷键", "Flash24", Settings, () => Settings.SelectedTab = 1),
@@ -101,6 +102,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public TaskHistoryPageViewModel History { get; }
 
     public NewOneDragonPageViewModel NewOneDragon { get; }
+
+    public MacroPageViewModel Macro { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

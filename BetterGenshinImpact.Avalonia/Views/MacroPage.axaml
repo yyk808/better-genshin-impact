@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="BetterGenshinImpact.Avalonia.Views.MacroPage"
+             x:DataType="vm:MacroPageViewModel">
+    <!-- 与 WPF MacroSettingsPage 相同的卡片与顺序；各功能由“快捷键”页的快捷键触发 -->
+    <ScrollViewer>
+        <StackPanel Classes="page">
+            <TextBlock Classes="pagetitle" Text="辅助操控设置" />
+            <ui:FASettingsExpander x:Name="CombatMacroCard" Header="一键宏（按角色）" Description="触发后会识别当前出战角色，并根据配置执行对应的宏" IconSource="{svc:FluentIconSource Script16}">
+                <ui:FASettingsExpander.Footer>
+                    <ToggleSwitch x:Name="CombatMacroToggle" IsChecked="{Binding Config.MacroConfig.CombatMacroEnabled}" OnContent="" OffContent="" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="快捷键触发方式" Description="按住时重复：按住时重复执行；触发：按下启动再按关闭">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="CombatMacroModeBox" Width="200" ItemsSource="{Binding QuickFightMacroHotkeyMode}" SelectedItem="{Binding Config.MacroConfig.CombatMacroHotkeyMode}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="宏配置" Description="配置每个角色执行的宏，比如：胡桃A重跳">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button x:Name="MacroHelpLink" Padding="0" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
+                                    Command="{Binding GoToOneKeyMacroUrlCommand}">
+                                <TextBlock Text="点击查看说明" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            </Button>
+                            <Button x:Name="EditAvatarMacroButton" Content="编辑" MinWidth="80" HorizontalContentAlignment="Center" Command="{Binding EditAvatarMacroCommand}" />
+                        </StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="默认战斗宏编号" Description="当角色的 macroPriority 设置为0时，使用此默认宏编号（1~5）">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown x:Name="CombatMacroPriorityBox" Width="160" Minimum="1" Maximum="5" FormatString="0" Value="{Binding Config.MacroConfig.CombatMacroPriority}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="角色个性化宏编号设置"
+                                           Description="上方宏配置支持为每个角色单独设置宏编号。在角色宏配置中设置 macroPriority 字段（1-5），设置为0则使用上面的默认战斗宏编号。" />
+            </ui:FASettingsExpander>
+
+            <ui:FASettingsExpander Header="一键领取奖励" Description="识别当前页面的领取按钮或礼物图标并点击，需要配置快捷键进行触发" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="模式选择" Description="点按一次会领取当前页面可见图标；按住持续会在松开快捷键时立即停止">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox x:Name="ClaimRewardModeBox" Width="200" ItemsSource="{Binding OneKeyClaimRewardHotkeyMode}" SelectedItem="{Binding Config.MacroConfig.OneKeyClaimRewardHotkeyMode}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="未找到领取图标时滚轮下滑" Description="仅在按住持续模式下可用">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch x:Name="ClaimRewardScrollToggle" IsChecked="{Binding Config.MacroConfig.OneKeyClaimRewardScrollDownEnabled}" OnContent="" OffContent=""
+                                      IsEnabled="{Binding OneKeyClaimRewardScrollOptionEnabled}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="滚轮下滑幅度" Description="数值越大，每次未找到领取图标时向下滚动越多">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown x:Name="ClaimRewardScrollAmountBox" Width="160" Minimum="1" Maximum="20" FormatString="0"
+                                       Value="{Binding Config.MacroConfig.OneKeyClaimRewardScrollDownAmount}" IsEnabled="{Binding OneKeyClaimRewardScrollAmountOptionEnabled}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+
+            <ui:FASettingsExpander Header="那维莱特 - 转圈圈" Description="快速水平平移鼠标，需要配置快捷键进行触发" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="移动鼠标距离" Description="可以为负数，绝对值越大移动越快，请不要配置太大">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown x:Name="RunaroundDistanceBox" Width="160" Minimum="-10000" Maximum="10000" FormatString="0" Value="{Binding Config.MacroConfig.RunaroundMouseXInterval}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="移动鼠标间隔（毫秒）" Description="尽量设置大于0的数字">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown x:Name="RunaroundIntervalBox" Width="160" Minimum="0" Maximum="10000" FormatString="0" Value="{Binding Config.MacroConfig.RunaroundInterval}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+
+            <ui:FASettingsExpander Header="快速强化圣遗物" Description="快速跳过强化结果展示，需要配置快捷键进行触发" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+                <ui:FASettingsExpanderItem Content="强化的额外等待时间（毫秒）" Description="高延迟下无法跳过强化结果显示时，需要延长这个时间配置">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown x:Name="EnhanceWaitDelayBox" Width="160" Minimum="0" Maximum="5000" Increment="10" FormatString="0" Value="{Binding Config.MacroConfig.EnhanceWaitDelay}" />
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+
+            <ui:FASettingsExpander Header="一键购买" Description="在物品购买/兑换页使用，从选中物品处开始，长按持续购买" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander Header="一键进出尘歌壶" Description="一键自动打开背包，放置尘歌壶并进入" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander Header="一键确认/取消" Description="绑定快捷键到原神的确认/取消按钮" IconSource="{svc:FluentIconSource Cursor24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button Content="绑定快捷键" Command="{Binding GoToHotKeyPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander Header="长按空格等于连续按下空格" Description="轻松解除冻结，由于在水下存在长按的空格的场景，所以不推荐启用" IconSource="{svc:FluentIconSource Keyboard24}">
+                <ui:FASettingsExpander.Footer>
+                    <ToggleSwitch x:Name="SpaceHoldToggle" IsChecked="{Binding Config.MacroConfig.SpacePressHoldToContinuationEnabled}" OnContent="" OffContent="" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <ui:FASettingsExpander Header="长按 F 等于连续按下 F" Description="快速拾取大量掉落物，有自动拾取的功能下，就显得比较鸡肋了" IconSource="{svc:FluentIconSource Keyboard24}">
+                <ui:FASettingsExpander.Footer>
+                    <ToggleSwitch x:Name="FHoldToggle" IsChecked="{Binding Config.MacroConfig.FPressHoldToContinuationEnabled}" OnContent="" OffContent="" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+            <TextBlock x:Name="HoldMonitorStatusText" Classes="desc" Margin="4,0,0,0" Text="{Binding HoldMonitorStatus}"
+                       IsVisible="{Binding HoldMonitorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

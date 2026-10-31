@@ -35,6 +35,9 @@
         <DataTemplate DataType="vm:EnvironmentPageViewModel">
             <views:EnvironmentPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:MacroPageViewModel">
+            <views:MacroPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:NewOneDragonPageViewModel">
             <views:NewOneDragonPage />
         </DataTemplate>

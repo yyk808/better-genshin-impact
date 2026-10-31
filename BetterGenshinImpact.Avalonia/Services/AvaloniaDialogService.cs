@@ -98,6 +98,22 @@ public static class FluentMessageBox
         }
     }
 
+    /// <summary>显示自定义内容的 ContentDialog（与消息框共用排队，Current 指向它）</summary>
+    public static async Task<FluentAvalonia.UI.Controls.FAContentDialogResult> ShowCustomAsync(FluentAvalonia.UI.Controls.FAContentDialog dialog, Window owner)
+    {
+        await Gate.WaitAsync();
+        try
+        {
+            Current = dialog;
+            return await dialog.ShowAsync(owner);
+        }
+        finally
+        {
+            Current = null;
+            Gate.Release();
+        }
+    }
+
     public static async Task<DialogResult> ShowAsync(Window owner, string message, string title, DialogKind kind, DialogButtons buttons)
     {
         var list = MessageBoxWindow.ButtonsOf(buttons).ToList();

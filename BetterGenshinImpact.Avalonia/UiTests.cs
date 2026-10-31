@@ -49,6 +49,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "solo-domain": await SoloDomainAsync(); break;
                 case "history": await HistoryAsync(); break;
                 case "newonedragon": await NewOneDragonAsync(); break;
+                case "macro": await MacroAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2239,6 +2240,132 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
         Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
             page.SelectedPlan?.Name);
+    }
+
+    /// <summary>
+    /// 辅助操控页（对应 WPF MacroSettingsPage）：卡片与顺序、一键领取奖励选项联动、绑定快捷键跳转、宏配置编辑（JSON 校验）；
+    /// 功能性：在假游戏上长按空格 / F 连发、按住“那维莱特转圈圈”快捷键平移鼠标（读假游戏记录的按键与鼠标事件）
+    /// </summary>
+    private async Task MacroAsync()
+    {
+        vm.Navigate("辅助操控");
+        await Settle(600);
+        var page = vm.Macro;
+        var macro = page.Config.MacroConfig;
+        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
+        Check("卡片与 WPF 相同", headers.SequenceEqual(["一键宏（按角色）", "一键领取奖励", "那维莱特 - 转圈圈", "快速强化圣遗物", "一键购买", "一键进出尘歌壶", "一键确认/取消",
+            "长按空格等于连续按下空格", "长按 F 等于连续按下 F"]), string.Join(",", headers));
+        Check("绑定快捷键按钮", All<Button>().Count(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键") == 6);
+
+        // 一键领取奖励：滚轮下滑仅在“按住持续”可用，幅度仅在滚轮下滑打开时可用
+        macro.OneKeyClaimRewardHotkeyMode = GameTask.QuickClaimReward.OneKeyClaimRewardTask.ClickOnceMode;
+        macro.OneKeyClaimRewardScrollDownEnabled = false;
+        await Settle();
+        Check("点按一次时滚轮下滑不可用", Named<ToggleSwitch>("ClaimRewardScrollToggle")?.IsEffectivelyEnabled == false);
+        Named<ComboBox>("ClaimRewardModeBox")!.SelectedItem = GameTask.QuickClaimReward.OneKeyClaimRewardTask.HoldMode;
+        await Settle();
+        Check("按住持续时滚轮下滑可用", macro.OneKeyClaimRewardHotkeyMode == GameTask.QuickClaimReward.OneKeyClaimRewardTask.HoldMode
+                                      && Named<ToggleSwitch>("ClaimRewardScrollToggle")?.IsEffectivelyEnabled == true
+                                      && Named<NumericUpDown>("ClaimRewardScrollAmountBox")?.IsEffectivelyEnabled == false);
+        Named<ToggleSwitch>("ClaimRewardScrollToggle")!.IsChecked = true;
+        await Settle();
+        Check("打开滚轮下滑后幅度可用", macro.OneKeyClaimRewardScrollDownEnabled && Named<NumericUpDown>("ClaimRewardScrollAmountBox")?.IsEffectivelyEnabled == true);
+        Named<ComboBox>("CombatMacroModeBox")!.SelectedItem = GameTask.AutoFight.OneKeyFightTask.TickMode;
+        Named<NumericUpDown>("EnhanceWaitDelayBox")!.Value = 120;
+        await Settle();
+        Check("设置写入配置", macro.CombatMacroHotkeyMode == GameTask.AutoFight.OneKeyFightTask.TickMode && macro.EnhanceWaitDelay == 120);
+
+        // 宏配置编辑：格式错误不保存，正确时保存
+        var path = ViewModels.MacroPageViewModel.AvatarMacroJsonPath();
+        var original = File.ReadAllText(path);
+        var editTask = page.EditAvatarMacroCommand.ExecuteAsync(null);
+        var editor = await WaitFor(() => Services.JsonEditDialog.CurrentEditor);
+        var dialog = Services.FluentMessageBox.Current;
+        Check("宏配置编辑框显示文件内容", editor?.Text == original, path);
+        Button? Primary() => dialog?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "PrimaryButton");
+        if (editor is not null && dialog is not null)
+        {
+            editor.Text = "[ { 错误";
+            await Click(Primary(), "保存（格式错误）");
+            Check("格式错误时不保存不关闭", File.ReadAllText(path) == original && Services.JsonEditDialog.CurrentEditor is not null);
+            var edited = original.TrimEnd() + "\n";
+            editor.Text = edited;
+            await Click(Primary(), "保存");
+            await editTask;
+            Check("保存宏配置", File.ReadAllText(path) == edited && Services.JsonEditDialog.CurrentEditor is null);
+            File.WriteAllText(path, original);
+        }
+
+        // 绑定快捷键：转到快捷键页
+        await Click(All<Button>().First(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键"), "绑定快捷键");
+        Check("绑定快捷键转到快捷键页", vm.SelectedNav?.Title == "快捷键" && vm.Settings.SelectedTab == 1, vm.SelectedNav?.Title);
+
+        // —— 假游戏上的功能 ——
+        var runtime = await WaitFor(() => vm.Host?.RuntimeService.Current);
+        Check("截图器已启动（假游戏）", runtime is not null);
+        if (runtime is null || dir is null) return;
+        var gameLog = Path.Combine(dir, "fakegame.jsonl");
+        List<System.Text.Json.JsonElement> Events(long since) => File.ReadAllLines(gameLog).Select(l => System.Text.Json.JsonDocument.Parse(l).RootElement)
+            .Where(e => e.GetProperty("t").GetInt64() >= since).ToList();
+        long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        int KeyDowns(List<System.Text.Json.JsonElement> ev, string key) => ev.Count(e => e.GetProperty("ev").GetString() == "key"
+            && string.Equals(e.GetProperty("key").GetString(), key, StringComparison.OrdinalIgnoreCase)
+            && e.GetProperty("action").GetString() == "down" && !(e.TryGetProperty("repeat", out var r) && r.GetBoolean()));
+        bool Xdo(string args)
+        {
+            using var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("xdotool", args) { UseShellExecute = false });
+            proc?.WaitForExit(10000);
+            return proc?.ExitCode == 0;
+        }
+
+        vm.Navigate("辅助操控");
+        await Settle();
+        foreach (var (toggle, key, field) in new[] { ("SpaceHoldToggle", "space", "Space"), ("FHoldToggle", "f", "F") })
+        {
+            Named<ToggleSwitch>(toggle)!.IsChecked = true;
+            await Settle(300);
+            Check($"{field} 连发监听已启用", page.HoldMonitor is not null, page.HoldMonitorStatus);
+            var fired = page.HoldMonitor?.FiredCount ?? 0;
+            var start = Now();
+            Xdo($"keydown {key} sleep 1.5 keyup {key}");
+            await Task.Delay(800);
+            var ev = Events(start);
+            var downs = KeyDowns(ev, field);
+            var after = (page.HoldMonitor?.FiredCount ?? 0) - fired;
+            Check($"长按 {field} 1.5 秒连续按下", downs >= 6 && after >= 5, $"假游戏按下 {downs} 次，连发 {after} 次");
+            await Task.Delay(500);
+            Check($"松开 {field} 后停止", KeyDowns(Events(start), field) == downs, $"{KeyDowns(Events(start), field)}");
+            Named<ToggleSwitch>(toggle)!.IsChecked = false;
+            await Settle(300);
+        }
+
+        Check("开关全部关闭后停止监听", page.HoldMonitor is null);
+        var startOff = Now();
+        Xdo("keydown space sleep 1 keyup space");
+        await Task.Delay(500);
+        Check("关闭时长按空格只按下一次", KeyDowns(Events(startOff), "Space") == 1, KeyDowns(Events(startOff), "Space").ToString());
+
+        // 那维莱特转圈圈：按住快捷键时按配置平移鼠标
+        Named<NumericUpDown>("RunaroundDistanceBox")!.Value = 40;
+        Named<NumericUpDown>("RunaroundIntervalBox")!.Value = 20;
+        await Settle();
+        var settings = vm.Settings;
+        settings.Hotkeys.First(h => h.Property == "TurnAroundHotkey").Value = "F9";
+        settings.RegisterHotkeys();
+        var item = settings.Hotkeys.First(h => h.Property == "TurnAroundHotkey");
+        Check("注册转圈圈快捷键", item.IsSupported && item.Status.StartsWith("已注册"), item.Status);
+        var startTurn = Now();
+        Xdo("keydown F9 sleep 1 keyup F9");
+        await Task.Delay(600);
+        var moves = Events(startTurn).Where(e => e.GetProperty("ev").GetString() == "rawmouse").ToList();
+        var dx = moves.Sum(e => e.GetProperty("rawdx").GetInt32());
+        Check("按住快捷键时水平平移鼠标", moves.Count >= 10 && dx >= 400 && moves.All(e => e.GetProperty("rawdy").GetInt32() == 0), $"{moves.Count} 次，dx {dx}");
+        var settled = Events(startTurn).Count(e => e.GetProperty("ev").GetString() == "rawmouse");
+        await Task.Delay(500);
+        Check("松开后停止平移", Events(startTurn).Count(e => e.GetProperty("ev").GetString() == "rawmouse") == settled);
+        settings.Hotkeys.First(h => h.Property == "TurnAroundHotkey").Value = "";
+        settings.RegisterHotkeys();
+        Shot("avalonia-macro.png");
     }
 
     private async Task HistoryAsync()
