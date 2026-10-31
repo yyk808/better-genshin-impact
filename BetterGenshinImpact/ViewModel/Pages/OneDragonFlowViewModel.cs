@@ -222,9 +222,9 @@ public partial class OneDragonFlowViewModel : ViewModel
 
     [ObservableProperty] private List<string> _completionActionList = ["无", "关闭游戏", "关闭软件", "关闭游戏和软件", "关机"];
 
-    [ObservableProperty] private List<string> _sundayEverySelectedValueList = ["","1", "2", "3"];
+    [ObservableProperty] private List<string> _sundayEverySelectedValueList = [.. BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonDomainSettings.RewardIndexChoices];
     
-    [ObservableProperty] private List<string> _sundaySelectedValueList = ["","1", "2", "3"];
+    [ObservableProperty] private List<string> _sundaySelectedValueList = [.. BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonDomainSettings.RewardIndexChoices];
 
     [ObservableProperty] private List<string> _secretTreasureObjectList = ["布匹","须臾树脂","大英雄的经验","流浪者的经验","精锻用魔矿","摩拉","祝圣精华","祝圣油膏"];
     

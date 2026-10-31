@@ -55,6 +55,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
                 case "onedragon-layout": await OneDragonLayoutAsync(); break;
+                case "onedragon-domain": await OneDragonDomainAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2477,6 +2478,95 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 try { await store.ClearAsync(uid, false, true); } catch (Exception e) { log.Warning("清理测试 UID {Uid} 失败：{Message}", uid, e.Message); }
             if (createdRoot && Directory.Exists(root)) Directory.Delete(root, true);
         }
+    }
+
+    /// <summary>
+    /// 旧一条龙页右栏“自动秘境”（对照 WPF OneDragonFlowPage）：每日开关与每周开关互斥、队伍、秘境来源单选、指定秘境、
+    /// 每周表格（勾选培养计划写入提升指南选项、取消写回空）、培养计划刷取设置；每次修改都写回同一份 User/OneDragon 配置文件
+    /// </summary>
+    private async Task OneDragonDomainAsync()
+    {
+        vm.Navigate("一条龙");
+        await Settle(600);
+        await Settle(300);
+        var page = vm.OneDragon;
+        var config = page.SelectedConfig;
+        var ds = page.DomainSettings;
+        Check("自动秘境设置已绑定当前配置", config is not null && ds is not null && ReferenceEquals(ds.Config, config));
+        if (config is null || ds is null) return;
+        BetterGenshinImpact.Core.Config.OneDragonFlowConfig? Saved() => BetterGenshinImpact.Core.Config.OneDragonFlowConfigStore.Load(config.Name);
+        var training = BetterGenshinImpact.GameTask.AutoDomain.AutoDomainTask.TrainingGuideOption;
+        Check("三张卡片", Named<FluentAvalonia.UI.Controls.FASettingsExpander>("OdDailyDomainCard") is not null
+                         && Named<FluentAvalonia.UI.Controls.FASettingsExpander>("OdTrainingCard") is not null
+                         && Named<FluentAvalonia.UI.Controls.FASettingsExpander>("OdWeeklyCard") is not null);
+
+        // 每日/每周互斥
+        var weekly = Named<ToggleSwitch>("OdWeeklyEnabled");
+        var daily = Named<ToggleSwitch>("OdDailyEnabled");
+        var wasWeekly = config.WeeklyDomainEnabled;
+        weekly!.IsChecked = !wasWeekly;
+        await Settle();
+        Check("每周开关写回并与每日互斥", config.WeeklyDomainEnabled == !wasWeekly && daily!.IsChecked == wasWeekly && Saved()?.WeeklyDomainEnabled == !wasWeekly);
+        weekly.IsChecked = false;
+        await Settle();
+        foreach (var e in All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.Name is "OdDailyDomainCard" or "OdTrainingCard" or "OdWeeklyCard")) e.IsExpanded = true;
+        await Settle(400);
+
+        // 每日：队伍、来源、指定秘境
+        var party = Named<TextBox>("OdDailyParty");
+        party!.Text = "m53队伍";
+        await Settle();
+        Check("每日队伍写回配置文件", config.PartyName == "m53队伍" && Saved()?.PartyName == "m53队伍", Saved()?.PartyName);
+        Named<RadioButton>("OdDailySourceManual")!.IsChecked = true;
+        await Settle();
+        var domainBox = Named<ComboBox>("OdDailyDomain");
+        var domains = DedicatedTaskSettingsChoices.DomainNames;
+        Check("指定秘境时显示秘境选择", domainBox is not null && domains.Count > 1);
+        if (domainBox is null || domains.Count < 2) return;
+        domainBox.SelectedItem = domains[1];
+        await Settle();
+        Check("选择秘境写回", config.DomainName == domains[1] && Saved()?.DomainName == domains[1], config.DomainName);
+        Named<RadioButton>("OdDailySourceTraining")!.IsChecked = true;
+        await Settle();
+        Check("跟随培养计划写入提升指南选项、隐藏秘境选择", config.DomainName == training && Named<ComboBox>("OdDailyDomain") is null && Saved()?.DomainName == training);
+        Named<RadioButton>("OdDailySourceManual")!.IsChecked = true;
+        await Settle();
+        Check("切回指定秘境恢复上次秘境", config.DomainName == domains[1], config.DomainName);
+        var sunday = Named<ComboBox>("OdDailySunday");
+        sunday!.SelectedItem = "2";
+        await Settle();
+        Check("每日奖励序号写回", config.SundayEverySelectedValue == "2" && Saved()?.SundayEverySelectedValue == "2");
+
+        // 培养计划刷取设置（全局 AutoDomainConfig）
+        var calc = Named<ToggleSwitch>("OdCalculateRuns");
+        var wasCalc = page.Config.AutoDomainConfig.TrainingGuideCalculateRunsEnabled;
+        calc!.IsChecked = !wasCalc;
+        await Settle();
+        Check("自动计算次数写回全局配置", page.Config.AutoDomainConfig.TrainingGuideCalculateRunsEnabled == !wasCalc);
+        calc.IsChecked = wasCalc;
+        await Settle();
+
+        // 每周表格：周一
+        var rows = Named<ItemsControl>("OdWeeklyRows");
+        Check("每周表格 8 行（默认 + 周一至周日）", ds.Weekly.Count == 8 && rows?.ItemCount == 8 && ds.Weekly[1].Label == "周一", rows?.ItemCount.ToString());
+        if (rows is null) return;
+        var monday = ds.Weekly[1];
+        var mondayBox = rows.GetVisualDescendants().OfType<CheckBox>().First(c => c.DataContext == monday);
+        mondayBox.IsChecked = true;
+        await Settle();
+        Check("勾选培养计划写入提升指南选项", config.MondayDomainName == training && Saved()?.MondayDomainName == training);
+        mondayBox.IsChecked = false;
+        await Settle();
+        Check("取消勾选写回空秘境", config.MondayDomainName == "" && Saved()?.MondayDomainName == "");
+        var mondayDomain = rows.GetVisualDescendants().OfType<ComboBox>().First(c => c.DataContext == monday && c.IsEffectivelyVisible && c.ItemCount > 4);
+        mondayDomain.SelectedItem = domains[0];
+        await Settle();
+        var mondayParty = rows.GetVisualDescendants().OfType<TextBox>().First(c => c.DataContext == monday);
+        mondayParty.Text = "周一队";
+        await Settle();
+        Check("周一秘境与队伍写回", config.MondayDomainName == domains[0] && Saved() is { MondayPartyName: "周一队" } saved && saved.MondayDomainName == domains[0],
+            $"{config.MondayDomainName} {config.MondayPartyName}");
+        Shot("avalonia-onedragon-domain.png");
     }
 
     /// <summary>

@@ -129,8 +129,34 @@ public sealed partial class OneDragonPageViewModel : PageViewModel
         LoadTaskList();
     }
 
+    private OneDragonFlowConfig? _watched;
+    private bool _saving;
+
+    /// <summary>右栏详细设置：自动秘境（每日/培养计划/每周），读写同一份 OneDragonFlowConfig（Core OneDragonDomainSettings）</summary>
+    [ObservableProperty] private BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonDomainSettings? _domainSettings;
+
+    /// <summary>与 WPF 相同：当前配置的任一属性变化即保存</summary>
+    private void WatchSelectedConfig()
+    {
+        if (ReferenceEquals(_watched, SelectedConfig)) return;
+        if (_watched is not null) _watched.PropertyChanged -= OnSelectedConfigPropertyChanged;
+        DomainSettings?.Detach();
+        _watched = SelectedConfig;
+        DomainSettings = SelectedConfig is null ? null : new BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonDomainSettings(SelectedConfig, Config.AutoDomainConfig);
+        if (_watched is not null) _watched.PropertyChanged += OnSelectedConfigPropertyChanged;
+    }
+
+    private void OnSelectedConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_saving || _loading || !ReferenceEquals(sender, SelectedConfig)) return;
+        _saving = true;
+        try { SaveConfig(); }
+        finally { _saving = false; }
+    }
+
     private void LoadTaskList()
     {
+        WatchSelectedConfig();
         foreach (var item in TaskList)
         {
             item.PropertyChanged -= OnTaskItemChanged;

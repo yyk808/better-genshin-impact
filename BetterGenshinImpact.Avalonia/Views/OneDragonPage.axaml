@@ -5,6 +5,7 @@
              xmlns:cfg="using:BetterGenshinImpact.Core.Config"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:od="using:BetterGenshinImpact.ViewModel.Pages.OneDragon"
              x:Class="BetterGenshinImpact.Avalonia.Views.OneDragonPage"
              x:DataType="vm:OneDragonPageViewModel">
     <!-- 与 WPF OneDragonFlowPage 相同的左右两栏：左侧任务列表（启动、勾选、下次从这里开始），右侧配置 -->
@@ -63,8 +64,94 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <!-- 自动秘境（对照 WPF OneDragonFlowPage：每日 / 培养计划 / 每周按星期分队伍） -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="4,12,0,4">
+                        <TextBlock Text="自动秘境" FontSize="14" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Text="（此处未覆盖的配置可在 独立任务-自动秘境 中配置）" FontSize="11" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ui:FASettingsExpander x:Name="OdDailyDomainCard" Header="每日秘境刷取配置" Description="前往指定秘境消耗树脂，并自动领取奖励。"
+                                           IconSource="{svc:FluentIconSource CalendarLtr24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="OdDailyEnabled" IsChecked="{Binding DomainSettings.DailyEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="进入秘境切换的队伍名称" Description="注意是游戏内你设置的名称">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox x:Name="OdDailyParty" Width="200" Watermark="留空则不切换队伍" Text="{Binding DomainSettings.Config.PartyName}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="秘境来源" Description="跟随培养计划时按提升指南选择秘境，设置见下方“培养计划刷取设置”">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <RadioButton x:Name="OdDailySourceTraining" GroupName="OdDailySource" Content="跟随培养计划" IsChecked="{Binding DomainSettings.DailySource.IsTrainingPlan}" />
+                                    <RadioButton x:Name="OdDailySourceManual" GroupName="OdDailySource" Content="指定秘境" IsChecked="{Binding DomainSettings.DailySource.IsManualDomain}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="选择秘境" Description="秘境名称；周日或限时选择奖励序号" IsVisible="{Binding DomainSettings.DailySource.IsManualDomain}">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="OdDailyDomain" Width="200" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.DomainNames}" SelectedItem="{Binding DomainSettings.DailyManualDomain}" />
+                                    <ComboBox x:Name="OdDailySunday" Width="72" ItemsSource="{x:Static od:OneDragonDomainSettings.RewardIndexChoices}" SelectedItem="{Binding DomainSettings.Config.SundayEverySelectedValue}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdTrainingCard" Header="培养计划刷取设置" Description="秘境来源为跟随培养计划时生效，与独立任务页的自动秘境共用"
+                                           IconSource="{svc:FluentIconSource BookStar24}">
+                        <ui:FASettingsExpanderItem Content="自动计算今日刷取次数" Description="在秘境入口读取培养材料并自动刷取，完成后使用备选秘境">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="OdCalculateRuns" IsChecked="{Binding DomainSettings.AutoDomain.TrainingGuideCalculateRunsEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="刷取偏好" IsEnabled="{Binding DomainSettings.AutoDomain.TrainingGuideCalculateRunsEnabled}">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ComboBox x:Name="OdRunPreference" Width="300" ItemsSource="{x:Static od:OneDragonDomainSettings.RunPreferenceChoices}"
+                                          SelectedIndex="{Binding DomainSettings.AutoDomain.TrainingGuideRunPreference}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="备选秘境" Description="培养计划完成或无可刷秘境时使用；周日或限时选择序号" IsEnabled="{Binding DomainSettings.AutoDomain.TrainingGuideCalculateRunsEnabled}">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="OdFallbackDomain" Width="200" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FallbackDomainNames}" SelectedItem="{Binding DomainSettings.FallbackDomain}" />
+                                    <ComboBox x:Name="OdFallbackSunday" Width="72" ItemsSource="{x:Static od:OneDragonDomainSettings.RewardIndexChoices}" SelectedItem="{Binding DomainSettings.AutoDomain.TrainingGuideFallbackSundaySelectedValue}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="OdWeeklyCard" Header="每周秘境刷取配置" Description="启用后，每日刷取配置将会失效。周期始于凌晨 4:00 ，如周一 4:00 至周二 3:59 刷取周一秘境"
+                                           IconSource="{svc:FluentIconSource CalendarClock24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="OdWeeklyEnabled" IsChecked="{Binding DomainSettings.WeeklyEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem>
+                            <StackPanel Spacing="4">
+                                <Grid ColumnDefinitions="56,160,100,*,72" Margin="0,0,0,4">
+                                    <TextBlock Text="日期" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="1" Text="队伍" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="2" Text="培养计划" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="3" Text="秘境" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="4" Text="奖励" FontWeight="SemiBold" />
+                                </Grid>
+                                <ItemsControl x:Name="OdWeeklyRows" ItemsSource="{Binding DomainSettings.Weekly}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="od:OneDragonWeeklyDomainRow">
+                                            <Grid ColumnDefinitions="56,160,100,*,72" Margin="0,2">
+                                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                                <TextBox Grid.Column="1" Margin="0,0,8,0" Watermark="{Binding PartyPlaceholder}" Text="{Binding PartyName}" />
+                                                <CheckBox Grid.Column="2" IsChecked="{Binding IsTrainingPlan}" />
+                                                <ComboBox Grid.Column="3" Margin="0,0,8,0" HorizontalAlignment="Stretch" IsVisible="{Binding !IsTrainingPlan}"
+                                                          ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.DomainNames}" SelectedItem="{Binding DomainName}" />
+                                                <TextBlock Grid.Column="3" Text="跟随培养计划" VerticalAlignment="Center" Opacity="0.7" IsVisible="{Binding IsTrainingPlan}" />
+                                                <ComboBox Grid.Column="4" HorizontalAlignment="Stretch" ItemsSource="{x:Static od:OneDragonDomainSettings.RewardIndexChoices}" SelectedItem="{Binding SelectedValue}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                     <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,8,0,0"
-                               Text="各任务的详细设置（秘境、首领、地脉花、尘歌壶等）、新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
+                               Text="其余任务的详细设置（树脂使用、合成树脂、分解圣遗物、首领、地脉花、尘歌壶等）、新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>
