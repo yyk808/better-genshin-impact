@@ -27,14 +27,6 @@ public partial class PuloniaTaskNodeViewModel
     {
         // 使用完整行地址，引用计划内部允许与其他计划使用相同的节点 ID；归类规则见 PuloniaTaskRunClassifier。
         OneDragonStatusKind = PuloniaTaskRunClassifier.ClassifySubtree(run, Document.RootNode.Id, Id);
-        OneDragonStatusText = OneDragonStatusKind switch
-        {
-            PuloniaTaskSubtreeStatus.Running => "执行中",
-            PuloniaTaskSubtreeStatus.Failed => "执行失败",
-            PuloniaTaskSubtreeStatus.NeedsVerification => "待核验",
-            PuloniaTaskSubtreeStatus.Completed => "已完成",
-            PuloniaTaskSubtreeStatus.SkippedOrStopped => "已跳过或停止",
-            _ => "尚未执行"
-        };
+        OneDragonStatusText = PuloniaTaskRunClassifier.SubtreeStatusText(OneDragonStatusKind);
     }
 }

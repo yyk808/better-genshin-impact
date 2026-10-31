@@ -48,6 +48,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "notify-channels": await NotifyChannelsAsync(); break;
                 case "solo-domain": await SoloDomainAsync(); break;
                 case "history": await HistoryAsync(); break;
+                case "newonedragon": await NewOneDragonAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -2079,6 +2080,167 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     /// 在执行记录页读取真实运行记录（Pulonia 历史文件），核对状态、节点详情，并对失败的记录“继续剩余”。
     /// 计划与历史写在 User/Pulonia，自测前后由外部脚本备份恢复
     /// </summary>
+    /// <summary>
+    /// 新一条龙页（对应 WPF PuloniaOneDragonPage）：默认配置与清单、新建 / 重命名 / 删除配置、启用开关、
+    /// 在选中行之后添加任务、引用计划、排序、运行（只启用一个 Shell 任务）后的状态点与底部状态、触发设置与执行记录入口
+    /// </summary>
+    private async Task NewOneDragonAsync()
+    {
+        const string configName = "M51 一条龙自测";
+        vm.Navigate("新一条龙");
+        var od = vm.NewOneDragon;
+        var page = od.Plans;
+        await WaitFor(() => page.Plans.Count > 0 ? page.Plans : null);
+        await Settle(800);
+        foreach (var old in page.Plans.Where(p => p.Name == configName).ToList())
+        {
+            page.SelectedPlan = old;
+            await page.DeletePlanCommand.ExecuteAsync(null);
+        }
+
+        Check("至少有一份一条龙配置", page.Plans.Count > 0 && page.Plans.All(p => p.Plan.Purpose == Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon),
+            string.Join(",", page.Plans.Select(p => p.Name)));
+        var generalIds = vm.TaskPlan.Plans.Select(p => p.Plan.Id).ToHashSet();
+        Check("一条龙配置不出现在任务计划页", page.Plans.All(p => !generalIds.Contains(p.Plan.Id)));
+
+        // 新建：默认清单为注册表声明了一条龙顺序的独立任务（Core PuloniaOneDragonDefaults，与 WPF 相同）
+        var before = page.Plans.Count;
+        await Click(Named<Button>("NewConfigurationButton"), "新建配置");
+        await Settle(500);
+        var expected = Pulonia.Models.PuloniaOneDragonDefaults.CreatePlan("x", page.AddOptions.Select(o => o.Definition)).RootTask.Children.Select(c => c.Name).ToList();
+        Check("新建配置并选中", page.Plans.Count == before + 1 && page.SelectedPlan == page.Plans.Last() && page.SelectedPlan.Name.StartsWith("新一条龙配置"),
+            page.SelectedPlan?.Name);
+        Check("默认清单", expected.Count > 0 && page.Nodes.Select(n => n.Name).SequenceEqual(expected), string.Join(",", page.Nodes.Select(n => n.Name)));
+        var list = Named<ListBox>("OneDragonTaskList");
+        Check("清单为平面列表并显示启用开关", list?.ItemCount == expected.Count
+                                     && list.GetVisualDescendants().OfType<ToggleSwitch>().Count(t => t.IsEffectivelyVisible) == expected.Count);
+        Check("默认选中第一项并显示设置", page.SelectedNode == page.Nodes.FirstOrDefault() && Named<TextBox>("NodeNameBox")?.Text == expected[0],
+            Named<TextBox>("NodeNameBox")?.Text);
+
+        // 重命名（输入框对话框）
+        var renameTask = page.RenamePlanCommand.ExecuteAsync(null);
+        var dialog = await WaitFor(() => Services.FluentMessageBox.Current);
+        var box = dialog?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == "PromptTextBox")
+                  ?? (dialog?.Content as Panel)?.Children.OfType<TextBox>().FirstOrDefault();
+        Check("重命名弹出输入框", box is not null && box.Text == page.SelectedPlan?.Name, box?.Text);
+        if (box is not null) box.Text = configName;
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await renameTask;
+        await Settle();
+        var store = Path.Combine(Global.Absolute(@"User\Pulonia"), "plans");
+        string SavedJson() => page.SelectedPlan is { } p && File.Exists(Path.Combine(store, p.Plan.Id + ".json")) ? File.ReadAllText(Path.Combine(store, p.Plan.Id + ".json")) : "";
+        Check("重命名并保存", page.SelectedPlan?.Name == configName && SavedJson().Contains(configName), page.SelectedPlan?.Name + " " + SavedJson().Length);
+
+        await page.ReloadAsync();
+        await vm.TaskPlan.ReloadAsync();
+        await Settle();
+        Check("重新读取后仍是一条龙配置", page.SelectedPlan?.Name == configName && page.SelectedPlan.Plan.Purpose == Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon
+                                      && vm.TaskPlan.Plans.All(p => p.Name != configName), page.SelectedPlan?.Name);
+
+        // 启用开关：关闭第二项，保存后选中项不变
+        var second = page.Nodes[1];
+        page.SelectedNode = page.Nodes[0];
+        second.IsEnabled = false;
+        await Settle(500);
+        Check("关闭启用并保存", page.SelectedPlan!.Plan.RootTask.Children[1].IsEnabled == false && page.Nodes[1].RowOpacity < 1, page.StatusMessage);
+        Check("切换开关不改变选中项", page.SelectedNode?.Task.Id == page.Nodes[0].Task.Id);
+
+        // 添加任务：插在选中行之后
+        // 打开“…”菜单（菜单项的命令绑定在弹出后才生效）
+        var moreButton = Named<DropDownButton>("MoreButton");
+        moreButton?.Flyout?.ShowAt(moreButton);
+        await Settle(300);
+        var menu = (moreButton?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
+        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "触发设置", "执行记录", "重新加载"]),
+            string.Join(",", menu.Select(m => m.Header)));
+        menu.FirstOrDefault()?.Command?.Execute(null);
+        moreButton?.Flyout?.Hide();
+        await Settle();
+        Check("“添加任务…”展开添加面板", od.IsAddPanelOpen && Named<Button>("AddTaskButton") is not null);
+        await Settle();
+        page.SelectedAddOption = page.AddOptions.First(o => o.Definition.TaskType == "shell");
+        await Settle();
+        await Click(Named<Button>("AddTaskButton"), "添加 Shell");
+        Check("新任务插在选中行之后并被选中", page.Nodes.Count == expected.Count + 1 && page.Nodes[1].Task.TaskType == "shell" && page.SelectedNode == page.Nodes[1],
+            string.Join(",", page.Nodes.Select(n => n.Name)));
+
+        // 引用已有任务计划
+        generalIds = vm.TaskPlan.Plans.Select(p => p.Plan.Id).ToHashSet();
+        var target = page.ReferencePlans.FirstOrDefault();
+        Check("可引用的任务计划来自任务计划页", target is not null && generalIds.Contains(target.Plan.Id), target?.Name);
+        if (target is not null)
+        {
+            page.ReferenceTarget = target;
+            await Click(Named<Button>("AddPlanReferenceButton"), "引用");
+            var reference = page.Nodes.FirstOrDefault(n => n.Task.Source is { Kind: "plan" } src && src.PlanId == target.Plan.Id);
+            Check("引用计划行", reference is not null && page.Nodes.IndexOf(reference) == 2 && reference.Name == target.Name, reference?.Name);
+            // 排序与删除
+            await page.MoveTaskCommand.ExecuteAsync("up");
+            await Settle();
+            Check("上移", page.Nodes.IndexOf(page.SelectedNode!) == 1 && page.SelectedNode!.Task.Source is not null);
+            await page.RemoveTaskCommand.ExecuteAsync(null);
+            await Settle();
+            Check("删除引用", page.Nodes.All(n => n.Task.Source is null) && page.Nodes.Count == expected.Count + 1);
+        }
+
+        // 运行：只启用 Shell（/bin/true），其余关闭
+        var shell = page.Nodes.First(n => n.Task.TaskType == "shell");
+        // 每次保存后行会按新的计划对象重建，逐个取当前行
+        for (var i = 0; i < 20 && page.Nodes.FirstOrDefault(n => n.Task.TaskType != "shell" && n.IsEnabled) is { } row; i++)
+        {
+            row.IsEnabled = false;
+            await Settle(300);
+        }
+
+        Check("只启用 Shell", page.SelectedPlan!.Plan.RootTask.Children.Count(c => c.IsEnabled) == 1, page.StatusMessage);
+
+        page.SelectedNode = page.Nodes.First(n => n.Task.TaskType == "shell");
+        await Settle();
+        Named<TextBox>("NodeNameBox")!.Text = "M51 一条龙 Shell";
+        FieldBox("file_name")!.Text = "/bin/true";
+        await Settle();
+        await Click(Named<Button>("ApplyNodeButton"), "应用");
+        Check("运行前状态", Named<TextBlock>("ExecutionStatusText")?.Text == "尚未执行", Named<TextBlock>("ExecutionStatusText")?.Text);
+        var runId = await page.RunPlanAsync(null);
+        if (runId is not null)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await page.WaitForRunAsync(runId, cts.Token);
+        }
+
+        await Settle(1200);
+        shell = page.Nodes.First(n => n.Task.TaskType == "shell");
+        var status = Named<TextBlock>("ExecutionStatusText")?.Text ?? "";
+        Check("运行完成后底部状态", runId is not null && status.StartsWith("已完成"), status);
+        Check("Shell 行状态为已完成", shell.StatusKind == Pulonia.Models.PuloniaTaskSubtreeStatus.Completed && shell.StatusText == "已完成", shell.StatusText);
+        Check("关闭的任务未执行", page.Nodes.Where(n => n != shell).All(n => n.StatusKind != Pulonia.Models.PuloniaTaskSubtreeStatus.Completed),
+            string.Join(",", page.Nodes.Select(n => n.StatusText)));
+        Check("运行结束后停止按钮不可用", Named<Button>("StopOneDragonButton")?.IsEffectivelyEnabled == false);
+        Shot("avalonia-newonedragon-run.png");
+
+        // 触发设置：右栏切到触发方式
+        od.ShowTriggersCommand.Execute(null);
+        await Settle();
+        Check("触发设置", od.RightTab == 1 && await WaitFor(() => Named<Button>("AddScheduleTriggerButton")) is not null);
+        Shot("avalonia-newonedragon-triggers.png");
+        od.RightTab = 0;
+
+        // 执行记录入口：转到执行记录页并能看到本次运行
+        od.ShowHistoryCommand.Execute(null);
+        await Settle(800);
+        await vm.History.RefreshAsync();
+        Check("执行记录入口", vm.SelectedNav?.Title == "执行记录" && vm.History.Runs.Any(r => r.Item.RunId == runId), vm.SelectedNav?.Title);
+
+        // 删除测试配置
+        vm.Navigate("新一条龙");
+        await Settle(500);
+        page.SelectedPlan = page.Plans.First(p => p.Name == configName);
+        var id = page.SelectedPlan.Plan.Id;
+        await Click(Named<Button>("DeleteConfigurationButton"), "删除配置");
+        Check("删除配置", page.Plans.All(p => p.Plan.Id != id) && !File.Exists(Path.Combine(store, id + ".json")) && page.SelectedPlan is not null,
+            page.SelectedPlan?.Name);
+    }
+
     private async Task HistoryAsync()
     {
         const string planName = "M51 记录自测";

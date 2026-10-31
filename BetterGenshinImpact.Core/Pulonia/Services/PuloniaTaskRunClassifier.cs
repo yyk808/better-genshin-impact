@@ -60,6 +60,18 @@ public static class PuloniaTaskRunClassifier
         _ => PuloniaTaskRunStatusCategory.Neutral
     };
 
+    /// <summary>一条龙清单行的状态说明（WPF 与 Avalonia 新一条龙页共用）。</summary>
+    /// <param name="status">子树状态。</param>
+    public static string SubtreeStatusText(PuloniaTaskSubtreeStatus status) => status switch
+    {
+        PuloniaTaskSubtreeStatus.Running => "执行中",
+        PuloniaTaskSubtreeStatus.Failed => "执行失败",
+        PuloniaTaskSubtreeStatus.NeedsVerification => "待核验",
+        PuloniaTaskSubtreeStatus.Completed => "已完成",
+        PuloniaTaskSubtreeStatus.SkippedOrStopped => "已跳过或停止",
+        _ => "尚未执行"
+    };
+
     /// <summary>
     /// 汇总一次运行中某个计划子树的状态。节点地址形如“计划 ID/根节点 ID/节点 ID/…”，
     /// 按完整前缀匹配，引用计划内部允许与其他计划使用相同的节点 ID，重复名称也不会互相串状态。

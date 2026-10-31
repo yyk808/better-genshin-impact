@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             xmlns:solo="using:BetterGenshinImpact.Avalonia.Views.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.TaskNodeEditorPanel"
+             x:DataType="vm:TaskPlanPageViewModel">
+    <!-- 任务设置（任务计划页与新一条龙页共用）：名称、启用、分组次数、专属设置界面或按 Schema 生成的参数 -->
+    <ScrollViewer>
+        <StackPanel Spacing="6" Margin="0,0,6,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" x:Name="ApplyNodeButton" Classes="accent" Content="应用" Command="{Binding ApplyNodeSettingsCommand}" />
+                <StackPanel>
+                    <TextBlock Text="任务设置" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Classes="desc" Text="{Binding NodeEditor.TypeText, FallbackValue=''}" />
+                </StackPanel>
+            </DockPanel>
+            <TextBlock Text="名称" />
+            <TextBox x:Name="NodeNameBox" Text="{Binding NodeEditor.Name, FallbackValue=''}" />
+            <CheckBox x:Name="NodeEnabledBox" Content="启用" IsChecked="{Binding NodeEditor.IsEnabled, FallbackValue=False}" />
+            <StackPanel IsVisible="{Binding NodeEditor.IsGroup, FallbackValue=False}" Spacing="4">
+                <TextBlock Text="执行次数（分组）" />
+                <TextBox x:Name="NodeRepeatBox" Text="{Binding NodeEditor.RepeatText, FallbackValue=''}" />
+            </StackPanel>
+            <TextBlock Classes="desc" Text="{Binding NodeEditor.FieldsHint, FallbackValue=''}" TextWrapping="Wrap"
+                       IsVisible="{Binding NodeEditor.FieldsHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}" />
+            <!-- 专属参数编辑器（与 WPF 任务计划的参数编辑相同：有专属界面时优先显示） -->
+            <ContentControl x:Name="NodeDedicatedEditor" Content="{Binding NodeEditor.Dedicated, FallbackValue={x:Null}}"
+                            IsVisible="{Binding NodeEditor.HasDedicated, FallbackValue=False}">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="tasksVm:AutoDomainSettingsViewModel">
+                        <solo:AutoDomainSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:AutoLeyLineOutcropSettingsViewModel">
+                        <solo:AutoLeyLineOutcropSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:ClaimDailyRewardsSettingsViewModel">
+                        <solo:ClaimDailyRewardsSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:CraftCondensedResinSettingsViewModel">
+                        <solo:CraftCondensedResinSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:SereniteaPotSettingsViewModel">
+                        <solo:SereniteaPotSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:AutoBossSettingsViewModel">
+                        <solo:AutoBossSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:AutoStygianOnslaughtSettingsViewModel">
+                        <solo:AutoStygianOnslaughtSettingsEditor />
+                    </DataTemplate>
+                    <DataTemplate DataType="tasksVm:ResinPlanSettingsViewModel">
+                        <solo:ResinPlanSettingsEditor />
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+            <TextBlock Text="{Binding NodeEditor.FieldsTitle, FallbackValue=''}" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />
+            <ItemsControl ItemsSource="{Binding NodeEditor.Fields, FallbackValue={x:Null}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TaskParameterFieldEditor">
+                        <StackPanel Margin="0,4" Spacing="3" Tag="{Binding Name}">
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                            <TextBlock Classes="desc" Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" IsVisible="{Binding HasDescription}" />
+                            <ToggleSwitch IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBoolean}" OnContent="" OffContent="" />
+                            <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
+                            <TextBox Text="{Binding Text}" IsVisible="{Binding IsTextInput}" AcceptsReturn="{Binding IsMultiline}" TextWrapping="Wrap" MaxHeight="120" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

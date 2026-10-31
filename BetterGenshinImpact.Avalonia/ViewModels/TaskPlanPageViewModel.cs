@@ -42,9 +42,17 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasTriggerEditor))] private TaskTriggerEditor? _triggerEditor;
     [ObservableProperty] private TaskPlanTriggerRow? _selectedTrigger;
 
-    public TaskPlanPageViewModel(GameHost? host, ILogger log)
+    /// <param name="host">宿主</param>
+    /// <param name="log">日志</param>
+    /// <param name="purpose">本页编辑的计划用途：任务计划页为普通计划；新一条龙页为一条龙配置（对应 WPF PuloniaOneDragonPage）</param>
+    /// <param name="generalPlans">新一条龙页引用普通计划时的来源（任务计划页实例）</param>
+    public TaskPlanPageViewModel(GameHost? host, ILogger log, PuloniaTaskPlanPurpose purpose = PuloniaTaskPlanPurpose.General,
+        TaskPlanPageViewModel? generalPlans = null)
     {
         _log = log;
+        Purpose = purpose;
+        _generalPlans = generalPlans;
+        if (IsOneDragon) _statusMessage = "修改后立即生效并自动保存。";
         if (host is null) return;
         _services = host.Services;
         _store = host.Services.GetService<PuloniaTaskStore>();
@@ -71,11 +79,28 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
                 SchedulerStatus = _scheduler.Scheduler.Status;
                 OnPropertyChanged(nameof(HotkeyStatus));
             });
-            _scheduler.Start();
+            // 调度器（定时 / 快捷键触发）覆盖全部计划，只由任务计划页启动一次
+            if (!IsOneDragon) _scheduler.Start();
         }
     }
 
-    public override string Title => "任务计划";
+    public override string Title => IsOneDragon ? "新一条龙" : "任务计划";
+
+    /// <summary>本页编辑的计划用途</summary>
+    public PuloniaTaskPlanPurpose Purpose { get; }
+
+    /// <summary>新一条龙页：平面清单（只显示根节点下一层）、默认任务、插入到选中行之后</summary>
+    public bool IsOneDragon => Purpose == PuloniaTaskPlanPurpose.OneDragon;
+
+    private readonly TaskPlanPageViewModel? _generalPlans;
+
+    /// <summary>其他用途计划的 ID（保存计划顺序时保留，与 WPF 的全部文档顺序一致）</summary>
+    private List<string> _otherPlanIds = [];
+
+    /// <summary>当前配置最近一次（或进行中的）运行的状态（与 WPF 新一条龙底部状态相同）</summary>
+    [ObservableProperty] private string _executionStatusText = "尚未执行";
+
+    [ObservableProperty] private bool _hasActiveRun;
 
     public bool IsAvailable => _store is not null && _tasks is not null;
 
@@ -106,6 +131,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     public bool HasResources => Resources.Count > 0;
 
     /// <summary>当前计划是否有未结束的运行</summary>
+    private PuloniaTaskRunView? _latestRun;
+
     public bool IsSelectedPlanRunning => SelectedPlan is { } p && Runs.Any(r => r.IsActive && r.PlanId == p.Plan.Id);
 
     public override void OnNavigatedTo()
@@ -114,6 +141,9 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         {
             _ = ReloadAsync();
         }
+
+        // 任务计划页可能新增或删除了计划，刷新新一条龙的引用候选
+        OnPropertyChanged(nameof(ReferencePlans));
     }
 
     [RelayCommand]
@@ -125,9 +155,19 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             var selectedId = SelectedPlan?.Plan.Id;
             var listed = await _store.ListPlansWithFailuresAsync();
             Plans.Clear();
-            foreach (var plan in listed.Items.Where(p => p.Purpose == PuloniaTaskPlanPurpose.General))
+            foreach (var plan in listed.Items.Where(p => p.Purpose == Purpose))
             {
                 Plans.Add(new TaskPlanItem(plan));
+            }
+
+            _otherPlanIds = listed.Items.Where(p => p.Purpose != Purpose).Select(p => p.Id).ToList();
+            // 新一条龙引用普通任务计划：任务计划页尚未打开时先读取
+            if (_generalPlans is { _loaded: false } general) await general.ReloadAsync();
+            // 新一条龙页首次进入且没有配置时，与 WPF 相同建立默认配置
+            if (IsOneDragon && Plans.Count == 0 && listed.Failures.Count == 0)
+            {
+                _loaded = true;
+                await NewPlanAsync();
             }
 
             _loaded = true;
@@ -153,6 +193,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         OnPropertyChanged(nameof(PlanProfile));
         OnPropertyChanged(nameof(ReferencePlans));
         RebuildNodes();
+        // 新一条龙：切换配置后选中第一行，右侧显示其设置（与 WPF 相同）
+        if (IsOneDragon) SelectedNode = Nodes.FirstOrDefault();
         RebuildTriggers();
         OnPropertyChanged(nameof(HasSelectedPlan));
         _ = RefreshRunsAsync();
@@ -189,15 +231,36 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
     private void RebuildNodes()
     {
+        // 重建后保持原选中行（启用开关、排序等不丢失右侧设置），新增任务时改选新行
+        var keepId = SelectedNode?.Task.Id;
         Nodes.Clear();
         if (SelectedPlan is { } item)
         {
-            AddRows([item.Plan.RootTask], 0, true);
+            if (IsOneDragon)
+            {
+                foreach (var child in item.Plan.RootTask.Children)
+                {
+                    var row = new TaskPlanNodeRow(this, item.Plan.RootTask, child, 0, true) { Chain = [item.Plan.RootTask, child] };
+                    row.RefreshCooldown();
+                    row.UpdateStatus(_latestRun, item.Plan.RootTask.Id);
+                    Nodes.Add(row);
+                }
+            }
+            else
+            {
+                AddRows([item.Plan.RootTask], 0, true);
+            }
         }
 
         RefreshPlanCooldownSummary();
 
         OnPropertyChanged(nameof(HasNoNodes));
+        var reselect = _pendingSelectTaskId ?? (SelectedNode is null || !Nodes.Contains(SelectedNode) ? keepId : null);
+        _pendingSelectTaskId = null;
+        if (reselect is not null)
+        {
+            SelectedNode = Nodes.FirstOrDefault(n => n.Task.Id == reselect);
+        }
     }
 
     private void AddRows(List<PuloniaTask> ancestors, int depth, bool parentEnabled)
@@ -398,17 +461,28 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     private async Task NewPlanAsync()
     {
         if (_store is null) return;
-        var name = string.IsNullOrWhiteSpace(NewPlanName) ? "我的任务计划" : NewPlanName.Trim();
-        var plan = new PuloniaTaskPlan
+        var name = string.IsNullOrWhiteSpace(NewPlanName) ? IsOneDragon ? "新一条龙配置" : "我的任务计划" : NewPlanName.Trim();
+        PuloniaTaskPlan plan;
+        if (IsOneDragon)
         {
-            Name = name,
-            RootTask = new PuloniaTask { Name = name, TaskType = "group" }
-        };
+            // 与 WPF 相同：重名时追加序号，默认清单为注册表声明了一条龙顺序的独立任务
+            var baseName = name;
+            for (var suffix = 2; Plans.Any(p => p.Name == name); suffix++) name = baseName + " " + suffix;
+            plan = PuloniaOneDragonDefaults.CreatePlan(name, _tasks?.Definitions ?? []);
+        }
+        else
+        {
+            plan = new PuloniaTaskPlan
+            {
+                Name = name,
+                RootTask = new PuloniaTask { Name = name, TaskType = "group" }
+            };
+        }
+
         try
         {
             plan = await _store.SavePlanAsync(plan);
-            var order = Plans.Select(p => p.Plan.Id).Append(plan.Id).ToList();
-            await _store.SavePlanOrderAsync(order);
+            await _store.SavePlanOrderAsync(PlanOrder(Plans.Select(p => p.Plan.Id).Append(plan.Id)));
             var item = new TaskPlanItem(plan);
             Plans.Add(item);
             OnPropertyChanged(nameof(PlanCountText));
@@ -420,6 +494,27 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         {
             StatusMessage = "新建计划失败：" + e.Message;
         }
+    }
+
+    /// <summary>计划顺序文件包含全部计划：普通计划在前，一条龙配置在后（与 WPF 编辑会话相同）</summary>
+    private List<string> PlanOrder(IEnumerable<string> ids) =>
+        IsOneDragon ? [.. _otherPlanIds, .. ids] : [.. ids, .. _otherPlanIds];
+
+    /// <summary>重命名当前计划（新一条龙“重命名配置”），保持计划与任务身份</summary>
+    [RelayCommand]
+    private async Task RenamePlanAsync()
+    {
+        if (SelectedPlan is not { } item) return;
+        var name = (await Services.FluentMessageBox.PromptAsync(IsOneDragon ? "请输入配置名称。" : "请输入计划名称。",
+            IsOneDragon ? "重命名一条龙配置" : "重命名任务计划", item.Name))?.Trim();
+        if (string.IsNullOrWhiteSpace(name) || name == item.Name) return;
+        item.Plan.Name = name;
+        await SaveAsync(item, $"已重命名为“{name}”。");
+        item.Refresh();
+        var selected = SelectedPlan;
+        // ComboBox 显示名称需要重新取值
+        SelectedPlan = null;
+        SelectedPlan = selected;
     }
 
     [RelayCommand]
@@ -437,7 +532,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         {
             await _store.DeletePlanAsync(item.Plan.Id, item.Plan.Revision);
             Plans.Remove(item);
-            await _store.SavePlanOrderAsync(Plans.Select(p => p.Plan.Id).ToList());
+            await _store.SavePlanOrderAsync(PlanOrder(Plans.Select(p => p.Plan.Id)));
             OnPropertyChanged(nameof(PlanCountText));
             SelectedPlan = Plans.FirstOrDefault();
             StatusMessage = $"已删除计划“{item.Name}”（执行记录保留）。";
@@ -469,9 +564,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
                 Resource = resource,
                 Overrides = new JObject(),
             });
-            // 选中分组时加到分组内，否则加到计划末尾（与 WPF 的“添加”相同）
-            var parent = SelectedNode is { Task.TaskType: "group", Task.Source: null } group ? group.Task : item.Plan.RootTask;
-            parent.Children.Add(task);
+            InsertTask(item, task);
             await SaveAsync(item, $"已添加“{name}”。");
             RebuildNodes();
         }
@@ -481,8 +574,29 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         }
     }
 
-    /// <summary>可被当前计划引用的其他计划（引用选择框）</summary>
-    public IReadOnlyList<TaskPlanItem> ReferencePlans => Plans.Where(p => p != SelectedPlan).ToList();
+    /// <summary>
+    /// 插入新任务：任务计划页选中分组时加到分组内，否则加到计划末尾（与 WPF 的“添加”相同）；
+    /// 新一条龙始终插入根清单、选中行之后（与 WPF InsertOneDragonTask 相同）
+    /// </summary>
+    private void InsertTask(TaskPlanItem item, PuloniaTask task)
+    {
+        var root = item.Plan.RootTask;
+        if (IsOneDragon)
+        {
+            var index = SelectedNode is { } selected && ReferenceEquals(selected.Parent, root) ? root.Children.IndexOf(selected.Task) + 1 : root.Children.Count;
+            root.Children.Insert(index, task);
+            _pendingSelectTaskId = task.Id;
+            return;
+        }
+
+        var parent = SelectedNode is { Task.TaskType: "group", Task.Source: null } group ? group.Task : root;
+        parent.Children.Add(task);
+    }
+
+    private string? _pendingSelectTaskId;
+
+    /// <summary>可被当前计划引用的其他计划（引用选择框）；新一条龙引用普通任务计划</summary>
+    public IReadOnlyList<TaskPlanItem> ReferencePlans => _generalPlans is { } general ? general.Plans.ToList() : Plans.Where(p => p != SelectedPlan).ToList();
 
     [ObservableProperty] private TaskPlanItem? _referenceTarget;
 
@@ -506,10 +620,9 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             return;
         }
 
-        var parent = SelectedNode is { Task.TaskType: "group", Task.Source: null } group ? group.Task : item.Plan.RootTask;
-        parent.Children.Add(new PuloniaTask
+        InsertTask(item, new PuloniaTask
         {
-            Name = "引用：" + target.Name,
+            Name = IsOneDragon ? target.Name : "引用：" + target.Name,
             TaskType = "group",
             Source = new PuloniaTaskSource { Kind = "plan", PlanId = target.Plan.Id },
         });
@@ -520,7 +633,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     /// <summary>引用后能否从目标计划经引用链回到当前计划</summary>
     internal bool WouldCreateReferenceCycle(string sourcePlanId, string targetPlanId)
     {
-        var plans = Plans.ToDictionary(p => p.Plan.Id, p => p.Plan);
+        var plans = Plans.Concat(_generalPlans?.Plans ?? []).ToDictionary(p => p.Plan.Id, p => p.Plan);
         var visited = new HashSet<string>();
         var pending = new Stack<string>([targetPlanId]);
         while (pending.TryPop(out var id))
@@ -684,6 +797,20 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
                 p.IsRunning = runs.Any(r => r.PlanId == p.Plan.Id && PuloniaTaskRunStatusText.IsActive(r.Status));
             }
 
+            // 当前配置的运行状态：进行中的运行优先，否则为最近一次（与 WPF 新一条龙相同）
+            var mine = runs.Where(r => r.PlanId == SelectedPlan?.Plan.Id).OrderByDescending(r => r.SubmittedAt).ToList();
+            var active = mine.FirstOrDefault(r => r.Status is PuloniaTaskRunStatus.Running or PuloniaTaskRunStatus.Cancelling)
+                         ?? mine.FirstOrDefault(r => r.Status == PuloniaTaskRunStatus.Queued);
+            _latestRun = active ?? mine.FirstOrDefault();
+            HasActiveRun = active is not null;
+            ExecutionStatusText = _latestRun is { } latest
+                ? (latest.ExecutionTarget is { } target ? $"[{target.DisplayName}] " : "") + PuloniaTaskRunStatusText.Get(latest.Status) + " · " + latest.Message
+                : "尚未执行";
+            if (SelectedPlan is { } current)
+            {
+                foreach (var row in Nodes) row.UpdateStatus(_latestRun, current.Plan.RootTask.Id);
+            }
+
             OnPropertyChanged(nameof(IsSelectedPlanRunning));
         }
         catch (Exception e)
@@ -765,6 +892,27 @@ public sealed partial class TaskPlanNodeRow : ObservableObject
         get => Task.IsEnabled;
         set => _ = _owner.SetEnabledAsync(this, value);
     }
+
+    /// <summary>新一条龙清单行的最近运行状态（规则在 Core PuloniaTaskRunClassifier，与 WPF 相同）</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(StatusBrush))] private PuloniaTaskSubtreeStatus _statusKind;
+
+    [ObservableProperty] private string _statusText = "尚未执行";
+
+    public void UpdateStatus(PuloniaTaskRunView? run, string rootTaskId)
+    {
+        StatusKind = PuloniaTaskRunClassifier.ClassifySubtree(run, rootTaskId, Task.Id);
+        StatusText = PuloniaTaskRunClassifier.SubtreeStatusText(StatusKind);
+    }
+
+    /// <summary>状态圆点颜色（WPF：未执行灰、执行中蓝、完成绿、失败红、待核验橙）</summary>
+    public global::Avalonia.Media.IBrush StatusBrush => global::Avalonia.Media.Brush.Parse(StatusKind switch
+    {
+        PuloniaTaskSubtreeStatus.Running => "#3E9EFF",
+        PuloniaTaskSubtreeStatus.Completed => "#46A758",
+        PuloniaTaskSubtreeStatus.Failed => "#E5484D",
+        PuloniaTaskSubtreeStatus.NeedsVerification => "#F5A524",
+        _ => "#8A8A8A",
+    });
 }
 
 /// <summary>“添加”可选的任务类型（Core 执行器注册的能力）</summary>

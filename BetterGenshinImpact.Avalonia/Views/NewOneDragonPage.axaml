@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
+             x:Class="BetterGenshinImpact.Avalonia.Views.NewOneDragonPage"
+             x:DataType="vm:NewOneDragonPageViewModel">
+    <!-- 与 WPF PuloniaOneDragonPage 相同的左右两栏：左“任务列表”（运行 / 停止 / 更多），右“配置”（配置选择与选中任务的设置） -->
+    <Grid ColumnDefinitions="300,*" Margin="20,16,20,10">
+        <!-- 左栏：任务列表 -->
+        <DockPanel Grid.Column="0" Margin="0,0,16,0">
+            <DockPanel DockPanel.Dock="Top" Margin="2,0,0,8">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                    <Button x:Name="RunOneDragonButton" Classes="accent" Content="{svc:FluentIcon Play24, Size=16}" Padding="12,6" ToolTip.Tip="运行当前配置"
+                            Command="{Binding Plans.RunPlanCommand}" CommandParameter="{x:Null}" />
+                    <Button x:Name="StopOneDragonButton" Content="{svc:FluentIcon Stop24, Size=16}" Padding="12,6" ToolTip.Tip="停止"
+                            Command="{Binding Plans.StopPlanCommand}" IsEnabled="{Binding Plans.HasActiveRun}" />
+                    <DropDownButton x:Name="MoreButton" Content="{svc:FluentIcon MoreHorizontal24, Size=16}" Padding="10,6">
+                        <DropDownButton.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuItem Header="添加任务…" Command="{Binding ToggleAddPanelCommand}" />
+                                <MenuItem Header="上移" Command="{Binding Plans.MoveTaskCommand}" CommandParameter="up" />
+                                <MenuItem Header="下移" Command="{Binding Plans.MoveTaskCommand}" CommandParameter="down" />
+                                <MenuItem Header="删除选中任务" Command="{Binding Plans.RemoveTaskCommand}" />
+                                <Separator />
+                                <MenuItem Header="触发设置" Command="{Binding ShowTriggersCommand}" />
+                                <MenuItem Header="执行记录" Command="{Binding ShowHistoryCommand}" />
+                                <MenuItem Header="重新加载" Command="{Binding Plans.ReloadCommand}" />
+                            </MenuFlyout>
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                </StackPanel>
+                <TextBlock Text="任务列表" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center" />
+            </DockPanel>
+            <Border DockPanel.Dock="Top" Height="1" Background="#26FFFFFF" Margin="0,0,0,10" />
+            <TextBlock x:Name="ExecutionStatusText" DockPanel.Dock="Bottom" Margin="2,8,0,0" Text="{Binding Plans.ExecutionStatusText}" TextWrapping="Wrap" />
+            <!-- 添加任务（WPF 为“添加任务”菜单与弹窗）：选中行之后插入 -->
+            <Border x:Name="AddTaskPanel" DockPanel.Dock="Bottom" Classes="card" Padding="10" Margin="0,8,0,0" IsVisible="{Binding IsAddPanelOpen}">
+                <StackPanel Spacing="6">
+                    <ComboBox x:Name="AddOptionBox" ItemsSource="{Binding Plans.AddOptions}" SelectedItem="{Binding Plans.SelectedAddOption}"
+                              PlaceholderText="任务类型" HorizontalAlignment="Stretch" />
+                    <ComboBox ItemsSource="{Binding Plans.Resources}" SelectedItem="{Binding Plans.SelectedResource}" HorizontalAlignment="Stretch"
+                              IsVisible="{Binding Plans.HasResources}" />
+                    <Button x:Name="AddTaskButton" Content="添加到选中任务之后" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding Plans.AddTaskCommand}" />
+                    <DockPanel>
+                        <Button x:Name="AddPlanReferenceButton" DockPanel.Dock="Right" Content="引用" Margin="6,0,0,0" Command="{Binding Plans.AddPlanReferenceCommand}"
+                                ToolTip.Tip="引用已有任务计划：之后修改该计划会同步影响这里" />
+                        <ComboBox x:Name="ReferencePlanBox" ItemsSource="{Binding Plans.ReferencePlans}" SelectedItem="{Binding Plans.ReferenceTarget}"
+                                  PlaceholderText="引用已有任务计划" HorizontalAlignment="Stretch" DisplayMemberBinding="{Binding Name}" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+            <Panel>
+                <TextBlock Classes="desc" Text="清单为空，点“…”→“添加任务”。" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding Plans.HasNoNodes}" />
+                <ListBox x:Name="OneDragonTaskList" ItemsSource="{Binding Plans.Nodes}" SelectedItem="{Binding Plans.SelectedNode}" Background="Transparent">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Margin" Value="0,0,0,6" />
+                            <Setter Property="Padding" Value="10,8" />
+                            <Setter Property="CornerRadius" Value="4" />
+                            <Setter Property="Background" Value="#0FFFFFFF" />
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TaskPlanNodeRow">
+                            <Grid ColumnDefinitions="18,18,*,Auto" Opacity="{Binding RowOpacity}">
+                                <TextBlock Text="⠿" Opacity="0.6" VerticalAlignment="Center" />
+                                <Ellipse Grid.Column="1" Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusText}" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Classes="desc" FontSize="12" Text="{Binding CooldownBadge}"
+                                               IsVisible="{Binding CooldownBadge, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="3" IsChecked="{Binding IsEnabled}" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Panel>
+        </DockPanel>
+
+        <!-- 右栏：配置 -->
+        <DockPanel Grid.Column="1">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                    <ComboBox x:Name="ConfigurationBox" ItemsSource="{Binding Plans.Plans}" SelectedItem="{Binding Plans.SelectedPlan}" Width="200"
+                              DisplayMemberBinding="{Binding Name}" VerticalAlignment="Center" />
+                    <Button x:Name="NewConfigurationButton" Content="{svc:FluentIcon Add24, Size=16}" Padding="10,6" ToolTip.Tip="新建配置" Command="{Binding Plans.NewPlanCommand}" />
+                    <Button x:Name="RenameConfigurationButton" Content="{svc:FluentIcon Edit24, Size=16}" Padding="10,6" ToolTip.Tip="重命名配置" Command="{Binding Plans.RenamePlanCommand}" />
+                    <Button x:Name="DeleteConfigurationButton" Content="{svc:FluentIcon Delete24, Size=16}" Padding="10,6" ToolTip.Tip="删除配置" Command="{Binding Plans.DeletePlanCommand}" />
+                </StackPanel>
+                <TextBlock Text="配置" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center" />
+            </DockPanel>
+            <Border DockPanel.Dock="Top" Height="1" Background="#26FFFFFF" Margin="0,0,0,6" />
+            <TextBlock DockPanel.Dock="Bottom" Classes="desc" Margin="2,6,0,0" Text="{Binding Plans.StatusMessage}" TextWrapping="Wrap" />
+            <TabControl x:Name="RightTabs" SelectedIndex="{Binding RightTab}">
+                <TabItem Header="任务设置">
+                    <Panel>
+                        <TextBlock Classes="desc" Text="选择左侧的一项任务查看设置。" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsVisible="{Binding !Plans.HasNodeEditor}" />
+                        <DockPanel IsVisible="{Binding Plans.HasNodeEditor}">
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding Plans.SelectedNode.Name, FallbackValue=''}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                       FontSize="15" Margin="2,4,0,8" />
+                            <TextBlock DockPanel.Dock="Bottom" Classes="desc" Margin="2,6,0,0" Text="修改后点“应用”保存；运行时使用保存后的设置。" />
+                            <Border Classes="card" Padding="14,10">
+                                <views:TaskNodeEditorPanel DataContext="{Binding Plans}" />
+                            </Border>
+                        </DockPanel>
+                    </Panel>
+                </TabItem>
+                <TabItem Header="触发设置">
+                    <views:TaskTriggerPanel DataContext="{Binding Plans}" />
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+    </Grid>
+</UserControl>

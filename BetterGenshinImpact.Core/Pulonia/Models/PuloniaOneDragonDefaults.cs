@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using BetterGenshinImpact.Pulonia.Models;
 
-namespace BetterGenshinImpact.ViewModel.Pages.Pulonia;
+namespace BetterGenshinImpact.Pulonia.Models;
 
-/// <summary>一条龙入口的默认清单；仅负责创建计划数据，不参与执行。</summary>
-internal static class PuloniaOneDragonDefaults
+/// <summary>一条龙入口的默认清单；仅负责创建计划数据，不参与执行（WPF 与 Avalonia 新一条龙页共用）。</summary>
+public static class PuloniaOneDragonDefaults
 {
     /// <summary>
     /// 按独立任务注册表声明的一条龙顺序创建默认清单，不复制全局任务配置。
@@ -13,7 +12,7 @@ internal static class PuloniaOneDragonDefaults
     /// <param name="name">计划名称。</param>
     /// <param name="definitions">任务能力定义；只取声明了一条龙顺序的独立任务。</param>
     /// <returns>新的一条龙计划。</returns>
-    internal static PuloniaTaskPlan CreatePlan(string name, IEnumerable<PuloniaTaskDefinition> definitions) => new()
+    public static PuloniaTaskPlan CreatePlan(string name, IEnumerable<PuloniaTaskDefinition> definitions) => new()
     {
         Name = name, Purpose = PuloniaTaskPlanPurpose.OneDragon,
         RootTask = new PuloniaTask

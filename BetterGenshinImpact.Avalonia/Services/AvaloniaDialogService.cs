@@ -68,6 +68,36 @@ public static class FluentMessageBox
     /// <summary>当前显示的对话框（自检与自动化测试用）</summary>
     public static FluentAvalonia.UI.Controls.FAContentDialog? Current { get; private set; }
 
+    /// <summary>
+    /// 输入框（对应 WPF PromptDialog.Prompt）：在主窗口上显示带文本框的 ContentDialog，确定返回输入，取消返回 null
+    /// </summary>
+    public static async Task<string?> PromptAsync(string message, string title, string initial)
+    {
+        var owner = (Application.Current?.ApplicationLifetime as global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (owner is null) return null;
+        var box = new TextBox { Name = "PromptTextBox", Text = initial, MinWidth = 320 };
+        var content = new StackPanel { Spacing = 8 };
+        content.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(box);
+        var dialog = new FluentAvalonia.UI.Controls.FAContentDialog
+        {
+            Title = title, Content = content, PrimaryButtonText = "确定", CloseButtonText = "取消",
+            DefaultButton = FluentAvalonia.UI.Controls.FAContentDialogButton.Primary,
+        };
+        dialog.Opened += (_, _) => { box.Focus(); box.SelectAll(); };
+        await Gate.WaitAsync();
+        try
+        {
+            Current = dialog;
+            return await dialog.ShowAsync(owner) == FluentAvalonia.UI.Controls.FAContentDialogResult.Primary ? box.Text ?? "" : null;
+        }
+        finally
+        {
+            Current = null;
+            Gate.Release();
+        }
+    }
+
     public static async Task<DialogResult> ShowAsync(Window owner, string message, string title, DialogKind kind, DialogButtons buttons)
     {
         var list = MessageBoxWindow.ButtonsOf(buttons).ToList();

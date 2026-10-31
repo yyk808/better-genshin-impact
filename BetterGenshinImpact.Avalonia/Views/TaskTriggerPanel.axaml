@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             xmlns:solo="using:BetterGenshinImpact.Avalonia.Views.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.TaskTriggerPanel"
+             x:DataType="vm:TaskPlanPageViewModel">
+    <!-- 触发方式（任务计划页与新一条龙页共用）：定时与快捷键触发的列表与编辑 -->
+    <DockPanel Margin="0,8,0,0">
+        <TextBlock DockPanel.Dock="Bottom" Classes="desc" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding SchedulerStatus, StringFormat='调度：{0}'}" />
+        <TextBlock x:Name="PlanHotkeyStatus" DockPanel.Dock="Bottom" Classes="desc" TextWrapping="Wrap" Text="{Binding HotkeyStatus, StringFormat='计划快捷键：{0}'}" />
+        <Border DockPanel.Dock="Right" Width="290" Margin="10,0,0,0" Padding="10,8" Background="#0FFFFFFF" CornerRadius="4"
+                IsVisible="{Binding HasTriggerEditor}">
+            <ScrollViewer>
+            <StackPanel Spacing="6" Margin="0,0,6,0">
+                <TextBlock Text="{Binding TriggerEditor.Title, FallbackValue=''}" FontWeight="SemiBold" FontSize="15" />
+                <StackPanel Spacing="6" IsVisible="{Binding TriggerEditor.IsSchedule, FallbackValue=False}">
+                    <TextBlock Text="Cron 表达式（分 时 日 月 周）" />
+                    <TextBox x:Name="TriggerCronBox" Text="{Binding TriggerEditor.Cron, FallbackValue=''}" />
+                    <TextBlock Text="服务器时区" />
+                    <ComboBox ItemsSource="{Binding TriggerEditor.ServerTimeZones, FallbackValue={x:Null}}" SelectedIndex="{Binding TriggerEditor.ServerTimeZoneIndex, FallbackValue=0}" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="忙碌时" />
+                    <ComboBox ItemsSource="{Binding TriggerEditor.BusyPolicies, FallbackValue={x:Null}}" SelectedIndex="{Binding TriggerEditor.BusyPolicyIndex, FallbackValue=0}" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="允许延迟启动（分钟）" />
+                    <TextBox Text="{Binding TriggerEditor.WindowMinutes, FallbackValue=''}" />
+                    <CheckBox Content="错过时补跑一次" IsChecked="{Binding TriggerEditor.CatchUp, FallbackValue=False}" />
+                </StackPanel>
+                <StackPanel Spacing="6" IsVisible="{Binding TriggerEditor.IsHotkey, FallbackValue=False}">
+                    <TextBlock Text="快捷键" />
+                    <DockPanel>
+                        <Button x:Name="TriggerRecordButton" DockPanel.Dock="Right" Margin="6,0,0,0" Content="录制"
+                                Command="{Binding TriggerEditor.ToggleRecordCommand, FallbackValue={x:Null}}" />
+                        <TextBox x:Name="TriggerHotkeyBox" Text="{Binding TriggerEditor.Hotkey, FallbackValue=''}" />
+                    </DockPanel>
+                    <TextBlock Classes="desc" Text="请按下快捷键…（Esc 取消）" IsVisible="{Binding TriggerEditor.IsRecording, FallbackValue=False}" />
+                    <TextBlock Text="方式" />
+                    <ComboBox x:Name="TriggerHotkeyType" ItemsSource="{Binding TriggerEditor.HotkeyTypes, FallbackValue={x:Null}}"
+                              SelectedIndex="{Binding TriggerEditor.HotkeyTypeIndex, FallbackValue=0}" HorizontalAlignment="Stretch" />
+                    <TextBlock Classes="desc" TextWrapping="Wrap" Text="全局热键支持组合键或功能键（F12 保留），注册期间游戏收不到该键；键鼠监听只接受单键，不拦截按键。" />
+                </StackPanel>
+                <CheckBox x:Name="TriggerEnabledBox" Content="启用" IsChecked="{Binding TriggerEditor.Enabled, FallbackValue=False}" />
+                <TextBlock Classes="desc" Text="{Binding TriggerEditor.PreviewText, FallbackValue=''}" TextWrapping="Wrap" />
+                <Button x:Name="SaveTriggerButton" Classes="accent" Content="保存触发器" HorizontalAlignment="Right"
+                        Command="{Binding SaveTriggerCommand}" IsEnabled="{Binding TriggerEditor.IsValid, FallbackValue=False}" />
+            </StackPanel>
+            </ScrollViewer>
+        </Border>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
+            <Button x:Name="AddScheduleTriggerButton" Content="＋ 定时触发" Command="{Binding AddScheduleTriggerCommand}" />
+            <Button x:Name="AddHotkeyTriggerButton" Content="＋ 快捷键触发" Command="{Binding AddHotkeyTriggerCommand}" />
+            <Button Content="删除" Command="{Binding DeleteTriggerCommand}" CommandParameter="{x:Null}" />
+        </StackPanel>
+        <Panel>
+            <TextBlock Classes="desc" TextWrapping="Wrap" IsVisible="{Binding HasNoTriggers}"
+                       Text="没有触发方式：只能手动运行。点“＋ 定时触发”或“＋ 快捷键触发”添加，保存并启用后生效。" />
+            <ListBox ItemsSource="{Binding Triggers}" SelectedItem="{Binding SelectedTrigger}" Background="Transparent">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TaskPlanTriggerRow">
+                        <DockPanel>
+                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding KindText}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Text}" />
+                                </StackPanel>
+                                <TextBlock Classes="desc" Text="{Binding Detail}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Panel>
+    </DockPanel>
+</UserControl>
