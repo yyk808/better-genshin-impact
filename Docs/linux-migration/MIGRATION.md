@@ -1,12 +1,14 @@
-# BetterGI 跨平台 / Linux 迁移说明（面向上游维护者）
+# BetterGI 跨平台 / Linux 迁移说明（fork 自用，定期同步上游）
 
-本文说明 `avalonia-linux` 分支相对 `refactor/20260930` 做了什么、Windows 版为什么行为不变、Linux 版怎么构建和测试、
-还有哪些已知问题，以及建议的合并方式。各阶段的详细记录见同目录的 [phase1-foundation.md](phase1-foundation.md)、
+`avalonia-linux` 是自用 fork（不向上游提交 PR），定期把上游 `refactor/20260930`（以及 `main` 上的修复）合并进来。
+本文说明这个分支相对上游做了什么、Windows 版为什么行为不变、Linux 版怎么构建和测试、还有哪些已知问题，
+以及以后怎样同步上游（第 8 节）。各阶段的详细记录见同目录的 [phase1-foundation.md](phase1-foundation.md)、
 [phase2-progress.md](phase2-progress.md)、[phase4-avalonia.md](phase4-avalonia.md)。
 
 ## 1. 概览
 
-- 分支：`avalonia-linux`，从 `refactor/20260930` 切出。共 139 个提交，都是线性的普通提交，没有合并提交。
+- 分支：`avalonia-linux`，从 `refactor/20260930` 切出。自有提交是线性的普通提交，同步上游时使用普通合并提交（不 rebase、不改写已推送的历史）。
+- 已同步到：`refactor/20260930` 的 `43eecc21`（2026-10-31）和 `main` 的 `94c1de65`。
 - 改动规模：约 1629 个文件，其中约 1163 个是**移动**（从 WPF 主项目移到 `BetterGenshinImpact.Core`，命名空间不变），
   新增约 300 个、修改约 155 个、删除 8 个。
 - 目标：
@@ -120,6 +122,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | 通知 | Windows 通知 | 系统通知（notify-send / D-Bus）；Webhook、企业微信、邮件相同；微信 Clawbot 未接入 |
 | 凭据（任务计划账号） | 凭据管理器 | 不支持保存凭据（会提示） |
 | 多实例派发、账号切换 | 支持 | 未接入 |
+| 插件（上游插件系统） | 加载外部插件，有插件页、OCR 模型选择 | 只使用 Core 中的内置实现（PP-OCRv6、内置传送），不加载外部插件，没有插件页和 OCR 模型选择界面 |
 | 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如脚本仓库、部分名单编辑）尚未迁移，见 phase4-avalonia.md |
 
 ## 6. 已知问题
@@ -147,34 +150,45 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 
 假游戏和测试驱动属于本地测试工具，不在本分支里。
 
-## 8. 与上游最新代码的合并情况
+## 8. 同步上游
 
-用 `refactor/20260930` 最新提交（`43eecc21`）做了合并演练，分支本身没有改动。冲突共 15 个文件，可以分成三类：
+### 8.1 已做的同步（2026-10-31）
 
-1. **9 个 XAML 头部**（设计器主题提交给 `UserControl` 加了 `ui:Design.Background/Foreground`，本分支给 `clr-namespace` 加了 `;assembly=BetterGenshinImpact.Core`）：
-   保留上游加的属性，再补回本分支的程序集后缀即可。
-2. **OCR 改为可插拔能力**（`OcrFactory`、`PpOcrV6Service`、删除 `PaddleOcrModelConfig`、`CommonSettingsPageViewModel`、`QuestVoiceSessionFactory`）：
-   以上游实现为准，`QuestVoiceSessionFactory` 的音频输出保留 `QuestVoiceAudioHost.OutputFactory`。
-3. **插件系统**（`App.xaml.cs`）：上游把 `PluggableRegistry` 等放在 WPF 主项目，但 OCR、传送这些可插拔能力的使用方已经在 Core。处理方法：
-   - 把 `Core/Plugins`（Hosting 除外）、`PluginConfig`、`ITpTask` / `ITpTaskFactory` / `BuiltinTpTaskFactory` 移到 Core；
-   - `App.GetService` 改为 `CoreServices.GetService`，Core 增加 `global using BetterGenshinImpact.Core.Plugins`；
-   - `PluginManager` 等插件加载部分（用到 WPF `Application`）留在主项目；
-   - `App.xaml.cs` 扫描主程序集与 Core 程序集；
-   - Linux 的 `GameHost` 注册 `PluggableRegistry` 及其代理（只扫描 Core，暂不加载外部插件）；
-   - Avalonia 中的 `new TpTask(...)` 改为 `Pluggable.Get<ITpTaskFactory>().Create(...)`。
+1. **合并 `refactor/20260930`（43eecc21，8 个提交）**。上游新增了插件系统、OCR 可插拔（只内置 PP-OCRv6）、`ITpTask` / `ITpTaskFactory`，以及 XAML 设计器主题。15 个文件冲突，解法见 8.3。
+2. **合并 `main`（94c1de65）**。`refactor/20260930` 不含 `main` 上的 2 个修复，这次一并合入：
+   - 8383aa58：任务启动、激活游戏窗口后释放所有按键，避免鼠标抬起事件落到 BGI 界面弹出菜单；
+   - 94c1de65：扩大自动地脉花交互选项的 OCR 区域。
 
-演练结果：编译 0 错误，Core 单测和主项目单测与基线相比没有回归，WPF 冒烟测试通过。如果上游先合并本分支，插件系统可以照上面的做法直接放进 Core。
+   两个文件都已移到 Core，修改按新位置应用。
+3. **上游新功能在 Linux 上的情况**：
+   - 可插拔能力（OCR 模型、传送）在 Linux 宿主中正常注册：`GameHost` 只扫描 Core 程序集，自动使用内置实现（PP-OCRv6、内置传送）。
+   - 外部插件的加载器 `PluginManager`、插件页、插件设置窗口依赖 WPF，**Linux / Avalonia 上暂不加载外部插件，也没有插件页和 OCR 模型选择界面**。
+     目前只有一个内置 OCR 实现，所以不影响使用。
 
-## 9. 建议的合并方式
+### 8.2 同步步骤
 
-整个分支一次性合并也可以（开发时每个里程碑都验证过编译与回归），但 diff 太大不好审阅。建议拆成按顺序叠加的几个 PR，
-每个 PR 对应一段**连续的提交**，不需要改写历史：
+```bash
+git fetch origin
+git log --oneline HEAD..origin/refactor/20260930     # 看新增提交
+git log --oneline HEAD..origin/main                  # main 上 refactor 分支还没有的修复
+git merge --no-ff origin/refactor/20260930           # 普通合并，不 rebase
+#   解决冲突（见 8.3），然后：
+dotnet build BetterGenshinImpact.sln -p:EnableWindowsTargeting=true   # 0 错误
+dotnet test Test/BetterGenshinImpact.Core.UnitTest                    # 与基线对照，无新增失败
+#   主项目单测、平台层 e2e、WPF 冒烟（Wine）、Avalonia 界面自测、假游戏一条龙：见第 7 节
+git commit                                           # 合并提交里写清冲突与适配
+git merge --no-ff origin/main                        # main 有 refactor 没有的修复时再合并一次
+```
 
-| 顺序 | 内容 | 提交范围（按 `git log --reverse`） | 说明 |
-| --- | --- | --- | --- |
-| 1 | 平台抽象地基：Core、Platform.Windows、Platform.Linux，接口去掉 Win32 类型 | 第 1–3 个提交 | Windows 行为不变，Linux 部分在这一步还不会被用到 |
-| 2 | 业务移入 Core（识别核心、任务层、脚本、配置、触发器、运行环境） | 第 4–82 个提交 | 以文件移动为主（审阅时建议用 `git diff -M`）；WPF 改为调用 Core |
-| 3 | Linux 宿主：Host.Headless、Host.Common、OpenCvSharpExtern 构建脚本 | 第 83–86 个提交 | 只新增项目，不影响 Windows |
-| 4 | Avalonia 图形界面以及之后的各里程碑（其中仍有少量 Core 抽取，WPF 改为调用，行为不变） | 第 87–139 个提交 | 可以按里程碑继续细分；每个里程碑的说明见 phase4-avalonia.md |
+### 8.3 常见冲突与解法
 
-如果上游更希望历史精简，可以在合并时选 GitHub 的 “Squash and merge”，或者由维护者从本分支的上述节点另建分支，这样不需要改写本分支已推送的历史。
+| 情况 | 现象 | 解法 |
+| --- | --- | --- |
+| 上游修改了已移入 Core 的文件 | 多数由 Git 的重命名检测自动合并到 `BetterGenshinImpact.Core/...`；检测不到时报 “modify/delete”（旧路径在本分支已删除） | 把上游的修改按新路径手工应用到 Core 中的文件，旧路径取删除（`git rm`）。合并时加 `-c merge.renameLimit=20000` 可以提高重命名检测率 |
+| 上游新增文件放在 WPF 主项目，但被 Core 中的代码使用 | 编译报 Core 中找不到类型 | 把这些文件移到 Core 的相同相对路径（命名空间不变）。`App.GetService` / `App.GetLogger` / `App.ServiceProvider` 改为 `CoreServices` 的对应成员。用到 WPF 的部分留在主项目 |
+| 上游在主项目 `GlobalUsing.cs` 中新增 `global using` | Core 中同名类型无法解析 | 在 Core 加对应的 `GlobalUsings.*.cs` |
+| XAML 头部 | 上游改了 `UserControl` 属性，本分支在 `clr-namespace` 后加了 `;assembly=BetterGenshinImpact.Core` | 取上游一侧，再补回程序集后缀 |
+| 依赖注入注册（`App.xaml.cs`） | 上游新增服务注册 | 主项目照上游注册；扫描程序集的注册表（`SoloTaskRegistry`、`PluggableRegistry`）同时扫描主程序集和 Core 程序集；Core 中的新服务还要在 Linux `GameHost` 中注册 |
+| 构造函数签名变化 | Linux 宿主（`Host.Common/GameHost.cs`）或 Avalonia 编译失败 | 按上游新签名修改 Linux 宿主中的注册和调用（例如 `QuestVoiceSessionFactory`、`ITpTaskFactory`） |
+| 上游改了平台相关实现（WasapiOut、WebView2、Win32 调用等） | 本分支已改为宿主注入 | 保留注入点，把上游改动放进 Windows 侧的实现 |
+

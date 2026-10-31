@@ -4,7 +4,7 @@
 
 | 文档 | 内容 |
 |---|---|
-| [MIGRATION.md](MIGRATION.md) | **合并说明（面向上游维护者）**：架构、移入 Core 的模块、Linux 依赖与构建、与 Windows 的差异、已知问题、测试、建议的合并顺序 |
+| [MIGRATION.md](MIGRATION.md) | **总说明（fork 自用，定期同步上游）**：架构、移入 Core 的模块、Linux 依赖与构建、与 Windows 的差异、已知问题、测试、同步上游的步骤与常见冲突 |
 | [roadmap.md](roadmap.md) | 分阶段路线图、每阶段的目标与验收标准 |
 | [phase1-foundation.md](phase1-foundation.md) | 第一阶段（平台抽象地基）的成果、验证结果与遗留问题 |
 | [phase2-progress.md](phase2-progress.md) | 第二阶段（接入平台服务、清理 Win32 依赖）的里程碑记录与验证结果 |
@@ -19,7 +19,7 @@
 
 - 业务代码（识别、任务、脚本、配置、触发器、任务计划等）已移入纯 `net10.0` 的 `BetterGenshinImpact.Core`，WPF 主程序改为调用 Core，Windows 行为不变。
 - Linux（X11 / XWayland）上有无界面宿主 `BetterGenshinImpact.Host.Headless` 和图形界面宿主 `BetterGenshinImpact.Avalonia`，两者共用 `BetterGenshinImpact.Host.Common`。
-- 合并说明见 [MIGRATION.md](MIGRATION.md)。
+- 总说明与同步上游的步骤见 [MIGRATION.md](MIGRATION.md)。本分支是自用 fork，不向上游提交 PR。
 
 ## 在 Linux 上编译
 
