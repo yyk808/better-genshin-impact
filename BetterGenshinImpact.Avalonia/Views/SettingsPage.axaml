@@ -16,6 +16,16 @@
                             <ComboBox Width="200" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="KeyBindingsCard" Header="按键绑定设置" Description="如果你有游戏内改键需求，请在此配置对应的改键" IconSource="{svc:FluentIconSource Keyboard24}">
+                        <ui:FASettingsExpander.Footer>
+                            <Button x:Name="OpenKeyBindingsButton" Content="打开" MinWidth="88" Command="{Binding OpenKeyBindingsWindowCommand}" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="启用全局按键映射" Description="使按键绑定设置对外部脚本生效">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="GlobalKeyMappingSwitch" IsChecked="{Binding Config.KeyBindingsConfig.GlobalKeyMappingEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="启用遮罩窗口" Description="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" IconSource="{svc:FluentIconSource SquareHintSparkles24}">
                         <ui:FASettingsExpander.Footer>
                             <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.MaskEnabled}" OnContent="" OffContent="" />

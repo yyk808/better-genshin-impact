@@ -183,6 +183,16 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public AllConfig Config { get; }
 
+    /// <summary>打开按键绑定设置窗口（对应 WPF 通用设置“按键绑定设置”的“打开”）</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenKeyBindingsWindow()
+    {
+        var owner = Services.AvaloniaPickers.MainWindow;
+        var window = new Views.KeyBindingsWindow { DataContext = new KeyBindingsWindowViewModel(Config.KeyBindingsConfig) };
+        if (owner is not null) window.Show(owner);
+        else window.Show();
+    }
+
     /// <summary>Linux 宿主设置（日志文件等）；平台初始化失败时为空</summary>
     public BetterGenshinImpact.Host.Common.Config.LinuxHostConfig? LinuxConfig => _host?.LinuxConfig;
 

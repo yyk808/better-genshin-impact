@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+        xmlns:model="using:BetterGenshinImpact.Model"
+        x:Class="BetterGenshinImpact.Avalonia.Views.KeyBindingsWindow"
+        x:DataType="vm:KeyBindingsWindowViewModel"
+        Title="按键绑定设置" Width="640" Height="760" MinWidth="480" MinHeight="400"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BgiWindowBrush}">
+    <!-- 对应 WPF KeyBindingsWindow / KeyBindingsSettingsPage：动作 / 菜单两组按键，树由 Core KeyBindingsTree 构造 -->
+    <Window.Styles>
+        <Style Selector="TreeViewItem">
+            <Setter Property="IsExpanded" Value="True" />
+        </Style>
+    </Window.Styles>
+    <DockPanel Margin="20,16">
+        <TextBlock DockPanel.Dock="Top" Text="按键绑定设置" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,8" Text="{x:Static model:KeyBindingsTree.Description}" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <TextBlock Text="配置来源" VerticalAlignment="Center" />
+            <ComboBox Width="110" IsEnabled="False" SelectedIndex="0">
+                <ComboBoxItem Content="自动判断" />
+            </ComboBox>
+            <Button x:Name="FetchFromRegistryButton" Content="从注册表读取" IsEnabled="False" />
+            <TextBlock Classes="desc" VerticalAlignment="Center" Text="Linux 版无法读取 Windows 注册表，请手动设置" />
+        </StackPanel>
+        <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+            <DockPanel Margin="4">
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,180" Margin="28,4,8,4">
+                    <TextBlock Text="动作" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="按键绑定" FontWeight="SemiBold" />
+                </Grid>
+                <TreeView x:Name="KeyBindingsTreeView" ItemsSource="{Binding Models}">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate x:DataType="model:KeyBindingSettingModel" ItemsSource="{Binding Children}">
+                            <Grid ColumnDefinitions="*,180">
+                                <TextBlock Text="{Binding ActionName}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                <ComboBox Grid.Column="1" Width="170" IsVisible="{Binding !IsDirectory}"
+                                          ItemsSource="{x:Static model:KeyBindingsTree.KeyChoices}"
+                                          SelectedValueBinding="{Binding Value, DataType=model:KeyChoice}"
+                                          SelectedValue="{Binding KeyValue}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="model:KeyChoice">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</Window>

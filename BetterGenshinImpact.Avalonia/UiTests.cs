@@ -59,6 +59,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "onedragon-more": await OneDragonMoreAsync(); break;
                 case "onedragon-edit": await OneDragonEditAsync(); break;
                 case "home-banner": await HomeBannerAsync(); break;
+                case "key-bindings": await KeyBindingsAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2659,6 +2660,43 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("尘歌壶进壶方式与购买设置写回", pot is { SereniteaPotTpType: "尘歌壶道具" } && string.Join("/", pot.SecretTreasureObjects) == "星期三/布匹/摩拉",
             pot is null ? null : string.Join("/", pot.SecretTreasureObjects));
         Shot("avalonia-onedragon-more.png");
+    }
+
+    /// <summary>按键绑定设置（WPF 通用设置“按键绑定设置”打开的窗口）：树、改键写回 KeyBindingsConfig、全局按键映射开关</summary>
+    private async Task KeyBindingsAsync()
+    {
+        vm.Navigate("设置");
+        await Settle(600);
+        var cfg = vm.Settings.Config.KeyBindingsConfig;
+        Check("通用设置有按键绑定卡片", Named<FluentAvalonia.UI.Controls.FASettingsExpander>("KeyBindingsCard") is not null);
+        var mapping = cfg.GlobalKeyMappingEnabled;
+        if (Named<FluentAvalonia.UI.Controls.FASettingsExpander>("KeyBindingsCard") is { } card) card.IsExpanded = true;
+        await Settle();
+        Named<ToggleSwitch>("GlobalKeyMappingSwitch")!.IsChecked = !mapping;
+        await Settle();
+        Check("全局按键映射开关写入配置", cfg.GlobalKeyMappingEnabled == !mapping);
+        Named<ToggleSwitch>("GlobalKeyMappingSwitch")!.IsChecked = mapping;
+        await Click(Named<Button>("OpenKeyBindingsButton"), "打开");
+        var win = await WaitFor(() => Views.KeyBindingsWindow.Current);
+        Check("打开按键绑定窗口", win is not null);
+        if (win is null) return;
+        await Settle(600);
+        var model = (win.DataContext as KeyBindingsWindowViewModel)!;
+        Check("动作 / 菜单两组", model.Models.Select(m => m.ActionName).SequenceEqual(new[] { "动作", "菜单" }) && model.Models[0].Children.Count > 5);
+        var combos = win.GetVisualDescendants().OfType<ComboBox>().Where(c => c.IsVisible && c.ItemCount > 50).ToList();
+        Check("每个按键一个下拉框并显示当前按键", combos.Count > 5 && combos[0].SelectedValue is BetterGenshinImpact.Core.Config.KeyId k0 && k0 == cfg.MoveForward, combos.FirstOrDefault()?.SelectedValue?.ToString());
+        var old = cfg.MoveForward;
+        var target = old == BetterGenshinImpact.Core.Config.KeyId.Up ? BetterGenshinImpact.Core.Config.KeyId.Down : BetterGenshinImpact.Core.Config.KeyId.Up;
+        if (combos.Count > 0) combos[0].SelectedValue = target;
+        await Settle();
+        Check("改键写回 KeyBindingsConfig", cfg.MoveForward == target, cfg.MoveForward.ToString());
+        Check("注册表读取在 Linux 上禁用并说明", win.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "FetchFromRegistryButton")?.IsEnabled == false);
+        Shot(win, "avalonia-key-bindings.png");
+        if (combos.Count > 0) combos[0].SelectedValue = old;
+        await Settle();
+        Check("恢复原按键", cfg.MoveForward == old);
+        win.Close();
+        await Settle();
     }
 
     /// <summary>首页横幅：与 WPF 相同使用角色背景图（默认 WPF Resources/Images/banner.jpg）</summary>
