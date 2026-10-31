@@ -15,6 +15,8 @@
                 <Button x:Name="OneDragonRunButton" DockPanel.Dock="Right" Classes="accent" MinWidth="72" HorizontalContentAlignment="Center" VerticalAlignment="Center"
                         Content="{Binding Tasks.IsTaskActive, Converter={x:Static vm:OneDragonPageConverters.RunButtonText}}"
                         Command="{Binding ToggleCommand}" />
+                <Button x:Name="OdAddTaskButton" DockPanel.Dock="Right" Margin="0,0,8,0" VerticalAlignment="Center" ToolTip.Tip="新增任务"
+                        Content="{svc:FluentIcon Add24, Size=14}" Command="{Binding AddTaskCommand}" />
                 <TextBlock Text="任务列表" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
             <Border DockPanel.Dock="Top" Height="1" Margin="8,0,0,8" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
@@ -26,6 +28,18 @@
                         <DataTemplate x:DataType="model:OneDragonTaskItem">
                             <Border Margin="0,0,0,4" Padding="8,4" CornerRadius="4" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                                 <DockPanel>
+                                    <Button DockPanel.Dock="Right" Padding="6,4" Margin="4,0,0,0" ToolTip.Tip="更多" Content="{svc:FluentIcon MoreHorizontal24, Size=12}">
+                                        <Button.Flyout>
+                                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                                <MenuItem Header="上移" Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).MoveTaskUpCommand}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="下移" Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).MoveTaskDownCommand}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="复制" Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).CopyTaskCommand}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="删除" Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).DeleteTaskCommand}" CommandParameter="{Binding}" />
+                                                <Separator />
+                                                <MenuItem Header="清除标记" Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).ClearNextTaskCommand}" />
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
                                     <Button DockPanel.Dock="Right" Content="从此执行" Padding="8,2" FontSize="12"
                                             Command="{Binding $parent[ItemsControl].((vm:OneDragonPageViewModel)DataContext).SetTaskAsNextCommand}"
                                             CommandParameter="{Binding}" />
@@ -49,6 +63,9 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
+                    <Button x:Name="OdAddConfigButton" ToolTip.Tip="新增配置" Content="{svc:FluentIcon Add24, Size=14}" Command="{Binding AddConfigCommand}" />
+                    <Button x:Name="OdRenameConfigButton" ToolTip.Tip="重命名配置" Content="{svc:FluentIcon Edit24, Size=14}" Command="{Binding RenameConfigCommand}" />
+                    <Button x:Name="OdDeleteConfigButton" ToolTip.Tip="删除配置" Content="{svc:FluentIcon Delete24, Size=14}" Command="{Binding DeleteConfigCommand}" />
                     <Button x:Name="OneDragonSaveButton" Content="保存配置" Command="{Binding SaveConfigCommand}" />
                 </StackPanel>
                 <TextBlock Text="配置" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -330,8 +347,6 @@
                             </ItemsControl>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
-                    <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,8,0,0"
-                               Text="新增/删除/排序任务与配置的界面尚未迁移，使用配置文件中的值。执行逻辑与 Windows 版相同（Core 的 OneDragonTask）。" />
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>

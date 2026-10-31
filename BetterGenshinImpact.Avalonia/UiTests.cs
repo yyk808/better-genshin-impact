@@ -57,6 +57,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "onedragon-layout": await OneDragonLayoutAsync(); break;
                 case "onedragon-domain": await OneDragonDomainAsync(); break;
                 case "onedragon-more": await OneDragonMoreAsync(); break;
+                case "onedragon-edit": await OneDragonEditAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
@@ -2657,6 +2658,101 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         Check("尘歌壶进壶方式与购买设置写回", pot is { SereniteaPotTpType: "尘歌壶道具" } && string.Join("/", pot.SecretTreasureObjects) == "星期三/布匹/摩拉",
             pot is null ? null : string.Join("/", pot.SecretTreasureObjects));
         Shot("avalonia-onedragon-more.png");
+    }
+
+    /// <summary>
+    /// 旧一条龙页：新增/删除/复制/排序任务，新增/重命名/删除配置（FAContentDialog 确认），结束后切回原配置
+    /// </summary>
+    private async Task OneDragonEditAsync()
+    {
+        vm.Navigate("一条龙");
+        await Settle(600);
+        var page = vm.OneDragon;
+        var original = page.SelectedConfig?.Name;
+        Check("当前配置", original is not null);
+        if (original is null) return;
+        Check("未迁移提示已去掉", !All<TextBlock>().Any(t => t.Text?.Contains("尚未迁移") == true));
+        BetterGenshinImpact.Core.Config.OneDragonFlowConfig? Load(string n) => BetterGenshinImpact.Core.Config.OneDragonFlowConfigStore.Load(n);
+        async Task<FluentAvalonia.UI.Controls.FAContentDialog?> Dialog(FluentAvalonia.UI.Controls.FAContentDialog? last = null) =>
+            await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+        TextBox? Prompt(FluentAvalonia.UI.Controls.FAContentDialog? d) => (d?.Content as Panel)?.Children.OfType<TextBox>().FirstOrDefault(t => t.Name == "PromptTextBox");
+
+        // 新增配置
+        await Click(Named<Button>("OdAddConfigButton"), "新增配置");
+        var d = await Dialog();
+        Check("新增配置弹出输入框", Prompt(d) is not null && d?.Title as string == "新增一条龙配置", d?.Title as string);
+        if (Prompt(d) is { } b1) b1.Text = "m54测试";
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await Settle();
+        var baseCount = page.TaskList.Count;
+        Check("新增配置写入并选中（沿用当前任务列表，与 WPF 相同）", page.SelectedConfig?.Name == "m54测试" && Load("m54测试") is { } nc && nc.TaskOrder.Count == baseCount && baseCount > 0
+            && page.Config.SelectedOneDragonFlowConfigName == "m54测试", baseCount.ToString());
+
+        // 新增任务（多选：一个内置任务 + 一个配置组）
+        await Click(Named<Button>("OdAddTaskButton"), "新增任务");
+        d = await Dialog();
+        var boxes = ((d?.Content as ScrollViewer)?.Content as Panel)?.Children.OfType<CheckBox>().ToList() ?? [];
+        Check("新增任务弹窗列出内置任务与配置组", boxes.Any(x => (string?)x.Tag == "领取邮件") && boxes.Any(x => (string?)x.Tag == "m31-macro"), string.Join(",", boxes.Select(x => x.Tag)));
+        foreach (var x in boxes) x.IsChecked = (string?)x.Tag is "领取邮件" or "m31-macro";
+        Shot("avalonia-onedragon-edit-add.png");
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await Settle();
+        var names = page.TaskList.Select(t => t.Name).ToList();
+        var lastBuiltIn = names.FindLastIndex(n => n == "领取邮件");
+        Check("内置任务插在内置任务之后、配置组追加到末尾", page.TaskList.Count == baseCount + 2 && names[^1] == "m31-macro"
+            && lastBuiltIn >= 0 && (lastBuiltIn + 1 == names.Count - 1 || BetterGenshinImpact.Model.OneDragonTaskItem.BuiltInTaskNames.Contains(names[lastBuiltIn + 1]) == false), string.Join(",", names));
+        var saved = Load("m54测试");
+        Check("新增任务已保存", saved is not null && saved.TaskOrder.Count == page.TaskList.Count && saved.TaskDefinitions.Values.Contains("m31-macro"));
+
+        // 排序：配置组上移一位
+        var macro = page.TaskList[^1];
+        page.MoveTaskUpCommand.Execute(macro);
+        await Settle();
+        Check("上移写回顺序", page.TaskList[^2] == macro && Load("m54测试")?.TaskOrder[^2] == macro.Id);
+        page.MoveTaskDownCommand.Execute(macro);
+        await Settle();
+        Check("下移写回顺序", page.TaskList[^1] == macro && Load("m54测试")?.TaskOrder[^1] == macro.Id);
+
+        // 复制、删除（删除用 FAContentDialog 确认）
+        page.CopyTaskCommand.Execute(macro);
+        await Settle();
+        Check("复制任务插在原任务之后", page.TaskList.Count == baseCount + 3 && page.TaskList[^1].Name == "m31-macro" && page.TaskList[^1].Id != macro.Id);
+        var copy = page.TaskList[^1];
+        var del = page.DeleteTaskCommand.ExecuteAsync(copy);
+        d = await Dialog();
+        Check("删除任务弹出确认", d is not null);
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await del;
+        await Settle();
+        Check("删除任务写回", !page.TaskList.Contains(copy) && Load("m54测试")?.TaskDefinitions.ContainsKey(copy.Id) == false);
+
+        // 重命名配置
+        await Click(Named<Button>("OdRenameConfigButton"), "重命名配置");
+        d = await Dialog();
+        Check("重命名弹出输入框（初值为原名）", Prompt(d)?.Text == "m54测试", Prompt(d)?.Text);
+        if (Prompt(d) is { } b2) b2.Text = "m54改名";
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await Settle();
+        Check("重命名：新文件、删除旧文件、更新选中名", Load("m54改名") is { } r && r.TaskOrder.Count == page.TaskList.Count && Load("m54测试") is null
+            && page.Config.SelectedOneDragonFlowConfigName == "m54改名" && Named<ComboBox>("OneDragonConfigBox")?.SelectedItem == page.SelectedConfig);
+
+        // 删除配置：先取消，再确认
+        await Click(Named<Button>("OdDeleteConfigButton"), "删除配置");
+        d = await Dialog();
+        Check("删除配置确认文字来自 Core", d?.Content is Control c && c.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(t => t.Text == BetterGenshinImpact.ViewModel.Pages.OneDragon.OneDragonConfigEditing.DeleteConfirmText("m54改名")));
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+        await Settle();
+        Check("取消删除不改变", Load("m54改名") is not null && page.SelectedConfig?.Name == "m54改名");
+        await Click(Named<Button>("OdDeleteConfigButton"), "删除配置");
+        d = await Dialog();
+        d?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        await Settle();
+        Check("确认删除：文件删除并选中其他配置", Load("m54改名") is null && page.ConfigList.All(x => x.Name != "m54改名") && page.SelectedConfig is not null);
+
+        page.SelectedConfig = page.ConfigList.FirstOrDefault(x => x.Name == original);
+        await Settle();
+        Check("切回原配置", page.SelectedConfig?.Name == original && page.Config.SelectedOneDragonFlowConfigName == original);
+        Shot("avalonia-onedragon-edit.png");
     }
 
     /// <summary>

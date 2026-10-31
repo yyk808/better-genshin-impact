@@ -5,6 +5,7 @@ using BetterGenshinImpact.GameTask.OneDragon;
 using BetterGenshinImpact.Host.Common;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Platform;
+using BetterGenshinImpact.ViewModel.Pages.OneDragon;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
@@ -14,7 +15,7 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 
 /// <summary>
 /// “一条龙”页（对应 WPF 的 OneDragonFlowPage 的主体）：选择 User/OneDragon 下的一条龙配置，开关任务、“从此执行”，
-/// 选择完成后操作，启动/停止。执行走 Core 的 OneDragonTask（经 SoloTaskExecutionService），
+/// 任务项 OneDragonTaskItem 与 WPF 共用；右栏为各任务的详细设置，左栏可新增/删除/复制/排序任务，配置可新增/重命名/删除
 /// 任务项 OneDragonTaskItem 与 WPF 共用；各任务的详细设置（秘境、首领、地脉花等）尚未迁移，使用配置文件中的值
 /// </summary>
 public sealed partial class OneDragonPageViewModel : PageViewModel
@@ -265,6 +266,272 @@ public sealed partial class OneDragonPageViewModel : PageViewModel
         {
             _log.Warning(e, "保存一条龙配置失败");
             UiHost.Dialogs.Toast(DialogKind.Error, $"保存一条龙配置失败：{e.Message}");
+        }
+    }
+
+    // ---- 任务列表：新增 / 删除 / 复制 / 排序 / 清除标记（对照 WPF OneDragonFlowViewModel） ----
+
+    /// <summary>可新增的任务名：内置任务 + User/ScriptGroup 下的配置组（按 Index 排序，与 WPF ReadScriptGroup 相同）</summary>
+    public List<string> ReadAddableGroupNames()
+    {
+        var groups = OneDragonTaskItem.BuiltInTaskNames.Select(n => (Name: n, Index: 0)).ToList();
+        var dir = Global.Absolute(@"User\ScriptGroup");
+        try
+        {
+            Directory.CreateDirectory(dir);
+            foreach (var file in Directory.GetFiles(dir, "*.json"))
+            {
+                try
+                {
+                    var g = BetterGenshinImpact.Core.Script.Group.ScriptGroup.FromJson(File.ReadAllText(file));
+                    groups.Add((g.Name, g.Index));
+                }
+                catch (Exception e)
+                {
+                    _log.Information(e, "读取配置组配置时失败");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Information(e, "读取配置组配置时失败");
+        }
+
+        return groups.OrderBy(g => g.Index).Select(g => g.Name).ToList();
+    }
+
+    /// <summary>把选中的配置组加入任务列表（与 WPF ProcessSelectedGroups 相同的插入位置与提示）</summary>
+    public void AddTaskGroups(IReadOnlyList<string> names)
+    {
+        if (SelectedConfig is null || names.Count == 0) return;
+        bool lastBuiltIn = false;
+        foreach (var name in names)
+        {
+            var item = new OneDragonTaskItem(name) { IsEnabled = true };
+            item.Id = OneDragonTaskListEditing.NewTaskId(TaskList.Select(t => t.Id));
+            item.PropertyChanged += OnTaskItemChanged;
+            var index = OneDragonTaskListEditing.InsertIndex(TaskList.Select(t => t.Name).ToList(), name, OneDragonTaskItem.BuiltInTaskNames);
+            lastBuiltIn = index >= 0;
+            if (index >= 0) TaskList.Insert(index, item);
+            else TaskList.Add(item);
+        }
+
+        SaveTaskList();
+        UiHost.Dialogs.Toast(DialogKind.Success, names.Count == 1 ? OneDragonTaskListEditing.AddedText(lastBuiltIn) : OneDragonTaskListEditing.AddedManyText(names.Count));
+    }
+
+    /// <summary>新增任务：FAContentDialog 多选配置组</summary>
+    [RelayCommand]
+    private async Task AddTask()
+    {
+        var owner = Services.AvaloniaPickers.MainWindow;
+        if (owner is null || SelectedConfig is null) return;
+        var boxes = ReadAddableGroupNames().Select(n => new global::Avalonia.Controls.CheckBox { Content = n, Tag = n, Margin = new global::Avalonia.Thickness(0, 2) }).ToList();
+        var list = new global::Avalonia.Controls.StackPanel { Name = "AddTaskGroupList" };
+        foreach (var b in boxes) list.Children.Add(b);
+        var dialog = new FluentAvalonia.UI.Controls.FAContentDialog
+        {
+            Title = OneDragonTaskListEditing.AddTitle,
+            Content = new global::Avalonia.Controls.ScrollViewer { MaxHeight = 320, MinWidth = 300, Content = list },
+            PrimaryButtonText = "确认", CloseButtonText = "取消", DefaultButton = FluentAvalonia.UI.Controls.FAContentDialogButton.Primary,
+        };
+        if (await Services.FluentMessageBox.ShowCustomAsync(dialog, owner) != FluentAvalonia.UI.Controls.FAContentDialogResult.Primary) return;
+        var selected = boxes.Where(b => b.IsChecked == true).Select(b => (string)b.Tag!).ToList();
+        if (selected.Count > 0)
+        {
+            AddTaskGroups(selected);
+            SelectedTask = null;
+        }
+    }
+
+    /// <summary>删除任务（FAContentDialog 确认）</summary>
+    [RelayCommand]
+    private async Task DeleteTask(OneDragonTaskItem? item)
+    {
+        if (item is null) return;
+        var owner = Services.AvaloniaPickers.MainWindow;
+        if (owner is null) return;
+        if (await Services.FluentMessageBox.ShowAsync(owner, $"确定要删除任务「{item.Name}」吗？", "删除任务", DialogKind.Question, DialogButtons.YesNo) != DialogResult.Yes) return;
+        item.PropertyChanged -= OnTaskItemChanged;
+        TaskList.Remove(item);
+        SaveTaskList();
+        UiHost.Dialogs.Toast(DialogKind.Success, $"已删除任务: {item.Name}");
+    }
+
+    /// <summary>复制任务（插在原任务之后，与 WPF CopyTask 相同）</summary>
+    [RelayCommand]
+    private void CopyTask(OneDragonTaskItem? item)
+    {
+        if (item is null) return;
+        var copy = new OneDragonTaskItem(item.Name) { IsEnabled = item.IsEnabled };
+        copy.Id = OneDragonTaskListEditing.NewTaskId(TaskList.Select(t => t.Id));
+        copy.PropertyChanged += OnTaskItemChanged;
+        var index = TaskList.IndexOf(item);
+        if (index >= 0) TaskList.Insert(index + 1, copy);
+        else TaskList.Add(copy);
+        SaveTaskList();
+        UiHost.Dialogs.Toast(DialogKind.Success, $"已复制任务: {item.Name}");
+    }
+
+    /// <summary>上移（WPF 为拖动排序）</summary>
+    [RelayCommand]
+    private void MoveTaskUp(OneDragonTaskItem? item) => MoveTask(item, -1);
+
+    /// <summary>下移（WPF 为拖动排序）</summary>
+    [RelayCommand]
+    private void MoveTaskDown(OneDragonTaskItem? item) => MoveTask(item, 1);
+
+    private void MoveTask(OneDragonTaskItem? item, int delta)
+    {
+        if (item is null) return;
+        var index = TaskList.IndexOf(item);
+        var target = index + delta;
+        if (index < 0 || target < 0 || target >= TaskList.Count) return;
+        TaskList.Move(index, target);
+        SaveTaskList();
+    }
+
+    /// <summary>清除“从此执行”标记</summary>
+    [RelayCommand]
+    private void ClearNextTask()
+    {
+        if (SelectedConfig is null) return;
+        SelectedConfig.NextTaskId = string.Empty;
+        foreach (var t in TaskList) t.IsNextTask = false;
+        SaveConfig();
+        OnPropertyChanged(nameof(NextTaskText));
+    }
+
+    /// <summary>与 WPF SaveConfig 相同：按任务列表重建定义、启用状态与顺序后保存</summary>
+    private void SaveTaskList()
+    {
+        if (SelectedConfig is null) return;
+        _saving = true;
+        try
+        {
+            SelectedConfig.TaskDefinitions.Clear();
+            SelectedConfig.TaskEnabledList.Clear();
+            foreach (var t in TaskList)
+            {
+                SelectedConfig.TaskDefinitions[t.Id] = t.Name;
+                SelectedConfig.TaskEnabledList[t.Id] = t.IsEnabled;
+            }
+
+            SaveConfig();
+        }
+        finally
+        {
+            _saving = false;
+        }
+
+        OnPropertyChanged(nameof(NextTaskText));
+    }
+
+    // ---- 配置：新增 / 重命名 / 删除（对照 WPF，确认用 FAContentDialog） ----
+
+    [RelayCommand]
+    private async Task AddConfig()
+    {
+        var name = await Services.FluentMessageBox.PromptAsync(OneDragonConfigEditing.AddPrompt, OneDragonConfigEditing.AddTitle, "");
+        if (string.IsNullOrEmpty(name)) return;
+        if (OneDragonConfigEditing.AddConflict(name, ConfigList.Select(c => c.Name)) is { } conflict)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, conflict);
+            return;
+        }
+
+        // 与 WPF 相同：新配置沿用当前任务列表（WPF 切换后不重新加载列表，随即按当前列表保存）
+        var config = new OneDragonFlowConfig { Name = name };
+        foreach (var t in TaskList)
+        {
+            config.TaskDefinitions[t.Id] = t.Name;
+            config.TaskEnabledList[t.Id] = t.IsEnabled;
+            config.TaskOrder.Add(t.Id);
+        }
+
+        ConfigList.Insert(0, config);
+        SelectedConfig = config;
+        SaveConfig();
+    }
+
+    [RelayCommand]
+    private async Task RenameConfig()
+    {
+        if (SelectedConfig is not { } config)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, OneDragonConfigEditing.RenameNoSelection);
+            return;
+        }
+
+        var name = await Services.FluentMessageBox.PromptAsync(OneDragonConfigEditing.RenamePrompt, OneDragonConfigEditing.RenameTitle, config.Name);
+        if (string.IsNullOrEmpty(name) || name == config.Name) return;
+        if (OneDragonConfigEditing.RenameConflict(name, ConfigList.Select(c => c.Name)) is { } conflict)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, conflict);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            OneDragonConfigEditing.Rename(config, name);
+            Config.SelectedOneDragonFlowConfigName = name;
+            // ComboBox 显示名刷新
+            var index = ConfigList.IndexOf(config);
+            _loading = true;
+            ConfigList[index] = config;
+            SelectedConfig = config;
+            _loading = false;
+            UiHost.Dialogs.Toast(DialogKind.Success, OneDragonConfigEditing.RenamedText);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, OneDragonConfigEditing.RenameFailedText);
+            UiHost.Dialogs.Toast(DialogKind.Error, OneDragonConfigEditing.RenameFailedText);
+        }
+        finally
+        {
+            _loading = false;
+            _saving = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteConfig()
+    {
+        if (SelectedConfig is not { } config)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, OneDragonConfigEditing.DeleteNoSelection);
+            return;
+        }
+
+        var owner = Services.AvaloniaPickers.MainWindow;
+        if (owner is null) return;
+        if (await Services.FluentMessageBox.ShowAsync(owner, OneDragonConfigEditing.DeleteConfirmText(config.Name), OneDragonConfigEditing.DeleteTitle,
+                DialogKind.Question, DialogButtons.YesNo) != DialogResult.Yes) return;
+        try
+        {
+            OneDragonConfigEditing.DeleteFile(config.Name);
+            ConfigList.Remove(config);
+            if (ConfigList.Count == 0)
+            {
+                var fresh = new OneDragonFlowConfig { Name = OneDragonConfigEditing.DefaultName };
+                ConfigList.Add(fresh);
+                SelectedConfig = fresh;
+            }
+            else
+            {
+                SelectedConfig = ConfigList[0];
+            }
+
+            SelectedTask = null;
+            SaveConfig();
+            UiHost.Dialogs.Toast(DialogKind.Success, OneDragonConfigEditing.DeletedText);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, OneDragonConfigEditing.DeleteFailedText);
+            UiHost.Dialogs.Toast(DialogKind.Error, OneDragonConfigEditing.DeleteFailedText);
         }
     }
 

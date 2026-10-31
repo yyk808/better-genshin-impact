@@ -17,6 +17,7 @@ using BetterGenshinImpact.GameTask.AutoDomain;
 using BetterGenshinImpact.GameTask.Common.Element.Assets;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.GameTask.OneDragon;
+using BetterGenshinImpact.ViewModel.Pages.OneDragon;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
 using BetterGenshinImpact.Service.Instance;
@@ -160,49 +161,26 @@ public partial class OneDragonFlowViewModel : ViewModel
                 IsEnabled = true
             };
             taskItem.Id = GenerateUniqueTaskId();
-            
-            var names = selectedGroupName.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(name => name.Trim())
-                .ToList();
-            bool containsAnyDefaultGroup =
-                names.Any(name => ScriptGroupsdefault.Any(defaultSg => defaultSg.Name == name));
-                
-            if (containsAnyDefaultGroup)
+
+            var defaultNames = ScriptGroupsdefault.Select(sg => sg.Name).ToList();
+            var insertIndex = OneDragonTaskListEditing.InsertIndex(TaskList.Select(t => t.Name).ToList(), selectedGroupName, defaultNames);
+            if (insertIndex >= 0)
             {
-                int lastDefaultGroupIndex = -1;
-                for (int i = TaskList.Count - 1; i >= 0; i--)
-                {
-                    if (ScriptGroupsdefault.Any(defaultSg => defaultSg.Name == TaskList[i].Name))
-                    {
-                        lastDefaultGroupIndex = i;
-                        break;
-                    }
-                }
-                if (lastDefaultGroupIndex >= 0)
-                {
-                    TaskList.Insert(lastDefaultGroupIndex + 1, taskItem);
-                }
-                else
-                {
-                    TaskList.Insert(0, taskItem);
-                }
-                if (pickTaskCount == 1)
-                {
-                    Toast.Success("一条龙任务添加成功");
-                }
+                TaskList.Insert(insertIndex, taskItem);
             }
             else
             {
                 TaskList.Add(taskItem);
-                if (pickTaskCount == 1)
-                {
-                    Toast.Success("配置组添加成功");
-                }
+            }
+
+            if (pickTaskCount == 1)
+            {
+                Toast.Success(OneDragonTaskListEditing.AddedText(insertIndex >= 0));
             }
         }
         if (pickTaskCount > 1)
         {
-            Toast.Success(pickTaskCount + " 个任务添加成功");  
+            Toast.Success(OneDragonTaskListEditing.AddedManyText(pickTaskCount));
         }
     }
 
@@ -692,13 +670,7 @@ public partial class OneDragonFlowViewModel : ViewModel
     /// </summary>
     private string GenerateUniqueTaskId()
     {
-        var existingIds = new HashSet<string>(TaskList.Select(t => t.Id));
-        string newId;
-        do
-        {
-            newId = Guid.NewGuid().ToString();
-        } while (existingIds.Contains(newId));
-        return newId;
+        return OneDragonTaskListEditing.NewTaskId(TaskList.Select(t => t.Id));
     }
 
     [RelayCommand]
@@ -817,13 +789,13 @@ public partial class OneDragonFlowViewModel : ViewModel
     private void OnAddConfig()
     {
         // 添加配置
-        var str = PromptDialog.Prompt("请输入一条龙配置名称", "新增一条龙配置");
+        var str = PromptDialog.Prompt(OneDragonConfigEditing.AddPrompt, OneDragonConfigEditing.AddTitle);
         if (!string.IsNullOrEmpty(str))
         {
             // 检查是否已存在
-            if (ConfigList.Any(x => x.Name == str))
+            if (OneDragonConfigEditing.AddConflict(str, ConfigList.Select(x => x.Name)) is { } conflict)
             {
-                Toast.Warning($"一条龙配置 {str} 已经存在，请勿重复添加");
+                Toast.Warning(conflict);
             }
             else
             {
@@ -841,16 +813,13 @@ public partial class OneDragonFlowViewModel : ViewModel
     {
         if (SelectedConfig == null)
         {
-            Toast.Warning("请先选择要删除的配置");
+            Toast.Warning(OneDragonConfigEditing.DeleteNoSelection);
             return;
         }
 
-        var displayName = SelectedConfig.Name.Length > 14 
-            ? $"{SelectedConfig.Name[..4]}...{SelectedConfig.Name[^4..]}" 
-            : SelectedConfig.Name;
         var result = await ThemedMessageBox.ShowAsync(
-            $"确定要删除配置「{displayName}」吗？", 
-            "删除配置", 
+            OneDragonConfigEditing.DeleteConfirmText(SelectedConfig.Name),
+            OneDragonConfigEditing.DeleteTitle,
             System.Windows.MessageBoxButton.YesNo, 
             ThemedMessageBox.MessageBoxIcon.Question);
         if (result != System.Windows.MessageBoxResult.Yes)
@@ -861,11 +830,7 @@ public partial class OneDragonFlowViewModel : ViewModel
         try
         {
             // 删除对应的JSON文件
-            var configFile = Path.Combine(OneDragonFlowConfigFolder, $"{SelectedConfig.Name}.json");
-            if (File.Exists(configFile))
-            {
-                File.Delete(configFile);
-            }
+            OneDragonConfigEditing.DeleteFile(SelectedConfig.Name);
 
             // 从列表中移除
             ConfigList.Remove(SelectedConfig);
@@ -875,7 +840,7 @@ public partial class OneDragonFlowViewModel : ViewModel
             {
                 var defaultConfig = new OneDragonFlowConfig
                 {
-                    Name = "默认配置"
+                    Name = OneDragonConfigEditing.DefaultName
                 };
                 ConfigList.Add(defaultConfig);
                 SelectedConfig = defaultConfig;
@@ -898,12 +863,12 @@ public partial class OneDragonFlowViewModel : ViewModel
             // 保存配置
             SaveConfig();
 
-            Toast.Success("配置删除成功");
+            Toast.Success(OneDragonConfigEditing.DeletedText);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "删除配置时失败");
-            Toast.Error("删除配置时失败");
+            _logger.LogError(e, OneDragonConfigEditing.DeleteFailedText);
+            Toast.Error(OneDragonConfigEditing.DeleteFailedText);
         }
     }
 
@@ -912,11 +877,11 @@ public partial class OneDragonFlowViewModel : ViewModel
     {
         if (SelectedConfig == null)
         {
-            Toast.Warning("请先选择要重命名的配置");
+            Toast.Warning(OneDragonConfigEditing.RenameNoSelection);
             return;
         }
 
-        var newName = PromptDialog.Prompt("请输入新的配置名称", "重命名配置", SelectedConfig.Name);
+        var newName = PromptDialog.Prompt(OneDragonConfigEditing.RenamePrompt, OneDragonConfigEditing.RenameTitle, SelectedConfig.Name);
         if (string.IsNullOrEmpty(newName))
         {
             return;
@@ -927,9 +892,9 @@ public partial class OneDragonFlowViewModel : ViewModel
             return;
         }
 
-        if (ConfigList.Any(x => x.Name == newName))
+        if (OneDragonConfigEditing.RenameConflict(newName, ConfigList.Select(x => x.Name)) is { } conflict)
         {
-            Toast.Warning($"配置名称「{newName}」已存在，请使用其他名称");
+            Toast.Warning(conflict);
             return;
         }
 
@@ -945,21 +910,17 @@ public partial class OneDragonFlowViewModel : ViewModel
             WriteConfig(SelectedConfig);
 
             // 写入成功后再删除旧文件
-            var oldConfigFile = Path.Combine(OneDragonFlowConfigFolder, $"{oldName}.json");
-            if (File.Exists(oldConfigFile))
-            {
-                File.Delete(oldConfigFile);
-            }
+            OneDragonConfigEditing.DeleteFile(oldName);
 
             // 更新全局配置名称
             Config.SelectedOneDragonFlowConfigName = newName;
 
-            Toast.Success("配置重命名成功");
+            Toast.Success(OneDragonConfigEditing.RenamedText);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "重命名配置时失败");
-            Toast.Error("重命名配置时失败");
+            _logger.LogError(e, OneDragonConfigEditing.RenameFailedText);
+            Toast.Error(OneDragonConfigEditing.RenameFailedText);
         }
     }
 }
