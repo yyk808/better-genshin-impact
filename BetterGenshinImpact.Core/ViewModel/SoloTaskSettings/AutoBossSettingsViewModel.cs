@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using BetterGenshinImpact.Pulonia.Executors;
 using BetterGenshinImpact.Pulonia.Models;
 using BetterGenshinImpact.Pulonia.Services;
-using BetterGenshinImpact.ViewModel.Pages.Pulonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json.Linq;
@@ -50,7 +49,19 @@ public partial class AutoBossSettingsViewModel : SoloTaskSettingsViewModel
     /// <summary>本任务使用的战斗策略名称；保存时同时写入 strategy_name 与 combat_strategy_path。</summary>
     [ObservableProperty] private string _strategyName;
     /// <summary>讨伐的首领名称。</summary>
-    [ObservableProperty] private string _bossName;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BossNameChoice))]
+    private string _bossName;
+
+    /// <summary>首领下拉框的选中项：列表里没有当前值时选择框会写回 null，这里忽略 null；供 Avalonia 绑定，WPF 视图直接绑定 <see cref="BossName"/>。</summary>
+    public string? BossNameChoice
+    {
+        get => BossName;
+        set
+        {
+            if (value is not null) BossName = value;
+        }
+    }
     /// <summary>进入战斗前切换的队伍名称，留空不更换。</summary>
     [ObservableProperty] private string _teamName;
     /// <summary>每轮领奖后是否返回七天神像。</summary>

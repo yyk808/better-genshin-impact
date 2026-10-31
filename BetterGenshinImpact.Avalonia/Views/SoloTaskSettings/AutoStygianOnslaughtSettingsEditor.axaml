@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
+             x:Class="BetterGenshinImpact.Avalonia.Views.SoloTaskSettings.AutoStygianOnslaughtSettingsEditor"
+             x:DataType="tasksVm:AutoStygianOnslaughtSettingsViewModel">
+    <!-- 幽境危战专属参数（对照 WPF AutoStygianOnslaughtSettingsView） -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel.row"><Setter Property="Spacing" Value="3" /><Setter Property="Margin" Value="0,4" /></Style>
+        <Style Selector="StackPanel.row > TextBlock.desc"><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+        <Style Selector="StackPanel.row > ComboBox"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="StackPanel.indent"><Setter Property="Margin" Value="12,0,0,0" /></Style>
+    </UserControl.Styles>
+    <StackPanel>
+        <TextBlock Text="幽境危战设置" FontWeight="SemiBold" Margin="0,4,0,0" />
+        <StackPanel Classes="row">
+            <TextBlock Text="战斗策略" />
+            <TextBlock Classes="desc" Text="选择此任务使用的幽境危战策略。" />
+            <ComboBox x:Name="StygianStrategy" ItemsSource="{x:Static vm:DedicatedTaskSettingsChoices.FightStrategies}" SelectedItem="{Binding StrategyName}" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="幽境首领序号" />
+            <TextBlock Classes="desc" Text="对应挑战界面从左到右的三位首领。" />
+            <ComboBox x:Name="StygianBossNum" ItemsSource="{x:Static tasksVm:AutoStygianOnslaughtSettingsViewModel.BossNumChoices}" SelectedItem="{Binding BossNum}" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="战斗队伍" />
+            <TextBlock Classes="desc" Text="填写游戏内队伍名称；留空使用当前队伍。" />
+            <TextBox x:Name="StygianTeamName" Text="{Binding FightTeamName}" Watermark="留空则不切换队伍" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="树脂使用" FontWeight="SemiBold" />
+            <TextBlock x:Name="StygianResinSummary" Classes="desc" Text="{Binding Resin.Summary}" />
+            <TextBlock Classes="desc" Foreground="#E0A000" Text="{Binding Resin.Problem}" IsVisible="{Binding Resin.HasProblem}" />
+            <Button x:Name="StygianResinButton" Content="设置" Command="{Binding Resin.EditCommand}" HorizontalAlignment="Left" MinWidth="88" />
+        </StackPanel>
+        <StackPanel Classes="row">
+            <TextBlock Text="结束后分解圣遗物" FontWeight="SemiBold" />
+            <TextBlock Classes="desc" Text="开启后按指定最高星级分解，避免背包占满。" />
+            <ToggleSwitch x:Name="StygianArtifactSalvage" IsChecked="{Binding AutoArtifactSalvage}" OnContent="" OffContent="" />
+        </StackPanel>
+        <StackPanel Classes="row indent" IsEnabled="{Binding AutoArtifactSalvage}">
+            <TextBlock Text="最高星级" />
+            <TextBlock Classes="desc" Text="只分解不高于此星级的圣遗物。" />
+            <ComboBox x:Name="StygianMaxStar" ItemsSource="{x:Static tasksVm:AutoStygianOnslaughtSettingsViewModel.ArtifactStarChoices}" SelectedItem="{Binding MaxArtifactStar}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

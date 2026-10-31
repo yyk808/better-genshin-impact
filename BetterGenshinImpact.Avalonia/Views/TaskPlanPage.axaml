@@ -123,6 +123,12 @@
                                                         <DataTemplate DataType="tasksVm:SereniteaPotSettingsViewModel">
                                                             <solo:SereniteaPotSettingsEditor />
                                                         </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:AutoBossSettingsViewModel">
+                                                            <solo:AutoBossSettingsEditor />
+                                                        </DataTemplate>
+                                                        <DataTemplate DataType="tasksVm:AutoStygianOnslaughtSettingsViewModel">
+                                                            <solo:AutoStygianOnslaughtSettingsEditor />
+                                                        </DataTemplate>
                                                     </ContentControl.DataTemplates>
                                                 </ContentControl>
                                                 <TextBlock Text="{Binding NodeEditor.FieldsTitle, FallbackValue=''}" FontWeight="SemiBold" Margin="0,4,0,0" IsVisible="{Binding NodeEditor.HasFields, FallbackValue=False}" />

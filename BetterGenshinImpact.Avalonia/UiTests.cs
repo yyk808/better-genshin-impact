@@ -37,6 +37,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
+                case "boss-editors": await BossEditorsAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
         }
@@ -1207,6 +1208,68 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             Check("存盘：尘歌壶", p.Value<string>("teleport_type") == "尘歌壶道具"
                                  && p["secret_treasure_objects"] is JArray a && a.Values<string>().SequenceEqual(["星期三", "布匹", "摩拉"]),
                 p.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        await DeleteTempPlanAsync(page, id);
+    }
+
+    // —— 专属参数编辑器：首领讨伐、幽境危战 ——
+
+    private async Task BossEditorsAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M39 首领编辑器自测") is not { } id)
+        {
+            return;
+        }
+
+        const string boss = "solo.auto_boss", stygian = "solo.auto_stygian_onslaught";
+        await AddSoloTaskAsync(page, boss);
+        await AddSoloTaskAsync(page, stygian);
+        var kids = Children(ReadPlan(id));
+        Check("存盘：添加 2 个任务", kids.Select(k => k.Value<string>("task_type")).SequenceEqual([boss, stygian]),
+            string.Join(",", kids.Select(k => k.Value<string>("task_type"))));
+
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.AutoBossSettingsViewModel>(page, boss) is { } bossVm)
+        {
+            var bossBox = Named<ComboBox>("BossName");
+            Check("首领下拉有选项", bossBox?.ItemCount > 3, bossBox?.ItemCount);
+            var bossName = bossBox?.ItemCount > 2 ? bossBox.Items[2] as string : null;
+            if (bossBox is not null && bossName is not null) bossBox.SelectedItem = bossName;
+            Named<TextBox>("BossTeamName")!.Text = "M39 首领队";
+            Named<NumericUpDown>("BossRunLimit")!.Value = 30;
+            Named<NumericUpDown>("BossReviveRetry")!.Value = 1;
+            var statue = bossVm.ReturnToStatueAfterEachRound;
+            Named<ToggleSwitch>("BossReturnToStatue")!.IsChecked = !statue;
+            await Settle(600);
+            Check("显示累计次数", !string.IsNullOrEmpty(Named<TextBlock>("BossCompletedText")?.Text), Named<TextBlock>("BossCompletedText")?.Text);
+            Shot("avalonia-boss-editor.png");
+            Named<NumericUpDown>("BossRunLimit")?.BringIntoView();
+            await Settle();
+            Shot("avalonia-boss-editor-2.png");
+            await Click(Named<Button>("ApplyNodeButton"), "应用（首领讨伐）");
+            var p = NodeParams(id, boss);
+            var t = p.ToString(Newtonsoft.Json.Formatting.None);
+            Check("存盘：首领与队伍", bossName is not null && p.Value<string>("boss_name") == bossName && p.Value<string>("team_name") == "M39 首领队", t);
+            Check("存盘：累计上限与重试", p.Value<int?>(Pulonia.Executors.PuloniaSoloTaskExecutor.BossTotalRunCountLimitParameter) == 30
+                                     && p.Value<int?>("revive_retry_count") == 1, t);
+            Check("存盘：返回神像", p.Value<bool?>("return_to_statue_after_each_round") == !statue, t);
+        }
+
+        if (await SelectDedicatedAsync<ViewModel.SoloTaskSettings.AutoStygianOnslaughtSettingsViewModel>(page, stygian) is { } styVm)
+        {
+            Named<ComboBox>("StygianBossNum")!.SelectedItem = 2;
+            Named<TextBox>("StygianTeamName")!.Text = "M39 幽境队";
+            Named<ToggleSwitch>("StygianArtifactSalvage")!.IsChecked = true;
+            await Settle();
+            Named<ComboBox>("StygianMaxStar")!.SelectedItem = "2";
+            await Settle();
+            Shot("avalonia-stygian-editor.png");
+            await Click(Named<Button>("ApplyNodeButton"), "应用（幽境危战）");
+            var p = NodeParams(id, stygian);
+            var t = p.ToString(Newtonsoft.Json.Formatting.None);
+            Check("存盘：幽境首领与队伍", p.Value<int?>("boss_num") == 2 && p.Value<string>("fight_team_name") == "M39 幽境队", t);
+            Check("存盘：幽境分解圣遗物", p.Value<bool?>("auto_artifact_salvage") == true && p.Value<string>("max_artifact_star") == "2", t);
         }
 
         await DeleteTempPlanAsync(page, id);

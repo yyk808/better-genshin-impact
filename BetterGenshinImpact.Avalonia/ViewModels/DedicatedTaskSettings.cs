@@ -21,6 +21,8 @@ public static class DedicatedTaskSettings
         [GameTask.Common.Job.ClaimDailyRewardsTask.TaskId] = typeof(ClaimDailyRewardsSettingsViewModel),
         [GameTask.Common.Job.GoToCraftingBenchTask.TaskId] = typeof(CraftCondensedResinSettingsViewModel),
         [GameTask.Common.Job.GoToSereniteaPotTask.TaskId] = typeof(SereniteaPotSettingsViewModel),
+        [GameTask.AutoBoss.AutoBossTask.TaskId] = typeof(AutoBossSettingsViewModel),
+        [GameTask.AutoStygianOnslaught.AutoStygianOnslaughtTask.TaskId] = typeof(AutoStygianOnslaughtSettingsViewModel),
     };
 
     /// <summary>按任务类型创建专属设置 VM；VM 构造函数接收当前有效参数，其余依赖从服务容器解析（可缺省）</summary>
@@ -55,6 +57,10 @@ public static class DedicatedTaskSettingsChoices
     /// <summary>战斗策略：自动选择 + User/AutoFight 下的策略文件（每次打开编辑器时重新扫描）</summary>
     public static IReadOnlyList<string> FightStrategies =>
         TaskSettingsPageViewModel.LoadStrategyNames(@"User\AutoFight", [CombatStrategyResolver.AutoSelectName]);
+
+    /// <summary>可讨伐的首领（按地区顺序展开，与 WPF 的级联下拉相同的数据）</summary>
+    public static IReadOnlyList<string> BossNames { get; } =
+        GameTask.AutoBoss.AutoBossData.CountryToBosses.SelectMany(country => country.Value).Distinct(StringComparer.Ordinal).ToList();
 
     /// <summary>可传送的秘境名称（tp.json）</summary>
     public static IReadOnlyList<string> DomainNames => _domainNames ??= LoadDomainNames();

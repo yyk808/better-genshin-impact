@@ -215,7 +215,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     partial void OnSelectedNodeChanged(TaskPlanNodeRow? value)
     {
         var definition = value is null || _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), value.Task);
-        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services);
+        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services, SelectedPlan?.Plan.Id);
     }
 
     partial void OnSelectedTriggerChanged(TaskPlanTriggerRow? value)

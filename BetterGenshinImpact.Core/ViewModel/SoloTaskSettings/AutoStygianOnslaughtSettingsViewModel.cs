@@ -4,7 +4,6 @@ using BetterGenshinImpact.GameTask.Common.Resin;
 using BetterGenshinImpact.GameTask.SoloTask;
 using BetterGenshinImpact.ViewModel.Resin;
 using Microsoft.Extensions.DependencyInjection;
-using BetterGenshinImpact.ViewModel.Pages.Pulonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json.Linq;
 

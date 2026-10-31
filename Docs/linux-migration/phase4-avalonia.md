@@ -521,3 +521,14 @@ Core 1162 个（上述 8 个文件移入），主项目 596 个；Avalonia 宿�
   合成保留 20、各项存盘值，最后删除临时计划；`--ui-test domain-editor` 复测 19 项通过。
 
 Core 1173 个（11 个文件移入），主项目 585 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 73 个。
+
+### 首领讨伐、幽境危战
+
+- `AutoBossSettingsViewModel`、`AutoStygianOnslaughtSettingsViewModel` 迁入 Core；首领模型新增 `BossNameChoice`（忽略下拉框写回的 null，供 Avalonia 绑定，WPF 视图不变）。
+- 任务计划参数面板新增两个专属编辑器（对照 WPF `AutoBossSettingsView` / `AutoStygianOnslaughtSettingsView`）：战斗策略、首领（按地区顺序展开为一个列表；WPF 为级联下拉）/ 幽境首领序号、
+  队伍、树脂使用、累计领奖上限与累计次数（刷新 / 清空，范围为当前计划与任务，与 WPF 相同）、返回七天神像、奖励识别、死亡重试；幽境危战的分解圣遗物与最高星级。
+  战斗策略下拉框使用 `User/AutoFight` 下的策略（WPF 为策略选择控件）。
+- 界面自测 `--ui-test boss-editors`（12 项）：临时计划中添加两个任务，核对编辑器与存盘值后删除计划。
+- 体力计划（`ResinPlanSettingsViewModel` 及子任务设置，依赖一条龙参数字段模型）与独立任务页秘境卡片的完整配置项待迁移。
+
+Core 1175 个，主项目 583 个；Avalonia 宿主 `.cs` 与 `.axaml` 共 77 个。
