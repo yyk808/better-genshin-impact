@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "newonedragon-panel": await NewOneDragonPanelAsync(); break;
                 case "auto-pages": await AutoPagesAsync(); break;
                 case "script-pathing": await ScriptPathingAsync(); break;
                 case "newonedragon-more": await NewOneDragonMoreAsync(); break;
@@ -3030,6 +3031,66 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             ViewModels.AutoPageViewModel.OpenOverride = null;
             auto.SelectedTab = 0;
         }
+    }
+
+    /// <summary>新一条龙右栏：任务名称 / 整组执行次数说明、高级设置（JSON 编辑、无效输入不写入、撤销）、账号切换步骤与导入报告置灰说明</summary>
+    private async Task NewOneDragonPanelAsync()
+    {
+        vm.Navigate("新一条龙");
+        await Settle(1000);
+        var page = vm.NewOneDragon;
+        var plans = page.Plans;
+        await plans.ReloadAsync();
+        await Settle(600);
+        if (plans.SelectedPlan is null) { Check("有一条龙配置", false); return; }
+        page.RightTab = 0;
+        var id = plans.SelectedPlan.Plan.Id;
+        var node = plans.Nodes.FirstOrDefault(n => n.Task.TaskType != "group") ?? plans.Nodes.FirstOrDefault();
+        if (node is null) { Check("一条龙清单非空", false); return; }
+        var tid = node.Task.Id;
+        plans.SelectedNode = node;
+        await Settle(600);
+        var texts = All<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? "").ToList();
+        Check("右栏“任务名称”及说明", texts.Contains("任务名称") && texts.Contains("只影响当前任务的显示名称。"));
+        Check("账号切换步骤置灰说明", Named<Border>("AccountStepNote") is { Opacity: < 1 } && texts.Any(t => t.Contains("账号切换依赖 Windows")));
+        var more = Named<DropDownButton>("MoreButton");
+        Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (i.Header as string ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
+        Check("高级设置按钮", Named<Button>("AdvancedNodeButton") is not null);
+
+        static TextBox? Box(Control? root, string name) => root?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == name);
+        JToken? Policy() => ReadPlan(id).Descendants().OfType<JObject>().FirstOrDefault(o => o.Value<string>("id") == tid)?["policy"]?["max_retries"];
+        async Task Advanced(Action<Control?> edit, FluentAvalonia.UI.Controls.FAContentDialogResult result, string? shot = null)
+        {
+            var last = Services.FluentMessageBox.Current;
+            var run = plans.EditNodeAdvancedCommand.ExecuteAsync(null);
+            var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            await Settle(500);
+            edit(dialog?.Content as Control);
+            if (shot is not null) Shot(shot);
+            dialog?.Hide(result);
+            await run;
+            await Settle();
+        }
+
+        string? effective = null;
+        await Advanced(root =>
+        {
+            effective = Box(root, "AdvancedEffectiveBox")?.Text;
+            if (Box(root, "AdvancedPolicyBox") is { } p) p.Text = "{\"max_retries\": 2}";
+        }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary, "avalonia-newonedragon-advanced.png");
+        Check("高级设置显示有效参数", !string.IsNullOrWhiteSpace(effective) && effective!.TrimStart().StartsWith("{"), effective);
+        Check("高级设置写入执行策略", Policy()?.Value<int?>() == 2, plans.StatusMessage);
+
+        await Advanced(root => { if (Box(root, "AdvancedParametersBox") is { } b) b.Text = "[1, 2]"; }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+        Check("无效 JSON 不写入并提示", plans.StatusMessage.Contains("高级设置无效") && Policy()?.Value<int?>() == 2, plans.StatusMessage);
+
+        await Advanced(root => { if (Box(root, "AdvancedPolicyBox") is { } p) p.Text = "{\"max_retries\": 5}"; }, FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+        Check("取消不写入", Policy()?.Value<int?>() == 2);
+
+        await plans.UndoCommand.ExecuteAsync(null);
+        await Settle();
+        Check("撤销高级设置", Policy() is null || Policy()!.Type == JTokenType.Null, Policy()?.ToString());
+        Shot("avalonia-newonedragon-panel.png");
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>

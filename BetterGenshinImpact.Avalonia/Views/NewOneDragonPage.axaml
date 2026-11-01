@@ -34,6 +34,7 @@
                                 <MenuItem Header="设置方案…" Command="{Binding ShowProfilesCommand}" ToolTip.Tip="管理可复用的共享设置方案" />
                                 <MenuItem Header="账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）" IsEnabled="False" />
                                 <MenuItem Header="导入旧配置（Linux 版尚未迁移）" IsEnabled="False" />
+                                <MenuItem Header="查看导入报告（随导入旧配置迁移，Linux 版暂不可用）" IsEnabled="False" />
                                 <Separator />
                                 <MenuItem Header="重新加载" Command="{Binding Plans.ReloadCommand}" />
                             </MenuFlyout>
@@ -59,6 +60,13 @@
                         <ComboBox x:Name="ReferencePlanBox" ItemsSource="{Binding Plans.ReferencePlans}" SelectedItem="{Binding Plans.ReferenceTarget}"
                                   PlaceholderText="引用已有任务计划" HorizontalAlignment="Stretch" DisplayMemberBinding="{Binding Name}" />
                     </DockPanel>
+                </StackPanel>
+            </Border>
+            <Border x:Name="AccountStepNote" DockPanel.Dock="Top" Classes="card" Padding="10,8" Margin="0,0,0,6" Opacity="0.55"
+                    ToolTip.Tip="WPF 版在清单顶部显示“切换账号”步骤（任务前切换并核验 UID），依赖 Windows 版账号切换">
+                <StackPanel>
+                    <TextBlock Text="切换账号" FontWeight="SemiBold" />
+                    <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap" Text="使用当前登录状态（账号切换依赖 Windows，Linux 版不可用）" />
                 </StackPanel>
             </Border>
             <Panel>

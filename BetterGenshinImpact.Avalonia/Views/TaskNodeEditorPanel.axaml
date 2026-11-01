@@ -10,16 +10,20 @@
         <StackPanel Spacing="6" Margin="0,0,6,0">
             <DockPanel>
                 <Button DockPanel.Dock="Right" x:Name="ApplyNodeButton" Classes="accent" Content="应用" Command="{Binding ApplyNodeSettingsCommand}" />
+                <Button DockPanel.Dock="Right" x:Name="AdvancedNodeButton" Content="高级设置" Margin="0,0,6,0" Command="{Binding EditNodeAdvancedCommand}"
+                        ToolTip.Tip="本步骤参数、共享设置、执行策略（JSON）与有效参数" />
                 <StackPanel>
                     <TextBlock Text="任务设置" FontWeight="SemiBold" FontSize="15" />
                     <TextBlock Classes="desc" Text="{Binding NodeEditor.TypeText, FallbackValue=''}" />
                 </StackPanel>
             </DockPanel>
-            <TextBlock Text="名称" />
+            <TextBlock Text="任务名称" />
+            <TextBlock Classes="desc" FontSize="12" Text="只影响当前任务的显示名称。" />
             <TextBox x:Name="NodeNameBox" Text="{Binding NodeEditor.Name, FallbackValue=''}" />
             <CheckBox x:Name="NodeEnabledBox" Content="启用" IsChecked="{Binding NodeEditor.IsEnabled, FallbackValue=False}" />
             <StackPanel IsVisible="{Binding NodeEditor.IsGroup, FallbackValue=False}" Spacing="4">
-                <TextBlock Text="执行次数（分组）" />
+                <TextBlock Text="整组执行次数" />
+                <TextBlock Classes="desc" FontSize="12" Text="引用计划和分组均作为清单中的一项执行。" />
                 <TextBox x:Name="NodeRepeatBox" Text="{Binding NodeEditor.RepeatText, FallbackValue=''}" />
             </StackPanel>
             <TextBlock Classes="desc" Text="{Binding NodeEditor.FieldsHint, FallbackValue=''}" TextWrapping="Wrap"
