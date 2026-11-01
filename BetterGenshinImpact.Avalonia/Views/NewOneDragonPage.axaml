@@ -22,9 +22,19 @@
                                 <MenuItem Header="上移" Command="{Binding Plans.MoveTaskCommand}" CommandParameter="up" />
                                 <MenuItem Header="下移" Command="{Binding Plans.MoveTaskCommand}" CommandParameter="down" />
                                 <MenuItem Header="删除选中任务" Command="{Binding Plans.RemoveTaskCommand}" />
+                                <MenuItem Header="复制选中任务" Command="{Binding Plans.CopyTaskCommand}" />
+                                <MenuItem Header="粘贴到选中任务之后" Command="{Binding Plans.PasteTaskCommand}" />
+                                <MenuItem Header="撤销最近编辑" Command="{Binding Plans.UndoCommand}" />
                                 <Separator />
-                                <MenuItem Header="触发设置" Command="{Binding ShowTriggersCommand}" />
+                                <MenuItem Header="预览本次执行" Command="{Binding Plans.PreviewRunCommand}" />
+                                <MenuItem Header="定时与热键" Command="{Binding ShowTriggersCommand}" />
                                 <MenuItem Header="执行记录" Command="{Binding ShowHistoryCommand}" />
+                                <Separator />
+                                <MenuItem Header="配置共享设置…" Command="{Binding ShowPlanSettingsCommand}" ToolTip.Tip="修改会传给这份配置中的全部任务，任务自身的修改优先" />
+                                <MenuItem Header="设置方案…" Command="{Binding ShowProfilesCommand}" ToolTip.Tip="管理可复用的共享设置方案" />
+                                <MenuItem Header="账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）" IsEnabled="False" />
+                                <MenuItem Header="导入旧配置（Linux 版尚未迁移）" IsEnabled="False" />
+                                <Separator />
                                 <MenuItem Header="重新加载" Command="{Binding Plans.ReloadCommand}" />
                             </MenuFlyout>
                         </DropDownButton.Flyout>
@@ -111,6 +121,9 @@
                 </TabItem>
                 <TabItem Header="触发设置">
                     <views:TaskTriggerPanel DataContext="{Binding Plans}" />
+                </TabItem>
+                <TabItem Header="共享设置" x:Name="SharedSettingsTab">
+                    <views:TaskPlanProfilesPanel DataContext="{Binding Plans}" />
                 </TabItem>
             </TabControl>
         </DockPanel>

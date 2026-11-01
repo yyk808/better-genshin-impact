@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "newonedragon-more": await NewOneDragonMoreAsync(); break;
                 case "taskplan-edit": await TaskPlanEditMenuAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
@@ -2209,7 +2210,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         moreButton?.Flyout?.ShowAt(moreButton);
         await Settle(300);
         var menu = (moreButton?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "触发设置", "执行记录", "重新加载"]),
+        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）", "导入旧配置（Linux 版尚未迁移）", "重新加载"]),
             string.Join(",", menu.Select(m => m.Header)));
         menu.FirstOrDefault()?.Command?.Execute(null);
         moreButton?.Flyout?.Hide();
@@ -2871,6 +2872,55 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await Settle();
             Check("删除自测计划", !File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json")));
         }
+    }
+
+    /// <summary>新一条龙“更多”菜单与右栏：复制 / 粘贴、撤销、预览、配置共享设置与设置方案页签</summary>
+    private async Task NewOneDragonMoreAsync()
+    {
+        vm.Navigate("新一条龙");
+        await Settle(1000);
+        var page = vm.NewOneDragon;
+        var plans = page.Plans;
+        await plans.ReloadAsync();
+        await Settle(600);
+        if (plans.SelectedPlan is null) { Check("有一条龙配置", false); return; }
+        var more = await WaitFor(() => Named<DropDownButton>("MoreButton"));
+        var headers = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+        Check("“更多”菜单：复制 / 粘贴 / 撤销 / 预览 / 定时与热键 / 配置共享设置 / 设置方案",
+            new[] { "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "配置共享设置…", "设置方案…" }.All(headers.Contains), string.Join(",", headers));
+        Check("账号管理、导入旧配置置灰并说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("账号管理") || (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true);
+        more?.Flyout?.ShowAt(more);
+        await Settle(400);
+        Shot("avalonia-newonedragon-more.png");
+        more?.Flyout?.Hide();
+
+        var count = plans.Nodes.Count;
+        plans.SelectedNode = plans.Nodes.FirstOrDefault();
+        plans.CopyTaskCommand.Execute(null);
+        await plans.PasteTaskCommand.ExecuteAsync(null);
+        await Settle();
+        Check("粘贴到选中任务之后", plans.Nodes.Count == count + 1 && plans.Nodes.Count > 1 && plans.Nodes[1].Name == plans.Nodes[0].Name, $"{count}->{plans.Nodes.Count}");
+        await plans.UndoCommand.ExecuteAsync(null);
+        await Settle();
+        Check("撤销最近编辑", plans.Nodes.Count == count, $"{plans.Nodes.Count}");
+
+        page.ShowPlanSettingsCommand.Execute(null);
+        await Settle(800);
+        Check("配置共享设置：切到“共享设置”页签并打开计划级共享设置", page.RightTab == 2 && plans.SharedEditor is not null && Named<Border>("SharedSettingsPanel") is not null);
+        Check("设置方案管理在同一页签", Named<ListBox>("ProfileList") is not null && Named<Button>("CreateProfileButton") is not null);
+        Shot("avalonia-newonedragon-shared.png");
+        page.RightTab = 0;
+        await Settle();
+
+        var last = Services.FluentMessageBox.Current;
+        var preview = plans.PreviewRunCommand.ExecuteAsync(null);
+        var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+        await Settle(500);
+        Check("预览本次执行（一条龙配置）", dialog is not null && plans.LastPreviewRows.Count > 0, plans.LastPreviewRows.Count.ToString());
+        Shot("avalonia-newonedragon-preview.png");
+        dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+        await preview;
+        await Settle();
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>

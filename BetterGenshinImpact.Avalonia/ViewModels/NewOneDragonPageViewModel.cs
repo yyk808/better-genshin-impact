@@ -33,4 +33,16 @@ public sealed partial class NewOneDragonPageViewModel(TaskPlanPageViewModel plan
 
     [RelayCommand]
     private void ToggleAddPanel() => IsAddPanelOpen = !IsAddPanelOpen;
+
+    /// <summary>配置共享设置（对应 WPF “配置共享设置…”）：切到“共享设置”页签并打开这份配置的计划级共享设置</summary>
+    [RelayCommand]
+    private void ShowPlanSettings()
+    {
+        RightTab = 2;
+        plans.EditPlanSettingsCommand.Execute(null);
+    }
+
+    /// <summary>设置方案（对应 WPF “设置方案…”）：切到“共享设置”页签</summary>
+    [RelayCommand]
+    private void ShowProfiles() => RightTab = 2;
 }
