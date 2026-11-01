@@ -24,14 +24,19 @@ public sealed record KeyMacroStep
     public KeyMacroMouseButton Button { get; init; }
 
     /// <summary>
-    /// moveby 的横向位移
+    /// moveby 的横向位移；moveto 和带坐标的 click 的横坐标（1920×1080 游戏画面坐标）
     /// </summary>
     public int X { get; init; }
 
     /// <summary>
-    /// moveby 的纵向位移
+    /// moveby 的纵向位移；moveto 和带坐标的 click 的纵坐标（1920×1080 游戏画面坐标）
     /// </summary>
     public int Y { get; init; }
+
+    /// <summary>
+    /// click 是否带坐标。带坐标时先移到 (<see cref="X"/>, <see cref="Y"/>) 再点击
+    /// </summary>
+    public bool HasPosition { get; init; }
 
     /// <summary>
     /// scroll 的格数，正数向上

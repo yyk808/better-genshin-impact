@@ -46,9 +46,11 @@ public static class KeyMacroScriptWriter
         {
             KeyMacroCommandKind.KeyDown or KeyMacroCommandKind.KeyUp or KeyMacroCommandKind.KeyPress
                 => $"{name}({KeyMacroKeys.GetName(step.Key)})",
+            KeyMacroCommandKind.Click when step.HasPosition
+                => $"{name}({KeyMacroKeys.GetButtonName(step.Button)}, {step.X}, {step.Y})",
             KeyMacroCommandKind.MouseDown or KeyMacroCommandKind.MouseUp or KeyMacroCommandKind.Click
                 => $"{name}({KeyMacroKeys.GetButtonName(step.Button)})",
-            KeyMacroCommandKind.MoveBy => $"{name}({step.X}, {step.Y})",
+            KeyMacroCommandKind.MoveBy or KeyMacroCommandKind.MoveTo => $"{name}({step.X}, {step.Y})",
             KeyMacroCommandKind.Scroll => $"{name}({step.Amount})",
             KeyMacroCommandKind.Wait => $"{name}({FormatSeconds(step.WaitMs)})",
             _ => string.Empty

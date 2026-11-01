@@ -39,14 +39,10 @@
                                   TextWrapping="Wrap" />
                 </Grid>
             </ui:CardControl.Header>
-            <StackPanel Orientation="Horizontal">
-                <ui:ToggleSwitch Margin="0,0,16,0"
-                                 VerticalAlignment="Center"
-                                 IsChecked="{Binding Config.KeyMacroConfig.Enabled, Mode=TwoWay}" />
-                <ui:Button Margin="0,0,24,0"
-                           Command="{Binding GoToKeyMacroPageCommand}"
-                           Content="{i18n:T 管理按键宏}" />
-            </StackPanel>
+            <!--  只做跳转入口，总开关在按键宏页面左上角  -->
+            <ui:Button Margin="0,0,24,0"
+                       Command="{Binding GoToKeyMacroPageCommand}"
+                       Content="{i18n:T 前往设置}" />
         </ui:CardControl>
 
         <!--  一键战斗宏  -->

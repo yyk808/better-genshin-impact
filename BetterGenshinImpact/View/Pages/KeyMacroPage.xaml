@@ -1,6 +1,7 @@
 <UserControl x:Class="BetterGenshinImpact.View.Pages.KeyMacroPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behavior="clr-namespace:BetterGenshinImpact.View.Behavior"
              xmlns:codeEditor="clr-namespace:BetterGenshinImpact.View.Controls.CodeEditor"
              xmlns:converters="clr-namespace:BetterGenshinImpact.View.Converters"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -28,6 +29,9 @@
 
             <BooleanToVisibilityConverter x:Key="KeyMacroBoolVisibility" />
             <converters:BooleanToVisibilityRevertConverter x:Key="KeyMacroBoolCollapsed" />
+
+            <!--  ContextMenu 位于独立可视树，通过 Freezable 代理访问页面 ViewModel  -->
+            <behavior:BindingProxy x:Key="KeyMacroPageProxy" Data="{Binding}" />
 
             <!--  卡片容器  -->
             <Style x:Key="KeyMacroCard" TargetType="Border">
@@ -87,7 +91,8 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Margin="{StaticResource PagePadding}">
+    <!--  列表 + 编辑区的全高页面，边距比设置类页面的 PagePadding 小，与 Pulonia 管理页一致  -->
+    <Grid Margin="16,12,16,16">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="260" />
             <ColumnDefinition Width="12" />
@@ -151,10 +156,37 @@
                 </WrapPanel>
 
                 <ui:ListView Grid.Row="3"
+                             behavior:RightClickSelectBehavior.Enabled="True"
                              ItemsSource="{Binding Items, Mode=OneWay}"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                              SelectionMode="Single">
+                    <!--  右键菜单：右键先选中所在的宏，复制、删除作用于选中的宏；新建按模板创建  -->
+                    <ui:ListView.ContextMenu>
+                        <ContextMenu>
+                            <ui:MenuItem Header="新建"
+                                         Icon="{ui:SymbolIcon Add24}"
+                                         ItemsSource="{Binding Data.Templates, Source={StaticResource KeyMacroPageProxy}, Mode=OneWay}">
+                                <ui:MenuItem.ItemContainerStyle>
+                                    <Style BasedOn="{StaticResource {x:Type MenuItem}}" TargetType="{x:Type MenuItem}">
+                                        <Setter Property="Header" Value="{Binding Title, Mode=OneWay}" />
+                                        <Setter Property="Command" Value="{Binding Data.CreateCommand, Source={StaticResource KeyMacroPageProxy}}" />
+                                        <Setter Property="CommandParameter" Value="{Binding}" />
+                                    </Style>
+                                </ui:MenuItem.ItemContainerStyle>
+                            </ui:MenuItem>
+                            <ui:MenuItem Command="{Binding Data.DuplicateCommand, Source={StaticResource KeyMacroPageProxy}}"
+                                         CommandParameter="{Binding Data.SelectedItem, Source={StaticResource KeyMacroPageProxy}, Mode=OneWay}"
+                                         Header="复制"
+                                         Icon="{ui:SymbolIcon Copy24}"
+                                         IsEnabled="{Binding Data.HasSelection, Source={StaticResource KeyMacroPageProxy}, Mode=OneWay}" />
+                            <ui:MenuItem Command="{Binding Data.DeleteCommand, Source={StaticResource KeyMacroPageProxy}}"
+                                         CommandParameter="{Binding Data.SelectedItem, Source={StaticResource KeyMacroPageProxy}, Mode=OneWay}"
+                                         Header="删除"
+                                         Icon="{ui:SymbolIcon Delete24}"
+                                         IsEnabled="{Binding Data.HasSelection, Source={StaticResource KeyMacroPageProxy}, Mode=OneWay}" />
+                        </ContextMenu>
+                    </ui:ListView.ContextMenu>
                     <ui:ListView.ItemTemplate>
                         <DataTemplate DataType="{x:Type km:KeyMacroItemViewModel}">
                             <Grid Margin="4,6">
@@ -408,7 +440,12 @@
                                                     <Separator />
                                                     <MenuItem Command="{Binding AddStepCommand}"
                                                               CommandParameter="{x:Static script:KeyMacroCommandKind.MoveBy}"
-                                                              Header="移动鼠标" />
+                                                              Header="相对移动"
+                                                              ToolTip="从当前位置移动指定像素" />
+                                                    <MenuItem Command="{Binding AddStepCommand}"
+                                                              CommandParameter="{x:Static script:KeyMacroCommandKind.MoveTo}"
+                                                              Header="绝对移动"
+                                                              ToolTip="移到游戏画面坐标，以 1920×1080 为准" />
                                                     <MenuItem Command="{Binding AddStepCommand}"
                                                               CommandParameter="{x:Static script:KeyMacroCommandKind.Scroll}"
                                                               Header="滚轮" />
@@ -528,6 +565,38 @@
                                                                   SelectedValue="{Binding Button, Mode=TwoWay}"
                                                                   SelectedValuePath="Value"
                                                                   Visibility="{Binding IsButtonKind, Mode=OneWay, Converter={StaticResource KeyMacroBoolVisibility}}" />
+                                                        <!--  鼠标点击可选坐标：勾选后先移到坐标再点击  -->
+                                                        <CheckBox MinWidth="0"
+                                                                  Margin="8,0,8,0"
+                                                                  VerticalAlignment="Center"
+                                                                  Content="指定坐标"
+                                                                  IsChecked="{Binding HasPosition, Mode=TwoWay}"
+                                                                  ToolTip="先移到游戏画面坐标再点击，坐标以 1920×1080 为准"
+                                                                  Visibility="{Binding IsClickKind, Mode=OneWay, Converter={StaticResource KeyMacroBoolVisibility}}" />
+                                                        <!--  游戏画面坐标：绝对移动、指定坐标的鼠标点击  -->
+                                                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsPositionVisible, Mode=OneWay, Converter={StaticResource KeyMacroBoolVisibility}}">
+                                                            <TextBlock Margin="0,0,4,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="X" />
+                                                            <ui:NumberBox Width="80"
+                                                                          Maximum="1920"
+                                                                          Minimum="0"
+                                                                          Style="{StaticResource KeyMacroNumberBox}"
+                                                                          Value="{Binding PositionX, Mode=TwoWay}" />
+                                                            <TextBlock Margin="8,0,4,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="Y" />
+                                                            <ui:NumberBox Width="80"
+                                                                          Maximum="1080"
+                                                                          Minimum="0"
+                                                                          Style="{StaticResource KeyMacroNumberBox}"
+                                                                          Value="{Binding PositionY, Mode=TwoWay}" />
+                                                            <TextBlock Margin="6,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                       Text="按 1920×1080"
+                                                                       ToolTip="游戏画面坐标，左上角为 (0, 0)，以 1920×1080 为准；其他分辨率按比例换算" />
+                                                        </StackPanel>
                                                         <StackPanel Orientation="Horizontal" Visibility="{Binding IsMoveKind, Mode=OneWay, Converter={StaticResource KeyMacroBoolVisibility}}">
                                                             <TextBlock Margin="0,0,4,0"
                                                                        VerticalAlignment="Center"
@@ -726,6 +795,9 @@
                                             <TextBlock Margin="6,6,0,0"
                                                        Style="{StaticResource KeyMacroDescription}"
                                                        Text="鼠标键：left、right、middle、x1、x2。按键原样发送，不经过游戏键位映射。" />
+                                            <TextBlock Margin="6,6,0,0"
+                                                       Style="{StaticResource KeyMacroDescription}"
+                                                       Text="坐标：moveto 和 click 的坐标是游戏画面坐标，左上角为 (0, 0)，以 1920×1080 为准，其他分辨率按比例换算；moveby 是相对当前位置的像素位移。" />
                                         </StackPanel>
                                     </ScrollViewer>
                                 </Border>
