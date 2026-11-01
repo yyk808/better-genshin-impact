@@ -45,6 +45,8 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
     private readonly SemaphoreSlim _resourceGate = new(1, 1);
     /// <summary>本次设置的规范化路径，不依赖进程工作目录。</summary>
     private string Resolve(string path) => Path.GetFullPath(path, programDirectory);
+    /// <summary>旧配置仍引用已移除引擎时回退到 GPT-SoVITS，避免升级后无法启动。</summary>
+    private string SelectedProviderId => TtsProviderRegistry.IsRegistered(config.ProviderId) ? config.ProviderId : "gpt-sovits";
 
     /// <summary>只创建缺失的示例，不覆盖用户编辑的外置映射或布局。</summary>
     public async Task EnsureResourcesAsync(CancellationToken token)
@@ -137,19 +139,22 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
 
     /// <summary>仅构造 TTS 快照，测试语音不要求 OCR 模型或截图环境。</summary>
     public AppSettings CreateTtsSettings(bool validateProvider = true)
-        => CreateTtsSettings(config.ProviderId,
-            (ExtraConfig(config.ProviderId)?.UseRemote ?? config.UseRemoteService) && TtsProviderRegistry.GetInfo(config.ProviderId).Capabilities.ServerConnection ? "remote" : "local",
-            ExtraConfig(config.ProviderId)?.VoiceId ?? config.HuoshanVoiceId, validateProvider);
+    {
+        var providerId = SelectedProviderId;
+        return CreateTtsSettings(providerId,
+            (ExtraConfig(providerId)?.UseRemote ?? config.UseRemoteService) && TtsProviderRegistry.GetInfo(providerId).Capabilities.ServerConnection ? "remote" : "local",
+            ExtraConfig(providerId)?.VoiceId ?? "", validateProvider);
+    }
 
     /// <summary>设置页指定引擎的旧默认声线快照，沿用生产路径与实例解析，不改变全局引擎。</summary>
     public AppSettings CreateProviderSettings(string providerId, bool validateProvider = true) => CreateTtsSettings(providerId,
         TtsProviderRegistry.GetInfo(providerId).Capabilities.ServerConnection && (ExtraConfig(providerId)?.UseRemote ?? config.UseRemoteService) ? "remote" : "local",
-        ExtraConfig(providerId)?.VoiceId ?? config.HuoshanVoiceId, validateProvider);
+        ExtraConfig(providerId)?.VoiceId ?? "", validateProvider);
 
     /// <summary>资源草稿验证使用与运行时一致的相对路径基准。</summary>
     public string ProgramDirectory => programDirectory;
 
-    /// <summary>读取新增引擎的独立配置；GPT-SoVITS 与火山翻译使用顶层字段，返回空。</summary>
+    /// <summary>读取新增引擎的独立配置；GPT-SoVITS 使用顶层字段，返回空。</summary>
     public QuestVoiceEngineConfig? ExtraConfig(string providerId)
     {
         // 缺省条目在配置加载时由 QuestVoiceConfig 补齐，这里只读取，不改写配置。
@@ -167,7 +172,6 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
         var extra = ExtraConfig(providerId);
         var address = extra is null ? remote ? config.RemoteServiceUrl : config.ServiceUrl
             : remote ? extra.RemoteUrl : extra.LocalUrl;
-        if (!info.Capabilities.ServerConnection) address = "https://translate.volcengine.com/";
         if (!Uri.TryCreate(address?.Trim(), UriKind.Absolute, out var endpoint))
             throw new VoiceException(VoiceErrorCode.Configuration, "请填写有效的 HTTP/HTTPS 服务地址。");
         endpoint = new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/");
@@ -202,11 +206,11 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
     private AppSettings ResolveVoiceSettings(VoiceBinding binding, bool validateProvider = true)
     {
         var reference = binding.Provider;
-        var providerId = reference?.ProviderId ?? config.ProviderId;
+        var providerId = reference?.ProviderId ?? SelectedProviderId;
         var capabilities = TtsProviderRegistry.GetInfo(providerId).Capabilities;
         var instance = string.IsNullOrWhiteSpace(reference?.InstanceId)
             ? capabilities.ServerConnection && (ExtraConfig(providerId)?.UseRemote ?? config.UseRemoteService) ? "remote" : "local" : reference.InstanceId;
-        var settings = CreateTtsSettings(providerId, instance!, reference?.VoiceId ?? ExtraConfig(providerId)?.VoiceId ?? config.HuoshanVoiceId, validateProvider, binding);
+        var settings = CreateTtsSettings(providerId, instance!, reference?.VoiceId ?? ExtraConfig(providerId)?.VoiceId ?? "", validateProvider, binding);
         if (!capabilities.VoiceAssets) return settings;
         var audio = binding.References.FirstOrDefault();
         return settings with { Voice = settings.Voice with
@@ -221,7 +225,7 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
     {
         var frozenConfig = JsonConvert.DeserializeObject<QuestVoiceConfig>(JsonConvert.SerializeObject(config))!;
         var frozen = new QuestVoiceSessionFactory(frozenConfig, programDirectory);
-        return new RoutedTtsProvider(binding => frozen.ResolveVoiceSettings(binding), TtsProviderRegistry.GetInfo(frozenConfig.ProviderId));
+        return new RoutedTtsProvider(binding => frozen.ResolveVoiceSettings(binding), TtsProviderRegistry.GetInfo(frozen.SelectedProviderId));
     }
 
     /// <summary>空路径保留为缺失，避免把程序目录当成文件。</summary>

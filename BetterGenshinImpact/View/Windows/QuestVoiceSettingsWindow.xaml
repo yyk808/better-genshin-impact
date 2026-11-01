@@ -28,12 +28,9 @@
         <BooleanToVisibilityConverter x:Key="QuestVoiceBoolVisibility" />
         <!-- 引擎设置按模型类型选择模板 -->
         <DataTemplate DataType="{x:Type vm:GptSovitsSettingsViewModel}"><settings:GptSovitsSettingsView /></DataTemplate>
-        <DataTemplate DataType="{x:Type enginevm:HuoshanSettingsViewModel}"><settings:HuoshanSettingsView /></DataTemplate>
-        <DataTemplate DataType="{x:Type enginevm:WindowsSapiSettingsViewModel}"><settings:WindowsSapiSettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type enginevm:VoicevoxSettingsViewModel}"><settings:VoicevoxSettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type enginevm:VitsSettingsViewModel}"><settings:VitsSettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type enginevm:OpenAiSpeechSettingsViewModel}"><settings:OpenAiSpeechSettingsView /></DataTemplate>
-        <DataTemplate DataType="{x:Type enginevm:GoogleTtsSettingsViewModel}"><settings:GoogleTtsSettingsView /></DataTemplate>
         <Style x:Key="QuestVoiceSectionStyle" TargetType="Border">
             <Setter Property="Padding" Value="16" />
             <Setter Property="Margin" Value="0,0,0,12" />
@@ -52,7 +49,7 @@
         <ui:TitleBar Grid.Row="0" Title="{i18n:T 自动配音设置}" Icon="{ui:SymbolIcon Speaker224}" />
 
         <TabControl Grid.Row="1" Margin="16,4,16,0" BorderThickness="0">
-            <!-- 引擎与声线：左侧 7 个引擎，★ 为默认引擎；右侧为所选引擎的全部设置 -->
+            <!-- 引擎与声线：左侧 4 个引擎，★ 为默认引擎；右侧为所选引擎的全部设置 -->
             <TabItem Header="引擎与声线">
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
