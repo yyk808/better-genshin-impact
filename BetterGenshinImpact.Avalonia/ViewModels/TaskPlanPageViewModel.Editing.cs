@@ -61,16 +61,36 @@ public partial class TaskPlanPageViewModel
             return;
         }
 
-        Clipboard.Set(item.Name, row.Task, new Dictionary<string, JObject>(StringComparer.Ordinal), new JObject());
+        // 与 WPF 相同记录复制时各叶子的有效参数与子树外层的有效共享设置，粘贴时据此判断继承差异
+        IReadOnlyList<PuloniaTask> ancestors = row.Chain.Count > 1 ? row.Chain.Take(row.Chain.Count - 1).ToList() : [item.Plan.RootTask];
+        Clipboard.Set(item.Name, row.Task,
+            PuloniaPasteInheritance.CaptureEffectiveLeafParameters(row.Task, ancestors, FindDefinition, FindProfile),
+            PuloniaPasteInheritance.CaptureOuterSettings(ancestors, FindProfile));
         StatusMessage = $"已复制“{row.Name}”，可在任意计划中粘贴。";
     }
 
-    /// <summary>粘贴为独立副本（新 ID）：位置与“添加”相同；共享设置沿用目标位置的继承结果</summary>
+    private PuloniaTaskDefinition? FindDefinition(PuloniaTask task)
+        => _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), task);
+
+    private PuloniaSettingsProfile? FindProfile(string id) => Profiles.FirstOrDefault(p => p.Profile?.Id == id)?.Profile;
+
+    /// <summary>粘贴目标父节点的模型链（由根到父节点），与 InsertTask 的插入位置一致</summary>
+    private IReadOnlyList<PuloniaTask> PasteTargetAncestors(TaskPlanItem item)
+        => !IsOneDragon && SelectedNode is { Task.TaskType: "group", Task.Source: null } group && group.Chain.Count > 0
+            ? group.Chain : [item.Plan.RootTask];
+
+    /// <summary>粘贴时继承差异询问的结果（自测用）</summary>
+    public string? LastPasteChoice { get; private set; }
+
+    /// <summary>
+    /// 粘贴为独立副本（新 ID）：位置与“添加”相同。与 WPF 相同，目标位置继承的共享设置会改变有效设置时询问：
+    /// 保留复制时的有效设置（不同的项写在粘贴的节点上）、使用目标位置的继承结果，或不粘贴。
+    /// </summary>
     [RelayCommand]
     private async Task PasteTaskAsync()
     {
         if (SelectedPlan is not { } item) return;
-        if (!Clipboard.TryCreatePaste(out _, out var pasted, out _, out _) || pasted is null)
+        if (!Clipboard.TryCreatePaste(out var source, out var pasted, out var effective, out var outer) || source is null || pasted is null)
         {
             StatusMessage = "剪贴板里没有任务，请先复制。";
             return;
@@ -82,8 +102,36 @@ public partial class TaskPlanPageViewModel
             return;
         }
 
+        var targetAncestors = PasteTargetAncestors(item);
+        LastPasteChoice = null;
+        if (PuloniaPasteInheritance.HasDifference(source, pasted, effective, targetAncestors, FindDefinition, FindProfile))
+        {
+            var owner = (global::Avalonia.Application.Current?.ApplicationLifetime as global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+            var dialog = new FAContentDialog
+            {
+                Title = "粘贴时发现设置差异",
+                Content = new TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap, MaxWidth = 460,
+                    Text = $"复制内容来自“{Clipboard.SourcePlanName}”，目标位置继承的共享设置会改变部分有效设置。\n\n" +
+                           "选择“是”：保留复制时的有效设置，不同的项写在粘贴的节点上。\n" +
+                           "选择“否”：使用目标位置的继承结果。\n选择“取消”：不粘贴。",
+                },
+                PrimaryButtonText = "是", SecondaryButtonText = "否", CloseButtonText = "取消", DefaultButton = FAContentDialogButton.Close,
+            };
+            var result = await Services.FluentMessageBox.ShowCustomAsync(dialog, owner);
+            LastPasteChoice = result switch { FAContentDialogResult.Primary => "保留", FAContentDialogResult.Secondary => "继承", _ => "取消" };
+            if (result == FAContentDialogResult.None)
+            {
+                StatusMessage = "已取消粘贴。";
+                return;
+            }
+            if (result == FAContentDialogResult.Primary)
+                PuloniaPasteInheritance.PreserveCopiedSettings(pasted, outer, targetAncestors, FindDefinition, FindProfile);
+        }
+
         InsertTask(item, pasted);
-        await SaveAsync(item, "已粘贴；粘贴的任务是独立副本，修改不会影响原任务（共享设置沿用粘贴位置的继承结果）。");
+        await SaveAsync(item, "已粘贴；粘贴的任务是独立副本，修改不会影响原任务。");
         RebuildNodes();
     }
 

@@ -70,6 +70,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "trigger-more": await TriggerMoreAsync(); break;
                 case "solo-params": await SoloParamsAsync(); break;
                 case "solo-boss": await SoloBossAsync(); break;
+                case "plan-paste-inherit": await PlanPasteInheritAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
@@ -3147,6 +3148,83 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>
+    // —— 任务计划：粘贴到继承不同共享设置的位置时询问（是 / 否 / 取消，同 WPF；gaps 16） ——
+
+    private async Task PlanPasteInheritAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M60 粘贴继承自测") is not { } id) return;
+        const string key = Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey;
+        Directory.CreateDirectory("/tmp/m44-cd");
+        await File.WriteAllTextAsync("/tmp/m44-cd/示例路线.json", "{\"info\":{\"name\":\"M44 自测路线\"},\"positions\":[]}");
+        try
+        {
+            page.SelectedTab = 0;
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask
+            {
+                Name = "M60 分组", TaskType = "group",
+                Settings = new JObject { [key] = JObject.Parse("{\"mode\":\"rolling\",\"hours\":48}") },
+                Children = [new Pulonia.Models.PuloniaTask { Name = "M60 路线", TaskType = "pathing", Path = "/tmp/m44-cd/示例路线.json" }]
+            });
+            await Settle(600);
+            TaskPlanNodeRow? Row(string name) => page.Nodes.FirstOrDefault(n => n.Name == name);
+            Check("预置分组与路线", Row("M60 路线") is not null, string.Join(",", page.Nodes.Select(n => n.Name)));
+
+            async Task<FluentAvalonia.UI.Controls.FAContentDialog?> PasteToRootAsync(FluentAvalonia.UI.Controls.FAContentDialogResult answer)
+            {
+                page.SelectedNode = Row("M60 路线");
+                page.CopyTaskCommand.Execute(null);
+                page.SelectedNode = null;
+                var last = Services.FluentMessageBox.Current;
+                var paste = page.PasteTaskCommand.ExecuteAsync(null);
+                var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+                if (dialog is not null)
+                {
+                    await Settle(300);
+                    if (answer == FluentAvalonia.UI.Controls.FAContentDialogResult.Primary) Shot("avalonia-plan-paste-inherit.png");
+                    dialog.Hide(answer);
+                }
+                await paste;
+                await Settle(400);
+                return dialog;
+            }
+
+            JArray RootKids() => Children(ReadPlan(id));
+            var dlg = await PasteToRootAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+            Check("继承改变时弹出询问（是 / 否 / 取消）", dlg is { Title: "粘贴时发现设置差异", PrimaryButtonText: "是", SecondaryButtonText: "否", CloseButtonText: "取消" }, dlg?.Title as string);
+            Check("取消：不粘贴", RootKids().Count == 1 && page.LastPasteChoice == "取消", $"{RootKids().Count} {page.LastPasteChoice}");
+
+            await PasteToRootAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            var kids = RootKids();
+            var kept = kids.Skip(1).FirstOrDefault();
+            Check("是：保留复制时的有效设置，写在粘贴的节点上", kids.Count == 2 && kept?["settings"]?[key]?.Value<string>("mode") == "rolling",
+                kept?.ToString(Newtonsoft.Json.Formatting.None));
+
+            await PasteToRootAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.Secondary);
+            kids = RootKids();
+            var inherited = kids.Skip(2).FirstOrDefault();
+            Check("否：使用目标位置的继承结果（不写设置）", kids.Count == 3 && (inherited?["settings"] as JObject)?.ContainsKey(key) != true,
+                inherited?.ToString(Newtonsoft.Json.Formatting.None));
+
+            // 粘贴回同一分组内：继承不变，不询问
+            page.SelectedNode = Row("M60 路线");
+            page.CopyTaskCommand.Execute(null);
+            page.SelectedNode = Row("M60 分组");
+            var before = Services.FluentMessageBox.Current;
+            await page.PasteTaskCommand.ExecuteAsync(null);
+            await Settle(400);
+            var group = RootKids().FirstOrDefault(k => k.Value<string>("task_type") == "group");
+            Check("继承相同时不询问直接粘贴", Services.FluentMessageBox.Current == before && (group?["children"] as JArray)?.Count == 2 && page.LastPasteChoice is null,
+                group?.ToString(Newtonsoft.Json.Formatting.None));
+        }
+        finally
+        {
+            page.SelectedTab = 0;
+            await Settle();
+            await DeleteTempPlanAsync(page, id);
+        }
+    }
+
     // —— 独立任务“首领讨伐”：选择首领、树脂使用、按材料数量提前结束（gaps 12） ——
 
     private async Task SoloBossAsync()

@@ -423,51 +423,19 @@ public partial class PuloniaTaskPlanDocumentViewModel : ObservableObject
     /// </summary>
     internal bool HasPasteInheritanceDifference(PuloniaTask sourceSubtree, PuloniaTask pastedSubtree,
         IReadOnlyDictionary<string, JObject> sourceEffectiveParameters, PuloniaTaskNodeViewModel targetParent)
-    {
-        var outerAncestors = GetAncestorModels(targetParent);
-        return HasDifference(sourceSubtree, pastedSubtree, outerAncestors);
-
-        bool HasDifference(PuloniaTask source, PuloniaTask pasted, IReadOnlyList<PuloniaTask> ancestors)
-        {
-            if (IsLeaf(pasted))
-            {
-                var targetEffective = ResolveEffectiveParameters(pasted, ancestors, out _);
-                return !sourceEffectiveParameters.TryGetValue(source.Id, out var sourceEffective)
-                       || !JToken.DeepEquals(sourceEffective, targetEffective);
-            }
-
-            var nestedAncestors = ancestors.Concat([pasted]).ToArray();
-            for (var i = 0; i < Math.Min(source.Children.Count, pasted.Children.Count); i++)
-            {
-                if (HasDifference(source.Children[i], pasted.Children[i], nestedAncestors))
-                    return true;
-            }
-            return source.Children.Count != pasted.Children.Count;
-        }
-    }
+        => PuloniaPasteInheritance.HasDifference(sourceSubtree, pastedSubtree, sourceEffectiveParameters,
+            GetAncestorModels(targetParent), GetDefinition, FindProfile);
 
     /// <summary>
     /// 保留复制时的有效设置：子树内部的设置随节点复制，只需让子树外层的有效设置与复制时一致。
     /// 把与复制来源外层不同的设置项写到粘贴的子树根节点上；根节点自身或其方案已设置的项本来就由内部提供，不写。
-    /// 叶子根节点只写其能力使用的设置项。
+    /// 叶子根节点只写其能力使用的设置项。规则在 Core <see cref="PuloniaPasteInheritance"/>，与 Avalonia 共用。
     /// </summary>
     /// <param name="pastedSubtree">待插入的子树（新 ID 副本）。</param>
-    /// <param name="sourceOuterSettings">复制来源子树外层的有效共享设置。</param>
-    /// <param name="targetParent">粘贴位置的父节点。</param>
+    /// <param name="sourceOuterSettings">复制来源外层的有效共享设置。</param>
+    /// <param name="targetParent">粘贴目标父节点。</param>
     internal void PreserveCopiedSettings(PuloniaTask pastedSubtree, JObject sourceOuterSettings, PuloniaTaskNodeViewModel targetParent)
-    {
-        var targetOuter = CaptureOuterSettings(targetParent);
-        var profile = pastedSubtree.ProfileId is { } profileId ? FindProfile(profileId) : null;
-        var allowed = IsLeaf(pastedSubtree) ? GetDefinition(pastedSubtree)?.SettingBindings.Keys.ToHashSet(StringComparer.Ordinal) : null;
-        foreach (var (key, sourceValue) in sourceOuterSettings)
-        {
-            if (sourceValue is null || JToken.DeepEquals(sourceValue, targetOuter[key])
-                || pastedSubtree.Settings.ContainsKey(key) || profile?.Settings.ContainsKey(key) == true
-                || allowed is not null && !allowed.Contains(key))
-                continue;
-            pastedSubtree.Settings[key] = sourceValue.DeepClone();
-        }
-    }
+        => PuloniaPasteInheritance.PreserveCopiedSettings(pastedSubtree, sourceOuterSettings, GetAncestorModels(targetParent), GetDefinition, FindProfile);
 
     /// <summary>
     /// 接受自动保存返回的磁盘修订，并保留保存期间产生的新编辑及现有撤销历史。
