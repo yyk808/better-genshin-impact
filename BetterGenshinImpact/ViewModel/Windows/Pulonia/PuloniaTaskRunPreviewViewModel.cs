@@ -92,9 +92,7 @@ public partial class PuloniaTaskRunPreviewViewModel : ObservableObject
             var now = DateTimeOffset.UtcNow;
             _allItems = preview.Items.Select((item, index) => new PuloniaTaskRunPreviewItemViewModel(item, index + 1,
                 _typeNames.GetValueOrDefault(item.TaskType) ?? item.TaskType, preview.ScopeKey, now)).ToArray();
-            SummaryText = $"预计执行 {preview.ExecuteCount} 项 · 因路线 CD 跳过 {preview.CooldownSkipCount} 项"
-                          + (preview.UnmatchedCount > 0 ? $" · {preview.UnmatchedCount} 项路线未识别刷新规则（会执行）" : string.Empty)
-                          + $"（{PuloniaCooldownText.Scope(preview.ScopeKey, _session.AccountNamesByUid)}）";
+            SummaryText = PuloniaTaskRunPreviewRow.Summary(preview, PuloniaCooldownText.Scope(preview.ScopeKey, _session.AccountNamesByUid));
             ApplyFilter();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -179,29 +177,16 @@ public sealed class PuloniaTaskRunPreviewItemViewModel
     public PuloniaTaskRunPreviewItemViewModel(PuloniaTaskRunPreviewItem item, int index, string typeText, string scopeKey,
         DateTimeOffset now)
     {
-        Index = index;
-        Name = item.Name;
-        TypeText = typeText;
-        IsDisabled = item.Outcome == PuloniaTaskPreviewOutcome.Disabled;
-        IsSkipped = item.Outcome is PuloniaTaskPreviewOutcome.CoolingDown or PuloniaTaskPreviewOutcome.Completed
-            or PuloniaTaskPreviewOutcome.RepeatedInRun;
-        IsCaution = item.Outcome == PuloniaTaskPreviewOutcome.Execute
-                    && item.Cooldown?.State == PuloniaCollectionCooldownState.Unmatched;
-        if (item.Policy is { } policy && item.Cooldown?.Entry is not null)
-            CooldownKey = new PuloniaCollectionCooldownKey(scopeKey, PuloniaCollectionCooldown.GetEffectKey(policy));
-        var rule = item.Policy is { } p ? $"{p.MaterialName ?? "未识别"} · {p.Description}" : string.Empty;
-        (OutcomeText, DetailText) = item.Outcome switch
-        {
-            PuloniaTaskPreviewOutcome.Disabled => ("已关闭", "节点自身或上级分组已关闭。"),
-            PuloniaTaskPreviewOutcome.CoolingDown when item.Cooldown?.NextEligibleAt is { } next =>
-                ("跳过 · CD 中", $"下次可执行：{PuloniaCooldownText.Next(next, now)} · {rule}"),
-            PuloniaTaskPreviewOutcome.Completed => ("跳过 · 已完成", "一次性路线已成功执行，不再自动执行。"),
-            PuloniaTaskPreviewOutcome.RepeatedInRun =>
-                ("跳过 · 本次重复", $"与“{item.RepeatedTaskName}”是同一路线文件，前一项成功后跳过。"),
-            _ when item.Policy is null => ("执行", string.Empty),
-            _ when IsCaution => ("执行", "未识别刷新规则：成功后不会跳过，可在共享设置中选择自定义周期。"),
-            _ when item.Cooldown?.LastSuccessAt is { } last => ("执行", $"上次成功 {PuloniaCooldownText.Time(last)}，已可执行 · {rule}"),
-            _ => ("执行", rule)
-        };
+        // 判定与文字在 Core PuloniaTaskRunPreviewRow（与 Avalonia 预览共用）
+        var row = new PuloniaTaskRunPreviewRow(item, index, typeText, scopeKey, now);
+        Index = row.Index;
+        Name = row.Name;
+        TypeText = row.TypeText;
+        IsDisabled = row.IsDisabled;
+        IsSkipped = row.IsSkipped;
+        IsCaution = row.IsCaution;
+        CooldownKey = row.CooldownKey;
+        OutcomeText = row.OutcomeText;
+        DetailText = row.DetailText;
     }
 }

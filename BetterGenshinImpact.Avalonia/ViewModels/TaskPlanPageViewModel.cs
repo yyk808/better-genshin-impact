@@ -187,6 +187,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
 
     partial void OnSelectedPlanChanged(TaskPlanItem? value)
     {
+        if (value is not null && !_lastSaved.ContainsKey(value.Plan.Id)) RememberSaved(value);
+        OnPropertyChanged(nameof(UndoCount));
         TriggerEditor = null;
         ReferenceTarget = null;
         if (CooldownsForPlanOnly) _ = RefreshCooldownsAsync();
@@ -436,8 +438,10 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         if (_store is null) return;
         try
         {
+            RecordUndo(item);
             item.Plan = await _store.SavePlanAsync(item.Plan);
             _allPlans[item.Plan.Id] = item.Plan;
+            RememberSaved(item);
             item.Refresh();
             StatusMessage = message;
         }

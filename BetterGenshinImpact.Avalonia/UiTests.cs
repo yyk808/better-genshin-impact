@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "taskplan-edit": await TaskPlanEditMenuAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
@@ -2790,6 +2791,85 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         finally
         {
             Directory.Delete(dir, true);
+        }
+    }
+
+    /// <summary>任务计划编辑菜单：复制 / 粘贴、启用全部、撤销、预览本次执行</summary>
+    private async Task TaskPlanEditMenuAsync()
+    {
+        const string planName = "M57 编辑自测";
+        vm.Navigate("任务计划");
+        var page = vm.TaskPlan;
+        await page.ReloadAsync();
+        await Settle(800);
+        foreach (var old in page.Plans.Where(p => p.Name == planName).ToList())
+        {
+            page.SelectedPlan = old;
+            await page.DeletePlanCommand.ExecuteAsync(null);
+        }
+
+        page.NewPlanName = planName;
+        await page.NewPlanCommand.ExecuteAsync(null);
+        await Settle();
+        var item = page.SelectedPlan;
+        Check("新建自测计划", item?.Name == planName);
+        if (item is null || item.Name != planName) return;
+        var id = item.Plan.Id;
+        try
+        {
+            Check("工具栏：复制 / 粘贴 / 启用全部 / 撤销 / 预览", new[] { "CopyTaskButton", "PasteTaskButton", "EnableAllButton", "UndoButton", "PreviewRunButton" }.All(n => Named<Button>(n) is not null));
+            page.SelectedAddOption = page.AddOptions.First(o => o.Definition.TaskType == "shell");
+            await Settle();
+            page.SelectedNode = null;
+            await page.AddTaskCommand.ExecuteAsync(null);
+            page.SelectedNode = null;
+            await page.AddGroupCommand.ExecuteAsync(null);
+            await Settle();
+            var shell = page.Nodes.First(n => n.Task.TaskType == "shell");
+            page.SelectedNode = shell;
+            page.CopyTaskCommand.Execute(null);
+            page.SelectedNode = page.Nodes.First(n => n.Task.TaskType == "group");
+            await page.PasteTaskCommand.ExecuteAsync(null);
+            await Settle();
+            var kids = Children(ReadPlan(id));
+            var groupKids = kids.FirstOrDefault(k => k.Value<string>("task_type") == "group")?["children"] as JArray;
+            Check("粘贴到选中分组内，是新 ID 的独立副本", groupKids?.Count == 1 && groupKids[0].Value<string>("task_type") == "shell"
+                && groupKids[0].Value<string>("id") != kids[0].Value<string>("id"), groupKids?.ToString(Newtonsoft.Json.Formatting.None));
+
+            await page.SetEnabledAsync(page.Nodes.First(n => n.Task.TaskType == "shell"), false);
+            page.SelectedNode = null;
+            await page.EnableAllCommand.ExecuteAsync(null);
+            kids = Children(ReadPlan(id));
+            Check("启用全部写入文件", kids[0].Value<bool?>("is_enabled") != false, kids[0].ToString(Newtonsoft.Json.Formatting.None));
+            await page.UndoCommand.ExecuteAsync(null);
+            kids = Children(ReadPlan(id));
+            Check("撤销：恢复为关闭", kids[0].Value<bool?>("is_enabled") == false, kids[0].ToString(Newtonsoft.Json.Formatting.None));
+            await page.UndoCommand.ExecuteAsync(null);
+            kids = Children(ReadPlan(id));
+            Check("再撤销：恢复为启用", kids[0].Value<bool?>("is_enabled") != false);
+            await page.SetEnabledAsync(page.Nodes.First(n => n.Task.TaskType == "shell"), false);
+            await Settle();
+
+            var last = Services.FluentMessageBox.Current;
+            var preview = page.PreviewRunCommand.ExecuteAsync(null);
+            var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            await Settle(600);
+            var rows = page.LastPreviewRows;
+            Check("预览本次执行：逐项结果（关闭的一项、执行的一项）", dialog is not null && rows.Count == 2 && rows.Count(r => r.IsDisabled) == 1 && rows.Count(r => r.OutcomeText == "执行") == 1,
+                string.Join(" | ", rows.Select(r => $"{r.Name}:{r.OutcomeText}")));
+            Check("预览汇总文字", (dialog?.Content as Panel)?.Children.OfType<TextBlock>().FirstOrDefault()?.Text?.StartsWith("预计执行 1 项") == true);
+            Shot("avalonia-taskplan-preview.png");
+            dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+            await preview;
+            await Settle();
+            Shot("avalonia-taskplan-editmenu.png");
+        }
+        finally
+        {
+            page.SelectedPlan = page.Plans.FirstOrDefault(p => p.Plan.Id == id);
+            if (page.SelectedPlan is not null) await page.DeletePlanCommand.ExecuteAsync(null);
+            await Settle();
+            Check("删除自测计划", !File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json")));
         }
     }
 
