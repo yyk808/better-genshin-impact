@@ -170,7 +170,9 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 1. **合并 `refactor/20260930`（43eecc21..0307ec5b，6 个提交）**：键鼠宏（KeyMacro）、角色宏配置窗口，以及 Pulonia 的“实例 / 账户 / 路线 CD 统筹设计”
    （完成记录按账户保存在 `User/Pulonia/accounts/<账户>/`，计划只指定一个账户 `account_id`，计划格式升到 4，触发器按实例，
    运行状态按实例保存在 `instances/<实例>/state.json`，账本与远程派发改为 `PuloniaRunDispatcher`，每个实例各自调度、只有根实例注册快捷键）。
-   `main` 没有新提交（仍为 94c1de65），不需要合并。
+   `main` 这次未合并：合并时本地的 `origin/main` 只跟踪到 94c1de65（远程跟踪只配置了 refactor 分支），之后核对 `main` 已有 2 个新提交，留待下次同步：
+   - 3ba5886c：战斗策略的秒数参数按固定小数点解析（修复 pt-BR 等逗号小数点区域下 4.5 被读成 45）；
+   - 07d38b31：修复国内网络下推理运行库下载时 Catalog 404。
 2. **冲突解法**：59 个冲突，原因是本分支已把 WPF 的 Pulonia 代码抽到 Core，而上游同时重写了这部分。
    - WPF 一律以上游为准（取上游版本），行为与上游相同；上游新增的非界面服务（账户服务、实例键、完成记录索引、路线 CD 等）放进 Core，命名空间不变。
    - 本分支抽到 Core、WPF 不再使用的展示逻辑（运行项、运行预览行、CD 显示文字）改为按新模型只供 Avalonia 使用。
@@ -184,7 +186,8 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 ```bash
 git fetch origin
 git log --oneline HEAD..origin/refactor/20260930     # 看新增提交
-git log --oneline HEAD..origin/main                  # main 上 refactor 分支还没有的修复
+git fetch origin main                                # 远程跟踪只配置了 refactor 分支，main 要单独取
+git log --oneline HEAD..FETCH_HEAD                   # main 上 refactor 分支还没有的修复
 git merge --no-ff origin/refactor/20260930           # 普通合并，不 rebase
 #   解决冲突（见 8.3），然后：
 dotnet build BetterGenshinImpact.sln -p:EnableWindowsTargeting=true   # 0 错误
