@@ -149,8 +149,8 @@ public partial class TaskPlanPageViewModel
         {
             var preview = await _tasks.PreviewAsync(new PuloniaTaskRequest { PlanId = item.Plan.Id, Source = "ui" });
             var now = DateTimeOffset.UtcNow;
-            LastPreviewRows = preview.Items.Select((x, i) => new PuloniaTaskRunPreviewRow(x, i + 1, typeNames.GetValueOrDefault(x.TaskType) ?? x.TaskType, preview.ScopeKey, now)).ToList();
-            summary = PuloniaTaskRunPreviewRow.Summary(preview, DescribeScope(preview.ScopeKey));
+            LastPreviewRows = preview.Items.Select((x, i) => new PuloniaTaskRunPreviewRow(x, i + 1, typeNames.GetValueOrDefault(x.TaskType) ?? x.TaskType, preview.AccountId, now)).ToList();
+            summary = PuloniaTaskRunPreviewRow.Summary(preview, DescribeScope(preview.AccountId));
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

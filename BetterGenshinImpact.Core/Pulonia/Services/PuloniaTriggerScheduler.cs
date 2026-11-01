@@ -21,11 +21,11 @@ public interface IPuloniaTriggerHotkeys
 }
 
 /// <summary>
-/// 主实例的计划调度循环：每秒检查一次定时触发器，计划变化（本进程保存或文件修改标记变化）时重新读档并刷新热键注册。
+/// 本实例的计划调度循环（主实例与子实例都运行，各自只处理本实例负责的定时）：每秒检查一次定时触发器，计划变化（本进程保存或文件修改标记变化）时重新读档并刷新热键注册。
 /// Windows 的 <c>PuloniaTaskTriggerHost</c> 与 Linux 宿主共用
 /// </summary>
 public sealed class PuloniaTriggerScheduler(PuloniaTaskStore store, IPuloniaTaskService tasks, TimeProvider clock,
-    ILogger logger, IPuloniaTriggerHotkeys? hotkeys = null)
+    ILogger logger, IPuloniaTriggerHotkeys? hotkeys = null, bool registersHotkeys = true)
 {
     /// <summary>检查计划文件修改标记、重试失败热键注册的周期。</summary>
     private static readonly TimeSpan PlanPollInterval = TimeSpan.FromSeconds(30);
@@ -73,7 +73,7 @@ public sealed class PuloniaTriggerScheduler(PuloniaTaskStore store, IPuloniaTask
                         // 上次有计划文件读取失败（可能只是被其他程序暂时独占）时，按这一周期重试，不必等到文件再被修改。
                         reload = store.GetPlanFilesStamp() != planStamp || planLoadError.Length > 0;
                         // 注册冲突可能已由用户在快捷键页解除，热键注册失败时随这一周期重试。
-                        if (!reload && HotkeyError.Length > 0)
+                        if (!reload && HotkeyError.Length > 0 && registersHotkeys)
                             await RefreshHotkeysAsync(plans, token).ConfigureAwait(false);
                     }
                     if (reload)
@@ -94,11 +94,16 @@ public sealed class PuloniaTriggerScheduler(PuloniaTaskStore store, IPuloniaTask
                                 logger.LogWarning("Pulonia 调度跳过无法读取的计划文件 {Path}：{Message}", failure.Path, failure.Message);
                         planLoadError = loadError;
                         lastPoll = now;
-                        await RefreshHotkeysAsync(plans, token).ConfigureAwait(false);
+                        if (registersHotkeys)
+                            await RefreshHotkeysAsync(plans, token).ConfigureAwait(false);
                     }
+                    // 任务服务只处理本实例负责的定时触发器
                     await tasks.CheckTriggersAsync(plans, unreadablePlanIds, token).ConfigureAwait(false);
                     Statuses = tasks.GetTriggerStatuses();
-                    Status = "主实例调度运行中（仅在程序运行时生效）。" + planLoadError + HotkeyError;
+                    Status = (registersHotkeys
+                                 ? "本实例调度运行中：检查本实例负责的定时，并注册计划热键（仅在程序运行时生效）。"
+                                 : "本实例调度运行中：检查执行实例包含本实例的定时；计划热键只在主实例生效。")
+                             + planLoadError + HotkeyError;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {

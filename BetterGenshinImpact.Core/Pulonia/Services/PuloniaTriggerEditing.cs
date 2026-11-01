@@ -50,9 +50,9 @@ public static class PuloniaTriggerEditing
     {
         var accounts = new Dictionary<string, string>
         {
-            [""] = UsesPlanAccountBinding(plan) ? "使用本配置绑定的账号" : "不指定资料（当前登录账号）"
+            // 上游统筹设计删除了触发器的账号参数资料：运行账户只由计划的运行账户设置和实例当前账户决定
+            [""] = "运行账户由计划设置决定"
         };
-        foreach (var account in plan.Accounts.Where(item => item.Enabled)) accounts[account.AccountId] = account.AccountId;
         return accounts;
     }
 

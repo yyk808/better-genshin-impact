@@ -8,7 +8,7 @@
 ## 1. 概览
 
 - 分支：`avalonia-linux`，从 `refactor/20260930` 切出。自有提交是线性的普通提交，同步上游时使用普通合并提交（不 rebase、不改写已推送的历史）。
-- 已同步到：`refactor/20260930` 的 `43eecc21`（2026-10-31）和 `main` 的 `94c1de65`。
+- 已同步到：`refactor/20260930` 的 `0307ec5b`（2026-11-01）和 `main` 的 `94c1de65`。
 - 改动规模：约 1629 个文件，其中约 1163 个是**移动**（从 WPF 主项目移到 `BetterGenshinImpact.Core`，命名空间不变），
   新增约 300 个、修改约 155 个、删除 8 个。
 - 目标：
@@ -164,6 +164,20 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
    - 可插拔能力（OCR 模型、传送）在 Linux 宿主中正常注册：`GameHost` 只扫描 Core 程序集，自动使用内置实现（PP-OCRv6、内置传送）。
    - 外部插件的加载器 `PluginManager`、插件页、插件设置窗口依赖 WPF，**Linux / Avalonia 上暂不加载外部插件，也没有插件页和 OCR 模型选择界面**。
      目前只有一个内置 OCR 实现，所以不影响使用。
+
+### 8.1.1 第二次同步（2026-11-01）
+
+1. **合并 `refactor/20260930`（43eecc21..0307ec5b，6 个提交）**：键鼠宏（KeyMacro）、角色宏配置窗口，以及 Pulonia 的“实例 / 账户 / 路线 CD 统筹设计”
+   （完成记录按账户保存在 `User/Pulonia/accounts/<账户>/`，计划只指定一个账户 `account_id`，计划格式升到 4，触发器按实例，
+   运行状态按实例保存在 `instances/<实例>/state.json`，账本与远程派发改为 `PuloniaRunDispatcher`，每个实例各自调度、只有根实例注册快捷键）。
+   `main` 没有新提交（仍为 94c1de65），不需要合并。
+2. **冲突解法**：59 个冲突，原因是本分支已把 WPF 的 Pulonia 代码抽到 Core，而上游同时重写了这部分。
+   - WPF 一律以上游为准（取上游版本），行为与上游相同；上游新增的非界面服务（账户服务、实例键、完成记录索引、路线 CD 等）放进 Core，命名空间不变。
+   - 本分支抽到 Core、WPF 不再使用的展示逻辑（运行项、运行预览行、CD 显示文字）改为按新模型只供 Avalonia 使用。
+   - Core 调度器 `PuloniaTriggerScheduler` 增加 `registersHotkeys` 参数，WPF 按上游只在根实例注册快捷键。
+3. **Avalonia / Linux**：`GameHost` 注册主实例的 `IPuloniaInstanceKeyProvider` 与 `IPuloniaAccountService`（Linux 只有主实例，没有多开与远程派发）；
+   任务计划页的路线 CD 标记、CD 记录列表与清除改为按账户的完成记录（计划指定账户 → 本实例当前账户 → 第一个账户，与 WPF 相同）。
+4. **数据格式**：上游开发期不转换旧格式，旧版计划（格式 3）、旧账户设置和根目录的 `state.json` 读不出，需要删除后重建。
 
 ### 8.2 同步步骤
 

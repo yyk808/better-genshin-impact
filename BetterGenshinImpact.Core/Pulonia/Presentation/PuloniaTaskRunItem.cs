@@ -154,9 +154,9 @@ public class PuloniaTaskRunItem : ObservableObject
     /// <summary>
     /// 列表中的账号说明：使用当前登录账号时为空，切换账号时显示核验的 UID。
     /// </summary>
-    public string? AccountText => Run.AccountId is null or PuloniaGenshinAccountProfile.DefaultId
+    public string? AccountText => Run.AccountId is null
         ? null
-        : Run.VerifiedUid is { } uid ? "UID " + uid : "指定账号";
+        : Run.VerifiedUid is { } uid ? "UID " + uid : "账户 " + Run.AccountId;
 
     /// <summary>
     /// 运行信息：触发方式、账号、实例、执行范围、续跑来源与各时间点；只列出与本次运行相关的项。
@@ -170,7 +170,7 @@ public class PuloniaTaskRunItem : ObservableObject
                 new("触发方式", PuloniaTaskHistoryText.Source(Run.Source)),
                 new("账号", DescribeAccount())
             };
-            if (Run.ExecutionTarget is not null)
+            if (!string.IsNullOrEmpty(Run.Instance))
                 fields.Add(new PuloniaTaskHistoryField("运行实例", ExecutionTargetText));
             fields.Add(new PuloniaTaskHistoryField("执行范围", Run.TargetTaskId is { } target
                 ? "仅“" + (FindTaskName(task => task.TaskId == target || task.SourceTaskId == target) ?? "部分任务") + "”"
@@ -209,7 +209,7 @@ public class PuloniaTaskRunItem : ObservableObject
                 fields.Add(new PuloniaTaskHistoryField("续跑起点地址", start));
             if (Run.CurrentTaskAddress is { } current)
                 fields.Add(new PuloniaTaskHistoryField("当前或最近结束的节点地址", current));
-            fields.AddRange(ConfirmedEffectFields);
+            fields.AddRange(RouteCompletionFields);
             return fields;
         }
     }
@@ -217,8 +217,8 @@ public class PuloniaTaskRunItem : ObservableObject
     /// <summary>
     /// 本次运行写入的路线 CD 记录；没有记录时为空。
     /// </summary>
-    public IReadOnlyList<PuloniaTaskHistoryField> ConfirmedEffectFields
-        => Run.ConfirmedEffects.Select(PuloniaTaskNodeResultItem.CreateEffectField).ToArray();
+    public IReadOnlyList<PuloniaTaskHistoryField> RouteCompletionFields
+        => Run.RouteCompletions.Select(PuloniaTaskNodeResultItem.CreateCompletionField).ToArray();
 
     /// <summary>
     /// 当前状态是否仍可请求取消。
@@ -238,7 +238,7 @@ public class PuloniaTaskRunItem : ObservableObject
     /// <summary>
     /// 执行实例的显示名；本地执行时为主实例。
     /// </summary>
-    public string ExecutionTargetText => Run.ExecutionTarget?.DisplayName is { Length: > 0 } name ? name : "主实例";
+    public string ExecutionTargetText => PuloniaInstanceKey.Describe(Run.Instance);
 
     /// <summary>
     /// 建立页面运行条目。
@@ -263,7 +263,7 @@ public class PuloniaTaskRunItem : ObservableObject
     /// </summary>
     private string DescribeAccount()
     {
-        if (Run.AccountId is null or PuloniaGenshinAccountProfile.DefaultId)
+        if (Run.AccountId is null)
             return "当前登录账号";
         string? name = null;
         try
@@ -318,14 +318,14 @@ public class PuloniaTaskRunItem : ObservableObject
         => NodeResults.Where(result => !IsDisabled(result)).Select(result => CreateNodeItem(result,
             _snapshotTasks.Value.GetValueOrDefault(result.TaskAddress),
             result.TaskType == "genshin.account.prepare" ? "切换账号" : _typeNames?.GetValueOrDefault(result.TaskType) ?? result.TaskType,
-            Run.ConfirmedEffects)).ToArray();
+            Run.RouteCompletions)).ToArray();
 
     /// <summary>
     /// 建立一个节点详情条目；界面层可以返回带界面专属属性（如图标类型）的子类。
     /// </summary>
     protected virtual PuloniaTaskNodeResultItem CreateNodeItem(PuloniaTaskNodeResult result, PuloniaTaskPreparedTask? task,
-        string typeText, IEnumerable<PuloniaTaskConfirmedEffect> confirmedEffects)
-        => new(result, task, typeText, confirmedEffects);
+        string typeText, IEnumerable<PuloniaRouteCompletion> routeCompletions)
+        => new(result, task, typeText, routeCompletions);
 
     /// <summary>
     /// 递归登记快照节点。

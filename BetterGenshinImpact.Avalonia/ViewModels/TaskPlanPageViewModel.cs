@@ -70,7 +70,12 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             }
 
             _tasks.RunChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshRunsAsync());
-            _tasks.LedgerChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
+            // 完成记录按账户保存（上游统筹设计）：账户进度或账户目录变化时刷新路线 CD
+            if (host.Services.GetService<IPuloniaAccountService>() is { } accounts)
+            {
+                accounts.AccountProgressChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
+                accounts.AccountsChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
+            }
         }
 
         if (_scheduler is not null)
@@ -297,7 +302,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     partial void OnSelectedNodeChanged(TaskPlanNodeRow? value)
     {
         var definition = value is null || _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), value.Task);
-        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services, SelectedPlan?.Plan.Id);
+        NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services, SelectedPlan?.Plan.Id,
+            SelectedPlan is { } selected ? GetCooldownScope(selected.Plan) : null);
     }
 
     partial void OnSelectedTriggerChanged(TaskPlanTriggerRow? value)
@@ -733,7 +739,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         }
     }
 
-    /// <summary>路线 CD 记录（账本中地图追踪路线的完成记录，对照 WPF 路线 CD 总览的记录列表）</summary>
+    /// <summary>路线 CD 记录（各账户的路线完成记录，对照 WPF 账户页“路线 CD”的记录列表）</summary>
     public ObservableCollection<TaskPlanCooldownRow> Cooldowns { get; } = [];
 
     public bool HasNoCooldowns => Cooldowns.Count == 0;
@@ -744,18 +750,18 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         if (_tasks is null) return;
         try
         {
-            var ledger = await _tasks.ListLedgerAsync();
-            _cooldownIndex = new PuloniaCollectionCooldownIndex(ledger);
             await LoadCooldownContextAsync();
             RefreshCooldownBadges();
             var planFilter = CooldownsForPlanOnly && SelectedPlan is { } plan ? CreatePlanCooldownFilter(plan.Plan) : null;
             Cooldowns.Clear();
-            foreach (var entry in _cooldownIndex.Entries
-                         .Where(e => e.EffectKey.StartsWith(PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal))
-                         .Where(e => planFilter is null || planFilter(e))
-                         .OrderBy(e => e.NextEligibleAt ?? DateTimeOffset.MaxValue))
+            foreach (var (accountId, index) in _completions)
             {
-                Cooldowns.Add(new TaskPlanCooldownRow(entry, DescribeScope(entry.ScopeKey)));
+                foreach (var completion in index.Completions
+                             .Where(c => planFilter is null || planFilter(accountId, c))
+                             .OrderByDescending(c => c.CompletedAt))
+                {
+                    Cooldowns.Add(new TaskPlanCooldownRow(accountId, completion, DescribeScope(accountId)));
+                }
             }
 
             OnPropertyChanged(nameof(HasNoCooldowns));
@@ -766,14 +772,14 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         }
     }
 
-    /// <summary>清除一条路线 CD 记录（与 WPF 相同调用 ClearCollectionCooldownAsync，下次运行不再按 CD 跳过）</summary>
+    /// <summary>清除一条路线 CD 记录（与 WPF 相同调用账户服务 ClearRouteCompletionsAsync，下次运行不再按 CD 跳过）</summary>
     [RelayCommand]
     private async Task ClearCooldownAsync(TaskPlanCooldownRow? row)
     {
-        if (_tasks is null || row is null) return;
+        if (AccountService is not { } accounts || row is null) return;
         try
         {
-            var count = await _tasks.ClearCollectionCooldownAsync([new PuloniaCollectionCooldownKey(row.Entry.ScopeKey, row.Entry.EffectKey)]);
+            var count = await accounts.ClearRouteCompletionsAsync(row.AccountId, [row.Route]);
             StatusMessage = $"已清除 {count} 条路线 CD 记录。";
             await RefreshCooldownsAsync();
         }
@@ -809,7 +815,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             _latestRun = active ?? mine.FirstOrDefault();
             HasActiveRun = active is not null;
             ExecutionStatusText = _latestRun is { } latest
-                ? (latest.ExecutionTarget is { } target ? $"[{target.DisplayName}] " : "") + PuloniaTaskRunStatusText.Get(latest.Status) + " · " + latest.Message
+                ? (latest.Instance is { Length: > 0 } instance && instance != PuloniaInstanceKey.Primary ? $"[{PuloniaInstanceKey.Describe(instance)}] " : "") + PuloniaTaskRunStatusText.Get(latest.Status) + " · " + latest.Message
                 : "尚未执行";
             if (SelectedPlan is { } current)
             {
@@ -956,15 +962,18 @@ public sealed class TaskPlanRunRow(PuloniaTaskRunView run)
 }
 
 /// <summary>路线 CD 记录行</summary>
-public sealed class TaskPlanCooldownRow(PuloniaTaskLedgerEntry entry, string scope)
+public sealed class TaskPlanCooldownRow(string accountId, PuloniaRouteCompletion completion, string scope)
 {
-    public PuloniaTaskLedgerEntry Entry => entry;
+    /// <summary>完成记录所属账户</summary>
+    public string AccountId => accountId;
 
-    public string Route => entry.EffectKey[PuloniaCollectionCooldown.EffectKeyPrefix.Length..];
+    public PuloniaRouteCompletion Completion => completion;
+
+    /// <summary>路线身份</summary>
+    public string Route => completion.Route;
 
     public string Scope => scope;
 
-    public string Detail => $"{Scope} · 完成于 {entry.OccurredAt.ToLocalTime():MM-dd HH:mm}"
-        // 记录中的下次可执行时间按记录时的规则；当前规则下的状态见任务树标记
-        + (entry.NextEligibleAt is { } next ? (next > DateTimeOffset.Now ? $" · 记录时 CD 至 {next.ToLocalTime():MM-dd HH:mm}" : " · 已过记录时的 CD") : "");
+    // 完成记录只存完成时间与记录时的规则；当前规则下的状态见任务树标记
+    public string Detail => $"{Scope} · 完成于 {completion.CompletedAt.ToLocalTime():MM-dd HH:mm}";
 }

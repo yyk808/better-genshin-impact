@@ -14,7 +14,7 @@ public sealed partial class TaskNodeEditor : ObservableObject
     [ObservableProperty] private bool _isEnabled;
     [ObservableProperty] private string _repeatText;
 
-    public TaskNodeEditor(TaskPlanNodeRow row, PuloniaTaskDefinition? definition, IServiceProvider? services = null, string? planId = null)
+    public TaskNodeEditor(TaskPlanNodeRow row, PuloniaTaskDefinition? definition, IServiceProvider? services = null, string? planId = null, string? accountId = null)
     {
         Row = row;
         Definition = definition;
@@ -29,7 +29,7 @@ public sealed partial class TaskNodeEditor : ObservableObject
             // 首领讨伐显示本任务的累计领奖次数（与 WPF 任务设置对话框相同）
             if (Dedicated is AutoBossSettingsViewModel boss && planId is not null)
             {
-                _ = boss.SetProgressScopeAsync(planId, row.Task.Id);
+                _ = boss.SetProgressScopeAsync(planId, row.Task.Id, string.IsNullOrEmpty(accountId) ? null : accountId);
             }
 
             var edited = new HashSet<string>(Dedicated?.EditedParameterNames ?? [], StringComparer.Ordinal);

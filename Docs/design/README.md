@@ -8,6 +8,7 @@
 
 - [Pulonia 任务系统架构总览](pulonia/README.md)（路线图与验收状态见 [pulonia/roadmap.md](pulonia/roadmap.md)；旧入口 [automation-system.md](automation-system.md) 保留为跳转页）
 - [三种实例的能力边界与 IPC 规划](instance-capability-boundaries.md)（现状核对与后续规划）
+- [实例、账户、配置与路线 CD 统筹设计](instance-account-model.md)（第 3 版，方向已确认；第 13 节的 7 个步骤已于 2026-11-01 实施，待用户验收；账户归入 Pulonia，用户设置实例当前账户，切换时严格核验 UID、跟随当前账户时只比对提示；账本改为按账户存放的完成记录；各实例自己协调运行，主实例一步下发；触发器按执行实例触发）
 - [BetterGI 多实例命名管道协议](multi-instance-ipc.md)
 - [BetterGI 输入层 InputHub 设计](input-hub.md)
 - [遮罩窗口（MaskWindow）统一设计](mask-window.md)
@@ -24,3 +25,4 @@
 - [悬浮小窗（攻略小窗）](guide-window.md)（第 2 版，已确认，实施中；首版代码已完成，待游戏内验证）
 - [自动配音优化](questvoice-simplification.md)（第 4 版，已实施，待游戏内验收；入口并入实时触发页，OCR 直接使用全局 OCR 及其配置）
 - [插件系统与 OCR 模型插件化](plugin-system.md)（第 2 版，部分实施；可插拔机制、插件宿主、插件页、插件设置界面已实现，主程序只保留 PP-OCRv6，其他模型作为 6 个插件在 `bettergi-plugins` 仓库中；传送任务抽出接口 `ITpTask`，经可插拔能力 `ITpTaskFactory` 创建，PR #3697 的实验传送作为插件提供完整实现；待界面与游戏内验收）
+- [按键宏：不识图的键鼠宏](key-macro.md)（第 2 版，已确认，第一期实施中，2026-10-31；每个宏保存为 `User/BgiMacro` 下的一个 txt，单独绑定快捷键，支持单次、按住循环、切换循环；只有基础键鼠指令和 wait，解析与执行独立于战斗策略；提供步骤视图和带高亮、补全、实时校验的脚本视图）

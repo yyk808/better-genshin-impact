@@ -1631,6 +1631,39 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
 
     // —— 路线 CD 记录页签：读取账本中的路线记录 ——
 
+    /// <summary>各账户全部路线完成记录</summary>
+    private async Task<List<Pulonia.Models.PuloniaRouteCompletion>> AllCompletionsAsync()
+    {
+        var result = new List<Pulonia.Models.PuloniaRouteCompletion>();
+        if (vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaAccountService)) is not Pulonia.Services.IPuloniaAccountService accounts) return result;
+        foreach (var account in (await accounts.LoadAccountsAsync()).Accounts)
+            result.AddRange((await accounts.GetRouteCompletionIndexAsync(account.Id)).Completions);
+        return result;
+    }
+
+    /// <summary>为账户（为空时为本实例当前账户，没有时为第一个账户）写一条一小时前完成的自测路线记录，并建出路线文件</summary>
+    private async Task SeedCompletionAsync(string? accountId, string path)
+    {
+        if (vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaAccountService)) is not Pulonia.Services.IPuloniaAccountService accounts
+            || vm.Host?.Services.GetService(typeof(Pulonia.Services.PuloniaTaskStore)) is not Pulonia.Services.PuloniaTaskStore store) return;
+        var list = (await accounts.LoadAccountsAsync()).Accounts;
+        if (accountId is null)
+        {
+            var current = await accounts.GetCurrentAccountIdAsync(accounts.CurrentInstanceKey);
+            accountId = current is not null && list.Any(a => a.Id == current) ? current : list.FirstOrDefault()?.Id;
+        }
+        if (accountId is null) return;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, "{\"info\":{\"name\":\"M44 自测路线\"},\"positions\":[]}");
+        var route = Pulonia.Services.PuloniaRouteCooldown.GetFileIdentity(path, null);
+        await store.RemoveRouteCompletionsAsync(accountId, [route]);
+        await store.PutRouteCompletionAsync(accountId, new Pulonia.Models.PuloniaRouteCompletion
+        {
+            Route = route, CompletedAt = DateTimeOffset.Now.AddHours(-1), RunId = "run_m59selftest_" + Guid.NewGuid().ToString("N")[..8],
+            TaskAddress = "m59-selftest", Attempt = 1, Instance = accounts.CurrentInstanceKey,
+        });
+    }
+
     private async Task PlanCooldownAsync()
     {
         var page = vm.TaskPlan;
@@ -1642,9 +1675,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle(400);
         page.CooldownsForPlanOnly = false;
         await Click(Named<Button>("RefreshCooldownsButton"), "刷新路线 CD");
-        var expected = tasks is null ? -1 : (await tasks.ListLedgerAsync()).Select(e => (e.ScopeKey, e.EffectKey)).Distinct()
-            .Count(e => e.EffectKey.StartsWith(Pulonia.Services.PuloniaCollectionCooldown.EffectKeyPrefix, StringComparison.Ordinal));
-        Check("路线 CD 记录与账本一致", page.Cooldowns.Count == expected, $"{page.Cooldowns.Count}/{expected}");
+        var expected = tasks is null ? -1 : (await AllCompletionsAsync()).Count;
+        Check("路线 CD 记录与各账户完成记录一致", page.Cooldowns.Count == expected, $"{page.Cooldowns.Count}/{expected}");
         Check("路线 CD 页签控件", Named<Button>("RefreshCooldownsButton") is not null
             && (page.Cooldowns.Count > 0 ? CooldownList() is not null : page.HasNoCooldowns && All<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text == "暂无路线 CD 记录。")));
         await Settle(400);
@@ -1655,7 +1687,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
             await Click(clear, "清除路线 CD");
             await Settle(600);
-            var left = (await tasks.ListLedgerAsync()).Count(e => e.EffectKey.Contains("M42自测路线"));
+            var left = (await AllCompletionsAsync()).Count(c => c.Route.Contains("M42自测路线"));
             Check("清除路线 CD 记录", left == 0 && page.Cooldowns.All(r => r != seeded), page.StatusMessage);
         }
 
@@ -1675,8 +1707,9 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         string? profileId = null, copyId = null;
         try
         {
-            var ledger = await tasks.ListLedgerAsync();
-            Check("预置的路线记录已加载", ledger.Any(e => e.EffectKey.Contains("m44-cd/示例")), string.Join(",", ledger.Select(e => e.EffectKey)));
+            await SeedCompletionAsync(null, route);
+            var ledger = await AllCompletionsAsync();
+            Check("预置的路线记录已加载", ledger.Any(c => c.Route.Contains("m44-cd/示例")), string.Join(",", ledger.Select(c => c.Route)));
             page.SelectedTab = 0;
             await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M43 CD 自测路线", TaskType = "pathing", Path = route });
             await Settle(500);
@@ -1703,9 +1736,9 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await Settle(300);
             await Click(Named<Button>("EditProfileSettingsButton"), "编辑方案设置");
             var editor = page.SharedEditor!;
-            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.RouteCategory);
             await Settle(300);
-            var profileCd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!;
+            var profileCd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey)!;
             profileCd.CdChoiceIndex = 2;
             profileCd.CdModeIndex = 0;
             profileCd.Cooldown!.Hours = "48";
@@ -1729,8 +1762,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             // 计划级共享设置覆盖方案：一次性路线 → 已完成
             await Click(Named<Button>("EditPlanSettingsButton"), "编辑计划级共享设置");
             editor = page.SharedEditor!;
-            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
-            var cdRow = editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!;
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.RouteCategory);
+            var cdRow = editor.Row(Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey)!;
             Check("计划级设置显示继承自方案", cdRow.InheritedText.Contains("48") && !cdRow.IsOverridden, cdRow.InheritedText);
             cdRow.CdChoiceIndex = 2;
             cdRow.CdModeIndex = 4;
@@ -1756,7 +1789,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
             await Click(clear, "清除路线 CD");
             await Settle(800);
-            var left = (await tasks.ListLedgerAsync()).Count(e => e.EffectKey.Contains("m44-cd/示例"));
+            var left = (await AllCompletionsAsync()).Count(c => c.Route.Contains("m44-cd/示例"));
             Check("清除路线 CD 记录", left == 0 && page.Cooldowns.Count == 0, page.StatusMessage);
             Check("清除后标记消失", Row()?.CooldownBadge is null, Row()?.CooldownBadge);
         }
@@ -1794,6 +1827,10 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         long dragonRevision = 0;
         try
         {
+            // 默认账户的完成记录：单条路线、目录下与子目录下各一条（原由外部脚本写入账本）
+            await SeedCompletionAsync(null, "/tmp/m44-cd/示例路线.json");
+            await SeedCompletionAsync(null, "/tmp/m44-cd/目录/甲.json");
+            await SeedCompletionAsync(null, "/tmp/m44-cd/目录/子目录/乙.json");
             page.SelectedTab = 0;
             await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask
             {
@@ -1815,11 +1852,11 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await Click(Named<Button>("NodeSettingsButton"), "分组共享设置");
             var editor = page.SharedEditor;
             Check("分组共享设置只列出使用的分类", editor is not null && editor.Categories.Count < Pulonia.Services.PuloniaSettingCatalog.Categories.Count
-                && editor.Categories.Any(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory),
+                && editor.Categories.Any(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.RouteCategory),
                 editor is null ? page.StatusMessage : string.Join(",", editor.Categories.Select(c => c.Id)));
             if (editor is null) return;
-            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
-            var cd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!;
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.RouteCategory);
+            var cd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey)!;
             cd.CdChoiceIndex = 2;
             cd.CdModeIndex = 0;
             cd.Cooldown!.Hours = "48";
@@ -1844,8 +1881,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await Settle(300);
             await Click(Named<Button>("NodeSettingsButton"), "目录共享设置");
             editor = page.SharedEditor!;
-            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.CollectionCategory);
-            cd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey)!;
+            editor.SelectedCategory = editor.Categories.First(c => c.Id == Pulonia.Services.PuloniaSettingCatalog.RouteCategory);
+            cd = editor.Row(Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey)!;
             cd.CdChoiceIndex = 2;
             cd.CdModeIndex = 0;
             cd.Cooldown!.Hours = "48";
@@ -1861,20 +1898,21 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             await Settle(800);
             Check("按计划筛选含目录下记录", page.Cooldowns.Count == 3 && page.Cooldowns.All(c => !c.Route.Contains("账号路线")), $"{page.Cooldowns.Count}");
 
-            // 一条龙绑定账号：CD 作用域取该账号 UID
+            // 计划指定账户：CD 与完成记录按该账户（上游统筹设计 5.6）
             var accounts = await store.LoadAccountSettingsAsync();
             accounts.Accounts.RemoveAll(a => a.Name == "M44 测试账号");
             var account = new Pulonia.Models.PuloniaGenshinAccountProfile { Name = "M44 测试账号", Uid = "100000044" };
             accounts.Accounts.Add(account);
             await store.SaveAccountSettingsAsync(accounts);
+            await SeedCompletionAsync(account.Id, "/tmp/m44-cd/账号路线.json");
             var dragon = await store.SavePlanAsync(new Pulonia.Models.PuloniaTaskPlan
             {
                 Name = "M44 一条龙自测", Purpose = Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon,
-                Accounts = [new Pulonia.Models.PuloniaTaskAccountBinding { AccountId = account.Id }],
+                AccountId = account.Id,
                 RootTask = new Pulonia.Models.PuloniaTask
                 {
                     Name = "M44 一条龙自测", TaskType = "group",
-                    Settings = new Newtonsoft.Json.Linq.JObject { [Pulonia.Services.PuloniaSettingCatalog.CollectionCooldownKey] = Newtonsoft.Json.Linq.JObject.Parse("{\"mode\":\"rolling\",\"hours\":48}") },
+                    Settings = new Newtonsoft.Json.Linq.JObject { [Pulonia.Services.PuloniaSettingCatalog.RouteCooldownKey] = Newtonsoft.Json.Linq.JObject.Parse("{\"mode\":\"rolling\",\"hours\":48}") },
                     Children = [new Pulonia.Models.PuloniaTask { Name = "M44 账号路线", TaskType = "pathing", Path = "/tmp/m44-cd/账号路线.json" },
                         new Pulonia.Models.PuloniaTask { Name = "M44 默认身份路线", TaskType = "pathing", Path = "/tmp/m44-cd/示例路线.json" }]
                 }
@@ -1883,14 +1921,14 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             dragonRevision = dragon.Revision;
             page.CooldownsForPlanOnly = false;
             await Settle(1000);
-            Check("一条龙作用域为绑定账号 UID", page.GetCooldownScope(dragon) == "cn/world/100000044", page.GetCooldownScope(dragon));
+            Check("一条龙按指定账户判定", page.GetCooldownScope(dragon) == account.Id, page.GetCooldownScope(dragon));
             var accountLeaf = page.DescribeCooldown([dragon.RootTask, dragon.RootTask.Children[0]]);
             var defaultLeaf = page.DescribeCooldown([dragon.RootTask, dragon.RootTask.Children[1]]);
-            Check("账号路线按 UID 记录 CD 中", accountLeaf.Text?.StartsWith("CD 中") == true && accountLeaf.Tip?.Contains("M44 测试账号") == true,
+            Check("账户路线按该账户记录 CD 中", accountLeaf.Text?.StartsWith("CD 中") == true && accountLeaf.Tip?.Contains("M44 测试账号") == true,
                 $"{accountLeaf.Text} | {accountLeaf.Tip}");
             Check("默认身份记录不影响该账号", defaultLeaf.Text is null, defaultLeaf.Text ?? "无标记");
             var scoped = page.Cooldowns.FirstOrDefault(c => c.Route.Contains("账号路线"));
-            Check("总览显示账号作用域", scoped?.Scope == "M44 测试账号（UID 100000044）", scoped?.Scope ?? "无");
+            Check("总览显示账户", scoped?.Scope == "CD 按账户：M44 测试账号", scoped?.Scope ?? "无");
             CooldownList()?.ScrollIntoView(scoped!);
             await Settle(400);
             Shot("avalonia-plan-cd-overview.png");

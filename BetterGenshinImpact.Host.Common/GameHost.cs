@@ -4,6 +4,7 @@ using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.Core.Recorder;
 using BetterGenshinImpact.Core.Script.Repositories;
 using BetterGenshinImpact.Pulonia.Executors;
+using BetterGenshinImpact.Pulonia.Models;
 using BetterGenshinImpact.Pulonia.Services;
 using BetterGenshinImpact.Host.Common.Notification;
 using BetterGenshinImpact.Infrastructure.Network;
@@ -376,6 +377,9 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IPuloniaTaskExecutor, PuloniaSoloTaskExecutor>();
             services.AddSingleton<PuloniaTaskResourceCatalog>();
             services.AddSingleton<PuloniaTaskCreationService>();
+            // 账户目录与实例当前账户（上游统筹设计）：Linux 只有主实例，没有桌面分身与云原神实例
+            services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => new PuloniaInstanceKeyProvider(PuloniaInstanceKey.Primary));
+            services.AddSingleton<IPuloniaAccountService, PuloniaAccountService>();
             services.AddSingleton<IPuloniaTaskService>(sp => new PuloniaTaskService(
                 sp.GetRequiredService<PuloniaTaskStore>(),
                 sp.GetRequiredService<PuloniaTaskBuilder>(),
@@ -383,7 +387,8 @@ public sealed class GameHost : IAsyncDisposable
                 sp.GetRequiredService<PuloniaGameTaskCoordinator>(),
                 sp.GetRequiredService<TaskStopService>(),
                 sp.GetRequiredService<TimeProvider>(),
-                logger: sp.GetRequiredService<ILogger<PuloniaTaskService>>()));
+                logger: sp.GetRequiredService<ILogger<PuloniaTaskService>>(),
+                accountService: sp.GetRequiredService<IPuloniaAccountService>()));
             services.AddSingleton<LinuxPuloniaTriggerHotkeys>();
             services.AddSingleton<PuloniaSchedulerHost>();
             configureServices?.Invoke(services);

@@ -15,7 +15,10 @@ using Microsoft.Extensions.Logging;
 
 namespace BetterGenshinImpact.Pulonia.Services;
 
-/// <summary>主实例的唯一异步调度循环，负责程序内定时、两种快捷键与手动命令行入口。</summary>
+/// <summary>
+/// 每个实例都运行的 Pulonia 触发入口：命令行 <c>--pulonia-run</c>（含二次启动转发来的参数）提交到本实例的队列；
+/// 每个实例检查执行实例包含本实例的定时触发器（游标存在本实例的 state.json），两种计划热键只在主实例注册。
+/// </summary>
 public sealed class PuloniaTaskTriggerHost(PuloniaTaskStore store, IPuloniaTaskService tasks,
     InstanceService instances,
     ILogger<PuloniaTaskTriggerHost> logger, TimeProvider clock, IConfigService? configService = null) : BackgroundService, IPuloniaTriggerHotkeys
@@ -36,7 +39,7 @@ public sealed class PuloniaTaskTriggerHost(PuloniaTaskStore store, IPuloniaTaskS
     /// <summary>调度循环（Core，与 Linux 宿主共用）；热键注册由本类在 UI 线程完成。</summary>
     private PuloniaTriggerScheduler? _scheduler;
     /// <summary>调度循环，首次使用时创建（热键注册回调指向本实例）。</summary>
-    private PuloniaTriggerScheduler Scheduler => _scheduler ??= new PuloniaTriggerScheduler(store, tasks, clock, logger, this);
+    private PuloniaTriggerScheduler Scheduler => _scheduler ??= new PuloniaTriggerScheduler(store, tasks, clock, logger, this, registersHotkeys: instances.Context.IsRoot);
     /// <summary>可供界面读取的最后一次触发器反馈，不暴露服务内部游标。</summary>
     public IReadOnlyList<PuloniaTaskTriggerStatus> Statuses => Scheduler.Statuses;
     /// <summary>调度与平台入口的可见状态。</summary>
@@ -57,15 +60,13 @@ public sealed class PuloniaTaskTriggerHost(PuloniaTaskStore store, IPuloniaTaskS
     Task IPuloniaTriggerHotkeys.RefreshAsync(IReadOnlyList<PuloniaTaskPlan> plans, CancellationToken ct)
         => _dispatcher is { } dispatcher ? RefreshHotkeysAsync(dispatcher, plans, ct) : Task.CompletedTask;
 
-    /// <summary>只在主实例调度；读取失败时停本次自动动作而不是继续使用过期配置。</summary>
+    /// <summary>
+    /// 每个实例都调度：检查执行实例包含本实例的定时触发器（执行实例为空的只由主实例处理），游标存在本实例的 state.json；
+    /// 计划热键只在主实例注册（统筹设计 6.4.3）。读取失败时停本次自动动作而不是继续使用过期配置。
+    /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!instances.Context.IsRoot)
-        {
-            Status = "自动触发仅在主实例中生效，子实例不会重复调度。";
-            Scheduler.RaiseChanged();
-            return;
-        }
+        // 子实例也调度本实例负责的定时，但不注册计划热键：同一组合键只能被一个进程全局注册，键鼠监听也会在每个进程重复响应
         var dispatcher = _dispatcher;
         if (dispatcher is null)
         {
@@ -166,23 +167,8 @@ public sealed class PuloniaTaskTriggerHost(PuloniaTaskStore store, IPuloniaTaskS
     {
         var config = configService?.Get().HotKeyConfig;
         if (config is null) return false;
-        var key = HotKey.FromString(trigger.Hotkey);
-        foreach (var property in config.GetType().GetProperties().Where(property => property.PropertyType == typeof(string)
-            && property.Name.EndsWith("Hotkey", StringComparison.Ordinal)))
-        {
-            if (!Enum.TryParse<HotKeyTypeEnum>(config.GetType().GetProperty(property.Name + "Type")?.GetValue(config) as string, out var type))
-                continue;
-            try
-            {
-                if (HotKeySettingModel.AreConflicting(key, trigger.HotkeyType,
-                    HotKey.FromString(property.GetValue(config) as string ?? ""), type)) return true;
-            }
-            catch (ArgumentException)
-            {
-                // 原设置中的非法键值不是一个可注册热键，不因它阻断其他有效配置。
-            }
-        }
-        return false;
+        // 预检查规则与按键宏共用，见 HotKeySettingModel.ConflictsWithHotKeyConfig。
+        return HotKeySettingModel.ConflictsWithHotKeyConfig(HotKey.FromString(trigger.Hotkey), trigger.HotkeyType, config);
     }
 
     /// <summary>观察热键异步异常，避免 async void 异常穿过系统消息循环。</summary>
@@ -193,10 +179,12 @@ public sealed class PuloniaTaskTriggerHost(PuloniaTaskStore store, IPuloniaTaskS
         catch (Exception ex) { logger.LogError(ex, "Pulonia 热键触发失败"); Status = "热键触发失败：" + ex.Message; }
     }
 
-    /// <summary>命令行和单实例 IPC 共用入口，不经旧任务页、不主动启动游戏截图器。</summary>
+    /// <summary>
+    /// 命令行和单实例 IPC 共用入口，不经旧任务页、不主动启动游戏截图器。
+    /// 所有实例都处理：<c>--pulonia-run</c> 提交到本实例的队列，在本实例执行，不经过 IPC。
+    /// </summary>
     public async Task HandleActivationAsync(CommandLineOptions options)
     {
-        if (!instances.Context.IsRoot) return;
         try
         {
             if (options.Action == CommandLineAction.PuloniaRun && options.PuloniaPlanId is { } planId)

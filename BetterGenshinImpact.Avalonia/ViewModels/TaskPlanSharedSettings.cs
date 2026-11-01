@@ -30,7 +30,7 @@ public sealed partial class TaskPlanSharedSettingsEditor : ObservableObject
         foreach (var definition in PuloniaSettingCatalog.Definitions.Where(d => allowedKeys is null || allowedKeys.Contains(d.Key)))
             _all.Add(new TaskPlanSharedSettingRow(definition, _original[definition.Key], inherited(definition.Key)));
         Categories = PuloniaSettingCatalog.Categories.Where(c => _all.Any(r => r.Definition.Category == c.Id)).OrderBy(c => c.Order).ToList();
-        _selectedCategory = Categories.FirstOrDefault(c => c.Id == PuloniaSettingCatalog.CollectionCategory) ?? Categories.FirstOrDefault();
+        _selectedCategory = Categories.FirstOrDefault(c => c.Id == PuloniaSettingCatalog.RouteCategory) ?? Categories.FirstOrDefault();
         Rebuild();
     }
 
@@ -103,10 +103,10 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
         _numberValue = value.Type is JTokenType.Integer or JTokenType.Float ? value.Value<decimal>() : null;
         _textValue = value.Type == JTokenType.String ? value.Value<string>() ?? "" : value.ToString(Formatting.None);
         ChoiceLabels = definition.Choices.Select(c => c.Label).ToList();
-        if (definition.Editor == PuloniaSettingEditorKind.CollectionCooldown)
+        if (definition.Editor == PuloniaSettingEditorKind.RouteCooldown)
         {
-            // 路线 CD 专用表单（与 WPF 共用 Core 的 PuloniaCollectionCooldownViewModel）
-            Cooldown = new BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaCollectionCooldownViewModel();
+            // 路线 CD 专用表单（与 WPF 共用 Core 的 PuloniaRouteCooldownViewModel）
+            Cooldown = new BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaRouteCooldownViewModel();
             Cooldown.Load(value, own is not null ? "本层设置" : "继承");
             Cooldown.PropertyChanged += (_, e) =>
             {
@@ -142,7 +142,7 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
     public bool IsText => !IsBoolean && !IsNumber && !IsChoice && !IsCooldown;
 
     /// <summary>路线 CD 专用表单；其他设置项为空</summary>
-    public BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaCollectionCooldownViewModel? Cooldown { get; }
+    public BetterGenshinImpact.ViewModel.Windows.Pulonia.PuloniaRouteCooldownViewModel? Cooldown { get; }
 
     public bool IsCooldown => Cooldown is not null;
 
@@ -227,14 +227,14 @@ public sealed partial class TaskPlanSharedSettingRow : ObservableObject
         _ => new JValue(TextValue),
     };
 
-    private string Describe(JToken value) => Definition.Editor == PuloniaSettingEditorKind.CollectionCooldown ? DescribeCooldown(value) : Definition.Choices.FirstOrDefault(c => JToken.DeepEquals(c.Value, value))?.Label
+    private string Describe(JToken value) => Definition.Editor == PuloniaSettingEditorKind.RouteCooldown ? DescribeCooldown(value) : Definition.Choices.FirstOrDefault(c => JToken.DeepEquals(c.Value, value))?.Label
                                             ?? (value.Type == JTokenType.Boolean ? (value.Value<bool>() ? "开" : "关") : value.ToString(Formatting.None));
 
     private static string DescribeCooldown(JToken value)
     {
         try
         {
-            return PuloniaCollectionCooldown.DescribeSettings(value);
+            return PuloniaRouteCooldown.DescribeSettings(value);
         }
         catch (Exception)
         {

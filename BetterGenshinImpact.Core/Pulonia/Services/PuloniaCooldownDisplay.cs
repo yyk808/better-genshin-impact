@@ -10,12 +10,12 @@ namespace BetterGenshinImpact.Pulonia.Services;
 public static class PuloniaCooldownDisplay
 {
     /// <summary>状态的中文名称。</summary>
-    public static string State(PuloniaCollectionCooldownState state) => state switch
+    public static string State(PuloniaRouteCooldownState state) => state switch
     {
-        PuloniaCollectionCooldownState.CoolingDown => "CD 中",
-        PuloniaCollectionCooldownState.Completed => "已完成（一次性）",
-        PuloniaCollectionCooldownState.Unmatched => "未识别刷新规则",
-        PuloniaCollectionCooldownState.NotChecked => "不检查 CD",
+        PuloniaRouteCooldownState.CoolingDown => "CD 中",
+        PuloniaRouteCooldownState.Completed => "已完成（一次性）",
+        PuloniaRouteCooldownState.Unmatched => "未识别刷新规则",
+        PuloniaRouteCooldownState.NotChecked => "不检查 CD",
         _ => "可执行"
     };
 
@@ -51,16 +51,10 @@ public static class PuloniaCooldownDisplay
             : Time(next);
 
     /// <summary>
-    /// 作用域的显示名：默认作用域为“当前登录账号”，指定账号显示账号资料名与 UID。
+    /// 路线 CD 所按账户的说明（上游统筹设计后完成记录按账户存放），如“CD 按账户：小号”。
     /// </summary>
-    /// <param name="scopeKey">作用域键。</param>
-    /// <param name="accountNamesByUid">UID → 账号资料名称。</param>
-    public static string Scope(string scopeKey, IReadOnlyDictionary<string, string> accountNamesByUid)
-    {
-        var identity = scopeKey.StartsWith(PuloniaCollectionCooldown.ScopeKeyPrefix, StringComparison.Ordinal)
-            ? scopeKey[PuloniaCollectionCooldown.ScopeKeyPrefix.Length..] : scopeKey;
-        if (identity == PuloniaCollectionCooldown.DefaultScopeIdentity)
-            return "当前登录账号";
-        return accountNamesByUid.TryGetValue(identity, out var name) ? $"{name}（UID {identity}）" : $"UID {identity}";
-    }
+    /// <param name="accountId">账户 ID。</param>
+    /// <param name="accountNames">账户 ID → 账户名称。</param>
+    public static string Scope(string accountId, IReadOnlyDictionary<string, string> accountNames)
+        => "CD 按账户：" + (accountNames.TryGetValue(accountId, out var name) ? name : accountId);
 }
