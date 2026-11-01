@@ -4,6 +4,8 @@
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:solo="using:BetterGenshinImpact.ViewModel.Pages.SoloTask"
+             xmlns:reward="using:BetterGenshinImpact.GameTask.Common.Reward"
+             xmlns:services="using:BetterGenshinImpact.Avalonia.Services"
              x:Class="BetterGenshinImpact.Avalonia.Views.TaskSettingsPage"
              x:DataType="vm:TaskSettingsPageViewModel">
     <UserControl.Styles>
@@ -113,6 +115,20 @@
                                                     <TextBox Classes="param" x:Name="BossTeamNameBox" PlaceholderText="例如：首领队" Text="{Binding Page.Config.AutoBossConfig.TeamName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="选择首领" Description="部分首领因机制问题未添加" IsVisible="{Binding IsBoss}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" x:Name="BossNameBox" ItemsSource="{Binding Page.Boss.BossNames}" SelectedItem="{Binding Page.Boss.BossNameChoice}" PlaceholderText="请选择首领" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <!-- 树脂使用（对照 WPF BossResin：摘要 + “设置”打开树脂使用对话框） -->
+                                            <ui:FASettingsExpanderItem x:Name="BossResinItem" Content="树脂使用" Description="{Binding Page.Boss.BossResin.Summary}" IsVisible="{Binding IsBoss}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Foreground="#E0A000" Text="{Binding Page.Boss.BossResin.Problem}" IsVisible="{Binding Page.Boss.BossResin.HasProblem}" VerticalAlignment="Center" MaxWidth="320" TextWrapping="Wrap" />
+                                                        <Button x:Name="BossResinButton" Content="设置" MinWidth="88" Command="{Binding Page.Boss.BossResin.EditCommand}" ToolTip.Tip="{Binding Page.Boss.BossResin.Summary}" />
+                                                    </StackPanel>
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Content="每轮讨伐后返回七天神像" Description="开启后每次领奖后先回血，再重新前往首领" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoBossConfig.ReturnToStatueAfterEachRound}" />
@@ -120,8 +136,39 @@
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Content="启用奖励识别" Description="每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
-                                                    <ToggleSwitch IsChecked="{Binding Page.Config.AutoBossConfig.RewardRecognitionEnabled}" />
+                                                    <ToggleSwitch x:Name="BossRewardSwitch" IsChecked="{Binding Page.Config.AutoBossConfig.RewardRecognitionEnabled}" IsEnabled="{Binding Page.Boss.IsRewardRecognitionEditable}" />
                                                 </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <!-- 按材料数量提前结束（对照 WPF TargetItemListEditorView；候选物品随首领变化，清单在 Core） -->
+                                            <ui:FASettingsExpanderItem Content="按材料数量提前结束" Description="达到全部目标后停止任务" IsVisible="{Binding IsBoss}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ToggleSwitch x:Name="BossTargetMode" IsChecked="{Binding Page.Boss.TargetItems.IsTargetModeEnabled}" IsEnabled="{Binding Page.Boss.TargetItems.HasChoices}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem IsVisible="{Binding IsBoss}" HorizontalContentAlignment="Stretch">
+                                                <StackPanel Spacing="6" DataContext="{Binding Page.Boss}" x:DataType="vm:SoloBossSettingsViewModel">
+                                                    <TextBlock Text="当前首领没有可用的奖励材料，请先选择首领" Opacity="0.7" IsVisible="{Binding TargetItems.IsUnavailable}" />
+                                                    <Border x:Name="BossTargetItems" IsVisible="{Binding TargetItems.IsTargetModeEnabled}" BorderBrush="#30808080" BorderThickness="1" CornerRadius="8" Padding="12">
+                                                        <StackPanel Spacing="8">
+                                                            <ItemsControl ItemsSource="{Binding TargetItems.Items}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="reward:TargetItem">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                                                            <ComboBox MinWidth="240" ItemsSource="{Binding $parent[ItemsControl].((vm:SoloBossSettingsViewModel)DataContext).TargetItems.Choices}"
+                                                                                      DisplayMemberBinding="{Binding DisplayName, x:DataType=reward:TargetItemOption}"
+                                                                                      SelectedValueBinding="{Binding Name, x:DataType=reward:TargetItemOption}"
+                                                                                      SelectedValue="{Binding ItemName, Converter={x:Static services:Converters.IgnoreEmptyWriteBack}}" />
+                                                                            <NumericUpDown Width="130" Minimum="1" Increment="1" FormatString="0" Value="{Binding TargetCount}" />
+                                                                            <Button Content="删除" Command="{Binding $parent[ItemsControl].((vm:SoloBossSettingsViewModel)DataContext).TargetItems.RemoveCommand}" CommandParameter="{Binding}" />
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <TextBlock Text="同一材料只能添加一次" Foreground="#FF6B6B" IsVisible="{Binding TargetItems.HasDuplicateAttempt}" />
+                                                            <Button x:Name="BossTargetAdd" Content="添加材料" Command="{Binding TargetItems.AddCommand}" HorizontalAlignment="Left" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Content="角色死亡后重试次数" Description="战斗中存在角色死亡时，复活后重新讨伐当前首领" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>

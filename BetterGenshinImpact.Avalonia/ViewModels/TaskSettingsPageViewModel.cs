@@ -56,6 +56,7 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
         _log = log;
         Config = host?.Config ?? new AllConfig();
         Domain = new SoloDomainSettingsViewModel(Config, host?.Services.GetService<BetterGenshinImpact.ViewModel.Resin.IResinSettingsDialogs>());
+        Boss = new SoloBossSettingsViewModel(Config, host?.Services.GetService<BetterGenshinImpact.ViewModel.Resin.IResinSettingsDialogs>());
         IsAvailable = host is not null;
         if (host is not null)
         {
@@ -119,6 +120,9 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
 
     /// <summary>自动秘境卡片的配置项</summary>
     public SoloDomainSettingsViewModel Domain { get; }
+
+    /// <summary>首领讨伐卡片的首领选择、树脂使用与材料目标</summary>
+    public SoloBossSettingsViewModel Boss { get; }
 
     /// <summary>平台初始化失败时为 false（只显示说明）</summary>
     public bool IsAvailable { get; }

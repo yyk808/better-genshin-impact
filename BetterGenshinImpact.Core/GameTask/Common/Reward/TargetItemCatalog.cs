@@ -322,6 +322,32 @@ public sealed class TargetItemCatalog
     }
 
     /// <summary>
+    /// 首领讨伐“按材料数量提前结束”的候选物品：首领材料在前，其后为该首领掉落的各系宝石；未收录的首领返回空列表。
+    /// </summary>
+    /// <param name="bossName">当前选择的首领名称。</param>
+    public IReadOnlyList<TargetItemOption> GetBossTargetChoices(string? bossName)
+    {
+        if (string.IsNullOrWhiteSpace(bossName) || !TryGetBossProfile(bossName, out var profile))
+        {
+            return [];
+        }
+
+        var choices = new List<TargetItemOption>
+        {
+            new(profile.BossMaterial, $"首领材料｜{profile.BossMaterial}")
+        };
+        foreach (var family in profile.GemFamilies)
+        {
+            foreach (var item in family.Items)
+            {
+                choices.Add(new TargetItemOption(item.ItemName, item.ItemName));
+            }
+        }
+
+        return choices;
+    }
+
+    /// <summary>
     /// 校验秘境目标：目标必须属于当前秘境区域的掉落表。
     /// </summary>
     /// <param name="domainName">当前选择的秘境区域名。</param>

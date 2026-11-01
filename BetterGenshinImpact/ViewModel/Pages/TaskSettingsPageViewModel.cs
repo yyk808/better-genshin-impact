@@ -451,26 +451,7 @@ public partial class TaskSettingsPageViewModel : ViewModel, ISoloTaskParamInputs
     /// <param name="bossName">首领名称。</param>
     /// <returns>可选的奖励物品；没有奖励数据时为空。</returns>
     private static IReadOnlyList<TargetItemOption> BuildBossTargetItemChoices(string bossName)
-    {
-        if (!TargetItemCatalog.Instance.TryGetBossProfile(bossName, out var profile))
-        {
-            return [];
-        }
-
-        var choices = new List<TargetItemOption>
-        {
-            new(profile.BossMaterial, $"首领材料｜{profile.BossMaterial}")
-        };
-        foreach (var family in profile.GemFamilies)
-        {
-            foreach (var item in family.Items)
-            {
-                choices.Add(new TargetItemOption(item.ItemName, item.ItemName));
-            }
-        }
-
-        return choices;
-    }
+        => TargetItemCatalog.Instance.GetBossTargetChoices(bossName);
 
     /// <summary>
     /// 构造当前秘境可掉落的材料目标。

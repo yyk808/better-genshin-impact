@@ -69,6 +69,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "settings-general": await SettingsGeneralAsync(); break;
                 case "trigger-more": await TriggerMoreAsync(); break;
                 case "solo-params": await SoloParamsAsync(); break;
+                case "solo-boss": await SoloBossAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
@@ -3146,6 +3147,70 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>
+    // —— 独立任务“首领讨伐”：选择首领、树脂使用、按材料数量提前结束（gaps 12） ——
+
+    private async Task SoloBossAsync()
+    {
+        vm.Navigate("独立任务");
+        await Settle(600);
+        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+        var b = vm.Tasks.Boss;
+        var savedBoss = b.Config.BossName;
+        foreach (var ex in All<FluentAvalonia.UI.Controls.FASettingsExpander>()) ex.IsExpanded = true;
+        await Settle(800);
+        var box = Named<ComboBox>("BossNameBox");
+        Check("首领选择下拉框", box is not null && b.BossNames.Count > 10, $"{b.BossNames.Count}");
+        var boss = b.BossNames.FirstOrDefault(n => BetterGenshinImpact.GameTask.Common.Reward.TargetItemCatalog.Instance.GetBossTargetChoices(n).Count > 1);
+        if (box is null || boss is null) return;
+        box.SelectedItem = boss;
+        await Settle();
+        Check("选择首领写入配置", b.Config.BossName == boss, b.Config.BossName);
+        Check("材料候选随首领刷新（首领材料在前）", b.TargetItems.Choices.Count > 1 && b.TargetItems.Choices[0].DisplayName.StartsWith("首领材料｜"),
+            string.Join(",", b.TargetItems.Choices.Take(3).Select(c => c.DisplayName)));
+        var targetMode = Named<ToggleSwitch>("BossTargetMode");
+        Check("材料目标开关可用", targetMode?.IsEffectivelyEnabled == true);
+        targetMode!.IsChecked = true;
+        await Settle();
+        if (b.TargetItems.Items.Count == 0) await Click(Named<Button>("BossTargetAdd"), "添加材料");
+        await Settle();
+        if (b.TargetItems.Items.FirstOrDefault() is { } first) first.TargetCount = 5;
+        await Settle();
+        Check("材料目标写入配置", b.Config.TargetItems.Count == 1 && b.Config.TargetItems[0].ItemName.Length > 0 && b.Config.TargetItems[0].TargetCount == 5,
+            string.Join(",", b.Config.TargetItems.Select(t => $"{t.ItemName}×{t.TargetCount}")));
+        Check("开启材料目标时奖励识别开关不可改（同 WPF）", Named<ToggleSwitch>("BossRewardSwitch")?.IsEffectivelyEnabled == false);
+        Named<Border>("BossTargetItems")?.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-solo-boss-targets.png");
+
+        var before = b.BossResin.Summary;
+        var resinDialog = await OpenResinDialogAsync(b.BossResin.EditCommand);
+        Check("打开首领树脂使用对话框", resinDialog is not null);
+        if (resinDialog is not null)
+        {
+            if (InDialog<RadioButton>(resinDialog, "ResinModeRunCount") is { IsEffectivelyEnabled: true } rc) rc.IsChecked = true;
+            await Settle();
+            if (InDialog<NumericUpDown>(resinDialog, "ResinRunCount") is { } n) n.Value = 2;
+            await Settle();
+            Shot("avalonia-solo-boss-resin-dialog.png");
+            OnClickMethod.Invoke(InDialog<Button>(resinDialog, "ResinConfirmButton")!, null);
+            await WaitFor(() => ResinSettingsWindow.Current is null ? "closed" : null);
+            await Settle();
+        }
+        Check("树脂摘要更新", b.BossResin.Summary != before && Named<FluentAvalonia.UI.Controls.FASettingsExpanderItem>("BossResinItem")?.Description as string == b.BossResin.Summary,
+            $"{before} → {b.BossResin.Summary}");
+        Named<ComboBox>("BossNameBox")?.BringIntoView();
+        await Settle(400);
+        Shot("avalonia-solo-boss.png");
+        await Task.Delay(3000);
+        var saved = ReadJson(configPath)["autoBossConfig"];
+        Check("config.json：首领 / 材料目标 / 树脂使用", (string?)saved?["bossName"] == boss && (saved?["targetItems"] as JArray)?.Count == 1 && saved?["resinUsage"] is JObject,
+            saved?.ToString(Newtonsoft.Json.Formatting.None)[..Math.Min(300, saved?.ToString(Newtonsoft.Json.Formatting.None).Length ?? 0)]);
+        // 还原（每组结束后脚本另会从备份恢复 config.json）
+        targetMode.IsChecked = false;
+        if (!string.IsNullOrEmpty(savedBoss)) b.Config.BossName = savedBoss;
+        await Settle();
+    }
+
     private async Task SoloParamsAsync()
     {
         vm.Navigate("独立任务");
