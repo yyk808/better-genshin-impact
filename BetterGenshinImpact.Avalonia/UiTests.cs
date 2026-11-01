@@ -3056,6 +3056,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         var more = Named<DropDownButton>("MoreButton");
         Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (i.Header as string ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
         Check("高级设置按钮", Named<Button>("AdvancedNodeButton") is not null);
+        Check("可添加进程内 C# 任务", plans.AddOptions.Any(o => o.Definition.TaskType == "csharp"));
 
         static TextBox? Box(Control? root, string name) => root?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == name);
         JToken? Policy() => ReadPlan(id).Descendants().OfType<JObject>().FirstOrDefault(o => o.Value<string>("id") == tid)?["policy"]?["max_retries"];
@@ -3091,6 +3092,17 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle();
         Check("撤销高级设置", Policy() is null || Policy()!.Type == JTokenType.Null, Policy()?.ToString());
         Shot("avalonia-newonedragon-panel.png");
+
+        // 进程内 C# 任务：添加后为清单中的一项（默认 sample.sum 操作），再撤销
+        var before = plans.Nodes.Count;
+        plans.SelectedAddOption = plans.AddOptions.FirstOrDefault(o => o.Definition.TaskType == "csharp");
+        await Settle();
+        plans.AddTaskCommand.Execute(null);
+        await Settle(800);
+        Check("添加进程内 C# 任务", plans.Nodes.Count == before + 1 && plans.Nodes.Any(n => n.Task.TaskType == "csharp"), plans.StatusMessage);
+        await plans.UndoCommand.ExecuteAsync(null);
+        await Settle();
+        Check("撤销添加", plans.Nodes.Count == before && plans.Nodes.All(n => n.Task.TaskType != "csharp"));
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>
@@ -3555,6 +3567,10 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             var item = page.Plugins.FirstOrDefault(p => p.Id == "m51.test");
             Check("读取已安装插件", item is { Name: "M51 测试插件", VersionText: "v1.2.3" } && !page.HasNoPlugins, item?.ToString());
             Check("列表显示", Named<ItemsControl>("InstalledList")?.ItemCount == page.Plugins.Count);
+            Check("权限警告", Named<Border>("PluginPermissionWarning")?.IsEffectivelyVisible == true);
+            var uninstall = All<Button>().Where(b => b.IsEffectivelyVisible && b.Content as string == "卸载").ToList();
+            Check("卸载按钮置灰并说明", uninstall.Count == page.Plugins.Count && uninstall.All(b => !b.IsEnabled && ToolTip.GetTip(b) is string), $"{uninstall.Count}");
+            Check("提供的功能一行", All<TextBlock>().Count(t => t.IsEffectivelyVisible && t.Inlines?.OfType<global::Avalonia.Controls.Documents.Run>().FirstOrDefault()?.Text == "提供的功能：") == page.Plugins.Count);
             Shot("avalonia-plugins.png");
         }
         finally

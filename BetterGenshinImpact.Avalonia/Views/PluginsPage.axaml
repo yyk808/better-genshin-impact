@@ -15,6 +15,9 @@
                 </StackPanel>
             </Grid>
             <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.85" Text="插件可以替换 BetterGI 的部分功能，例如 OCR 模型。启用、停用和切换都不需要重启。" />
+            <Border x:Name="PluginPermissionWarning" Padding="12,8" Margin="0,0,0,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}">
+                <TextBlock TextWrapping="Wrap" Text="插件拥有与 BetterGI 相同的系统权限，请只安装可信来源的插件。" />
+            </Border>
             <Border x:Name="LinuxPluginNotice" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
                 <TextBlock TextWrapping="Wrap" Text="Linux 版暂不加载外部插件（插件为 Windows 程序集），下面的已安装插件只读显示；功能选择中的内置实现可以直接切换。" />
             </Border>
@@ -51,6 +54,12 @@
                                 </StackPanel>
                                 <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap" Text="{Binding Description}" />
                                 <TextBlock FontSize="12" Opacity="0.6"><Run Text="标识：" /><Run Text="{Binding Id}" /><Run Text="    目录：" /><Run Text="{Binding Directory}" /></TextBlock>
+                                <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap"><Run Text="提供的功能：" /><Run Text="启用后显示（Linux 版不加载外部插件，无法列出）" /></TextBlock>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                    <Button Content="卸载" IsEnabled="False" ToolTip.Tip="Linux 版只读显示插件；请在 Windows 版卸载，或直接删除插件目录" />
+                                    <TextBlock FontSize="12" Opacity="0.7" VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="卸载需在 Windows 版操作（或直接删除插件目录后点“刷新”）" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </DataTemplate>

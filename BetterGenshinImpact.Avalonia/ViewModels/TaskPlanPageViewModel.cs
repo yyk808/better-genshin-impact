@@ -62,7 +62,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         _scheduler = host.Services.GetService<PuloniaSchedulerHost>();
         if (_tasks is not null)
         {
-            foreach (var d in _tasks.Definitions.Where(d => d.TaskType != "csharp")
+            // 进程内 C# 任务与 WPF 相同可添加（Core 执行器与操作注册表，不依赖 Windows）
+            foreach (var d in _tasks.Definitions
                          .OrderBy(d => d.IsSoloTask).ThenBy(d => d.Group, StringComparer.Ordinal).ThenBy(d => d.Order))
             {
                 AddOptions.Add(new TaskPlanAddOption(d));
