@@ -2213,7 +2213,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         moreButton?.Flyout?.ShowAt(moreButton);
         await Settle(300);
         var menu = (moreButton?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）", "导入旧配置（Linux 版尚未迁移）", "重新加载"]),
+        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）", "导入旧配置（Linux 版尚未迁移）", "查看导入报告（随导入旧配置迁移，Linux 版暂不可用）", "重新加载"]),
             string.Join(",", menu.Select(m => m.Header)));
         menu.FirstOrDefault()?.Command?.Execute(null);
         moreButton?.Flyout?.Hide();
