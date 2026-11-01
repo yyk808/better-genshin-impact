@@ -124,10 +124,11 @@ public sealed partial class AutoPageViewModel : PageViewModel
         KmScripts.Clear();
         if (Directory.Exists(KmFolder))
         {
-            foreach (var file in Directory.GetFiles(KmFolder, "*.json").Order(StringComparer.Ordinal))
+            // 与 WPF 相同：含子目录，按创建时间倒序，显示创建时间（Core KeyMouseScriptItem.Load）
+            foreach (var item in BetterGenshinImpact.Model.KeyMouseScriptItem.Load(KmFolder))
             {
-                var info = new FileInfo(file);
-                KmScripts.Add(new AutoScriptItem(info.Name, $"{info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024.0:F1} KB", "", info.Name));
+                var size = new FileInfo(item.Path).Length / 1024.0;
+                KmScripts.Add(new AutoScriptItem(item.Name, $"创建时间 {item.CreateTimeStr} · {size:F1} KB", "", Path.GetRelativePath(KmFolder, item.Path)));
             }
         }
     }
@@ -141,6 +142,90 @@ public sealed partial class AutoPageViewModel : PageViewModel
 
         UiHost.Dialogs.Toast(DialogKind.Warning, "请先在“调度器”中选择配置组");
         return null;
+    }
+
+    /// <summary>自测替换“用系统程序打开”（目录或网址）</summary>
+    public static Action<string>? OpenOverride { get; set; }
+
+    /// <summary>最近一次打开的目录或网址（自测用）</summary>
+    public string? LastOpened { get; private set; }
+
+    public string JsTitle => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsTitle;
+    public string JsDescription => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsDescription;
+    public string JsTutorialText => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsTutorialText;
+    public string PathingTitle => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.PathingTitle;
+    public string PathingDescription => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.PathingDescription;
+    public string PathingTutorialText => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.PathingTutorialText;
+    public string KmTitle => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTitle;
+    public string KmDescription => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmDescription;
+    public string KmTutorialText => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTutorialText;
+    public string RepoUnavailable => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.RepoUnavailable;
+
+    private void Open(string target)
+    {
+        LastOpened = target;
+        if (OpenOverride is { } o)
+        {
+            o(target);
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("xdg-open") { ArgumentList = { target }, UseShellExecute = false });
+        }
+        catch (Exception e)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Error, $"无法打开：{e.Message}");
+        }
+    }
+
+    /// <summary>打开脚本 / 任务目录（对应 WPF “打开脚本目录”“打开任务目录”，用 xdg-open）</summary>
+    [RelayCommand]
+    private void OpenFolder(string? kind)
+    {
+        var folder = kind switch { "js" => JsFolder, "pathing" => PathingFolder, _ => KmFolder };
+        Directory.CreateDirectory(folder);
+        Open(folder);
+    }
+
+    /// <summary>打开教程网页（与 WPF 相同的地址）</summary>
+    [RelayCommand]
+    private void OpenTutorial(string? kind) => Open(kind switch
+    {
+        "js" => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsTutorialUrl,
+        "pathing" => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.PathingTutorialUrl,
+        _ => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTutorialUrl,
+    });
+
+    /// <summary>直接执行 JS 脚本（对应 WPF “执行脚本”）；脚本带配置时先提示</summary>
+    [RelayCommand]
+    private async Task RunJs(AutoScriptItem? item)
+    {
+        if (item is null) return;
+        ScriptProject project;
+        try
+        {
+            project = new ScriptProject(item.Key);
+        }
+        catch (Exception e)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Error, $"无法执行：{e.Message}");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(project.Manifest.SettingsUi) || !string.IsNullOrEmpty(project.Manifest.SettingsHtml))
+            UiHost.Dialogs.Toast(DialogKind.Information, global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsHasSettingsHint);
+        await Scheduler.RunProjectsAsync(project.Manifest.Name, [new ScriptGroupProject(project)]);
+    }
+
+    /// <summary>直接执行地图追踪任务（对应 WPF 右键“执行”）</summary>
+    [RelayCommand]
+    private async Task RunPathing(AutoScriptItem? item)
+    {
+        if (item is null) return;
+        var relativePath = Path.GetRelativePath(PathingFolder, Path.GetDirectoryName(item.Key)!);
+        await Scheduler.RunProjectsAsync(item.Name, [ScriptGroupProject.BuildPathingProject(item.Name, relativePath)]);
     }
 
     [RelayCommand]

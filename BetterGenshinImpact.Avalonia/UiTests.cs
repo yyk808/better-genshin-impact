@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "auto-pages": await AutoPagesAsync(); break;
                 case "script-pathing": await ScriptPathingAsync(); break;
                 case "newonedragon-more": await NewOneDragonMoreAsync(); break;
                 case "taskplan-edit": await TaskPlanEditMenuAsync(); break;
@@ -2984,6 +2985,50 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         finally
         {
             Directory.Delete(dir, true);
+        }
+    }
+
+    /// <summary>JS 脚本 / 地图追踪 / 录制回放页头：标题、说明与教程链接、打开目录、脚本仓库说明、执行按钮、创建时间</summary>
+    private async Task AutoPagesAsync()
+    {
+        vm.Navigate("调度器");
+        await Settle(600);
+        var auto = vm.Auto;
+        var opened = new List<string>();
+        ViewModels.AutoPageViewModel.OpenOverride = opened.Add;
+        try
+        {
+            auto.Refresh();
+            foreach (var (tab, prefix, kind, folder, url, shot) in new[]
+                     {
+                         (1, "Js", "js", auto.JsFolder, global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.JsTutorialUrl, "avalonia-auto-js-header.png"),
+                         (2, "Pathing", "pathing", auto.PathingFolder, global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.PathingTutorialUrl, "avalonia-auto-pathing-header.png"),
+                         (3, "Km", "km", auto.KmFolder, global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTutorialUrl, "avalonia-auto-record-header.png"),
+                     })
+            {
+                auto.SelectedTab = tab;
+                await Settle(600);
+                Check($"{prefix} 页头标题与说明", Named<TextBlock>(prefix + "Title")?.Text?.EndsWith("（实验功能）") == true);
+                Check($"{prefix} 脚本仓库置灰并说明", All<Button>().Any(b => b.IsEffectivelyVisible && !b.IsEnabled && (b.Content as string ?? "").Contains("WebView2")));
+                opened.Clear();
+                await Click(Named<Button>(prefix + "OpenFolderButton"), "打开目录");
+                Named<HyperlinkButton>(prefix + "TutorialLink")?.Command?.Execute(kind);
+                Check($"{prefix} 打开目录与教程链接", opened.SequenceEqual([folder, url]), string.Join(" | ", opened));
+                Shot(shot);
+            }
+
+            auto.SelectedTab = 1;
+            await Settle(400);
+            Check("JS 行有“执行脚本”按钮", auto.JsScripts.Count == 0 || ButtonByText("执行脚本") is not null);
+            auto.SelectedTab = 2;
+            await Settle(400);
+            Check("地图追踪行有“执行”按钮", auto.PathingScripts.Count == 0 || ButtonByText("执行") is not null);
+            Check("录制列表显示创建时间", auto.KmScripts.Count == 0 || auto.KmScripts.All(k => k.Detail.StartsWith("创建时间 ")), auto.KmScripts.FirstOrDefault()?.Detail);
+        }
+        finally
+        {
+            ViewModels.AutoPageViewModel.OpenOverride = null;
+            auto.SelectedTab = 0;
         }
     }
 

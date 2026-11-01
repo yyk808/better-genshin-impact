@@ -664,6 +664,10 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
         });
     }
 
+    /// <summary>直接执行若干项目（JS 脚本页“执行脚本”、地图追踪页“执行”，对应 WPF 页面上的直接运行）；运行中再调用则停止</summary>
+    public Task RunProjectsAsync(string name, List<ScriptGroupProject> projects) =>
+        RunAsync(name, (service, runtime, ct) => service.RunMulti(runtime, projects, null, ct));
+
     /// <summary>连续执行全部配置组（WPF 中先在对话框里勾选；这里执行列表中的全部组，从“从此组开始”的标记处开始）</summary>
     [RelayCommand]
     public Task StartAllGroups()

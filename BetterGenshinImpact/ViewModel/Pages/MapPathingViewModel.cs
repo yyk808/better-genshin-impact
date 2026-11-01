@@ -189,7 +189,7 @@ public partial class MapPathingViewModel : ViewModel
     [RelayCommand]
     public void OnGoToPathingUrl()
     {
-        Process.Start(new ProcessStartInfo("https://www.bettergi.com/feats/autos/pathing.html") { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(AutoScriptPageTexts.PathingTutorialUrl) { UseShellExecute = true });
     }
 
     [RelayCommand]

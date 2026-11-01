@@ -62,18 +62,10 @@ public partial class KeyMouseRecordPageViewModel : ViewModel
     private void InitScriptListViewData()
     {
         ScriptItems.Clear();
-        var fileInfos = LoadScriptFiles(scriptPath)
-            .OrderByDescending(f => f.CreationTime)
-            .ToList();
-        foreach (var f in fileInfos)
+        // 读取与排序在 Core KeyMouseScriptItem.Load（与 Avalonia 共用）
+        foreach (var item in KeyMouseScriptItem.Load(scriptPath))
         {
-            ScriptItems.Add(new KeyMouseScriptItem
-            {
-                Name = f.Name,
-                Path = f.FullName,
-                CreateTime = f.CreationTime,
-                CreateTimeStr = f.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
-            });
+            ScriptItems.Add(item);
         }
     }
 
@@ -218,7 +210,7 @@ public partial class KeyMouseRecordPageViewModel : ViewModel
     [RelayCommand]
     public void OnGoToKmScriptUrl()
     {
-        Process.Start(new ProcessStartInfo("https://www.bettergi.com/feats/autos/kmscript.html") { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(AutoScriptPageTexts.KmTutorialUrl) { UseShellExecute = true });
     }
 
     [RelayCommand]

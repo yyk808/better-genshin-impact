@@ -10,11 +10,20 @@
         </TabItem>
             <TabItem Header="JS 脚本">
                 <DockPanel Margin="20,8,20,12">
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="刷新" Command="{Binding RefreshCommand}" />
-                        <TextBlock Classes="desc" VerticalAlignment="Center" TextWrapping="Wrap"
-                                   Text="{Binding JsFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组'}" />
-                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                        <TextBlock x:Name="JsTitle" Text="{Binding JsTitle}" FontWeight="SemiBold" FontSize="15" />
+                        <WrapPanel>
+                            <TextBlock Classes="desc" VerticalAlignment="Center" Text="{Binding JsDescription}" Margin="0,0,6,0" />
+                            <HyperlinkButton x:Name="JsTutorialLink" Padding="0" Content="{Binding JsTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="js" />
+                        </WrapPanel>
+                        <WrapPanel>
+                            <Button x:Name="JsOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="js" Margin="0,0,6,4" />
+                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="{Binding JsFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组；“执行”直接运行（需先启动截图器）'}" />
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding JsScripts}">
                             <ItemsControl.ItemTemplate>
@@ -22,6 +31,9 @@
                                     <Border Classes="row">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Button Content="执行脚本" Padding="10,2"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).RunJsCommand}"
+                                                        CommandParameter="{Binding}" />
                                                 <Button Content="添加" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).AddJsCommand}"
                                                         CommandParameter="{Binding}" />
@@ -41,11 +53,20 @@
             </TabItem>
             <TabItem Header="地图追踪">
                 <DockPanel Margin="20,8,20,12">
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="刷新" Command="{Binding RefreshCommand}" />
-                        <TextBlock Classes="desc" VerticalAlignment="Center" TextWrapping="Wrap"
-                                   Text="{Binding PathingFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组'}" />
-                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                        <TextBlock x:Name="PathingTitle" Text="{Binding PathingTitle}" FontWeight="SemiBold" FontSize="15" />
+                        <WrapPanel>
+                            <TextBlock Classes="desc" VerticalAlignment="Center" Text="{Binding PathingDescription}" Margin="0,0,6,0" />
+                            <HyperlinkButton x:Name="PathingTutorialLink" Padding="0" Content="{Binding PathingTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="pathing" />
+                        </WrapPanel>
+                        <WrapPanel>
+                            <Button x:Name="PathingOpenFolderButton" Content="打开任务目录" Command="{Binding OpenFolderCommand}" CommandParameter="pathing" Margin="0,0,6,4" />
+                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="{Binding PathingFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组；“执行”直接运行（需先启动截图器）'}" />
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding PathingScripts}">
                             <ItemsControl.ItemTemplate>
@@ -53,6 +74,9 @@
                                     <Border Classes="row">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Button Content="执行" Padding="10,2"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).RunPathingCommand}"
+                                                        CommandParameter="{Binding}" />
                                                 <Button Content="添加" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).AddPathingCommand}"
                                                         CommandParameter="{Binding}" />
@@ -72,15 +96,22 @@
             </TabItem>
             <TabItem Header="录制回放">
                 <DockPanel Margin="20,8,20,12">
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-                            <Button Content="开始录制" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" />
-                            <Button Content="停止录制" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" />
-                            <Button Content="刷新" Command="{Binding RefreshCommand}" />
-                        </StackPanel>
-                        <TextBlock Classes="desc" VerticalAlignment="Center" TextWrapping="Wrap"
-                                   Text="{Binding KmFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组；录制需先启动截图器，3 秒后开始'}" />
-                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                        <TextBlock x:Name="KmTitle" Text="{Binding KmTitle}" FontWeight="SemiBold" FontSize="15" />
+                        <WrapPanel>
+                            <TextBlock Classes="desc" VerticalAlignment="Center" Text="{Binding KmDescription}" Margin="0,0,6,0" />
+                            <HyperlinkButton x:Name="KmTutorialLink" Padding="0" Content="{Binding KmTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="km" />
+                        </WrapPanel>
+                        <WrapPanel>
+                            <Button x:Name="KmOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="km" Margin="0,0,6,4" />
+                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button Content="开始录制" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" Margin="0,0,6,4" />
+                            <Button Content="停止录制" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" Margin="0,0,6,4" />
+                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="{Binding KmFolder, StringFormat='目录：{0}　“添加”加入调度器中选中的配置组；录制需先启动截图器，3 秒后开始；按创建时间倒序'}" />
                     <ScrollViewer>
                         <ItemsControl ItemsSource="{Binding KmScripts}">
                             <ItemsControl.ItemTemplate>
