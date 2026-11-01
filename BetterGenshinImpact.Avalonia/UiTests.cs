@@ -1641,7 +1641,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         return result;
     }
 
-    /// <summary>为账户（为空时为本实例当前账户，没有时为第一个账户）写一条一小时前完成的自测路线记录，并建出路线文件</summary>
+    /// <summary>为账户（为空时为本实例当前账户，没有时为第一个账户）写一条一小时前完成的自测路线记录，建出路线文件并刷新任务计划页</summary>
     private async Task SeedCompletionAsync(string? accountId, string path)
     {
         if (vm.Host?.Services.GetService(typeof(Pulonia.Services.IPuloniaAccountService)) is not Pulonia.Services.IPuloniaAccountService accounts
@@ -1662,6 +1662,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             Route = route, CompletedAt = DateTimeOffset.Now.AddHours(-1), RunId = "run_m59selftest_" + Guid.NewGuid().ToString("N")[..8],
             TaskAddress = "m59-selftest", Attempt = 1, Instance = accounts.CurrentInstanceKey,
         });
+        // 直接写存储不会触发账户进度事件：手动刷新任务计划页的完成记录
+        await vm.TaskPlan.RefreshCooldownsCommand.ExecuteAsync(null);
     }
 
     private async Task PlanCooldownAsync()
