@@ -67,9 +67,13 @@
                     </StackPanel>
                 </DockPanel>
                 <TextBlock Classes="desc" TextWrapping="Wrap" Margin="0,2,0,6"
-                           Text="配置组保存在 User/ScriptGroup（与 Windows 版共用）。可以添加 JS 脚本、键鼠脚本与 Shell，并编辑项目通用设置、JS 自定义设置与配置组设置；地图追踪任务的选择面板与 JS 的 HTML 设置页尚未迁移（文件中已有的项目照常执行）。" />
+                           Text="配置组保存在 User/ScriptGroup（与 Windows 版共用）。可以添加地图追踪任务、JS 脚本、键鼠脚本与 Shell，并编辑项目通用设置、JS 自定义设置与配置组设置；排序用 ↑↓ 代替拖动。" />
                 <Border Classes="card" IsVisible="{Binding HasSelectedGroup}">
                     <StackPanel Spacing="8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="地图追踪" Width="72" VerticalAlignment="Center" />
+                            <Button x:Name="AddPathingButton" Content="选择路线并添加…" Command="{Binding AddPathingCommand}" />
+                        </DockPanel>
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Left" Text="JS 脚本" Width="72" VerticalAlignment="Center" />
                             <Button DockPanel.Dock="Right" Content="添加" Margin="6,0,0,0" Command="{Binding AddJsScriptCommand}" />

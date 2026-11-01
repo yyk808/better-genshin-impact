@@ -25,7 +25,7 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 /// “从此执行”标记、运行 / 连续执行 / 停止。配置组文件读写与调度走 Core 的 ScriptGroupStore / ScriptGroupSchedule / ScriptGroupRunner，
 /// 项目执行走 Core 的 IScriptService（与 WPF 相同），任务在 TaskRunner 中运行（任务信号量、触发器暂停、结束时释放所有按键）。
 /// 项目通用设置、JS 自定义设置（settings.json 表单）与配置组设置在页面内的设置面板中编辑（字段与取值规则来自 Core），
-/// 关闭面板时保存配置组文件。地图追踪的选择面板、JS 的 HTML 设置页与拖拽排序尚未迁移
+/// 关闭面板时保存配置组文件。拖拽排序用上移 / 下移代替
 /// </summary>
 public enum ScriptSettingsKind
 {
@@ -355,6 +355,72 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
     }
 
     // —— 组内项目 ——
+
+    /// <summary>最近一次选择对话框中的候选（自测用）</summary>
+    public IReadOnlyList<global::BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptEntry> LastPathingCandidates { get; private set; } = [];
+
+    /// <summary>
+    /// 添加地图追踪任务（对应 WPF 选择面板）：列出 User/AutoPathing 下的路线文件，可按名称筛选、排除已选择过的目录，勾选后添加到当前配置组
+    /// </summary>
+    [RelayCommand]
+    private async Task AddPathingAsync()
+    {
+        if (SelectedScriptGroup is not { } group)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "请先选择配置组");
+            return;
+        }
+
+        var root = BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath;
+        var all = global::BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptSelection.List(root);
+        if (all.Count == 0)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "User/AutoPathing 下没有地图追踪路线");
+            return;
+        }
+
+        var owner = (global::Avalonia.Application.Current?.ApplicationLifetime as global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (owner is null) return;
+        var filter = new global::Avalonia.Controls.TextBox { Name = "PathingFilterBox", Watermark = "输入筛选条件..." };
+        var exclude = new global::Avalonia.Controls.CheckBox { Name = "PathingExcludeBox", Content = "排除已选择过的目录" };
+        var list = new global::Avalonia.Controls.StackPanel { Name = "PathingList", Spacing = 2 };
+        var checkedPaths = new HashSet<string>(StringComparer.Ordinal);
+        void Refresh()
+        {
+            list.Children.Clear();
+            LastPathingCandidates = global::BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptSelection
+                .Filter(all, filter.Text, exclude.IsChecked == true ? group.Projects.Where(p => p.Type == "Pathing").Select(p => p.FolderName) : null).ToList();
+            foreach (var e in LastPathingCandidates)
+            {
+                var box = new global::Avalonia.Controls.CheckBox { Content = e.Display, Tag = e.FullPath, IsChecked = checkedPaths.Contains(e.FullPath) };
+                box.IsCheckedChanged += (_, _) => { if (box.IsChecked == true) checkedPaths.Add(e.FullPath); else checkedPaths.Remove(e.FullPath); };
+                list.Children.Add(box);
+            }
+        }
+
+        filter.TextChanged += (_, _) => Refresh();
+        exclude.IsCheckedChanged += (_, _) => Refresh();
+        Refresh();
+        var content = new global::Avalonia.Controls.StackPanel { Spacing = 8, MinWidth = 480 };
+        content.Children.Add(exclude);
+        content.Children.Add(filter);
+        content.Children.Add(new global::Avalonia.Controls.ScrollViewer { MaxHeight = 420, Content = list });
+        var dialog = new FluentAvalonia.UI.Controls.FAContentDialog
+        {
+            Title = global::BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptSelection.Title, Content = content,
+            PrimaryButtonText = "添加", CloseButtonText = "取消", DefaultButton = FluentAvalonia.UI.Controls.FAContentDialogButton.Primary,
+        };
+        if (await Services.FluentMessageBox.ShowCustomAsync(dialog, owner) != FluentAvalonia.UI.Controls.FAContentDialogResult.Primary) return;
+        // 按列表顺序添加（与 WPF 相同，按目录树顺序）
+        var added = 0;
+        foreach (var e in all.Where(e => checkedPaths.Contains(e.FullPath)))
+        {
+            group.AddProject(global::BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptSelection.Build(e.FullPath, root));
+            added++;
+        }
+
+        if (added > 0) UiHost.Dialogs.Toast(DialogKind.Success, $"已添加 {added} 个地图追踪任务");
+    }
 
     [RelayCommand]
     private void AddKmScript()

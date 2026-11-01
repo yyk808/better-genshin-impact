@@ -31,6 +31,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             {
                 case "script-settings": await ScriptSettingsAsync(); break;
                 case "taskplan": await TaskPlanAsync(); break;
+                case "script-pathing": await ScriptPathingAsync(); break;
                 case "newonedragon-more": await NewOneDragonMoreAsync(); break;
                 case "taskplan-edit": await TaskPlanEditMenuAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
@@ -2921,6 +2922,69 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
         await preview;
         await Settle();
+    }
+
+    /// <summary>调度器“添加地图追踪任务”选择对话框：筛选、排除已选择过的目录、勾选添加</summary>
+    private async Task ScriptPathingAsync()
+    {
+        vm.Navigate("调度器");
+        await Settle(600);
+        var page = vm.Auto.Scheduler;
+        page.Reload();
+        await Settle();
+        var root = BetterGenshinImpact.GameTask.AutoPathing.PathingPaths.PathJsonPath;
+        var dir = Path.Combine(root, "m57测试目录");
+        Directory.CreateDirectory(Path.Combine(dir, "子目录"));
+        File.WriteAllText(Path.Combine(dir, "m57-a.json"), "{}");
+        File.WriteAllText(Path.Combine(dir, "子目录", "m57-b.json"), "{}");
+        try
+        {
+            page.NewGroupName = "m57测试组";
+            page.AddScriptGroupCommand.Execute(null);
+            await Settle();
+            var g = page.SelectedScriptGroup!;
+            Check("“地图追踪”添加按钮", Named<Button>("AddPathingButton") is not null);
+            var last = Services.FluentMessageBox.Current;
+            var add = page.AddPathingCommand.ExecuteAsync(null);
+            var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            var panel = dialog?.Content as Panel;
+            var filter = panel?.Children.OfType<TextBox>().FirstOrDefault();
+            if (filter is not null) filter.Text = "m57";
+            await Settle(400);
+            Check("筛选：只剩两条测试路线", page.LastPathingCandidates.Count == 2 && page.LastPathingCandidates.Any(e => e.Display == "m57测试目录/子目录/m57-b.json"),
+                string.Join(",", page.LastPathingCandidates.Select(e => e.Display)));
+            var list = (panel?.Children.OfType<ScrollViewer>().FirstOrDefault()?.Content as Panel)?.Children.OfType<CheckBox>().ToList() ?? [];
+            var a = list.FirstOrDefault(c => (c.Content as string) == "m57测试目录/m57-a.json");
+            if (a is not null) a.IsChecked = true;
+            await Settle();
+            Shot("avalonia-script-pathing.png");
+            dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            await add;
+            await Settle();
+            var p = g.Projects.FirstOrDefault(x => x.Type == "Pathing");
+            Check("勾选的路线加入配置组（目录取相对路径）", g.Projects.Count == 1 && p?.Name == "m57-a.json" && p.FolderName == "m57测试目录", $"{p?.Name} {p?.FolderName}");
+
+            last = Services.FluentMessageBox.Current;
+            add = page.AddPathingCommand.ExecuteAsync(null);
+            dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+            panel = dialog?.Content as Panel;
+            filter = panel?.Children.OfType<TextBox>().FirstOrDefault();
+            if (filter is not null) filter.Text = "m57";
+            var ex = panel?.Children.OfType<CheckBox>().FirstOrDefault();
+            if (ex is not null) ex.IsChecked = true;
+            await Settle(400);
+            Check("排除已选择过的目录（含子目录）", page.LastPathingCandidates.Count == 0, string.Join(",", page.LastPathingCandidates.Select(e => e.Display)));
+            dialog?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+            await add;
+            await Settle();
+            Check("取消时不添加", g.Projects.Count == 1);
+            page.DeleteScriptGroupCommand.Execute(g);
+            await Settle();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
     }
 
     /// <summary>独立任务参数：自动战斗高级参数、伐木、打牌、幽境危战、首领、钓鱼</summary>

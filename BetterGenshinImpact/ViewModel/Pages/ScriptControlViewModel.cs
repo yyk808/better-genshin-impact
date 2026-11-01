@@ -1439,8 +1439,7 @@ public partial class ScriptControlViewModel : ViewModel
                 var fileInfo = new FileInfo(filePath);
                 if (!fileInfo.Attributes.HasFlag(FileAttributes.Directory))
                 {
-                    var relativePath = Path.GetRelativePath(MapPathingViewModel.PathJsonPath, fileInfo.Directory!.FullName);
-                    SelectedScriptGroup?.AddProject(ScriptGroupProject.BuildPathingProject(fileInfo.Name, relativePath));
+                    SelectedScriptGroup?.AddProject(BetterGenshinImpact.ViewModel.Pages.ScriptControl.PathingScriptSelection.Build(fileInfo.FullName, MapPathingViewModel.PathJsonPath));
                 }
             }
             else if (child is Expander { Content: StackPanel nestedStackPanel })
