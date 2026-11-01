@@ -8,7 +8,7 @@
 ## 1. 概览
 
 - 分支：`avalonia-linux`，从 `refactor/20260930` 切出。自有提交是线性的普通提交，同步上游时使用普通合并提交（不 rebase、不改写已推送的历史）。
-- 已同步到：`refactor/20260930` 的 `0307ec5b`（2026-11-01）和 `main` 的 `94c1de65`。
+- 已同步到：`refactor/20260930` 的 `0307ec5b`（2026-11-01）和 `main` 的 `07d38b31`（2026-11-01）。
 - 改动规模：约 1629 个文件，其中约 1163 个是**移动**（从 WPF 主项目移到 `BetterGenshinImpact.Core`，命名空间不变），
   新增约 300 个、修改约 155 个、删除 8 个。
 - 目标：
@@ -173,6 +173,14 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
    `main` 这次未合并：合并时本地的 `origin/main` 只跟踪到 94c1de65（远程跟踪只配置了 refactor 分支），之后核对 `main` 已有 2 个新提交，留待下次同步：
    - 3ba5886c：战斗策略的秒数参数按固定小数点解析（修复 pt-BR 等逗号小数点区域下 4.5 被读成 45）；
    - 07d38b31：修复国内网络下推理运行库下载时 Catalog 404。
+
+### 8.1.2 第三次同步（2026-11-01）
+
+1. **合并 `main`（94c1de65..07d38b31，2 个提交）**，无冲突（两处源文件都已在 Core，git 按改名自动应用到新位置）：
+   - 3ba5886c：战斗策略的秒数参数按固定小数点解析。`CombatCommand` 在 Core，Linux / Avalonia 与 Windows 共用同一实现，修复在 Linux 上同样生效；
+     新增的 `CombatCommandCultureTests` 在 Linux 上通过。
+   - 07d38b31：推理运行库下载时 Catalog 404 改走 NuGet V2 元数据。`OnnxRuntimeInstaller` 在 Core，但只有 WPF 的硬件加速页使用，Linux 不下载推理运行库，不受影响。Core 项目没有 WPF 项目的 `System.Net` 隐式引用，合并时为 `HttpStatusCode` 补了 `using System.Net;`。
+2. 本地 `origin` 远程跟踪补上了 `main`（`+refs/heads/main:refs/remotes/origin/main`），之后 `git fetch origin` 会同时更新两个分支。
 2. **冲突解法**：59 个冲突，原因是本分支已把 WPF 的 Pulonia 代码抽到 Core，而上游同时重写了这部分。
    - WPF 一律以上游为准（取上游版本），行为与上游相同；上游新增的非界面服务（账户服务、实例键、完成记录索引、路线 CD 等）放进 Core，命名空间不变。
    - 本分支抽到 Core、WPF 不再使用的展示逻辑（运行项、运行预览行、CD 显示文字）改为按新模型只供 Avalonia 使用。
@@ -186,8 +194,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 ```bash
 git fetch origin
 git log --oneline HEAD..origin/refactor/20260930     # 看新增提交
-git fetch origin main                                # 远程跟踪只配置了 refactor 分支，main 要单独取
-git log --oneline HEAD..FETCH_HEAD                   # main 上 refactor 分支还没有的修复
+git log --oneline HEAD..origin/main                  # main 上 refactor 分支还没有的修复（远程跟踪需包含 main，见 8.1.2）
 git merge --no-ff origin/refactor/20260930           # 普通合并，不 rebase
 #   解决冲突（见 8.3），然后：
 dotnet build BetterGenshinImpact.sln -p:EnableWindowsTargeting=true   # 0 错误
