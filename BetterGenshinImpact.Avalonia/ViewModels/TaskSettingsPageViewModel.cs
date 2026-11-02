@@ -133,6 +133,14 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
 
     public List<string> TcgStrategies { get; }
 
+    /// <summary>七圣召唤卡组旁的“脚本仓库”按钮（与 WPF 相同：隐藏提示红点并打开仓库窗口）</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenLocalScriptRepo()
+    {
+        Config.ScriptConfig.ScriptRepoHintDotVisible = false;
+        global::BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.OpenScriptRepoWindow();
+    }
+
     /// <summary>一条龙页面提供的一条龙参数（WPF 中由 OneDragonFlowViewModel.CreateOneDragonParam 提供）</summary>
     public Func<object?>? OneDragonParamProvider { get; set; }
 

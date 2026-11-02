@@ -86,3 +86,10 @@ Windows 版用到网页的地方有两处：
 - 遮罩打开时用截图方式 Composite 窗口图像抓帧，红块位置是游戏画面（截图器画面不含遮罩内容）；
   对照：截图方式为 MIT-SHM 屏幕区域时抓到红色（该项不通过，其余 15 项通过），并输出改用 Composite 的提示。
 
+## 脚本仓库网页（`bgi-repo://`）
+
+- `ScriptRepoWebWindow` 在 WebKitGTK 上下文注册 `bgi-repo` 协议，主机名 `bettergi.local`，从 `Assets/Web/ScriptRepo` 读文件（路径不能越出该目录）。
+- 网页调用 `chrome.webview.hostObjects.repoWebBridge.X(...)`：`index.html` 的 `<head>` 里注入的脚本把它转成 `POST /__bridge/X`（参数为 JSON 数组），
+  C# 端交给同一个 `RepoWebBridge`，返回 `{ok, value}`；桥接方法要访问网络或磁盘，请求先引用住（`g_object_ref`），在线程池完成后回到 GLib 线程写回响应。
+- 外部 http(s) 链接用 `xdg-open` 打开；窗口位置与大小保存在 `ScriptConfig` 的 `Webview*` 字段（与 Windows 相同）。
+- 自测 `--ui-test script-repo`：本机 `git http-backend` 作为远端，覆盖更新、凭据、网页桥接、订阅导入、更新订阅、重置、zip 导入；网页截图用 XGetImage（原生 WebKit 内容不经 Avalonia 渲染）。

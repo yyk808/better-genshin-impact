@@ -27,10 +27,16 @@ internal static unsafe partial class WebKitSchemeHandler
     /// <summary>"协议:主机名" → 请求处理（方法、已解码路径、请求体 → 响应）；按协议区分，遮罩页面不能经主机名访问设置页</summary>
     private static readonly ConcurrentDictionary<string, Func<string, string, Stream?, SchemeResponse>> Hosts = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>"协议:主机名" → 异步请求处理（脚本仓库网页的桥接调用可能弹出消息框或执行 Git 操作，不能占住 GLib 线程）</summary>
+    private static readonly ConcurrentDictionary<string, Func<string, string, Stream?, Task<SchemeResponse>>> AsyncHosts = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly HashSet<(nint Context, string Scheme)> RegisteredContexts = [];
 
     /// <summary>为 WebKitWebView 所属的上下文注册设置页协议（每个上下文只注册一次）</summary>
     public static void EnsureRegistered(nint webKitWebView) => EnsureContextRegistered(webkit_web_view_get_context(webKitWebView), Scheme);
+
+    /// <summary>WebKitWebView 所属的 WebKit 上下文</summary>
+    public static nint GetContext(nint webKitWebView) => webkit_web_view_get_context(webKitWebView);
 
     /// <summary>为 WebKit 上下文注册指定协议（每个上下文、协议只注册一次）</summary>
     public static void EnsureContextRegistered(nint context, string scheme)
@@ -58,6 +64,11 @@ internal static unsafe partial class WebKitSchemeHandler
 
     public static void RemoveRawHost(string scheme, string host) => Hosts.TryRemove(Key(scheme, host), out _);
 
+    /// <summary>注册异步处理的主机：处理在线程池上完成后回到 GLib 线程写回响应</summary>
+    public static void AddAsyncRawHost(string scheme, string host, Func<string, string, Stream?, Task<SchemeResponse>> handler) => AsyncHosts[Key(scheme, host)] = handler;
+
+    public static void RemoveAsyncRawHost(string scheme, string host) => AsyncHosts.TryRemove(Key(scheme, host), out _);
+
     private static string Key(string scheme, string host) => scheme + ":" + host;
 
     public static void RemoveHost(string host) => Hosts.TryRemove(Key(Scheme, host), out _);
@@ -72,7 +83,14 @@ internal static unsafe partial class WebKitSchemeHandler
         {
             var uri = new Uri(Marshal.PtrToStringUTF8(webkit_uri_scheme_request_get_uri(request)) ?? "");
             var method = Marshal.PtrToStringUTF8(webkit_uri_scheme_request_get_http_method(request)) ?? "GET";
-            using var body = ReadBody(request);
+            var body = ReadBody(request);
+            if (AsyncHosts.TryGetValue(Key(uri.Scheme, uri.Host), out var asyncHandler))
+            {
+                FinishLater(request, method, Uri.UnescapeDataString(uri.AbsolutePath), body, asyncHandler);
+                return;
+            }
+
+            using var _ = body;
             response = Hosts.TryGetValue(Key(uri.Scheme, uri.Host), out var handler)
                 ? handler(method, Uri.UnescapeDataString(uri.AbsolutePath), body)
                 : BlockedResponse;
@@ -90,6 +108,30 @@ internal static unsafe partial class WebKitSchemeHandler
         catch (Exception e)
         {
             Log.Warning(e, "设置页响应写回失败");
+        }
+    }
+
+    /// <summary>在线程池上执行异步处理，完成后在 GLib 线程上写回响应（请求对象在此期间保持引用）</summary>
+    private static void FinishLater(nint request, string method, string path, MemoryStream? body, Func<string, string, Stream?, Task<SchemeResponse>> handler)
+    {
+        g_object_ref(request);
+        WebKitSchemeAsync.Run(request, method, path, body, handler);
+    }
+
+    /// <summary>在 GLib 线程上写回异步处理的响应并释放请求引用</summary>
+    internal static void FinishAndRelease(nint request, SchemeResponse? response)
+    {
+        try
+        {
+            Finish(request, response ?? BlockedResponse);
+        }
+        catch (Exception e)
+        {
+            Log.Warning(e, "网页响应写回失败");
+        }
+        finally
+        {
+            g_object_unref(request);
         }
     }
 
@@ -198,6 +240,34 @@ internal static unsafe partial class WebKitSchemeHandler
     [LibraryImport(GLib)] private static partial void g_free(nint memory);
     [LibraryImport(GLib)] private static partial void g_error_free(nint error);
     [LibraryImport(GObject)] private static partial void g_object_unref(nint obj);
+    [LibraryImport(GObject)] private static partial nint g_object_ref(nint obj);
+}
+
+/// <summary>异步请求处理（不能写在 unsafe 类里）</summary>
+internal static class WebKitSchemeAsync
+{
+    public static void Run(nint request, string method, string path, MemoryStream? body, Func<string, string, Stream?, Task<SchemeResponse>> handler) =>
+        _ = Task.Run(async () =>
+        {
+            SchemeResponse? response = null;
+            try
+            {
+                using (body)
+                {
+                    response = await handler(method, path, body).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Warning(e, "网页请求处理异常");
+            }
+
+            await global::Avalonia.X11.Interop.GtkInteropHelper.RunOnGlibThread(() =>
+            {
+                WebKitSchemeHandler.FinishAndRelease(request, response);
+                return 0;
+            }).ConfigureAwait(false);
+        });
 }
 
 /// <summary>自定义协议的响应：状态、类型、内容与附加响应头（每行一个 "名称: 值"）</summary>

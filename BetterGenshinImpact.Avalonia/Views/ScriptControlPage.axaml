@@ -50,7 +50,7 @@
                                     <MenuItem Header="复制组" Command="{Binding CopyScriptGroupCommand}" />
                                     <MenuItem Header="根据文件夹更新" Command="{Binding UpdateByFolderCommand}" />
                                     <MenuItem Header="日志分析（Linux 版尚未迁移）" IsEnabled="False" />
-                                    <MenuItem Header="打开脚本仓库（依赖 WebView2，Linux 版不可用）" IsEnabled="False" />
+                                    <MenuItem x:Name="OpenScriptRepoMenu" Header="打开脚本仓库" Command="{Binding OpenScriptRepoCommand}" />
                                 </MenuFlyout>
                             </Button.Flyout>
                         </Button>

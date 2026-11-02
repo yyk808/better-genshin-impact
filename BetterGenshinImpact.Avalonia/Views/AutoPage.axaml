@@ -18,7 +18,7 @@
                         </WrapPanel>
                         <WrapPanel>
                             <Button x:Name="JsOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="js" Margin="0,0,6,4" />
-                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button x:Name="JsRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
                             <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
                         </WrapPanel>
                     </StackPanel>
@@ -61,7 +61,7 @@
                         </WrapPanel>
                         <WrapPanel>
                             <Button x:Name="PathingOpenFolderButton" Content="打开任务目录" Command="{Binding OpenFolderCommand}" CommandParameter="pathing" Margin="0,0,6,4" />
-                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button x:Name="PathingRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
                             <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
                         </WrapPanel>
                     </StackPanel>
@@ -104,7 +104,7 @@
                         </WrapPanel>
                         <WrapPanel>
                             <Button x:Name="KmOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="km" Margin="0,0,6,4" />
-                            <Button Content="{Binding RepoUnavailable}" IsEnabled="False" Margin="0,0,6,4" />
+                            <Button x:Name="KmRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
                             <Button Content="开始录制" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" Margin="0,0,6,4" />
                             <Button Content="停止录制" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" Margin="0,0,6,4" />
                             <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />

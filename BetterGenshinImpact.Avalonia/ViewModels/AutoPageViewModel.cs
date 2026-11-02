@@ -23,7 +23,7 @@ public sealed record AutoScriptItem(string Name, string Detail, string Descripti
 /// “全自动”页（对应 WPF 导航中的“全自动”分组：调度器、JS 脚本、地图追踪、录制回放）。
 /// 调度器为 ScriptControlPageViewModel；JS 脚本、地图追踪、键鼠脚本列出 User 下的文件，可以添加到调度器中选中的配置组，
 /// 键鼠脚本可以直接回放（Core 的 KeyMouseMacroPlayer，在 TaskRunner 中运行），
-/// 也可以录制（Core 的 KeyMouseRecordService，按键 / 按钮来自 XInput2 全局监听，相对鼠标来自 XInput2 原始移动）。脚本仓库、订阅尚未迁移
+/// 也可以录制（Core 的 KeyMouseRecordService，按键 / 按钮来自 XInput2 全局监听，相对鼠标来自 XInput2 原始移动）。脚本仓库按钮打开仓库窗口（Linux 版仓库网页为 WebKitGTK）
 /// </summary>
 public sealed partial class AutoPageViewModel : PageViewModel
 {
@@ -159,7 +159,13 @@ public sealed partial class AutoPageViewModel : PageViewModel
     public string KmTitle => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTitle;
     public string KmDescription => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmDescription;
     public string KmTutorialText => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.KmTutorialText;
-    public string RepoUnavailable => global::BetterGenshinImpact.ViewModel.Pages.AutoScriptPageTexts.RepoUnavailable;
+    /// <summary>脚本仓库（WPF 各脚本页的“脚本仓库”按钮：隐藏提示红点并打开仓库窗口）</summary>
+    [RelayCommand]
+    private void OpenLocalScriptRepo()
+    {
+        if (BetterGenshinImpact.Core.Config.ConfigHost.Config is { } config) config.ScriptConfig.ScriptRepoHintDotVisible = false;
+        BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.OpenScriptRepoWindow();
+    }
 
     private void Open(string target)
     {

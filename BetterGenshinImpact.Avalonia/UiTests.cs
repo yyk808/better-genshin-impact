@@ -60,6 +60,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "newonedragon": await NewOneDragonAsync(); break;
                 case "macro": await MacroAsync(); break;
                 case "key-macro": await KeyMacroAsync(); break;
+                case "script-repo": await ScriptRepoAsync(); break;
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
@@ -3316,7 +3317,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
     }
 
-    /// <summary>JS 脚本 / 地图追踪 / 录制回放页头：标题、说明与教程链接、打开目录、脚本仓库说明、执行按钮、创建时间</summary>
+    /// <summary>JS 脚本 / 地图追踪 / 录制回放页头：标题、说明与教程链接、打开目录、脚本仓库按钮、执行按钮、创建时间</summary>
     private async Task AutoPagesAsync()
     {
         vm.Navigate("调度器");
@@ -3337,7 +3338,12 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 auto.SelectedTab = tab;
                 await Settle(600);
                 Check($"{prefix} 页头标题与说明", Named<TextBlock>(prefix + "Title")?.Text?.EndsWith("（实验功能）") == true);
-                Check($"{prefix} 脚本仓库置灰并说明", All<Button>().Any(b => b.IsEffectivelyVisible && !b.IsEnabled && (b.Content as string ?? "").Contains("WebView2")));
+                Check($"{prefix} 脚本仓库按钮可用", Named<Button>(prefix + "RepoButton") is { IsEffectivelyEnabled: true, Content: "脚本仓库" });
+                await Click(Named<Button>(prefix + "RepoButton"), "脚本仓库");
+                var repoWin = await WaitFor(() => ScriptRepoWindow.Current);
+                Check($"{prefix} 脚本仓库按钮打开仓库窗口并隐藏提示红点", repoWin is not null && global::BetterGenshinImpact.Core.Config.ConfigHost.Config?.ScriptConfig.ScriptRepoHintDotVisible != true);
+                repoWin?.Close();
+                await Settle(300);
                 opened.Clear();
                 await Click(Named<Button>(prefix + "OpenFolderButton"), "打开目录");
                 Named<HyperlinkButton>(prefix + "TutorialLink")?.Command?.Execute(kind);

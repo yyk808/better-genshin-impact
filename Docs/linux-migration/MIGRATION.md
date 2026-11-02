@@ -209,15 +209,16 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | 推理设备 | DirectML / CUDA 等 | CPU，或 AMD 显卡 ROCm：直接用系统已装、带 MIGraphX 的 onnxruntime（如 Arch 的 `onnxruntime-rocm`），设置页“硬件加速”选择、重启生效，失败自动回退 CPU 并提示原因，见 [rocm-checklist.md](rocm-checklist.md)；配置里的 Windows 专有引擎在 Linux 上按 CPU 运行（只在本次运行生效，不写回配置） |
 | 鼠标绝对移动 | — | Wine 会把绝对移动转换成原始输入并转动视角，上层按 `AbsoluteMoveAffectsCamera` 处理 |
 | TTS | 与平台无关的 GPT-SoVITS / HTTP 引擎（上游已移除 SAPI） | 同左，另有 espeak-ng |
-| 网页视图 | WebView2 | WebKitGTK 4.1（自定义协议 `bgi-settings://`、`bgi-mask://`，内容安全策略与 Windows 相同） |
+| 网页视图 | WebView2 | WebKitGTK 4.1（自定义协议 `bgi-settings://`、`bgi-mask://`、`bgi-repo://`，内容安全策略与 Windows 相同） |
 | 通知 | Windows 通知 | 系统通知（notify-send / D-Bus）；Webhook、企业微信、邮件相同；微信 Clawbot 未接入 |
 | 凭据（任务计划账号） | 凭据管理器 | 系统密钥环（freedesktop Secret Service：GNOME Keyring / KWallet / KeePassXC），D-Bus 会话加密传输；没有密钥环时明确提示，不以明文保存；密钥环锁定时由密钥环弹出解锁对话框，2 分钟无人操作则停止（保存 / 切换）并提示，界面不卡住 |
 | 账号切换 | 支持（Win32 输入 + YuanShen 进程） | 切换流程在 Core，与 Windows 相同；运行环境检查为本机 XTest / uinput 输入 + 窗口进程（X 窗口 `_NET_WM_PID`，niri 原生窗口为 IPC pid）是 Wine / Proton 下的 YuanShen.exe；云原神仍不能切换（只读核验 UID） |
 | Shell 任务 | cmd.exe | /bin/sh（独立任务的 Shell 命令经标准输入交给 `/bin/sh -s`）；任务计划里 Windows 上创建的 `cmd.exe [/d /s /q] /c 命令` 改用 `/bin/sh -c 命令` 运行并记日志，其他程序原样启动 |
 | 多实例派发 | 支持（桌面分身子会话、云原神实例） | 与 Windows 相同的实例 IPC（WPF 项目里与平台无关的实例服务源文件由 Host.Common 直接编译）：第一个实例取根实例锁（`$TMPDIR/CoreFxPipe_BetterGI.v2.user-uid-<uid>.root.lock` 的独占 flock）并监听根管道（Unix 域套接字，仅本用户）；同一 Unix 会话里再次启动时把参数转发给它并退出（激活主窗口）；在另一 Unix 会话里启动（如 `setsid bgi-avalonia --display :2`，通常再配独立的 Wine 前缀运行另一个游戏）的是子实例（“桌面分身”），任务计划页“执行实例”可把已保存的计划整次下发给它执行并回报状态；对端进程取自 `SO_PEERCRED`，会话为 `getsid`。没有云原神子实例与桌面分身鼠标转发（每个实例有自己的显示和输入）；`--no-instances` 关闭；跨实例的账户占用 / 在线标记 / 写锁 / 脚本仓库资源锁以独占 flock 互斥（Windows 不变） |
 | 按键宏（不识图） | 按键宏页：列表 + 指令编辑 / 步骤视图，键鼠监听或全局热键触发 | 同一套脚本解析、执行器与文件存储（WPF 项目里的源文件由 Host.Common 直接编译，宏文件同在 `User/BgiMacro`）；Avalonia 按键宏页只有指令编辑（带语法检查与指令参考），没有步骤视图；单次 / 按住循环 / 切换循环相同；键鼠监听用本机全局输入监听（含鼠标侧键），全局热键用 XGrabKey（Ctrl+Alt+F1–F12 为切换虚拟终端，不可用）；精确等待用睡眠加最后 1 ms 自旋代替 Windows 高精度可等待计时器；删除移到 freedesktop 回收站（`$XDG_DATA_HOME/Trash`） |
+| 脚本仓库 | 仓库窗口（渠道 / 自定义地址、Git 凭据、更新 / 重置、zip 导入、打开仓库网页、一键更新订阅）；仓库网页（WebView2）订阅脚本；任务计划远端仓库同步；启动时自动更新订阅、提示未恢复的脚本数据备份 | 同一套仓库服务（WPF 项目里的 `ScriptRepoUpdater`、`RepoWebBridge`、仓库管理服务等源文件由 Host.Common 直接编译，窗口与凭据放到各平台的分部文件）；Avalonia 仓库窗口文字与 Windows 相同，入口在 JS 脚本 / 地图追踪 / 录制回放页、七圣召唤卡组旁与调度器菜单；仓库网页用 WebKitGTK，经自定义协议 `bgi-repo://bettergi.local/` 加载同一份网页，页面里的 `chrome.webview.hostObjects.repoWebBridge` 由注入脚本转成 `POST /__bridge/<方法>` 交给同一个 `RepoWebBridge`；Git 凭据存入系统密钥环（条目名与 Windows 凭据管理器相同）；外部链接与打开目录用 `xdg-open`；临时文件服务与 Windows 相同（独占 flock 租约） |
 | 插件（上游插件系统） | 加载外部插件，有插件页、OCR 模型选择 | 只使用 Core 中的内置实现（PP-OCRv6、内置传送），不加载外部插件，没有插件页和 OCR 模型选择界面 |
-| 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如脚本仓库、部分名单编辑）尚未迁移，见 phase4-avalonia.md |
+| 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如部分名单编辑）尚未迁移，见 phase4-avalonia.md |
 
 ## 6. 已知问题
 

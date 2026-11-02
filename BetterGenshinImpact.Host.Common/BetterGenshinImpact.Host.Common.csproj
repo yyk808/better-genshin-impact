@@ -66,6 +66,18 @@
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\KeyMacro\KeyMacroTemplates.cs" Link="KeyMacro\Shared\KeyMacroTemplates.cs" />
 	</ItemGroup>
 
+	<!-- 脚本仓库：Git 同步、订阅更新、仓库网页桥接直接编译 WPF 项目的源文件；平台部分（网页窗口、确认框、Git 凭据）在 ScriptRepo/*.Linux.cs -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\Core\Script\ScriptRepoUpdater.cs" Link="ScriptRepo\Shared\ScriptRepoUpdater.cs" />
+		<Compile Include="..\BetterGenshinImpact\Core\Script\ScriptRepoUpdater.Repositories.cs" Link="ScriptRepo\Shared\ScriptRepoUpdater.Repositories.cs" />
+		<Compile Include="..\BetterGenshinImpact\Core\Script\WebView\RepoWebBridge.cs" Link="ScriptRepo\Shared\RepoWebBridge.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Message\RefreshDataMessage.cs" Link="ScriptRepo\Shared\RefreshDataMessage.cs" />
+		<Compile Include="..\BetterGenshinImpact\Helpers\Http\ProxySpeedTester.cs" Link="ScriptRepo\Shared\ProxySpeedTester.cs" />
+		<Compile Include="..\BetterGenshinImpact\Infrastructure\Network\GitProxy.cs" Link="ScriptRepo\Shared\GitProxy.cs" />
+		<Compile Include="..\BetterGenshinImpact\Infrastructure\Temp\TempFileService.cs" Link="ScriptRepo\Shared\TempFileService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Pulonia\Services\PuloniaRepositoryManagementService.cs" Link="ScriptRepo\Shared\PuloniaRepositoryManagementService.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
 		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />

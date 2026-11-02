@@ -30,6 +30,23 @@ public static class AvaloniaPickers
         }
     }
 
+    /// <summary>选择一个指定类型的文件（另有“所有文件”）</summary>
+    public static async Task<string?> PickFileAsync(string title, string typeName, params string[] patterns)
+    {
+        if (MainWindow?.StorageProvider is not { CanOpen: true } storage)
+        {
+            return null;
+        }
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(typeName) { Patterns = patterns }, FilePickerFileTypes.All],
+        });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
     public static async Task<string?> PickFileAsync(string title)
     {
         if (MainWindow?.StorageProvider is not { CanOpen: true } storage)

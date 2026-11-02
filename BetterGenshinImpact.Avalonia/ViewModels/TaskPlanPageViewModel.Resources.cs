@@ -222,11 +222,15 @@ public sealed partial class TaskPlanPageViewModel
                 try
                 {
                     var repository = await _catalog.Repositories.GetRepositoryAsync(id);
+                    // 与 WPF 相同：远端仓库按保存的远端和分支 Git 同步（ScriptRepoUpdater），本地仓库重新读取目录
+                    StatusMessage = repository.IsRemote
+                        ? $"正在同步仓库（{i + 1}/{repositoryIds.Length}）：{repository.Name}"
+                        : $"正在刷新本地仓库（{i + 1}/{repositoryIds.Length}）：{repository.Name}";
+                    var management = new BetterGenshinImpact.Pulonia.Services.PuloniaRepositoryManagementService(_catalog.Repositories);
                     if (repository.IsRemote)
-                        // 远端仓库的 Git 同步（ScriptRepoUpdater）仍在 Windows 版，Linux 版先使用本机副本
-                        throw new InvalidOperationException("Linux 版暂不能从远端同步仓库（Git 同步尚未迁移）");
-                    StatusMessage = $"正在刷新本地仓库（{i + 1}/{repositoryIds.Length}）：{repository.Name}";
-                    await _catalog.Repositories.RefreshLocalRepositoryAsync(id);
+                        await management.UpdateAsync(id, null);
+                    else
+                        await management.RefreshLocalAsync(id);
                     synced++;
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException

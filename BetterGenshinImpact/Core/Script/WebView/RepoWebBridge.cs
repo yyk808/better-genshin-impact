@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using BetterGenshinImpact.View.Windows;
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.ViewModel.Message;
 using CommunityToolkit.Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
@@ -63,7 +63,7 @@ public sealed class RepoWebBridge
         }
         catch (Exception ex)
         {
-            await ThemedMessageBox.ErrorAsync(ex.Message, "获取仓库信息失败");
+            await UiHost.Dialogs.ErrorAsync(ex.Message, "获取仓库信息失败");
             return string.Empty;
         }
     }
@@ -77,20 +77,21 @@ public sealed class RepoWebBridge
         }
         catch (Exception e)
         {
-            await ThemedMessageBox.ErrorAsync(e.Message, "订阅脚本链接失败！");
+            await UiHost.Dialogs.ErrorAsync(e.Message, "订阅脚本链接失败！");
         }
     }
 
     public async Task<string> GetUserConfigJson()
     {
-        string userConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "User", "config.json");
+        // Global.Absolute 在 Windows 上就是程序目录（与 AppDomain.BaseDirectory 相同）；Linux 版程序目录与资源目录不同
+        string userConfigPath = Global.Absolute(Path.Combine("User", "config.json"));
 
         // 保存有防抖，读取文件前先写入尚未落盘的改动
         CoreServices.GetService<IConfigService>()?.Flush();
         
         if (!File.Exists(userConfigPath))
         {
-            await ThemedMessageBox.ErrorAsync($"用户配置文件不存在: {userConfigPath}", "获取用户配置失败");
+            await UiHost.Dialogs.ErrorAsync($"用户配置文件不存在: {userConfigPath}", "获取用户配置失败");
             return string.Empty;
         }
 
@@ -206,7 +207,7 @@ public sealed class RepoWebBridge
         }
         catch (Exception ex)
         {
-            await ThemedMessageBox.ErrorAsync(ex.Message, "信息更新失败");
+            await UiHost.Dialogs.ErrorAsync(ex.Message, "信息更新失败");
             return false;
         }
     }
@@ -232,7 +233,7 @@ public sealed class RepoWebBridge
         }
         catch (Exception ex)
         {
-            await ThemedMessageBox.ErrorAsync($"清空更新标记失败: {ex.Message}", "操作失败");
+            await UiHost.Dialogs.ErrorAsync($"清空更新标记失败: {ex.Message}", "操作失败");
             return false;
         }
     }

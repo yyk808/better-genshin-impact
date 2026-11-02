@@ -94,6 +94,10 @@ public sealed partial class ScriptControlPageViewModel : PageViewModel
     }
 
     /// <summary>重新读取配置组与键鼠脚本列表</summary>
+    /// <summary>打开脚本仓库窗口（WPF“更多功能 → 打开脚本仓库”）</summary>
+    [RelayCommand]
+    private void OpenScriptRepo() => BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.OpenScriptRepoWindow();
+
     [RelayCommand]
     public void Reload()
     {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BetterGenshinImpact.Pulonia.Models;
 using Avalonia;
 using Avalonia.Controls;
@@ -60,6 +61,37 @@ internal static class AvaloniaHostProgram
             .UsePlatformDetect()
             .With(new FontManagerOptions { FontFallbacks = FontInfo.Fallbacks })
             .LogToTrace();
+
+    /// <summary>发现本次启动前留下、尚未恢复的脚本数据备份时提示用户，并可打开备份目录（文字与 WPF 相同）</summary>
+    private static async Task PromptUnrestoredScriptBackupsAsync(GameHost host, ILogger log)
+    {
+        try
+        {
+            var startedAt = host.Instances?.Context.StartedAt ?? new DateTimeOffset(Process.GetCurrentProcess().StartTime);
+            var backups = BetterGenshinImpact.Core.Script.ScriptRepoUpdater.FindUnrestoredBackups(startedAt);
+            if (backups.Count == 0)
+            {
+                return;
+            }
+
+            var backupPath = BetterGenshinImpact.Core.Script.ScriptRepoUpdater.ScriptUpdateBackupPath;
+            log.Warning("发现 {Count} 份未恢复的脚本数据备份：{Path}", backups.Count, backupPath);
+            var result = await UiHost.Dialogs.ShowAsync(
+                $"发现 {backups.Count} 份未恢复的脚本数据备份。\n" +
+                "可能是上次订阅脚本更新中途中断，或新版本脚本不再保留这些文件。\n\n" +
+                $"备份位于：{backupPath}\n" +
+                "确认不再需要后删除该目录即可不再提示。\n\n是否打开备份目录？",
+                "脚本数据备份", DialogKind.Warning, DialogButtons.YesNo);
+            if (result == DialogResult.Yes)
+            {
+                Process.Start(new ProcessStartInfo("xdg-open") { ArgumentList = { backupPath }, UseShellExecute = false });
+            }
+        }
+        catch (Exception e)
+        {
+            log.Warning(e, "检查脚本数据备份失败");
+        }
+    }
 
     private static void Startup(IClassicDesktopStyleApplicationLifetime desktop, AvaloniaOptions options, ILogger log)
     {
@@ -127,6 +159,22 @@ internal static class AvaloniaHostProgram
 
         viewModel = new MainWindowViewModel(host, hostError, log);
         window = new MainWindow { DataContext = viewModel };
+        if (host is not null)
+        {
+            // 脚本仓库：仓库设置窗口与仓库网页（WebKitGTK）；任务开始前等待订阅脚本自动更新（与 WPF 相同）
+            BetterGenshinImpact.Core.Script.ScriptRepoUi.OpenRepoWindow = () => ScriptRepoWindow.Open(BetterGenshinImpact.Core.Config.ConfigHost.Config!,
+                BetterGenshinImpact.Pulonia.Services.PuloniaTaskStore.DefaultCredentialVaultFactory(), window);
+            BetterGenshinImpact.Core.Script.ScriptRepoUi.OpenRepoWebView = () =>
+            {
+                if (ScriptRepoWebWindow.ShowOrActivate(BetterGenshinImpact.Core.Config.ConfigHost.Config!) is { } reason)
+                {
+                    UiHost.Dialogs.Toast(DialogKind.Error, "无法打开脚本仓库：" + reason);
+                }
+            };
+            BetterGenshinImpact.Core.Script.ScriptAutoUpdateGate.WaitForAutoUpdate =
+                static ct => BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.WaitForAutoUpdateAsync(ct);
+        }
+
         desktop.MainWindow = window;
         desktop.Exit += (_, _) =>
         {
@@ -176,6 +224,18 @@ internal static class AvaloniaHostProgram
 
             // 后台初始化推理（OCR），不阻塞界面
             _ = viewModel.Home.EnsureInferenceAsync();
+            // 自动更新已订阅的脚本（会先更新仓库；未启用或没有订阅时不做任何事），任务开始前会等待这次更新完成（与 WPF 主窗口加载时相同）
+            if (host is not null)
+            {
+                BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.StartAutoUpdate();
+            }
+
+            // 提示上次未恢复的脚本数据备份（更新中断等情况会保留备份），不阻塞后续启动流程（与 WPF 相同）
+            if (host is not null && options.UiTest is null)
+            {
+                _ = PromptUnrestoredScriptBackupsAsync(host, log);
+            }
+
             if (options.SelectWindowTitle is { } title && host is not null)
             {
                 await SelectWindowUnattendedAsync(viewModel, title, options.ScreenshotDirectory, log);

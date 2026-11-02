@@ -467,6 +467,14 @@ public sealed class GameHost : IAsyncDisposable
                 services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => new PuloniaInstanceKeyProvider(PuloniaInstanceKey.Primary));
             }
             services.AddSingleton<IPuloniaAccountService, PuloniaAccountService>();
+            // 临时文件（仓库 zip 导入解压、更换仓库地址时重新克隆等）：与 WPF 相同按“实例类型-进程号”分目录，退出时删除，
+            // 已结束进程留下的目录在启动时回收（租约文件以独占方式打开，Linux 上为独占 flock）
+            var tempDirectoryName = instanceBootstrap is not null
+                ? $"{instanceBootstrap.Context.InstanceType.ToString().ToLowerInvariant()}-{instanceBootstrap.Context.ProcessId}"
+                : $"primary-{Environment.ProcessId}";
+            services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Temp.TempFileService(tempDirectoryName,
+                sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Temp.TempFileService>>()));
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Temp.ITempFileService>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>());
             services.AddSingleton<IPuloniaTaskService>(sp => new PuloniaTaskService(
                 sp.GetRequiredService<PuloniaTaskStore>(),
                 sp.GetRequiredService<PuloniaTaskBuilder>(),
@@ -490,6 +498,7 @@ public sealed class GameHost : IAsyncDisposable
 
             var gameHost = new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
             gameHost.StartInstanceServices();
+            provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
             return gameHost;
         }
         catch
@@ -690,6 +699,16 @@ public sealed class GameHost : IAsyncDisposable
             {
                 _log.Warning(e, "停止多实例服务失败");
             }
+        }
+
+        // 删除本进程的临时目录（与 WPF 托管服务停止时相同）
+        try
+        {
+            await _provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>().StopAsync(CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "清理临时目录失败");
         }
 
         // 写入未保存的配置改动

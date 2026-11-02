@@ -207,7 +207,10 @@
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Content="七圣召唤策略" IsVisible="{Binding IsTcg}">
                                                 <ui:FASettingsExpanderItem.Footer>
-                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.TcgStrategies}" SelectedItem="{Binding Page.Config.AutoGeniusInvokationConfig.StrategyName}" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <Button x:Name="TcgRepoButton" Content="脚本仓库" Command="{Binding Page.OpenLocalScriptRepoCommand}" />
+                                                        <ComboBox Classes="param" ItemsSource="{Binding Page.TcgStrategies}" SelectedItem="{Binding Page.Config.AutoGeniusInvokationConfig.StrategyName}" />
+                                                    </StackPanel>
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Content="设置延时（毫秒）" Description="如果频繁出现操作速度过快，操作动画未播放完毕的情况可以添加延时" IsVisible="{Binding IsTcg}">

@@ -20,6 +20,4 @@ public static class AutoScriptPageTexts
 
     /// <summary>直接执行带配置的 JS 脚本时的提示（与 WPF 相同）</summary>
     public const string JsHasSettingsHint = "此脚本存在配置，不配置可能无法正常运行，建议请添加至【调度器】，并右键修改配置后使用！";
-
-    public const string RepoUnavailable = "脚本仓库（依赖 WebView2，Linux 版不可用）";
 }
