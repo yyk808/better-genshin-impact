@@ -15,7 +15,9 @@ public enum InferenceDeviceType
     CUDA = 4,
     // TensorRT 推理速度特别慢（首次还要构建引擎，等待时间更长），已从设置页与首页下线：
     // 界面不再提供该选项，历史配置在启动准备阶段自动回退 CPU。枚举编号、运行库与 provider 代码保留，便于日后恢复。
-    TensorRT = 5
+    TensorRT = 5,
+    // Linux：AMD 显卡，用系统已安装、带 MIGraphX 的 onnxruntime（如 Arch 的 onnxruntime-rocm）；Windows 不提供
+    ROCm = 6
 }
 
 /// <summary>
@@ -28,5 +30,8 @@ public static class InferenceDeviceTypeExtensions
     public static readonly InferenceDeviceType[] Selectable =
         [InferenceDeviceType.Cpu, InferenceDeviceType.DirectML, InferenceDeviceType.OpenVINO, InferenceDeviceType.CUDA];
 
-    public static bool IsSelectable(this InferenceDeviceType engine) => Selectable.Contains(engine);
+    /// <summary>本平台实际可选的推理引擎。Windows 不设置，等于 <see cref="Selectable"/>；Linux 宿主在启动准备前设为 CPU 与 ROCm。</summary>
+    public static InferenceDeviceType[] Available { get; set; } = Selectable;
+
+    public static bool IsSelectable(this InferenceDeviceType engine) => Available.Contains(engine);
 }

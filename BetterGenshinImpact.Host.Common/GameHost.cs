@@ -260,13 +260,16 @@ public sealed class GameHost : IAsyncDisposable
                 if (options.IntervalMs is { } interval) c.TriggerInterval = interval;
                 if (options.AutoEnterGame is { } autoEnter) c.GenshinStartConfig.AutoEnterGameEnabled = autoEnter;
 
-                // 推理：只用 CPU 和随程序发布的 onnxruntime 原生库
+                // 推理：CPU（随程序发布的 onnxruntime）或 ROCm（系统带 MIGraphX 的 onnxruntime，见 LinuxOnnxRuntimeSelection）；
+                // Windows 专有引擎（DirectML / OpenVINO / CUDA）在 Linux 上不可选，启动准备时回退 CPU
                 c.HardwareAccelerationConfig ??= new();
-                inferenceStartupStatus = InferenceRuntimeService.PrepareStartup(c.HardwareAccelerationConfig);
-                if (c.HardwareAccelerationConfig.InferenceDevice != InferenceDeviceType.Cpu)
+                InferenceDeviceTypeExtensions.Available = [InferenceDeviceType.Cpu, InferenceDeviceType.ROCm];
+                if (!InferenceDeviceTypeExtensions.Available.Contains(c.HardwareAccelerationConfig.InferenceDevice))
                 {
                     c.HardwareAccelerationConfig.SwitchToCpu();
                 }
+
+                inferenceStartupStatus = InferenceRuntimeService.PrepareStartup(c.HardwareAccelerationConfig);
             }
 
             LinuxHostConfig linuxConfig;
@@ -385,10 +388,10 @@ public sealed class GameHost : IAsyncDisposable
             });
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
             services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
-            // OCR / ONNX 推理（CPU）
+            // OCR / ONNX 推理（CPU 或 ROCm；选运行库必须在任何 ONNX 原生调用之前）
             services.AddSingleton(inferenceStartupStatus);
-            services.AddSingleton<IOnnxRuntimeSelection>(new CpuOnnxRuntimeSelection(AppContext.BaseDirectory));
-            services.AddSingleton<IInferenceDeviceDiscovery, CpuInferenceDeviceDiscovery>();
+            services.AddSingleton<IOnnxRuntimeSelection>(LinuxOnnxRuntimeSelection.Select(config.HardwareAccelerationConfig, AppContext.BaseDirectory, log));
+            services.AddSingleton<IInferenceDeviceDiscovery, LinuxInferenceDeviceDiscovery>();
             services.AddSingleton<IInferenceBenchmarkLeaseProvider>(sp => new InferenceBenchmarkCoordinator(
                 TaskControl.TaskSemaphore, () => sp.GetRequiredService<TaskTriggerDispatcher>().PauseForInference()));
             services.AddSingleton<InferenceModelDiagnostics>();
@@ -477,6 +480,11 @@ public sealed class GameHost : IAsyncDisposable
     {
         var inference = Inference;
         await inference.InitializeAsync();
+        if (!inference.IsCurrentValidated)
+        {
+            // 新选的 ROCm：先用 OCR 模型实际加载一次 provider 验证（同 Windows 主窗口加载后的验证），失败时回退 CPU 并记录原因
+            await inference.ValidatePendingAsync();
+        }
         _log.Information("推理：{Engine}，设备 {Device}，运行库目录 {Dir}{Message}", inference.Current.Engine,
             inference.Current.Device.Name, inference.Current.RuntimeDirectory,
             string.IsNullOrEmpty(inference.StartupMessage) ? "" : "，" + inference.StartupMessage);

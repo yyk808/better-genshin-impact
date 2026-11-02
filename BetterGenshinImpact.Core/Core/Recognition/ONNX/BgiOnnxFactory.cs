@@ -101,6 +101,9 @@ public sealed class BgiOnnxSessionFactory
                 // TensorRT 使用配置的设备编号，性能收益需要按模型和设备判断。
                 // TensorRT 独立注册，未接管的算子由 CPU 兜底。
                 return [ProviderType.TensorRt, ProviderType.Cpu];
+            case InferenceDeviceType.ROCm:
+                // Linux AMD 显卡：系统 onnxruntime 的 MIGraphX provider，不支持的算子由 CPU 兜底。
+                return [ProviderType.MiGraphX, ProviderType.Cpu];
             default:
                 _logger.LogWarning("[ONNX]无法识别推理设备设置 {Device}，回退到 CPU", inferenceDeviceType);
                 return [ProviderType.Cpu];
@@ -213,6 +216,9 @@ public sealed class BgiOnnxSessionFactory
                             sessionOptions.AppendExecutionProvider_CUDA(options);
                         }
                         break;
+                    case ProviderType.MiGraphX:
+                        AppendMiGraphX(sessionOptions);
+                        break;
                     default:
                         throw new InvalidEnumArgumentException("无效的推理设备");
                 }
@@ -224,6 +230,32 @@ public sealed class BgiOnnxSessionFactory
             // 目标 provider 初始化失败必须向上报告，不能跳过后用 CPU 假装验证成功。
             sessionOptions.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    ///     MIGraphX（onnxruntime 1.23 起 ROCm provider 已移除，AMD 显卡改用 MIGraphX）；运行库不带 MIGraphX 时再试旧的 ROCm provider。
+    ///     两者都不可用时抛出，由启动验证回退 CPU。
+    /// </summary>
+    private void AppendMiGraphX(SessionOptions sessionOptions)
+    {
+        try
+        {
+            // 原生导出 OrtSessionOptionsAppendExecutionProvider_MIGraphX 只在带 MIGraphX 编译的 onnxruntime 里有
+            sessionOptions.AppendExecutionProvider_MIGraphX(Runtime.Device.Index);
+        }
+        catch (Exception migraphx)
+        {
+            _logger.LogWarning("[ONNX]MIGraphX provider 不可用（{Error}），尝试 ROCm provider", migraphx.Message);
+            try
+            {
+                sessionOptions.AppendExecutionProvider_ROCm(Runtime.Device.Index);
+            }
+            catch (Exception rocm)
+            {
+                throw new InvalidOperationException(
+                    $"onnxruntime 不带 MIGraphX / ROCm provider：MIGraphX：{migraphx.Message}；ROCm：{rocm.Message}", rocm);
+            }
         }
     }
 

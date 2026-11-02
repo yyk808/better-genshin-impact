@@ -41,6 +41,23 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="InferenceCard" Header="硬件加速（推理引擎）" Description="CPU，或 AMD 显卡用 ROCm（需要系统安装带 MIGraphX 的 onnxruntime，如 Arch 的 onnxruntime-rocm）。重启后生效，加载失败自动回退 CPU。" IconSource="{svc:FluentIconSource DeveloperBoard24}" IsVisible="{Binding Inference, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox x:Name="InferenceEngineCombo" MinWidth="200" ItemsSource="{Binding Inference.Options}" SelectedItem="{Binding Inference.Selected}" />
+                                <Button x:Name="InferenceApplyButton" Content="应用" Command="{Binding Inference.ApplyCommand}" />
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="OCR 强制使用 CPU" Description="与 Windows 版相同，默认开启；关闭后 OCR 也用所选引擎">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="InferenceCpuOcrSwitch" IsChecked="{Binding Inference.CpuOcr}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="ROCm 检测" Description="{Binding Inference.RocmDetection}" />
+                        <ui:FASettingsExpanderItem>
+                            <SelectableTextBlock x:Name="InferenceStatusText" Text="{Binding Inference.Status}" TextWrapping="Wrap" />
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="启用遮罩窗口" Description="在游戏窗口上方显示日志、状态、识别结果等信息。需要重启生效。" IconSource="{svc:FluentIconSource SquareHintSparkles24}">
                         <ui:FASettingsExpander.Footer>
                             <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.MaskEnabled}" OnContent="" OffContent="" />

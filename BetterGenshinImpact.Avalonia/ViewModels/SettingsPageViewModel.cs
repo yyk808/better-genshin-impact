@@ -168,6 +168,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         HotkeyHoldState.Query ??= hotkey => _holdRunners.TryGetValue(hotkey, out var r) && r.IsPressed;
         Config = host?.Config ?? new AllConfig();
         IsAvailable = host is not null;
+        Inference = host is null ? null : new InferenceSettingsViewModel(host);
         foreach (var (group, name, property) in HotkeyTable)
         {
             if (typeof(HotKeyConfig).GetProperty(property) is null)
@@ -190,6 +191,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     public override string Title => "设置";
 
     public AllConfig Config { get; }
+
+    /// <summary>硬件加速（推理引擎 CPU / ROCm）</summary>
+    public InferenceSettingsViewModel? Inference { get; }
 
     // ---- 通用设置补项（对照 WPF CommonSettingsPage，选项与逻辑在 Core CommonSettingsChoices） ----
 

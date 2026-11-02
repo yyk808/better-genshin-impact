@@ -9,5 +9,6 @@ public enum ProviderType
     Dml,
     Cpu,
     Dnnl,
-    OpenVino
+    OpenVino,
+    MiGraphX
 }

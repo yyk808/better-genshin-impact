@@ -18,6 +18,8 @@ public partial class HardwareAccelerationConfig : ObservableObject
     [ObservableProperty] private InferenceEngineSettings _openVINO = new();
     [ObservableProperty] private InferenceEngineSettings _cuda = new();
     [ObservableProperty] private InferenceEngineSettings _tensorRT = new();
+    // Linux：ROCm（MIGraphX）设备参数；未选过时不写入配置文件
+    [ObservableProperty] private InferenceEngineSettings _rocm = new();
     [ObservableProperty] private InferenceValidationState _validationState;
     [ObservableProperty] private string _verifiedSignature = "";
     // 历史成功记录仅用于设置页展示，不能代替当前设备和参数的验证签名。
@@ -32,6 +34,7 @@ public partial class HardwareAccelerationConfig : ObservableObject
         InferenceDeviceType.OpenVINO => OpenVINO,
         InferenceDeviceType.CUDA => Cuda,
         InferenceDeviceType.TensorRT => TensorRT,
+        InferenceDeviceType.ROCm => Rocm,
         _ => throw new ArgumentOutOfRangeException(nameof(engine))
     };
 
@@ -54,7 +57,7 @@ public partial class HardwareAccelerationConfig : ObservableObject
         FormatVersion = 1;
         Cpu = new() { DeviceId = "CPU" };
         PaddleOcrCpu = new();
-        DirectML = new(); OpenVINO = new(); Cuda = new(); TensorRT = new();
+        DirectML = new(); OpenVINO = new(); Cuda = new(); TensorRT = new(); Rocm = new();
         InferenceDevice = InferenceDeviceType.Cpu;
         CpuOcr = true;
         ValidationState = InferenceValidationState.None;

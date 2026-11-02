@@ -19,6 +19,7 @@ public sealed class HardwareAccelerationConfigJsonConverter : JsonConverter<Hard
             {
                 FormatVersion = data.FormatVersion, InferenceDevice = data.InferenceDevice, CpuOcr = data.CpuOcr,
                 Cpu = data.Cpu!, DirectML = data.DirectML!, OpenVINO = data.OpenVINO!, Cuda = data.Cuda!, TensorRT = data.TensorRT!,
+                Rocm = data.ROCm ?? new(),
                 PaddleOcrCpu = data.PaddleOcrCpu ?? new(),
                 ValidationState = data.ValidationState, VerifiedSignature = data.VerifiedSignature ?? "",
                 ValidatedEngines = data.ValidatedEngines ?? [],
@@ -33,6 +34,8 @@ public sealed class HardwareAccelerationConfigJsonConverter : JsonConverter<Hard
         {
             FormatVersion = value.FormatVersion, InferenceDevice = value.InferenceDevice, CpuOcr = value.CpuOcr,
             Cpu = value.Cpu, DirectML = value.DirectML, OpenVINO = value.OpenVINO, Cuda = value.Cuda, TensorRT = value.TensorRT,
+            // 只在 Linux 上选过 ROCm 时写出，Windows 的配置文件内容不变
+            ROCm = string.IsNullOrWhiteSpace(value.Rocm?.DeviceId) ? null : value.Rocm,
             PaddleOcrCpu = value.PaddleOcrCpu,
             ValidationState = value.ValidationState, VerifiedSignature = value.VerifiedSignature,
             ValidatedEngines = value.ValidatedEngines,
@@ -51,6 +54,8 @@ public sealed class HardwareAccelerationConfigJsonConverter : JsonConverter<Hard
         public InferenceEngineSettings? OpenVINO { get; set; }
         public InferenceEngineSettings? Cuda { get; set; }
         public InferenceEngineSettings? TensorRT { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyName("rocm")]
+        public InferenceEngineSettings? ROCm { get; set; }
         public InferenceValidationState ValidationState { get; set; }
         public string? VerifiedSignature { get; set; }
         public InferenceDeviceType[]? ValidatedEngines { get; set; }

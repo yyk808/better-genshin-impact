@@ -206,7 +206,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | --- | --- | --- |
 | 后台输入（PostMessage） | 支持 | 原生 Linux 没有对应机制：游戏在前台时改走前台通道，不在前台时记录告警并忽略 |
 | 截图 | BitBlt / DWM / WGC，HDR | `ShmRoot`（默认）/ `GetImageRoot` / `GetImageWindow` / `CompositeWindow`（不受遮挡和遮罩影响）；不支持 HDR |
-| 推理设备 | DirectML / CUDA 等 | 强制 CPU（只在本次运行生效，不写回配置） |
+| 推理设备 | DirectML / CUDA 等 | CPU，或 AMD 显卡 ROCm：直接用系统已装、带 MIGraphX 的 onnxruntime（如 Arch 的 `onnxruntime-rocm`），设置页“硬件加速”选择、重启生效，失败自动回退 CPU 并提示原因，见 [rocm-checklist.md](rocm-checklist.md)；配置里的 Windows 专有引擎在 Linux 上按 CPU 运行（只在本次运行生效，不写回配置） |
 | 鼠标绝对移动 | — | Wine 会把绝对移动转换成原始输入并转动视角，上层按 `AbsoluteMoveAffectsCamera` 处理 |
 | TTS | 与平台无关的 GPT-SoVITS / HTTP 引擎（上游已移除 SAPI） | 同左，另有 espeak-ng |
 | 网页视图 | WebView2 | WebKitGTK 4.1（自定义协议 `bgi-settings://`、`bgi-mask://`，内容安全策略与 Windows 相同） |

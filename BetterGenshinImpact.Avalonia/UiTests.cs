@@ -80,6 +80,8 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "script-more": await ScriptMoreAsync(); break;
                 case "mask-focus": await MaskFocusAsync(); break;
                 case "mask-layout": await MaskLayoutAsync(); break;
+                case "inference-select": await InferenceSelectAsync(); break;
+                case "inference-fallback": await InferenceFallbackAsync(); break;
                 case "pulonia-accounts": await PuloniaAccountsAsync(); break;
                 case "account-switch": await AccountSwitchAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
