@@ -95,16 +95,18 @@
                     </DockPanel>
                 </Expander.Header>
                     <StackPanel Spacing="10">
-                        <DockPanel Opacity="0.6">
+                        <DockPanel>
+                            <ToggleSwitch x:Name="RunBackgroundSwitch" IsChecked="{Binding Config.AutoSkipConfig.RunBackgroundEnabled}" />
                             <StackPanel>
                                 <TextBlock Text="启用后台模式（会只用交互键进行剧情）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Linux 版不可用：XTest 输入只有前台通道，没有 Windows PostMessage 那样的后台按键（配置与 Windows 版共用）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="游戏请不要最小化，不在对话中的时候鼠标会自动吸附回游戏中。Linux：Wine / Proton 游戏经后台输入辅助程序发键（Steam 容器内的游戏不支持，此时只在游戏位于前台时生效）；是否先激活游戏窗口见“设置”页" />
                             </StackPanel>
                         </DockPanel>
-                        <DockPanel Opacity="0.6">
+                        <DockPanel>
+                            <ToggleSwitch x:Name="BringToFrontSwitch" IsChecked="{Binding Config.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled}" />
                             <StackPanel>
                                 <TextBlock Text="后台剧情结束后自动切回游戏前台" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="依赖后台模式，Linux 版不可用" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="仅在后台模式生效，识别到对话结束后会自动激活原神窗口" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel Opacity="0.6">

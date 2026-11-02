@@ -211,7 +211,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 
 | 项目 | Windows | Linux |
 | --- | --- | --- |
-| 后台输入（PostMessage） | 支持 | 原生 Linux 没有对应机制：游戏在前台时改走前台通道，不在前台时记录告警并忽略 |
+| 后台输入（PostMessage） | 支持；游戏不在前台时每次操作前先发 WM_ACTIVATE | Wine 游戏（X11 / XWayland 窗口）支持：首次后台操作时用游戏自己的 wine 和环境（`/proc/<pid>/environ`、同一 wineserver）在游戏前缀里启动一个约 2 KB 的辅助程序（由 `WinePostHelperImage` 在运行时生成，写到 `~/.cache/bettergi/`），由它对游戏窗口 PostMessageW；按键、左右键点击与 Windows 相同，游戏留在后台。默认不发 WM_ACTIVATE：Wine 收到它会把游戏切到前台并可能丢掉紧随的按键；设置页“后台输入时激活游戏窗口（Wine）”打开后照 Windows 的方式发（会把游戏切到前台）。辅助程序启动失败（如 Steam Proton 的 pressure-vessel 容器、找不到 wine）或非 Wine 窗口时，与以前相同：游戏在前台时改走前台通道，不在前台时记录告警并忽略。实时触发页自动剧情的“启用后台模式”“后台剧情结束后自动切回游戏前台”开关已可用（与 Windows 共用配置） |
 | 截图 | BitBlt / DWM / WGC，HDR | `ShmRoot`（默认）/ `GetImageRoot` / `GetImageWindow` / `CompositeWindow`（不受遮挡和遮罩影响）；不支持 HDR |
 | 推理设备 | DirectML / CUDA 等 | CPU，或 AMD 显卡 ROCm：直接用系统已装、带 MIGraphX 的 onnxruntime（如 Arch 的 `onnxruntime-rocm`），设置页“硬件加速”选择、重启生效，失败自动回退 CPU 并提示原因，见 [rocm-checklist.md](rocm-checklist.md)；配置里的 Windows 专有引擎在 Linux 上按 CPU 运行（只在本次运行生效，不写回配置） |
 | 鼠标绝对移动 | — | Wine 会把绝对移动转换成原始输入并转动视角，上层按 `AbsoluteMoveAffectsCamera` 处理 |

@@ -1,12 +1,15 @@
 using BetterGenshinImpact.Core.Input;
+using BetterGenshinImpact.Platform.Linux.Wine;
 using BetterGenshinImpact.Platform.Linux.X11.Native;
 using static BetterGenshinImpact.Platform.Linux.X11.Native.Xlib;
 
 namespace BetterGenshinImpact.Platform.Linux.X11;
 
 /// <summary>
-/// XTest 输入后端：只有前台通道，<see cref="Background"/> 为 null（Linux 原生没有 PostMessage 的等价物，
-/// XSendEvent 合成的事件带 send_event 标记，会被游戏和 Wine 忽略）。主程序的 InputHub.Background 此时返回告警并忽略的通道。
+/// XTest 输入后端。前台通道为 XTest；后台通道只对 Wine 窗口提供（<see cref="WinePostMessageChannel"/>：在游戏的 Wine 前缀里 PostMessageW，
+/// 与 Windows 版相同的后台方式）。XSendEvent 不能代替：合成的按键被 Wine 忽略，点击会激活窗口。
+/// 不是 Wine 窗口、或辅助程序启动失败 / 已退出时 <see cref="Background"/> 为 null，主程序的 InputHub.Background 此时返回前台回退通道
+/// （游戏在前台时走前台通道，不在前台时跳过并告警）。
 /// </summary>
 public sealed class XTestInputBackend : IInputBackend
 {
@@ -16,7 +19,9 @@ public sealed class XTestInputBackend : IInputBackend
     /// <param name="c">X 连接，为 null 时按 $DISPLAY 自行创建</param>
     /// <param name="ownsConnection">Dispose 时是否关闭连接；<paramref name="c"/> 为 null 时总是 true</param>
     /// <param name="absoluteMoveAffectsCamera">绝对移动是否会被游戏当成视角转动。目标是 Wine 窗口（原神）时为 true</param>
-    public XTestInputBackend(X11Connection? c = null, bool ownsConnection = false, bool absoluteMoveAffectsCamera = true)
+    /// <param name="wineBackground">Wine 窗口的后台通道（首次取 <see cref="Background"/> 时启动辅助程序），null 为没有后台通道</param>
+    public XTestInputBackend(X11Connection? c = null, bool ownsConnection = false, bool absoluteMoveAffectsCamera = true,
+        WinePostMessageChannel? wineBackground = null)
     {
         _owns = c == null || ownsConnection;
         _c = c ?? new X11Connection();
@@ -27,18 +32,35 @@ public sealed class XTestInputBackend : IInputBackend
         }
 
         Foreground = new XTestInputChannel(_c, absoluteMoveAffectsCamera);
+        _wineBackground = wineBackground;
+    }
+
+    private readonly WinePostMessageChannel? _wineBackground;
+
+    /// <summary>屏幕尺寸（像素），供后台通道换算归一化坐标</summary>
+    public (int Width, int Height) ScreenSize()
+    {
+        lock (_c.Gate)
+        {
+            return _c.IsDisposed ? (0, 0) : (XDisplayWidth(_c.Display, _c.Screen), XDisplayHeight(_c.Display, _c.Screen));
+        }
     }
 
     public InputBackendKind Kind => InputBackendKind.X11;
 
     public IInputChannel Foreground { get; }
 
-    public IInputChannel? Background => null;
+    public IInputChannel? Background => _wineBackground is not null && _wineBackground.EnsureStarted() ? _wineBackground : null;
 
-    public void ReleaseAll() => Foreground.ReleaseAll();
+    public void ReleaseAll()
+    {
+        Foreground.ReleaseAll();
+        _wineBackground?.ReleaseAll();
+    }
 
     public void Dispose()
     {
+        _wineBackground?.Dispose();
         if (_owns) _c.Dispose();
     }
 }

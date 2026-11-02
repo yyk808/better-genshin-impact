@@ -267,6 +267,11 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <ui:FASettingsExpander Header="后台输入时激活游戏窗口（Wine）" Description="Wine 游戏的后台按键和点击前，先给游戏发 WM_ACTIVATE（与 Windows 版相同）。打开后每次后台操作都会把游戏切到前台、抢走当前窗口的焦点；关闭（默认）时游戏留在后台，按键和点击照常送达" IconSource="{svc:FluentIconSource Window24}" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="WineActivateToggle" IsChecked="{Binding LinuxConfig.WineBackgroundActivate, FallbackValue=False}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="保存日志文件" Description="与 Windows 版相同写到 log 目录（better-genshin-impact日期.log，按天滚动，保留 31 个）；关闭后日志只显示在界面" IconSource="{svc:FluentIconSource DocumentText24}" IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <ui:FASettingsExpander.Footer>
                             <StackPanel Orientation="Horizontal" Spacing="8">

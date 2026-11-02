@@ -315,6 +315,12 @@ public sealed class GameHost : IAsyncDisposable
                 ApplyLinuxOverrides(linuxConfig);
             }
 
+            // Wine 游戏的后台输入是否先发 WM_ACTIVATE（Linux 宿主设置，默认不发；每次操作时读取）
+            if (BetterGenshinImpact.Platform.Linux.Wayland.LinuxSession.X11Of(platform) is { } x11Platform)
+            {
+                x11Platform.WineBackgroundActivate = () => linuxConfig.WineBackgroundActivate;
+            }
+
             var manualWindow = new ManualWindowSelection(platform);
             GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames, () => linuxConfig, log);
             // 临时抓帧（音游引导识别键位等）经平台截图器

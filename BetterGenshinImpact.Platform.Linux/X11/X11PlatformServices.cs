@@ -1,4 +1,5 @@
 using BetterGenshinImpact.Core.Input;
+using BetterGenshinImpact.Platform.Linux.Wine;
 using static BetterGenshinImpact.Platform.Linux.X11.Native.Xlib;
 
 namespace BetterGenshinImpact.Platform.Linux.X11;
@@ -71,14 +72,27 @@ public sealed class X11PlatformServices : IPlatformServices
 
     /// <summary>
     /// 新建 XTest 输入后端（独立连接，Dispose 时关闭）。
-    /// Wine 窗口（WM_CLASS 含 .exe）的绝对移动会被游戏当成视角转动，据此设置 <see cref="InputCapabilities.AbsoluteMoveAffectsCamera"/>
+    /// Wine 窗口（WM_CLASS 含 .exe）的绝对移动会被游戏当成视角转动，据此设置 <see cref="InputCapabilities.AbsoluteMoveAffectsCamera"/>；
+    /// Wine 窗口另有后台通道（<see cref="WinePostMessageChannel"/>，首次使用时启动辅助程序）
     /// </summary>
     public IInputBackend CreateInput(IPlatformWindow window)
     {
         ArgumentNullException.ThrowIfNull(window);
         var isWine = window.ClassName.Contains(".exe", StringComparison.OrdinalIgnoreCase);
-        return new XTestInputBackend(new X11Connection(_display), ownsConnection: true, absoluteMoveAffectsCamera: isWine);
+        var c = new X11Connection(_display);
+        XTestInputBackend? backend = null;
+        var wine = isWine && window.ProcessId > 0
+            ? WinePostMessageChannel.ForWindow(window, () => backend?.ScreenSize() ?? (0, 0), () => WineBackgroundActivate())
+            : null;
+        backend = new XTestInputBackend(c, ownsConnection: true, absoluteMoveAffectsCamera: isWine, wineBackground: wine);
+        return backend;
     }
+
+    /// <summary>
+    /// Wine 后台通道是否在游戏不在前台时先投递 WM_ACTIVATE（Windows 版的做法）。默认 false：在 Wine 下这会把游戏切到前台。
+    /// 每次操作时读取，设置改动立即生效
+    /// </summary>
+    public Func<bool> WineBackgroundActivate { get; set; } = () => false;
 
     public PlatformProbeResult Probe()
     {

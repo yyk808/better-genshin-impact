@@ -59,6 +59,12 @@ public sealed partial class LinuxHostConfig : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _cloudGameEnabled;
 
+    /// <summary>
+    /// Wine 游戏的后台输入（PostMessage）在每次操作前先发 WM_ACTIVATE，与 Windows 版相同。默认关闭：
+    /// Wine 收到这条消息会把游戏窗口切到前台（抢走焦点），紧随其后的按键还可能丢失；关闭时游戏留在后台，按键与点击照常送达
+    /// </summary>
+    [ObservableProperty] private bool _wineBackgroundActivate;
+
     /// <summary>云原神页面地址（与 Windows 网页版相同；测试时可改成本地页面）</summary>
     [ObservableProperty] private string _cloudGameUrl = DefaultCloudGameUrl;
 

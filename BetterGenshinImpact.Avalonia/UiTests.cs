@@ -43,6 +43,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "wayland-hotkeys": await WaylandHotkeysAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
+                case "wine-background": await WineBackgroundAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
@@ -3892,8 +3893,26 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle();
         Check("拾取引擎/吃药间隔/自定义优先选项写入配置", cfg.AutoPickConfig.OcrEngine == "Yap" && cfg.AutoEatConfig.CheckInterval == 300
             && cfg.AutoSkipConfig.CustomPriorityOptions == "m55选项A;m55选项B");
-        Check("后台模式 / 画中画 / 语音等待显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text?.StartsWith("Linux 版不可用：XTest") == true)
+        Check("画中画 / 语音等待显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text == "Windows 版小窗功能，Linux 版不可用")
             && All<TextBlock>().Any(t => t.Text?.Contains("WASAPI") == true));
+        // 后台模式（#9）：Wine 游戏有后台通道后，两个开关可用并写入配置
+        var savedBg = (cfg.AutoSkipConfig.RunBackgroundEnabled, cfg.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled);
+        var bgSwitch = Named<ToggleSwitch>("RunBackgroundSwitch");
+        var frontSwitch = Named<ToggleSwitch>("BringToFrontSwitch");
+        Check("后台模式 / 切回前台开关可用", bgSwitch is { IsEnabled: true } && frontSwitch is { IsEnabled: true });
+        if (bgSwitch is not null && frontSwitch is not null)
+        {
+            bgSwitch.IsChecked = !savedBg.Item1;
+            frontSwitch.IsChecked = !savedBg.Item2;
+            await Settle();
+            Check("后台模式 / 切回前台开关写入配置", cfg.AutoSkipConfig.RunBackgroundEnabled == !savedBg.Item1
+                && cfg.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled == !savedBg.Item2);
+            bgSwitch.IsChecked = savedBg.Item1;
+            frontSwitch.IsChecked = savedBg.Item2;
+            await Settle();
+        }
+
+        Check("后台模式说明不再写 Linux 不可用", !All<TextBlock>().Any(t => t.Text?.StartsWith("Linux 版不可用：XTest") == true));
         Check("地图遮罩、冷却提示、快速传送、邀约卡片", Named<Expander>("MapMaskCard") is not null && Named<Expander>("SkillCdCard") is not null
             && Named<NumericUpDown>("TeleportListClickDelayBox") is not null && Named<ComboBox>("HangoutBranchBox") is { ItemCount: > 0 });
         Shot("avalonia-trigger-top.png");
