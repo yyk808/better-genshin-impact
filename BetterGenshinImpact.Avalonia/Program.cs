@@ -160,6 +160,21 @@ internal static class AvaloniaHostProgram
             BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current = htmlMask;
         }
 
+        if (host is not null)
+        {
+            // 悬浮小窗 / 字幕浮窗：Avalonia 窗口 + WebKitGTK 网页（与 WPF 相同的 GuideWindowService 与 ViewModel）；
+            // 窗口栏“全部设置…”显示主界面并切到悬浮小窗设置页
+            GuideViews.Configure(host, () =>
+            {
+                if (window is null || viewModel is null) return;
+                window.Show();
+                if (window.WindowState == global::Avalonia.Controls.WindowState.Minimized)
+                    window.WindowState = global::Avalonia.Controls.WindowState.Normal;
+                window.Activate();
+                viewModel.Navigate("悬浮小窗");
+            });
+        }
+
         viewModel = new MainWindowViewModel(host, hostError, log);
         window = new MainWindow { DataContext = viewModel };
         if (host is not null)
@@ -222,6 +237,8 @@ internal static class AvaloniaHostProgram
             host?.MarkInstanceApplicationReady();
             // 悬浮小窗按显示器工作区定位
             GuideViews.AttachScreens(window);
+            // 与 WPF 相同：主界面加载后启动悬浮小窗服务（截图器绑定游戏时按设置自动打开）
+            host?.StartGuide();
             if (options.Page is { } page && !viewModel.Navigate(page))
             {
                 log.Warning("没有名为 {Page} 的页面", page);

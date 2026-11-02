@@ -270,6 +270,8 @@ public sealed class MaskWindowController : IDisposable
                 _window.Show();
                 _log.Information("遮罩窗口已显示：画面 {Rect}", rect);
             }
+
+            PublishState(true, rect);
         }
         catch (Exception e)
         {
@@ -400,6 +402,25 @@ public sealed class MaskWindowController : IDisposable
             _window.Hide();
             _log.Information("遮罩窗口已隐藏");
         }
+
+        PublishState(false, _lastRect);
+    }
+
+    private BetterGenshinImpact.Core.Mask.MaskWindowState? _publishedState;
+
+    /// <summary>
+    /// 遮罩显示、隐藏或移动后通知订阅者（与 WPF 的 IMaskWindowHost.StateChanged 相同，悬浮小窗据此重新置顶到遮罩之上）
+    /// </summary>
+    private void PublishState(bool visible, PixelRect rect)
+    {
+        var state = new BetterGenshinImpact.Core.Mask.MaskWindowState(visible, new System.Drawing.Rectangle(rect.X, rect.Y, rect.Width, rect.Height));
+        if (state == _publishedState)
+        {
+            return;
+        }
+
+        _publishedState = state;
+        (_host.Services.GetService(typeof(BetterGenshinImpact.Core.Mask.MaskWindowStateSource)) as BetterGenshinImpact.Core.Mask.MaskWindowStateSource)?.Publish(state);
     }
 
     public void Dispose()

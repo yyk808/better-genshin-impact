@@ -13,24 +13,37 @@ namespace BetterGenshinImpact.Avalonia.ViewModels;
 
 /// <summary>
 /// “悬浮小窗”设置页（对应 WPF GuideWindowSettingsPage）：与 WPF 相同的设置项（直接编辑 config.json 的 GuideWindowConfig）、
-/// 收藏与观看记录（Core 的 GuideLibraryStore，与 WPF 同一份 User/GuideWindow 文件）。
-/// 小窗本身是 WebView2 置顶窗口，Linux 版暂未实现：打开 / 隐藏 / 关闭不可用，设置会在 Windows 版生效
+/// 收藏与观看记录（宿主的 GuideLibraryStore，与 WPF 同一份 User/GuideWindow 文件）。
+/// 打开 / 隐藏 / 关闭 / 恢复小窗与 WPF 相同地交给 GuideWindowService；小窗网页需要 WebKitGTK 4.1，没有时显示提示
 /// </summary>
 public sealed partial class GuideWindowSettingsPageViewModel : PageViewModel
 {
     private readonly ILogger _log;
     private readonly Func<string, bool> _navigate;
     private readonly GuideLibraryStore _library;
+    private readonly GuideWindowService? _service;
 
     [ObservableProperty] private string _librarySummary = "";
+
+    /// <summary>小窗状态说明（与 WPF 相同）</summary>
+    [ObservableProperty] private string _windowStatus = "小窗未打开";
 
     public GuideWindowSettingsPageViewModel(GameHost? host, Func<string, bool> navigate, ILogger log)
     {
         _log = log;
         _navigate = navigate;
         Config = (host?.Config ?? new AllConfig()).GuideWindowConfig;
-        _library = new GuideLibraryStore(CoreServices.GetLogger<GuideLibraryStore>());
+        _service = host?.Guide;
+        // 与小窗共用同一个收藏与观看记录存储（宿主注册的单例）
+        _library = host?.Services.GetService(typeof(GuideLibraryStore)) as GuideLibraryStore
+                   ?? new GuideLibraryStore(CoreServices.GetLogger<GuideLibraryStore>());
         _library.Changed += (_, _) => Dispatcher.UIThread.Post(RefreshLibrary);
+        if (_service is not null)
+        {
+            _service.State.PropertyChanged += (_, _) => Dispatcher.UIThread.Post(UpdateStatus);
+        }
+
+        UpdateStatus();
         RefreshLibrary();
     }
 
@@ -40,7 +53,98 @@ public sealed partial class GuideWindowSettingsPageViewModel : PageViewModel
 
     public GuideLibraryStore Library => _library;
 
-    public string StatusText => "Linux 版暂不支持悬浮小窗（需要 WebView2 置顶窗口），这里的设置与收藏会在 Windows 版中生效";
+    /// <summary>小窗状态（自测、界面绑定用）；没有宿主时为 null</summary>
+    public GuideWindowState? State => _service?.State;
+
+    /// <summary>可以打开小窗：有宿主、主实例、WebKitGTK 可用</summary>
+    public bool CanOpenWindow => _service is { IsAvailable: true } && GuideLinuxPlatform.IsWebViewAvailable();
+
+    /// <summary>不能打开小窗时的提示横幅</summary>
+    public bool ShowBanner => !CanOpenWindow;
+
+    public string StatusText => _service is null
+        ? "没有连接到 BetterGI 宿主，这里只能修改设置"
+        : !_service.IsAvailable
+            ? "悬浮小窗只能在主实例中使用。"
+            : "悬浮小窗需要 WebKitGTK 4.1（Debian / Ubuntu 的 libwebkit2gtk-4.1-0），安装后重新启动 BetterGI";
+
+    public bool IsShown => _service?.State.IsShown == true;
+
+    public bool IsOpen => _service?.State.IsOpen == true;
+
+    /// <summary>与 WPF 相同的状态说明</summary>
+    private void UpdateStatus()
+    {
+        if (_service is not { } service)
+        {
+            WindowStatus = "小窗未打开";
+            return;
+        }
+
+        var state = service.State;
+        WindowStatus = !service.IsAvailable
+            ? "悬浮小窗只能在主实例中使用"
+            : !state.IsOpen
+                ? "小窗未打开"
+                : state.IsShown
+                    ? state.IsClickThrough ? "正在显示 · 鼠标穿透中" : "正在显示"
+                    : state.IsHiddenByTask
+                        ? "已隐藏：任务运行中，结束后自动恢复"
+                        : state.IsHiddenByGame
+                            ? "已隐藏：游戏不在前台，回到游戏后自动显示"
+                            : "已隐藏";
+        OnPropertyChanged(nameof(IsShown));
+        OnPropertyChanged(nameof(IsOpen));
+    }
+
+    [RelayCommand]
+    private void OpenWindow() => _service?.Open();
+
+    [RelayCommand]
+    private void HideWindow() => _service?.Hide();
+
+    [RelayCommand]
+    private void CloseWindow() => _service?.Close();
+
+    /// <summary>显示小窗，关闭鼠标穿透、退出沉浸与交互模式，不透明度恢复 100%，并移回屏幕内（与 WPF 相同）</summary>
+    [RelayCommand]
+    private void RestoreWindow() => _service?.RestoreEmergency();
+
+    /// <summary>调整字幕浮窗位置（与 WPF 相同：先打开字幕浮窗与小窗）</summary>
+    [RelayCommand]
+    private void AdjustSubtitle()
+    {
+        if (_service is null)
+        {
+            return;
+        }
+
+        Config.SubtitleWindowEnabled = true;
+        if (!_service.State.IsOpen)
+        {
+            _service.Open();
+        }
+
+        _service.BeginSubtitleAdjust();
+    }
+
+    [RelayCommand]
+    private void OpenFavorite(GuideFavoriteItem? item)
+    {
+        if (item is not null && !string.IsNullOrEmpty(item.Url))
+        {
+            _service?.Open(new GuideOpenRequest(item.Url, GuideOpenSource.Favorite));
+        }
+    }
+
+    [RelayCommand]
+    private void OpenHistory(GuideHistoryItem? item)
+    {
+        if (item is not null && !string.IsNullOrEmpty(item.Url))
+        {
+            _service?.Open(new GuideOpenRequest(item.Url, GuideOpenSource.History));
+        }
+    }
 
     public ObservableCollection<GuideFavoriteItem> Favorites { get; } = [];
 

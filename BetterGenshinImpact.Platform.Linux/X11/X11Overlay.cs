@@ -9,7 +9,10 @@ namespace BetterGenshinImpact.Platform.Linux.X11;
 public static class X11Overlay
 {
     /// <summary>设置点击穿透；失败时返回原因</summary>
-    public static string? SetClickThrough(string? display, nint window)
+    public static string? SetClickThrough(string? display, nint window) => SetClickThrough(display, window, true);
+
+    /// <summary>设置或取消点击穿透（取消时输入区域恢复为整个窗口）；失败时返回原因</summary>
+    public static unsafe string? SetClickThrough(string? display, nint window, bool enabled)
     {
         var d = Xlib.XOpenDisplay(display);
         if (d == 0)
@@ -24,8 +27,18 @@ public static class X11Overlay
                 return "X 服务器不支持 SHAPE 扩展";
             }
 
-            // 空矩形列表 + ShapeSet：输入区域为空
-            Xlib.XShapeCombineRectangles(d, window, Xlib.ShapeInput, 0, 0, 0, 0, Xlib.ShapeSet, Xlib.Unsorted);
+            if (enabled)
+            {
+                // 空矩形列表 + ShapeSet：输入区域为空
+                Xlib.XShapeCombineRectangles(d, window, Xlib.ShapeInput, 0, 0, 0, 0, Xlib.ShapeSet, Xlib.Unsorted);
+            }
+            else
+            {
+                // 一个覆盖整个窗口的矩形（XRectangle：short x, y; ushort width, height）
+                var rect = stackalloc ushort[4] { 0, 0, ushort.MaxValue, ushort.MaxValue };
+                Xlib.XShapeCombineRectangles(d, window, Xlib.ShapeInput, 0, 0, (nint)rect, 1, Xlib.ShapeSet, Xlib.Unsorted);
+            }
+
             Xlib.XSync(d, false);
             return null;
         }

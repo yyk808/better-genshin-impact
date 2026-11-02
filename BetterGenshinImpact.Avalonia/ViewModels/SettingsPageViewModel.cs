@@ -151,6 +151,18 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         ("操控辅助", "快捷点击原神内确认按钮", "ClickGenshinConfirmButtonHotkey"),
         ("操控辅助", "快捷点击原神内取消按钮", "ClickGenshinCancelButtonHotkey"),
         ("操控辅助", "一键战斗宏快捷键", "OneKeyFightHotkey"),
+        ("悬浮小窗", "显示/隐藏小窗", "GuideToggleHotkey"),
+        ("悬浮小窗", "播放/暂停", "GuidePlayPauseHotkey"),
+        ("悬浮小窗", "快退", "GuideSeekBackwardHotkey"),
+        ("悬浮小窗", "快进", "GuideSeekForwardHotkey"),
+        ("悬浮小窗", "倍速增加", "GuideSpeedUpHotkey"),
+        ("悬浮小窗", "倍速降低", "GuideSpeedDownHotkey"),
+        ("悬浮小窗", "倍速重置为 1x", "GuideSpeedResetHotkey"),
+        ("悬浮小窗", "按住临时加速", "GuideBoostHotkey"),
+        ("悬浮小窗", "不透明度增加", "GuideOpacityUpHotkey"),
+        ("悬浮小窗", "不透明度降低", "GuideOpacityDownHotkey"),
+        ("悬浮小窗", "鼠标穿透开关", "GuideClickThroughHotkey"),
+        ("悬浮小窗", "字幕浮窗开关", "GuideSubtitleHotkey"),
         ("开发者", "启动/停止键鼠录制", "KeyMouseMacroRecordHotkey"),
         ("开发者", "（开发）模板素材制作", "RecognitionTemplateEditorHotkey"),
         ("开发者", "（开发）获取当前大地图中心点位置", "RecBigMapPosHotkey"),
@@ -401,6 +413,20 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                         WithRuntime(r => OneKeyFightTask.Instance.KeyDown(r));
                     }
                 }, () => OneKeyFightTask.Instance.KeyUp(), Hold: true),
+                // 悬浮小窗（与 WPF HotKeyPageViewModel.BuildGuideHotKeys 相同）
+                ["GuideToggleHotkey"] = new(() => _host?.Guide.ToggleVisible()),
+                ["GuidePlayPauseHotkey"] = new(() => _host?.Guide.TogglePlay()),
+                ["GuideSeekBackwardHotkey"] = new(() => _host?.Guide.SeekBy(-1)),
+                ["GuideSeekForwardHotkey"] = new(() => _host?.Guide.SeekBy(1)),
+                ["GuideSpeedUpHotkey"] = new(() => _host?.Guide.ChangeRate(1)),
+                ["GuideSpeedDownHotkey"] = new(() => _host?.Guide.ChangeRate(-1)),
+                ["GuideSpeedResetHotkey"] = new(() => _host?.Guide.SetRate(1)),
+                // 按住临时加速需要松开事件，与 WPF 相同只能用键鼠监听
+                ["GuideBoostHotkey"] = new(null, () => _host?.Guide.BeginBoost(), () => _host?.Guide.EndBoost(), Hold: true),
+                ["GuideOpacityUpHotkey"] = new(() => _host?.Guide.ChangeOpacity(1)),
+                ["GuideOpacityDownHotkey"] = new(() => _host?.Guide.ChangeOpacity(-1)),
+                ["GuideClickThroughHotkey"] = new(() => _host?.Guide.ToggleClickThrough()),
+                ["GuideSubtitleHotkey"] = new(() => _host?.Guide.ToggleSubtitle()),
                 ["KeyMouseMacroRecordHotkey"] = new(() =>
                 {
                     if (_host?.Services.GetService<KeyMouseRecordController>() is not { } recorder)

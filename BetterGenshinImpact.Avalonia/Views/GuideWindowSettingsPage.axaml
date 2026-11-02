@@ -5,21 +5,22 @@
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.GuideWindowSettingsPage"
              x:DataType="vm:GuideWindowSettingsPageViewModel">
-    <!-- 与 WPF GuideWindowSettingsPage 相同的卡片与顺序；小窗本身（WebView2）Linux 暂未实现，设置与收藏共用 config.json 与 User/GuideWindow -->
+    <!-- 与 WPF GuideWindowSettingsPage 相同的卡片与顺序；小窗网页为 WebKitGTK（Windows 为 WebView2），设置与收藏共用 config.json 与 User/GuideWindow -->
     <ScrollViewer>
         <StackPanel Classes="page">
             <TextBlock Classes="pagetitle" Text="悬浮小窗" />
             <TextBlock Margin="0,-4,0,8" TextWrapping="Wrap" Opacity="0.85" Text="边玩边看攻略视频的置顶小窗。在游戏中按住 Alt 把鼠标移到小窗上即可操作，常用操作都可以用快捷键完成，不需要切换窗口。" />
-            <Border x:Name="UnsupportedBanner" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
+            <Border x:Name="UnsupportedBanner" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}" IsVisible="{Binding ShowBanner}">
                 <TextBlock TextWrapping="Wrap" Text="{Binding StatusText}" />
             </Border>
-            <ui:FASettingsExpander x:Name="WindowCard" Header="小窗" Description="小窗未打开（Linux 版暂不支持）" IconSource="{svc:FluentIconSource VideoClip24}">
+            <ui:FASettingsExpander x:Name="WindowCard" Header="小窗" Description="{Binding WindowStatus}" IconSource="{svc:FluentIconSource VideoClip24}">
                 <ui:FASettingsExpander.Footer>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="accent" Content="打开小窗" IsEnabled="False" />
-                        <Button Content="隐藏" IsEnabled="False" />
-                        <Button Content="关闭" IsEnabled="False" />
-                        <Button Content="恢复小窗" IsEnabled="False" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding CanOpenWindow}">
+                        <Button x:Name="OpenGuideButton" Classes="accent" Content="打开小窗" Command="{Binding OpenWindowCommand}" />
+                        <Button x:Name="HideGuideButton" Content="隐藏" Command="{Binding HideWindowCommand}" IsEnabled="{Binding IsShown}" />
+                        <Button x:Name="CloseGuideButton" Content="关闭" Command="{Binding CloseWindowCommand}" IsEnabled="{Binding IsOpen}" />
+                        <Button x:Name="RestoreGuideButton" Content="恢复小窗" Command="{Binding RestoreWindowCommand}"
+                                ToolTip.Tip="显示小窗，关闭鼠标穿透、退出沉浸与交互模式，不透明度恢复 100%，并移回屏幕内" />
                     </StackPanel>
                 </ui:FASettingsExpander.Footer>
             </ui:FASettingsExpander>
@@ -168,9 +169,12 @@
                 <ui:FASettingsExpander.Footer>
                     <ToggleSwitch x:Name="SubtitleToggle" IsChecked="{Binding Config.SubtitleWindowEnabled}" OnContent="" OffContent="" />
                 </ui:FASettingsExpander.Footer>
-                <ui:FASettingsExpanderItem Content="位置与宽度" Description="字幕跟随游戏画面。在 Windows 版中可拖动调整">
+                <ui:FASettingsExpanderItem Content="位置与宽度" Description="字幕跟随游戏画面。点“调整位置”后拖动字幕移动位置，拖右侧边缘调整宽度，Ctrl+滚轮调整字号">
                     <ui:FASettingsExpanderItem.Footer>
-                        <Button x:Name="ResetSubtitleButton" Content="恢复默认" Command="{Binding ResetSubtitlePositionCommand}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="AdjustSubtitleButton" Content="调整位置" Command="{Binding AdjustSubtitleCommand}" IsEnabled="{Binding CanOpenWindow}" />
+                            <Button x:Name="ResetSubtitleButton" Content="恢复默认" Command="{Binding ResetSubtitlePositionCommand}" />
+                        </StackPanel>
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
                 <ui:FASettingsExpanderItem Content="字号">
@@ -189,7 +193,7 @@
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>
-            <ui:FASettingsExpander x:Name="HotKeyCard" Header="快捷键" Description="小窗快捷键（播放、快进、倍速、穿透等）随小窗一起使用，Linux 版暂未提供" IconSource="{svc:FluentIconSource Keyboard24}">
+            <ui:FASettingsExpander x:Name="HotKeyCard" Header="快捷键" Description="小窗快捷键（播放、快进、倍速、穿透等）在快捷键页的“悬浮小窗”分组中设置" IconSource="{svc:FluentIconSource Keyboard24}">
                 <ui:FASettingsExpander.Footer>
                     <Button x:Name="OpenHotKeyButton" Content="前往快捷键页" Command="{Binding OpenHotKeyPageCommand}" />
                 </ui:FASettingsExpander.Footer>
@@ -209,8 +213,12 @@
                                             <TextBlock FontSize="11" Opacity="0.6" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center" FontSize="12" Opacity="0.7" Text="{Binding Progress}" />
-                                        <Button Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="删除收藏" Content="{svc:FluentIcon Delete24, Size=14}"
-                                                Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveFavoriteCommand}" CommandParameter="{Binding}" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <Button ToolTip.Tip="在小窗中打开" Content="{svc:FluentIcon Open24, Size=14}"
+                                                    Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).OpenFavoriteCommand}" CommandParameter="{Binding}" />
+                                            <Button ToolTip.Tip="删除收藏" Content="{svc:FluentIcon Delete24, Size=14}"
+                                                    Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveFavoriteCommand}" CommandParameter="{Binding}" />
+                                        </StackPanel>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -229,8 +237,12 @@
                                             <TextBlock FontSize="11" Opacity="0.6" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center" FontSize="12" Opacity="0.7" Text="{Binding Progress}" />
-                                        <Button Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="删除记录" Content="{svc:FluentIcon Delete24, Size=14}"
-                                                Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveHistoryCommand}" CommandParameter="{Binding}" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <Button ToolTip.Tip="在小窗中打开（从上次位置继续）" Content="{svc:FluentIcon Open24, Size=14}"
+                                                    Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).OpenHistoryCommand}" CommandParameter="{Binding}" />
+                                            <Button ToolTip.Tip="删除记录" Content="{svc:FluentIcon Delete24, Size=14}"
+                                                    Command="{Binding $parent[UserControl].((vm:GuideWindowSettingsPageViewModel)DataContext).RemoveHistoryCommand}" CommandParameter="{Binding}" />
+                                        </StackPanel>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

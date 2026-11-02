@@ -62,6 +62,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "key-macro": await KeyMacroAsync(); break;
                 case "script-repo": await ScriptRepoAsync(); break;
                 case "guide-service": await GuideServiceAsync(); break;
+                case "guide-window": await GuideWindowAsync(); break;
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
@@ -4339,7 +4340,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
         Check("卡片与 WPF 相同", headers.SequenceEqual(["小窗", "主页", "外观与窗口", "鼠标穿透与交互", "自动显示与隐藏", "播放习惯", "字幕浮窗", "快捷键", "收藏与观看记录", "网页数据与快捷打开"]),
             string.Join(",", headers));
-        Check("提示 Linux 不支持小窗", Named<Border>("UnsupportedBanner")?.IsEffectivelyVisible == true);
+        Check("不能打开小窗时才显示提示（WebKitGTK 可用：不显示）", (Named<Border>("UnsupportedBanner") is not null) == !page.CanOpenWindow, page.CanOpenWindow);
         var cfg = page.Config;
         await Settle(600); // 第二次：展开后才出现的卡片内控件
         Check("下拉框按值显示", (Named<ComboBox>("ZoomBox")?.SelectedItem as ViewModels.GuideOption)?.Value.Equals(cfg.ZoomFactor) == true

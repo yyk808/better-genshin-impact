@@ -24,6 +24,9 @@
 	<ItemGroup>
 		<!-- 云原神输入 SDK：与 Windows 主程序共用同一个脚本文件 -->
 		<EmbeddedResource Include="..\BetterGenshinImpact\Resources\JavaScript\ys-input-inject.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.ys-input-inject.js" Link="Resources\ys-input-inject.js" />
+		<!-- 悬浮小窗：与 Windows 相同的页面脚本（站点适配、播放桥） -->
+		<EmbeddedResource Include="..\BetterGenshinImpact\Resources\JavaScript\guide-site-bilibili.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.guide-site-bilibili.js" Link="Resources\guide-site-bilibili.js" />
+		<EmbeddedResource Include="..\BetterGenshinImpact\Resources\JavaScript\guide-bridge.js" LogicalName="BetterGenshinImpact.Resources.JavaScript.guide-bridge.js" Link="Resources\guide-bridge.js" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- 导航与卡片图标字体：Fluent UI System Icons（MIT，https://github.com/microsoft/fluentui-system-icons），取自 WPF-UI 4.3.0 内嵌的同一字体 -->
@@ -40,6 +43,8 @@
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaAccountItemViewModel.cs" Link="Shared\PuloniaAccountItemViewModel.cs" />
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaAccountChoiceViewModel.cs" Link="Shared\PuloniaAccountChoiceViewModel.cs" />
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaRunAccountText.cs" Link="Shared\PuloniaRunAccountText.cs" />
+		<!-- 悬浮小窗播放桥与网页引擎无关的部分（页面脚本、消息解析），Linux 部分在 Views/Guide/GuidePlayerBridge.Linux.cs -->
+		<Compile Include="..\BetterGenshinImpact\View\Controls\Guide\GuidePlayerBridge.Messages.cs" Link="Shared\GuidePlayerBridge.Messages.cs" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />

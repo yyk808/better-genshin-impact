@@ -93,5 +93,6 @@ public static class HotkeyActionCatalog
         nameof(HotKeyConfig.ClickGenshinConfirmButtonHotkey),
         nameof(HotKeyConfig.ClickGenshinCancelButtonHotkey),
         nameof(HotKeyConfig.OneKeyFightHotkey),
+        nameof(HotKeyConfig.GuideBoostHotkey),
     };
 }
