@@ -182,6 +182,8 @@ public sealed class MaskWindowController : IDisposable
 
     private void RefreshMapPoints()
     {
+        // 同 WPF：选择面板关闭（或遮罩隐藏）时隐藏搜索窗口
+        if (_searchWindow is { IsVisible: true } && (!IsShown || _map is not { IsInBigMapUi: true, IsMapPointPickerOpen: true })) _searchWindow.Hide();
         if (_window is not { } window || !IsShown) return;
         var (width, height, _, _) = OverlayLayout;
         if (width <= 0 || height <= 0) return;
@@ -189,6 +191,42 @@ public sealed class MaskWindowController : IDisposable
         ApplyInputRegion(_wayland is not null ? 1 : window.RenderScaling > 0 ? window.RenderScaling : 1);
         UpdatePump();
         _surface?.Render();
+    }
+
+    private Views.MapLabelSearchWindow? _searchWindow;
+
+    /// <summary>点位标签搜索窗口（用于验证；未打开过时为 null）</summary>
+    public Views.MapLabelSearchWindow? SearchWindow => _searchWindow;
+
+    /// <summary>
+    /// 点了选择面板的搜索框：弹出可获得焦点的搜索窗口，左边与搜索框对齐、底边在搜索框上方 4（同 WPF MapLabelSearchTextBox_OnPreviewMouseLeftButtonDown）。
+    /// Wayland 下搜索窗口是 XWayland 窗口，位置由合成器决定
+    /// </summary>
+    private void ShowSearch(Rect box)
+    {
+        if (_map is null || _window is not { } window) return;
+        _searchWindow ??= new Views.MapLabelSearchWindow();
+        _searchWindow.AttachViewModel(_map);
+        if (OverlayPlacement is { } o)
+        {
+            _searchWindow.Position = new PixelPoint(o.X + (int)Math.Round(box.X), o.Y + (int)Math.Round(box.Y - 4 - _searchWindow.Height));
+        }
+        else
+        {
+            var s = window.RenderScaling > 0 ? window.RenderScaling : 1;
+            _searchWindow.Position = new PixelPoint(window.Position.X + (int)Math.Round(box.X * s), window.Position.Y + (int)Math.Round((box.Y - 4 - _searchWindow.Height) * s));
+        }
+
+        if (!_searchWindow.IsVisible) _searchWindow.Show();
+        _searchWindow.Topmost = true;
+        _searchWindow.FocusSearch();
+        // 窗口刚映射时 X 服务器可能还不接受设置焦点，稍后再聚焦一次
+        var sw = _searchWindow;
+        DispatcherTimer.RunOnce(() =>
+        {
+            if (sw.IsVisible && !sw.IsActive) sw.FocusSearch();
+        }, TimeSpan.FromMilliseconds(150));
+        _log.Information("遮罩：打开点位标签搜索窗口 {Position}", _searchWindow.Position);
     }
 
     /// <summary>Wayland：编辑模式或大地图时定时读取覆盖层的指针事件</summary>
@@ -225,6 +263,7 @@ public sealed class MaskWindowController : IDisposable
         window.SetEditing(Editing);
         window.LayoutCommitted += CommitLayout;
         window.MapLayoutChanged += QueueMapRefresh;
+        window.MapSearchRequested += ShowSearch;
         window.ExitEditRequested += ExitEdit;
         return window;
     }
@@ -720,6 +759,8 @@ public sealed class MaskWindowController : IDisposable
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();
         _focusTimer.Stop();
+        _searchWindow?.CloseForGood();
+        _searchWindow = null;
         _surface?.Dispose();
         _surface = null;
         _window?.Close();

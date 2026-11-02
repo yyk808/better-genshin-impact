@@ -29,6 +29,9 @@ public partial class MaskWindow
     /// <summary>遮罩自己的界面状态变了（下拉框开关、滚动），需要重新排版、更新输入区域并重画</summary>
     public event Action? MapLayoutChanged;
 
+    /// <summary>点了选择面板的搜索框（参数为搜索框在遮罩上的范围，DIP），由遮罩控制器弹出搜索窗口</summary>
+    public event Action<Rect>? MapSearchRequested;
+
     /// <summary>点位选择面板（用于验证）</summary>
     public MapPointPicker PickerPanel => Picker;
 
@@ -125,6 +128,10 @@ public partial class MaskWindow
         _pickerToggle.Measure(new Size(side, side));
         _pickerToggle.Arrange(new Rect(tl, tt, side, side));
 
+        Picker.SearchRequested ??= box =>
+        {
+            if (MapBoundsOf(box) is { } r) MapSearchRequested?.Invoke(r);
+        };
         var open = map.IsInBigMapUi && map.IsMapPointPickerOpen;
         var ph = Math.Max(0, 0.62 * height);
         var key = open
