@@ -5,6 +5,7 @@ using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Avalonia.Views;
 using BetterGenshinImpact.Host.Common;
+using BetterGenshinImpact.Platform.Linux.Wayland;
 using BetterGenshinImpact.Platform.Linux.X11;
 using Serilog;
 
@@ -13,6 +14,7 @@ namespace BetterGenshinImpact.Avalonia.Services;
 /// <summary>
 /// 遮罩窗口的显示与跟随：截图器运行且启用遮罩时，把遮罩窗口盖在游戏画面上（每 500 ms 跟随位置和大小），
 /// 停止后隐藏。点击穿透：窗口打开后把 X11 SHAPE 输入区域设为空。
+/// Wayland 会话（niri）下遮罩内容离屏渲染后提交到 layer-shell 覆盖层（<see cref="WaylandMaskSurface"/>），不显示 X 窗口。
 /// </summary>
 public sealed class MaskWindowController : IDisposable
 {
@@ -22,12 +24,18 @@ public sealed class MaskWindowController : IDisposable
     private readonly DispatcherTimer _timer;
     private MaskWindow? _window;
     private PixelRect _lastRect;
+    private readonly WaylandPlatformServices? _wayland;
+    private WaylandMaskSurface? _surface;
+    private bool _surfaceFailed;
+    private bool _placementWarned;
 
     public MaskWindowController(GameHost host, string? display, ILogger log)
     {
         _host = host;
         _display = display;
         _log = log;
+        _wayland = host.Platform as WaylandPlatformServices;
+        Current = this;
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => Update());
         _timer.Start();
 
@@ -65,7 +73,7 @@ public sealed class MaskWindowController : IDisposable
 
     private void RefreshDrawing()
     {
-        if (_window is not { IsVisible: true } window || _lastRect.Width <= 0)
+        if (_window is not { } window || !IsShown || _lastRect.Width <= 0)
         {
             return;
         }
@@ -73,6 +81,7 @@ public sealed class MaskWindowController : IDisposable
         var config = _host.Config.MaskWindowConfig;
         window.DrawingLayer.Update(_host.MaskDrawing.Current, CreateStyle(config, _lastRect.Width / 1920d),
             config.DisplayRecognitionResultsOnMask, _lastRect.Size);
+        _surface?.Render();
     }
 
     /// <summary>由 MaskWindowConfig 的 Recognition* 配置合成绘制样式（同 WPF MaskWindowViewModel.CreateDrawingStyle）</summary>
@@ -98,7 +107,16 @@ public sealed class MaskWindowController : IDisposable
     /// <summary>遮罩窗口的 X11 窗口号（未显示时为 0），用于验证</summary>
     public nint Handle { get; private set; }
 
-    public bool IsShown => _window?.IsVisible == true;
+    public bool IsShown => _surface?.IsShown ?? _window?.IsVisible == true;
+
+    /// <summary>当前的遮罩控制器（宿主初始化失败时为 null），用于自测</summary>
+    public static MaskWindowController? Current { get; private set; }
+
+    /// <summary>Wayland 覆盖层最近一次提交的位图中 (x, y)（缓冲区像素）的 ARGB（预乘）；未显示时为 null，用于验证</summary>
+    public uint? OverlayPixel(int x, int y) => _surface?.Pixel(x, y);
+
+    /// <summary>Wayland 覆盖层的位置（输出名、相对输出的逻辑坐标；非 Wayland 或未显示时为 null），用于验证</summary>
+    public WaylandOverlayPlacement? OverlayPlacement => _surface?.Placement;
 
     private bool Wanted => _host.LinuxConfig.MaskWindowEnabled && _host.Config.MaskWindowConfig.MaskEnabled && _host.RuntimeService.Current is not null;
 
@@ -120,6 +138,12 @@ public sealed class MaskWindowController : IDisposable
             if (rect.Width <= 0 || rect.Height <= 0 || window.IsMinimized)
             {
                 Hide();
+                return;
+            }
+
+            if (_wayland is not null)
+            {
+                UpdateWayland(window, rect);
                 return;
             }
 
@@ -156,6 +180,72 @@ public sealed class MaskWindowController : IDisposable
         catch (Exception e)
         {
             _log.Debug(e, "更新遮罩窗口失败");
+        }
+    }
+
+    private void UpdateWayland(BetterGenshinImpact.Platform.IPlatformWindow window, PixelRect rect)
+    {
+        if (_surfaceFailed) return;
+        if (_surface is { Closed: true })
+        {
+            _surface.Dispose();
+            _surface = null;
+        }
+
+        if (_surface is null)
+        {
+            _window ??= new MaskWindow();
+            try
+            {
+                _surface = WaylandMaskSurface.Create(_window);
+                _log.Information("Wayland 遮罩：使用 layer-shell 覆盖层（输出 {Outputs}）", string.Join("、", _surface.OutputNames));
+            }
+            catch (Exception e) when (e is NotSupportedException or IOException or InvalidOperationException)
+            {
+                _surfaceFailed = true;
+                _log.Warning("Wayland 遮罩不可用（合成器不支持 wlr-layer-shell 或无法连接 WAYLAND_DISPLAY）：{Error}；遮罩不会显示", e.Message);
+                return;
+            }
+        }
+
+        if (_wayland!.LocateOverlay(window) is not { } placement)
+        {
+            if (!_placementWarned)
+            {
+                _placementWarned = true;
+                _log.Warning("Wayland 遮罩：拿不到游戏窗口在屏幕上的位置（niri 只报告浮动和全屏窗口的位置），遮罩暂不显示；请把游戏窗口设为浮动（Mod+Shift+V 或 window-rule open-floating）或全屏");
+            }
+
+            HideWayland();
+            return;
+        }
+
+        _placementWarned = false;
+        var wasShown = _surface.IsShown;
+        _surface.Place(placement);
+        _lastRect = rect;
+        _window!.SetStatus($"BetterGI · 已处理 {_host.FramesProcessed} 帧", placement.Height);
+        _window.SetLog(_host.Config.MaskWindowConfig.ShowLogBox ? RecentLog() : null, placement.Height);
+        RefreshDrawing();
+        if (!_drawingLogged && DrawnShapes > 0)
+        {
+            _drawingLogged = true;
+            _log.Information("遮罩绘制：{Count} 个图形，分组 {Groups}", DrawnShapes, string.Join("、", DrawingGroups));
+        }
+
+        if (!wasShown)
+        {
+            _log.Information("遮罩已显示（Wayland 覆盖层）：输出 {Output} 位置 ({X},{Y}) 大小 {W}x{H} 缩放 {Scale}",
+                placement.Output ?? "(合成器选择)", placement.X, placement.Y, placement.Width, placement.Height, placement.Scale);
+        }
+    }
+
+    private void HideWayland()
+    {
+        if (_surface?.IsShown == true)
+        {
+            _surface.Hide();
+            _log.Information("遮罩已隐藏（Wayland 覆盖层）");
         }
     }
 
@@ -204,6 +294,12 @@ public sealed class MaskWindowController : IDisposable
 
     private void Hide()
     {
+        if (_wayland is not null)
+        {
+            HideWayland();
+            return;
+        }
+
         if (_window?.IsVisible == true)
         {
             _window.Hide();
@@ -216,6 +312,8 @@ public sealed class MaskWindowController : IDisposable
         _host.MaskDrawing.Changed -= OnDrawingChanged;
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();
+        _surface?.Dispose();
+        _surface = null;
         _window?.Close();
         _window = null;
     }

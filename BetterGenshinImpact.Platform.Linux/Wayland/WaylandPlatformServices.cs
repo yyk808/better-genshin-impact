@@ -111,6 +111,53 @@ public sealed class WaylandPlatformServices : IPlatformServices
         }
     }
 
+    /// <summary>取出被 <see cref="GameTask.Runtime.PlatformGameWindow"/> 包装的平台窗口（运行时把游戏窗口包一层再传进来）</summary>
+    internal static IPlatformWindow Unwrap(IPlatformWindow window)
+    {
+        while (window is GameTask.Runtime.PlatformGameWindow g) window = g.Inner;
+        return window;
+    }
+
+    /// <summary>
+    /// 游戏客户区上方覆盖层（遮罩）该放在哪个输出的什么位置：输出取 niri 报告的窗口所在输出，
+    /// 位置换成相对该输出左上角的逻辑像素，缓冲缩放取输出缩放向上取整（分数缩放由合成器缩小，文字仍清晰）。
+    /// 窗口位置未知（平铺、不在活动工作区、没有 niri）时为 null
+    /// </summary>
+    public WaylandOverlayPlacement? LocateOverlay(IPlatformWindow window)
+    {
+        try
+        {
+            var (rect, outputName) = Unwrap(window) switch
+            {
+                XWaylandWindow xw => (xw.ScreenRect, xw.FindNiriWindow()?.Output),
+                NiriWindow nw => (nw.FindNiriWindow()?.ScreenRect, nw.FindNiriWindow()?.Output),
+                _ => ((PixelRect?)null, (string?)null),
+            };
+            if (rect is not { Width: > 0, Height: > 0 } r) return null;
+            var outputs = Niri?.Outputs() ?? [];
+            return Place(r, outputName, outputs);
+        }
+        catch (Exception e) when (e is IOException or System.Net.Sockets.SocketException or InvalidOperationException or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    public static WaylandOverlayPlacement Place(PixelRect r, string? outputName, IReadOnlyList<NiriOutputInfo> outputs)
+    {
+        // 优先 niri 报告的输出；否则取包含窗口中心的输出（物理像素比较）
+        var cx = r.X + r.Width / 2;
+        var cy = r.Y + r.Height / 2;
+        var o = outputs.FirstOrDefault(o => o.Name == outputName)
+                ?? outputs.FirstOrDefault(o => cx >= o.X * o.Scale && cx < (o.X + o.Width) * o.Scale && cy >= o.Y * o.Scale && cy < (o.Y + o.Height) * o.Scale);
+        if (o is null) return new WaylandOverlayPlacement(null, r.X, r.Y, r.Width, r.Height, 1, 1);
+        var s = o.Scale > 0 ? o.Scale : 1;
+        return new WaylandOverlayPlacement(o.Name,
+            (int)Math.Round(r.X / s - o.X), (int)Math.Round(r.Y / s - o.Y),
+            Math.Max(1, (int)Math.Round(r.Width / s)), Math.Max(1, (int)Math.Round(r.Height / s)),
+            Math.Max(1, (int)Math.Ceiling(s - 0.001)), s);
+    }
+
     public IGlobalInputHook CreateGlobalInputHook()
     {
         try
@@ -147,6 +194,7 @@ public sealed class WaylandPlatformServices : IPlatformServices
     public IInputBackend CreateInput(IPlatformWindow window)
     {
         ArgumentNullException.ThrowIfNull(window);
+        window = Unwrap(window);
         if (window is XWaylandWindow xw && _x11 is not null) return _x11.CreateInput(xw.Inner);
         if (window is X11Window x && _x11 is not null) return _x11.CreateInput(x);
         return new UinputInputBackend(LayoutBounds);
@@ -265,7 +313,7 @@ internal sealed class XWaylandCapture(X11PlatformServices x11, string mode) : IG
             }
         }
 
-        _inner.Start(window is XWaylandWindow xw ? xw.Inner : window, settings);
+        _inner.Start(WaylandPlatformServices.Unwrap(window) is XWaylandWindow xw ? xw.Inner : window, settings);
     }
 
     public GameCaptureFrame? Capture() => _inner.Capture();
@@ -274,3 +322,6 @@ internal sealed class XWaylandCapture(X11PlatformServices x11, string mode) : IG
 
     public void Dispose() => _inner.Dispose();
 }
+
+/// <summary>覆盖层位置：输出名（null = 合成器决定）、相对输出左上角的逻辑坐标与大小、整数缓冲缩放、输出实际缩放</summary>
+public sealed record WaylandOverlayPlacement(string? Output, int X, int Y, int Width, int Height, int BufferScale, double Scale);

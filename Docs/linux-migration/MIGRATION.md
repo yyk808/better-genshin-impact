@@ -108,7 +108,7 @@ Wine / Proton 里的游戏在 niri 下是经 xwayland-satellite 的 X 客户端�
 | 键鼠输入 | XTest（satellite 内的 Xwayland 收到，与 X11 相同） | uinput 虚拟键鼠（相对移动 + 0..65535 绝对坐标） | `/dev/uinput` 可写 |
 | 全局热键 / 键状态 | evdev 直接读 `/dev/input/event*`，不依赖合成器；读不到时退回 X11 热键（只在 X 窗口有焦点时有效） | 同左 | 用户在 `input` 组 |
 | 屏幕位置 | niri IPC：输出坐标 + `tile_pos_in_workspace_view` + `window_offset_in_tile`，乘输出缩放 | 同左 | 见下方“限制” |
-| 遮罩 | `LayerShellOverlay`：wlr-layer-shell overlay 层透明覆盖、空输入区域点击穿透、wl_shm 画矩形（尚未接入 Avalonia 遮罩，见下方） | 同左 | 合成器支持 `zwlr_layer_shell_v1`（niri 支持） |
+| 遮罩 | Avalonia 遮罩内容离屏渲染成位图，提交到 wlr-layer-shell overlay 层（`LayerShellOverlay`：透明、空输入区域点击穿透、放在游戏所在输出上） | 同左 | 合成器支持 `zwlr_layer_shell_v1`（niri 支持） |
 
 ScreenCast portal：第一次截图时 portal 弹出选择对话框（可选窗口或显示器），请求带 `persist_mode=2`，返回的 `restore_token`
 存到 `$XDG_CONFIG_HOME/bettergi/screencast-restore-token`（默认 `~/.config/bettergi/`），之后直接恢复、不再询问；删掉这个文件即可重新选择。
@@ -139,10 +139,15 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
   ```
   niri 也可能调整窗口大小（平铺列宽、浮动窗口初始尺寸），截图和坐标换算都以游戏自己的客户区为准。
 - **遮罩**：Avalonia 没有 wlr-layer-shell 支持，X11 遮罩窗口经 satellite 会变成普通的平铺窗口，无法覆盖在游戏上。
-  评估过的方案：(1) 直接按 Wayland 线协议实现一个 layer-shell 覆盖层（不依赖 libwayland / GTK，几百行），由遮罩模型推送矩形 / 文字；
+  评估过的方案：(1) 直接按 Wayland 线协议实现一个 layer-shell 覆盖层（不依赖 libwayland / GTK，几百行），由遮罩模型推送内容；
   (2) GTK + gtk-layer-shell 写遮罩，需要再引入一套 UI 依赖；(3) 等 Avalonia 原生 Wayland 后端，时间不确定。
-  采用 (1)：已实现 `LayerShellOverlay`（overlay 层、`keyboard_interactivity=none`、空输入区域 → 点击穿透、ARGB8888 预乘、双缓冲），
-  在嵌套 niri 上验证了显示位置、重画和点击穿透；目前只画矩形、不画文字，只显示在合成器选定的输出上，**尚未接入 Avalonia 遮罩**（Wayland 下遮罩仍不显示）。
+  采用 (1)：`LayerShellOverlay`（overlay 层、`keyboard_interactivity=none`、空输入区域 → 点击穿透、ARGB8888 预乘、双缓冲）。
+  Wayland 会话下 `MaskWindowController` 不显示 X 遮罩窗口，而是把遮罩窗口的内容（识别框 / 线 / 文字、日志框、状态文字，和 X11 遮罩是同一套控件）
+  在 UI 线程上用 Skia 离屏渲染（`RenderTargetBitmap`），整幅位图拷进 wl_shm 缓冲区提交（`WaylandMaskSurface`），每 500 ms 跟随窗口，绘制内容变化时立即重画。
+  输出：取 niri 报告的游戏窗口所在输出（`wl_output` v4 的 `name` 与 niri 输出名相同），找不到时取包含窗口中心的输出；
+  位置换成相对该输出左上角的逻辑坐标；缓冲缩放 = 输出缩放向上取整（分数缩放由合成器缩小），换输出时重建 layer surface。
+  拿不到窗口位置（平铺窗口）时遮罩不显示，并在日志里提示把游戏设为浮动或全屏。
+  合成器不支持 layer-shell 时日志警告一次、遮罩不显示，其它功能不受影响。HTML 遮罩（WebKitGTK）仍只支持 X11。
 - xwayland-satellite 会给没声明“无装饰”的 X 窗口加一条标题栏，niri 报告的窗口比游戏客户区高；屏幕位置按客户区大小对齐到窗口底部。
 - 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
 - 实机检查清单见 `wayland-niri-checklist.md`。
@@ -188,7 +193,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
   - Core 单测 293 项，其中 6 项失败，都是 `AutoFishingImageRecognitionTests.GetFishBarRect_ShouldMatchRectCount`。在 Linux 上与原始基线一致。
   - 主项目单测在 Linux 上原生运行（去掉 WindowsDesktop 框架）时，约 1120 项中有约 246 项失败。原因是依赖 Windows 路径分隔符、WinRT OCR、
     SAPI、Windows 字体与截图素材路径（反斜杠）等。比较方式是逐条与迁移前的基线对照，要求“没有新增失败”，而不是全部通过。
-- Wayland 只针对 niri 实现并在盒子上的嵌套 niri / 模拟 portal 中验证过（见 `wayland-niri-checklist.md`），遮罩尚未实现；HDR 截图不支持。
+- Wayland 只针对 niri 实现并在盒子上的嵌套 niri / 模拟 portal 中验证过（见 `wayland-niri-checklist.md`），HTML 遮罩（WebKitGTK）只支持 X11；HDR 截图不支持。
 - 自动秘境、一条龙等流程在 Linux 上只用假游戏和云原神网页版的本地模拟验证过，没有在真实账号上长时间运行。
 
 ## 7. 测试方法与结果

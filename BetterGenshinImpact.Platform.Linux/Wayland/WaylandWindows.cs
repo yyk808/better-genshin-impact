@@ -97,6 +97,9 @@ public sealed class NiriWindow(NiriIpc niri, ulong id) : IPlatformWindow
         }
     }
 
+    /// <summary>当前的 niri 窗口信息（窗口已关闭或 IPC 失败时为 null）</summary>
+    public NiriWindowInfo? FindNiriWindow() => Info();
+
     public nint Handle => (nint)((long)Id | HandleTag);
     public int ProcessId => Info()?.Pid ?? 0;
     public string Title => Info()?.Title ?? "";

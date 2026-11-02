@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Platform.Linux.Wayland;
 /// 平铺窗口除非占满整个输出（全屏）否则为 null；不在活动工作区时也为 null
 /// </param>
 public sealed record NiriWindowInfo(ulong Id, string Title, string AppId, int Pid, ulong? WorkspaceId, bool IsFocused, bool IsFloating,
-    PixelRect? ScreenRect, (int Width, int Height) WindowSize);
+    PixelRect? ScreenRect, (int Width, int Height) WindowSize, string? Output = null);
 
 /// <summary>niri 输出（显示器）</summary>
 public sealed record NiriOutputInfo(string Name, int X, int Y, int Width, int Height, double Scale);
@@ -101,6 +101,7 @@ public sealed class NiriIpc
         var layout = w["layout"];
         var size = layout?["window_size"] is JsonArray ws2 ? (ws2[0]!.GetValue<int>(), ws2[1]!.GetValue<int>()) : (0, 0);
         PixelRect? rect = null;
+        var outputName = ws is { } w0 && wsOutput.TryGetValue(w0, out var n0) ? n0 : null;
         if (ws is not { } wid || !wsOutput.TryGetValue(wid, out var on) || !outputs.TryGetValue(on, out var o))
         {
         }
@@ -124,6 +125,6 @@ public sealed class NiriIpc
 
         return new NiriWindowInfo(w["id"]!.GetValue<ulong>(), w["title"]?.GetValue<string>() ?? "", w["app_id"]?.GetValue<string>() ?? "",
             w["pid"]?.GetValue<int>() ?? 0, ws, w["is_focused"]?.GetValue<bool>() ?? false, w["is_floating"]?.GetValue<bool>() ?? false,
-            rect, size);
+            rect, size, outputName);
     }
 }

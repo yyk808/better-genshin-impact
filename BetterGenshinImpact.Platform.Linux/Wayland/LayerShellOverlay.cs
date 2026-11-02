@@ -33,6 +33,16 @@ public sealed class LayerShellOverlay : IDisposable
     private bool _configured;
     private uint _syncId;
     private bool _syncDone;
+    private readonly List<(uint Name, uint Version)> _outputGlobals = [];
+    private readonly Dictionary<uint, string> _outputs = new();
+    private string? _outputName;
+    private int _bufferScale = 1;
+
+    /// <summary>合成器上的输出名（wl_output.name，与 niri 的输出名相同）</summary>
+    public IReadOnlyCollection<string> OutputNames => _outputs.Values;
+
+    /// <summary>当前覆盖层所在的输出（null 表示由合成器选择）</summary>
+    public string? OutputName => _outputName;
 
     /// <summary>合成器关闭了覆盖层（例如输出被移除）</summary>
     public bool Closed { get; private set; }
@@ -69,6 +79,13 @@ public sealed class LayerShellOverlay : IDisposable
             o._compositor = o.Bind("wl_compositor", 4);
             o._shm = o.Bind("wl_shm", 1);
             o._layerShell = o.Bind("zwlr_layer_shell_v1", 3);
+            foreach (var (name, version) in o._outputGlobals)
+            {
+                var id = o.NewId();
+                o.Send(2, 0, w => w.UInt(name).String("wl_output").UInt(Math.Min(4u, version)).NewId(id));
+                o._outputs[id] = "";
+            }
+
             o.Roundtrip();
             return o;
         }
@@ -79,11 +96,26 @@ public sealed class LayerShellOverlay : IDisposable
         }
     }
 
-    /// <summary>在 (x, y)（合成器逻辑坐标，相对输出左上角）显示 width×height 的覆盖层</summary>
-    public void Show(int x, int y, int width, int height)
+    /// <summary>在 (x, y)（合成器逻辑坐标，相对输出左上角）显示 width×height 的覆盖层（输出由合成器选择）</summary>
+    public void Show(int x, int y, int width, int height) => Show(null, x, y, width, height);
+
+    /// <summary>
+    /// 在输出 <paramref name="output"/>（wl_output 名；null 或找不到时由合成器选择）的 (x, y) 处显示 width×height（逻辑像素）的覆盖层；
+    /// <paramref name="bufferScale"/> 为整数缩放时缓冲区按物理像素分配（width×scale），清晰度与输出一致。
+    /// 只设置位置和大小，内容由 <see cref="Render"/> / <see cref="RenderPixels"/> 提交
+    /// </summary>
+    public void Show(string? output, int x, int y, int width, int height, int bufferScale = 1)
     {
+        bufferScale = Math.Max(1, bufferScale);
+        if (_surface != 0 && output != _outputName)
+        {
+            DestroySurfaces(); // 输出只能在创建 layer surface 时指定
+        }
+
         if (_surface == 0)
         {
+            _outputName = output;
+            var outputId = output is null ? 0u : _outputs.FirstOrDefault(kv => kv.Value == output).Key;
             _surface = NewId();
             Send(_compositor, 0, w => w.NewId(_surface)); // wl_compositor.create_surface
             var region = NewId();
@@ -91,9 +123,16 @@ public sealed class LayerShellOverlay : IDisposable
             Send(_surface, 5, w => w.Object(region)); // wl_surface.set_input_region
             Send(region, 0, _ => { }); // wl_region.destroy
             _layerSurface = NewId();
-            Send(_layerShell, 0, w => w.NewId(_layerSurface).Object(_surface).Object(0).UInt(3 /*overlay*/).String("bettergi-mask"));
+            Send(_layerShell, 0, w => w.NewId(_layerSurface).Object(_surface).Object(outputId).UInt(3 /*overlay*/).String("bettergi-mask"));
             Send(_layerSurface, 4, w => w.UInt(0)); // keyboard_interactivity none
             Send(_layerSurface, 2, w => w.Int(-1)); // exclusive_zone -1：不被其它面板挤开
+            _bufferScale = 1;
+        }
+
+        if (bufferScale != _bufferScale)
+        {
+            Send(_surface, 8, w => w.Int(bufferScale)); // wl_surface.set_buffer_scale
+            _bufferScale = bufferScale;
         }
 
         Send(_layerSurface, 1, w => w.UInt(1 | 4)); // anchor top | left
@@ -106,24 +145,60 @@ public sealed class LayerShellOverlay : IDisposable
             if (_configureSerial is null) throw new InvalidOperationException("layer surface 没有收到 configure");
         }
 
-        if (width != _width || height != _height) AllocateBuffers(width, height);
-        Render([]);
+        var pw = width * bufferScale;
+        var ph = height * bufferScale;
+        if (pw != _width || ph != _height) AllocateBuffers(pw, ph);
     }
 
-    /// <summary>重画全部矩形（透明背景）并提交</summary>
+    /// <summary>缓冲区像素尺寸（逻辑尺寸 × 缓冲缩放）</summary>
+    public int BufferScale => _bufferScale;
+
+    /// <summary>重画全部矩形（透明背景，坐标为缓冲区像素）并提交</summary>
     public void Render(IReadOnlyList<OverlayRect> rects)
     {
         if (_width == 0) return;
+        var px = BeginFrame();
+        px.Clear();
+        foreach (var r in rects) Draw(px, r);
+        EndFrame();
+    }
+
+    /// <summary>
+    /// 提交一帧整幅位图（预乘 alpha，每像素 4 字节；<paramref name="rgba"/> 为 true 时源为 RGBA 顺序，否则为 BGRA = ARGB8888 小端）。
+    /// 源比缓冲区小的部分保持透明，大的部分裁掉
+    /// </summary>
+    public void RenderPixels(ReadOnlySpan<byte> pixels, int width, int height, int stride, bool rgba = false)
+    {
+        if (_width == 0) return;
+        var px = BeginFrame();
+        px.Clear();
+        var w = Math.Min(width, _width);
+        var h = Math.Min(height, _height);
+        var dst = MemoryMarshal.AsBytes(px);
+        for (var y = 0; y < h; y++)
+        {
+            var src = pixels.Slice(y * stride, w * 4);
+            var row = dst.Slice(y * _width * 4, w * 4);
+            src.CopyTo(row);
+            if (rgba)
+            {
+                for (var i = 0; i < row.Length; i += 4) (row[i], row[i + 2]) = (row[i + 2], row[i]);
+            }
+        }
+
+        EndFrame();
+    }
+
+    private unsafe Span<uint> BeginFrame()
+    {
         Dispatch(blocking: false);
         if (_busy[_current]) _current ^= 1;
         var offset = (long)_current * _width * _height * 4;
-        unsafe
-        {
-            var px = new Span<uint>((void*)(_map + (nint)offset), _width * _height);
-            px.Clear();
-            foreach (var r in rects) Draw(px, r);
-        }
+        return new Span<uint>((void*)(_map + (nint)offset), _width * _height);
+    }
 
+    private void EndFrame()
+    {
         if (_configureSerial is { } serial)
         {
             Send(_layerSurface, 6, w => w.UInt(serial)); // ack_configure
@@ -132,21 +207,29 @@ public sealed class LayerShellOverlay : IDisposable
         }
 
         Send(_surface, 1, w => w.Object(_buffers[_current]).Int(0).Int(0)); // attach
-        Send(_surface, 2, w => w.Int(0).Int(0).Int(_width).Int(_height)); // damage
+        Send(_surface, 2, w => w.Int(0).Int(0).Int(int.MaxValue).Int(int.MaxValue)); // damage（整个表面）
         Send(_surface, 6, _ => { }); // commit
         _busy[_current] = true;
         _current ^= 1;
         Roundtrip();
     }
 
-    /// <summary>隐藏（提交空缓冲）；之后可再 <see cref="Show"/></summary>
+    /// <summary>隐藏：销毁 layer surface（之后可再 <see cref="Show(string?, int, int, int, int, int)"/>）</summary>
     public void Hide()
     {
         if (_surface == 0) return;
-        Send(_surface, 1, w => w.Object(0).Int(0).Int(0));
-        Send(_surface, 6, _ => { });
-        _configured = false;
+        DestroySurfaces();
         Roundtrip();
+    }
+
+    private void DestroySurfaces()
+    {
+        Send(_layerSurface, 7, _ => { }); // zwlr_layer_surface_v1.destroy
+        Send(_surface, 0, _ => { }); // wl_surface.destroy
+        _surface = _layerSurface = 0;
+        _configured = false;
+        _configureSerial = null;
+        _busy[0] = _busy[1] = false;
     }
 
     private void Draw(Span<uint> px, OverlayRect r)
@@ -268,10 +351,15 @@ public sealed class LayerShellOverlay : IDisposable
             var iface = ReadString(a[4..], out var used);
             var version = BinaryPrimitives.ReadUInt32LittleEndian(a[(4 + used)..]);
             _globals[iface] = (name, version);
+            if (iface == "wl_output") _outputGlobals.Add((name, version));
         }
         else if (obj == _syncId && op == 0)
         {
             _syncDone = true;
+        }
+        else if (op == 4 && _outputs.ContainsKey(obj)) // wl_output.name（v4）
+        {
+            _outputs[obj] = ReadString(a, out _);
         }
         else if (obj == _layerSurface && _layerSurface != 0)
         {

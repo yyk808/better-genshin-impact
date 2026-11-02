@@ -38,6 +38,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "taskplan-edit": await TaskPlanEditMenuAsync(); break;
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
+                case "wayland-mask": await WaylandMaskAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
@@ -495,6 +496,74 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     /// 资源访问限制、点击穿透切换；遮罩打开期间抓一帧截图器画面，核对画面里没有遮罩内容（红框位置不是红色）。
     /// 日志中的“HTMLMASK-PHASE”行供外部脚本截屏、模拟点击
     /// </summary>
+    /// <summary>
+    /// Wayland（niri）遮罩：截图器运行后遮罩经 layer-shell 覆盖层显示在游戏窗口所在输出上，
+    /// 识别框、文字、日志框、状态文字都离屏渲染进覆盖层位图；外部脚本在“等待外部截图”时截合成器画面核对，
+    /// 写入 &lt;截图目录&gt;/wayland-mask.shot 后继续；关闭遮罩后覆盖层隐藏
+    /// </summary>
+    private async Task WaylandMaskAsync()
+    {
+        var host = vm.Host;
+        var mask = Services.MaskWindowController.Current;
+        Check("Wayland 平台", host?.Platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices, host?.Platform.Name);
+        if (host is null || mask is null) return;
+        host.LinuxConfig.MaskWindowEnabled = true;
+        Check("覆盖层显示", await Until(() => mask.IsShown, 30000), mask.OverlayPlacement);
+        if (mask.OverlayPlacement is not { } p) return;
+        Check("覆盖层输出", !string.IsNullOrEmpty(p.Output), p.Output);
+
+        var group = new BetterGenshinImpact.Core.Mask.MaskWindowDrawingGroup("wayland-mask-selftest", BetterGenshinImpact.Core.Mask.MaskWindowDrawingKind.Feature);
+        var red = BetterGenshinImpact.Core.Mask.MaskColor.FromArgb(255, 255, 0, 0);
+        var board = (BetterGenshinImpact.Core.Mask.MaskWindowDrawingBoard)host.MaskDrawing;
+        board.Set(group, new BetterGenshinImpact.Core.Mask.MaskWindowDrawingShape[]
+        {
+            new BetterGenshinImpact.Core.Mask.MaskWindowDrawingRect(new BetterGenshinImpact.Core.Mask.MaskRect(100, 100, 300, 200),
+                new BetterGenshinImpact.Core.Mask.MaskWindowDrawingStroke(red, 4)),
+            new BetterGenshinImpact.Core.Mask.MaskWindowDrawingText("WAYLAND 遮罩", new BetterGenshinImpact.Core.Mask.MaskPoint(600, 120),
+                new BetterGenshinImpact.Core.Mask.MaskWindowDrawingTextStyle(BetterGenshinImpact.Core.Mask.MaskColor.White, 48,
+                    BetterGenshinImpact.Core.Mask.MaskColor.FromArgb(255, 0, 0, 128))),
+        });
+
+        // 捕获像素 → 覆盖层缓冲区像素（逻辑大小 × 缓冲缩放 / 捕获大小）
+        var capture = host.RuntimeService.Current?.Window.Viewport.ScreenRect.Width ?? p.Width;
+        var k = p.Width * p.BufferScale / (double)Math.Max(1, capture);
+        int Px(double v) => (int)Math.Round(v * k);
+        bool IsRed(uint? c) => c is { } v && (v >> 24) > 200 && ((v >> 16) & 0xFF) > 200 && ((v >> 8) & 0xFF) < 60 && (v & 0xFF) < 60;
+        Check("识别框（红框左边）", await Until(() => IsRed(mask.OverlayPixel(Px(101), Px(200))), 5000), $"{mask.OverlayPixel(Px(101), Px(200)):X8}");
+        Check("框内透明", mask.OverlayPixel(Px(250), Px(200)) is { } inside && inside >> 24 == 0, $"{mask.OverlayPixel(Px(250), Px(200)):X8}");
+        var textPixels = Count(Px(600), Px(120), Px(300), Px(48), c => (c >> 24) > 200 && ((c >> 16) & 0xFF) > 200 && (c & 0xFF) > 200);
+        var textBack = Count(Px(600), Px(120), Px(300), Px(48), c => (c >> 24) > 200 && ((c >> 16) & 0xFF) < 30 && (c & 0xFF) > 100 && (c & 0xFF) < 160);
+        Check("文字（白字 + 底色）", textPixels > 20 && textBack > 200, $"白 {textPixels} 底 {textBack}");
+        var h = p.Height * p.BufferScale;
+        var status = Count(20 * p.BufferScale, h - 60 * p.BufferScale, 200 * p.BufferScale, 24 * p.BufferScale, c => (c >> 24) > 180 && ((c >> 16) & 0xFF) > 150);
+        Check("状态文字", status > 10, status);
+        var logBox = Count(20 * p.BufferScale, (int)(h * 0.62) + 2, 460 * p.BufferScale, 30 * p.BufferScale, c => (c >> 24) >= 0x50);
+        Check("日志框", !host.Config.MaskWindowConfig.ShowLogBox || logBox > 1000, logBox);
+        Check("其余区域透明", mask.OverlayPixel(p.Width * p.BufferScale / 2, p.Height * p.BufferScale / 3) is { } empty && empty >> 24 == 0);
+
+        if (dir is not null)
+        {
+            var shot = Path.Combine(dir, "wayland-mask.shot");
+            File.Delete(shot);
+            log.Information("UI 自测 wayland-mask 等待外部截图：输出 {Output} 位置 {X},{Y} 大小 {W}x{H} 缩放 {Scale}", p.Output, p.X, p.Y, p.Width, p.Height, p.Scale);
+            Check("外部截图", await Until(() => File.Exists(shot), 20000), shot);
+        }
+
+        board.Clear(group);
+        Check("清除图形", await Until(() => !IsRed(mask.OverlayPixel(Px(101), Px(200))), 5000));
+        host.LinuxConfig.MaskWindowEnabled = false;
+        Check("关闭后隐藏", await Until(() => !mask.IsShown, 5000));
+
+        int Count(int x0, int y0, int w, int hh, Func<uint, bool> pred)
+        {
+            var n = 0;
+            for (var y = y0; y < y0 + hh; y++)
+            for (var x = x0; x < x0 + w; x++)
+                if (mask.OverlayPixel(x, y) is { } c && pred(c)) n++;
+            return n;
+        }
+    }
+
     private async Task HtmlMaskAsync()
     {
         var root = Path.Combine(BetterGenshinImpact.Infrastructure.Storage.AppPaths.Temp, "html-mask-selftest");
