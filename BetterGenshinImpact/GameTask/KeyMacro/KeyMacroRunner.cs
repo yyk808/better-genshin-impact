@@ -75,6 +75,11 @@ internal sealed class KeyMacroRunner
     private readonly Func<bool> _isGameForeground;
 
     /// <summary>
+    /// 取游戏画面在屏幕上的区域，供 moveto 和带坐标的 click 换算坐标
+    /// </summary>
+    private readonly Func<RECT?> _getGameArea;
+
+    /// <summary>
     /// 正在执行的线程，未运行时为 null
     /// </summary>
     private Thread? _thread;
@@ -129,12 +134,14 @@ internal sealed class KeyMacroRunner
     /// <param name="definition">宏定义</param>
     /// <param name="hotKey">已注册的快捷键</param>
     /// <param name="isGameForeground">判断游戏是否在前台</param>
-    public KeyMacroRunner(KeyMacroDefinition definition, HotKey hotKey, Func<bool> isGameForeground)
+    /// <param name="getGameArea">取游戏画面在屏幕上的区域，取不到时返回 null</param>
+    public KeyMacroRunner(KeyMacroDefinition definition, HotKey hotKey, Func<bool> isGameForeground, Func<RECT?> getGameArea)
     {
         _definition = definition;
         _name = definition.Name;
         _mode = definition.TriggerMode;
         _isGameForeground = isGameForeground;
+        _getGameArea = getGameArea;
         _parseOptions = CreateParseOptions(_mode, hotKey);
         _holdCheckKey = _parseOptions.HotkeyKey ?? _parseOptions.HotkeyButton switch
         {
@@ -308,7 +315,7 @@ internal sealed class KeyMacroRunner
     /// </summary>
     private void Run(IReadOnlyList<KeyMacroStep> commands, CancellationToken ct)
     {
-        var executor = new KeyMacroExecutor();
+        var executor = new KeyMacroExecutor(_getGameArea);
         var startTimestamp = Stopwatch.GetTimestamp();
         var foregroundChecked = false;
         var lastForegroundCheck = 0L;

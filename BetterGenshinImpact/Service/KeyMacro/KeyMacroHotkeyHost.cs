@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Service.KeyMacro;
 
@@ -308,7 +309,7 @@ public sealed class KeyMacroHotkeyHost : IHostedService
             return entry;
         }
 
-        var runner = new KeyMacroRunner(definition, hotKey, IsGameForeground);
+        var runner = new KeyMacroRunner(definition, hotKey, IsGameForeground, GetGameArea);
         var configName = "KeyMacro/" + definition.Name;
         var model = type == HotKeyTypeEnum.GlobalRegister
             ? new HotKeySettingModel(definition.Name, configName, hotKey.ToString(), type.ToString(), (_, _) => runner.OnPressed())
@@ -342,6 +343,21 @@ public sealed class KeyMacroHotkeyHost : IHostedService
     private bool IsGameForeground()
     {
         return SystemControl.IsGameForeground(_runtimeService.Current?.Window);
+    }
+
+    /// <summary>
+    /// 游戏画面在屏幕上的区域，供绝对坐标指令换算：有运行环境时用它的截图区域（与 GameRegion1080PPosMove 相同）；
+    /// 截图器未启动时用前台窗口的游戏画面区域，执行每条指令前已确认前台窗口是游戏
+    /// </summary>
+    private RECT? GetGameArea()
+    {
+        if (_runtimeService.Current is { } runtime)
+        {
+            return runtime.SystemInfo.CaptureAreaRect.ToRECT();
+        }
+
+        var handle = SystemControl.GetForegroundWindowHandle();
+        return handle == 0 ? null : SystemControl.GetCaptureRect(handle);
     }
 
     /// <summary>

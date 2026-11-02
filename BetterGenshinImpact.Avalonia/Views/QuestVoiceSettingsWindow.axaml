@@ -161,29 +161,6 @@
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate DataType="eng:HuoshanSettingsViewModel">
-            <StackPanel>
-                <TextBlock Classes="engineTitle" Text="火山翻译 · 三种中文预设音色" />
-                <TextBlock Classes="tip" Text="在线完整合成；只发送试听文本，无需模型或账号。公开端点可能变更或限流。" Margin="0,8,0,12" />
-                <TextBlock Text="默认音色" Margin="0,0,0,6" />
-                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="tts:TtsVoiceInfo"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
-            </StackPanel>
-        </DataTemplate>
-        <DataTemplate DataType="eng:WindowsSapiSettingsViewModel">
-            <StackPanel>
-                <TextBlock Classes="engineTitle" Text="Windows 系统语音（SAPI）" />
-                <TextBlock Classes="tip" Text="使用已安装的系统声音，无需联网；安装新声音后点击刷新。未找到声音时需先安装支持 SAPI 的语音。" Margin="0,8,0,12" />
-                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EngineVoiceList}" />
-                <TextBlock Text="速度倍率（0.5～2）" Margin="0,8,0,6" />
-                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RateSlider}" />
-                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
-            </StackPanel>
-        </DataTemplate>
         <DataTemplate DataType="eng:VoicevoxSettingsViewModel">
             <StackPanel>
                 <TextBlock Classes="engineTitle" Text="VOICEVOX" />
@@ -241,21 +218,6 @@
                     <TextBlock DockPanel.Dock="Right" Width="48" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding EngineConfig.Rate, StringFormat={}{0:F2}, FallbackValue=''}" />
                     <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding EngineConfig.Rate, FallbackValue=1}" />
                 </DockPanel>
-                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
-            </StackPanel>
-        </DataTemplate>
-        <DataTemplate DataType="eng:GoogleTtsSettingsViewModel">
-            <StackPanel>
-                <TextBlock Classes="engineTitle" Text="Google Translate TTS" />
-                <TextBlock Classes="tip" Text="在线语音合成；使用网页 TTS 协议，需要网络可达，服务没有 Cloud API 的稳定性承诺。语言列表为本地预设。" Margin="0,8,0,12" />
-                <TextBlock Text="语言" Margin="0,0,0,6" />
-                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="tts:TtsVoiceInfo"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Text="速度（0.5 慢速 / 1 正常）" Margin="0,12,0,6" />
-                <ComboBox ItemsSource="{Binding Rates}" SelectedItem="{Binding EngineConfig.Rate, FallbackValue=1}" />
                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EnginePreview}" />
             </StackPanel>
         </DataTemplate>

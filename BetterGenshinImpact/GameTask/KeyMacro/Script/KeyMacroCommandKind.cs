@@ -36,7 +36,7 @@ public enum KeyMacroCommandKind
     MouseUp,
 
     /// <summary>
-    /// 点击鼠标键：click(b)
+    /// 点击鼠标键：click(b)，可带游戏画面坐标 click(b, x, y)
     /// </summary>
     Click,
 
@@ -44,6 +44,11 @@ public enum KeyMacroCommandKind
     /// 鼠标相对移动：moveby(x, y)
     /// </summary>
     MoveBy,
+
+    /// <summary>
+    /// 鼠标绝对移动到游戏画面坐标：moveto(x, y)，坐标以 1920×1080 为准
+    /// </summary>
+    MoveTo,
 
     /// <summary>
     /// 滚轮：scroll(n)

@@ -23,7 +23,8 @@ public partial class KeyMacroStepViewModel : ObservableObject
         new(KeyMacroCommandKind.Click, "鼠标点击"),
         new(KeyMacroCommandKind.MouseDown, "鼠标按下"),
         new(KeyMacroCommandKind.MouseUp, "鼠标松开"),
-        new(KeyMacroCommandKind.MoveBy, "移动鼠标"),
+        new(KeyMacroCommandKind.MoveBy, "相对移动"),
+        new(KeyMacroCommandKind.MoveTo, "绝对移动"),
         new(KeyMacroCommandKind.Scroll, "滚轮"),
         new(KeyMacroCommandKind.Wait, "等待"),
         new(KeyMacroCommandKind.Comment, "注释")
@@ -46,16 +47,16 @@ public partial class KeyMacroStepViewModel : ObservableObject
     /// </summary>
     private static readonly HashSet<string> ViewOnlyProperties =
     [
-        nameof(Index), nameof(IsKeyKind), nameof(IsButtonKind), nameof(IsMoveKind), nameof(IsScrollKind),
-        nameof(IsWaitKind), nameof(IsComment), nameof(IsCommand)
+        nameof(Index), nameof(IsKeyKind), nameof(IsButtonKind), nameof(IsClickKind), nameof(IsMoveKind),
+        nameof(IsPositionVisible), nameof(IsScrollKind), nameof(IsWaitKind), nameof(IsComment), nameof(IsCommand)
     ];
 
     /// <summary>
     /// 步骤类型
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsKeyKind), nameof(IsButtonKind), nameof(IsMoveKind), nameof(IsScrollKind),
-        nameof(IsWaitKind), nameof(IsComment), nameof(IsCommand))]
+    [NotifyPropertyChangedFor(nameof(IsKeyKind), nameof(IsButtonKind), nameof(IsClickKind), nameof(IsMoveKind),
+        nameof(IsPositionVisible), nameof(IsScrollKind), nameof(IsWaitKind), nameof(IsComment), nameof(IsCommand))]
     private KeyMacroCommandKind _kind = KeyMacroCommandKind.KeyPress;
 
     /// <summary>
@@ -81,6 +82,25 @@ public partial class KeyMacroStepViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private int _y;
+
+    /// <summary>
+    /// 鼠标点击是否指定坐标
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPositionVisible))]
+    private bool _hasPosition;
+
+    /// <summary>
+    /// moveto 和带坐标点击的横坐标（1920×1080 游戏画面坐标），默认画面中心
+    /// </summary>
+    [ObservableProperty]
+    private int _positionX = KeyMacroParser.GameWidth / 2;
+
+    /// <summary>
+    /// moveto 和带坐标点击的纵坐标（1920×1080 游戏画面坐标），默认画面中心
+    /// </summary>
+    [ObservableProperty]
+    private int _positionY = KeyMacroParser.GameHeight / 2;
 
     /// <summary>
     /// scroll 的格数，正数向上
@@ -128,9 +148,19 @@ public partial class KeyMacroStepViewModel : ObservableObject
     public bool IsButtonKind => Kind is KeyMacroCommandKind.MouseDown or KeyMacroCommandKind.MouseUp or KeyMacroCommandKind.Click;
 
     /// <summary>
-    /// 是否为移动鼠标
+    /// 是否为鼠标点击（可以指定坐标）
+    /// </summary>
+    public bool IsClickKind => Kind == KeyMacroCommandKind.Click;
+
+    /// <summary>
+    /// 是否为相对移动鼠标
     /// </summary>
     public bool IsMoveKind => Kind == KeyMacroCommandKind.MoveBy;
+
+    /// <summary>
+    /// 是否显示游戏画面坐标输入框：绝对移动，或指定了坐标的鼠标点击
+    /// </summary>
+    public bool IsPositionVisible => Kind == KeyMacroCommandKind.MoveTo || (IsClickKind && HasPosition);
 
     /// <summary>
     /// 是否为滚轮
@@ -173,12 +203,25 @@ public partial class KeyMacroStepViewModel : ObservableObject
                 break;
             case KeyMacroCommandKind.MouseDown:
             case KeyMacroCommandKind.MouseUp:
+                vm.Button = step.Button;
+                break;
             case KeyMacroCommandKind.Click:
                 vm.Button = step.Button;
+                vm.HasPosition = step.HasPosition;
+                if (step.HasPosition)
+                {
+                    vm.PositionX = step.X;
+                    vm.PositionY = step.Y;
+                }
+
                 break;
             case KeyMacroCommandKind.MoveBy:
                 vm.X = step.X;
                 vm.Y = step.Y;
+                break;
+            case KeyMacroCommandKind.MoveTo:
+                vm.PositionX = step.X;
+                vm.PositionY = step.Y;
                 break;
             case KeyMacroCommandKind.Scroll:
                 vm.Amount = step.Amount;
@@ -213,13 +256,16 @@ public partial class KeyMacroStepViewModel : ObservableObject
     public KeyMacroStep ToStep()
     {
         var key = KeyMacroKeys.TryParseKey(KeyName, out var vk) ? vk : User32.VK.VK_E;
+        // 相对移动用位移；绝对移动和带坐标点击用游戏画面坐标，限制在 1920×1080 内
+        var usePosition = Kind == KeyMacroCommandKind.MoveTo || (Kind == KeyMacroCommandKind.Click && HasPosition);
         return new KeyMacroStep
         {
             Kind = Kind,
             Key = key,
             Button = Button,
-            X = X,
-            Y = Y,
+            X = usePosition ? Math.Clamp(PositionX, 0, KeyMacroParser.GameWidth) : X,
+            Y = usePosition ? Math.Clamp(PositionY, 0, KeyMacroParser.GameHeight) : Y,
+            HasPosition = Kind == KeyMacroCommandKind.Click && HasPosition,
             // 滚轮格数不能为 0
             Amount = Amount == 0 ? 1 : Amount,
             WaitMs = Math.Clamp(WaitMs, 0, (int)(KeyMacroParser.MaxWaitSeconds * 1000)),

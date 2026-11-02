@@ -164,7 +164,7 @@
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>
-            <ui:FASettingsExpander x:Name="SubtitleCard" Header="字幕浮窗" Description="把视频字幕单独显示在游戏画面上，小窗可以缩小或隐藏" IconSource="{svc:FluentIconSource ClosedCaption24}">
+            <ui:FASettingsExpander x:Name="SubtitleCard" Header="字幕浮窗" Description="把视频字幕单独显示在游戏画面上，并随小窗显示或隐藏" IconSource="{svc:FluentIconSource ClosedCaption24}">
                 <ui:FASettingsExpander.Footer>
                     <ToggleSwitch x:Name="SubtitleToggle" IsChecked="{Binding Config.SubtitleWindowEnabled}" OnContent="" OffContent="" />
                 </ui:FASettingsExpander.Footer>
@@ -186,11 +186,6 @@
                 <ui:FASettingsExpanderItem Content="开启字幕浮窗时隐藏网页内字幕">
                     <ui:FASettingsExpanderItem.Footer>
                         <ToggleSwitch x:Name="HidePageSubToggle" IsChecked="{Binding Config.HidePageSubtitle}" OnContent="" OffContent="" />
-                    </ui:FASettingsExpanderItem.Footer>
-                </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="小窗隐藏时继续显示字幕" Description="隐藏小窗后只听声音、看字幕">
-                    <ui:FASettingsExpanderItem.Footer>
-                        <ToggleSwitch x:Name="SubWhenHiddenToggle" IsChecked="{Binding Config.ShowSubtitleWhenHidden}" OnContent="" OffContent="" />
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>

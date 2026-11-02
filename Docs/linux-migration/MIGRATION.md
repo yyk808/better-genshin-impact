@@ -8,7 +8,7 @@
 ## 1. 概览
 
 - 分支：`avalonia-linux`，从 `refactor/20260930` 切出。自有提交是线性的普通提交，同步上游时使用普通合并提交（不 rebase、不改写已推送的历史）。
-- 已同步到：`refactor/20260930` 的 `0307ec5b`（2026-11-01）和 `main` 的 `07d38b31`（2026-11-01）。
+- 已同步到：`refactor/20260930` 的 `9e3a0b00`（2026-11-02）和 `main` 的 `07d38b31`（2026-11-01）。
 - 改动规模：约 1629 个文件，其中约 1163 个是**移动**（从 WPF 主项目移到 `BetterGenshinImpact.Core`，命名空间不变），
   新增约 300 个、修改约 155 个、删除 8 个。
 - 目标：
@@ -63,7 +63,7 @@ Core 不引用任何 Windows 专属包（WPF、WinForms、Vanara、System.Drawin
    - `IUiDispatcher` / 消息框 / 剪贴板（`UiHost`）；
    - `QuestVoiceAudioHost.OutputFactory`（Windows 仍为 WasapiOut）；
    - `GameFrameGrabber`；
-   - `TtsProviderRegistry` 的平台引擎（Windows 仍注册 SAPI）；
+   - `TtsProviderRegistry` 的平台引擎（上游已移除 Windows SAPI；Linux 注册 espeak-ng）；
    - 凭据存储（Windows 仍为凭据管理器）。
 3. **界面映射移出任务类**。独立任务的设置界面改由界面程序集上的 `SoloTaskSettingsMap` 声明，任务类不再引用 WPF 类型。
 4. **WPF 颜色、键名、GDI+ 等改为平台无关表示**，在边界上转换：
@@ -117,7 +117,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | 截图 | BitBlt / DWM / WGC，HDR | `ShmRoot`（默认）/ `GetImageRoot` / `GetImageWindow` / `CompositeWindow`（不受遮挡和遮罩影响）；不支持 HDR |
 | 推理设备 | DirectML / CUDA 等 | 强制 CPU（只在本次运行生效，不写回配置） |
 | 鼠标绝对移动 | — | Wine 会把绝对移动转换成原始输入并转动视角，上层按 `AbsoluteMoveAffectsCamera` 处理 |
-| TTS | Windows SAPI | espeak-ng（以及与平台无关的 HTTP 引擎） |
+| TTS | 与平台无关的 GPT-SoVITS / HTTP 引擎（上游已移除 SAPI） | 同左，另有 espeak-ng |
 | 网页视图 | WebView2 | WebKitGTK 4.1（自定义协议 `bgi-settings://`、`bgi-mask://`，内容安全策略与 Windows 相同） |
 | 通知 | Windows 通知 | 系统通知（notify-send / D-Bus）；Webhook、企业微信、邮件相同；微信 Clawbot 未接入 |
 | 凭据（任务计划账号） | 凭据管理器 | 不支持保存凭据（会提示） |
@@ -173,6 +173,13 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
    `main` 这次未合并：合并时本地的 `origin/main` 只跟踪到 94c1de65（远程跟踪只配置了 refactor 分支），之后核对 `main` 已有 2 个新提交，留待下次同步：
    - 3ba5886c：战斗策略的秒数参数按固定小数点解析（修复 pt-BR 等逗号小数点区域下 4.5 被读成 45）；
    - 07d38b31：修复国内网络下推理运行库下载时 Catalog 404。
+2. **冲突解法**：59 个冲突，原因是本分支已把 WPF 的 Pulonia 代码抽到 Core，而上游同时重写了这部分。
+   - WPF 一律以上游为准（取上游版本），行为与上游相同；上游新增的非界面服务（账户服务、实例键、完成记录索引、路线 CD 等）放进 Core，命名空间不变。
+   - 本分支抽到 Core、WPF 不再使用的展示逻辑（运行项、运行预览行、CD 显示文字）改为按新模型只供 Avalonia 使用。
+   - Core 调度器 `PuloniaTriggerScheduler` 增加 `registersHotkeys` 参数，WPF 按上游只在根实例注册快捷键。
+3. **Avalonia / Linux**：`GameHost` 注册主实例的 `IPuloniaInstanceKeyProvider` 与 `IPuloniaAccountService`（Linux 只有主实例，没有多开与远程派发）；
+   任务计划页的路线 CD 标记、CD 记录列表与清除改为按账户的完成记录（计划指定账户 → 本实例当前账户 → 第一个账户，与 WPF 相同）。
+4. **数据格式**：上游开发期不转换旧格式，旧版计划（格式 3）、旧账户设置和根目录的 `state.json` 读不出，需要删除后重建。
 
 ### 8.1.2 第三次同步（2026-11-01）
 
@@ -181,13 +188,16 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
      新增的 `CombatCommandCultureTests` 在 Linux 上通过。
    - 07d38b31：推理运行库下载时 Catalog 404 改走 NuGet V2 元数据。`OnnxRuntimeInstaller` 在 Core，但只有 WPF 的硬件加速页使用，Linux 不下载推理运行库，不受影响。Core 项目没有 WPF 项目的 `System.Net` 隐式引用，合并时为 `HttpStatusCode` 补了 `using System.Net;`。
 2. 本地 `origin` 远程跟踪补上了 `main`（`+refs/heads/main:refs/remotes/origin/main`），之后 `git fetch origin` 会同时更新两个分支。
-2. **冲突解法**：59 个冲突，原因是本分支已把 WPF 的 Pulonia 代码抽到 Core，而上游同时重写了这部分。
-   - WPF 一律以上游为准（取上游版本），行为与上游相同；上游新增的非界面服务（账户服务、实例键、完成记录索引、路线 CD 等）放进 Core，命名空间不变。
-   - 本分支抽到 Core、WPF 不再使用的展示逻辑（运行项、运行预览行、CD 显示文字）改为按新模型只供 Avalonia 使用。
-   - Core 调度器 `PuloniaTriggerScheduler` 增加 `registersHotkeys` 参数，WPF 按上游只在根实例注册快捷键。
-3. **Avalonia / Linux**：`GameHost` 注册主实例的 `IPuloniaInstanceKeyProvider` 与 `IPuloniaAccountService`（Linux 只有主实例，没有多开与远程派发）；
-   任务计划页的路线 CD 标记、CD 记录列表与清除改为按账户的完成记录（计划指定账户 → 本实例当前账户 → 第一个账户，与 WPF 相同）。
-4. **数据格式**：上游开发期不转换旧格式，旧版计划（格式 3）、旧账户设置和根目录的 `state.json` 读不出，需要删除后重建。
+
+### 8.1.3 第四次同步（2026-11-02）
+
+1. **合并 `refactor/20260930`（0307ec5b..9e3a0b00，2 个提交）**；`main` 自 07d38b31 以来没有新提交。
+   - ad10c366：移除火山翻译、Google 翻译、Windows SAPI 三个自动配音渠道。这些引擎与设置 VM 本分支已移到 Core，按上游一并删除；
+     WPF 模块初始化不再注册 SAPI，Avalonia 自动配音设置窗口删除三个模板。Core 注册表保留本分支的宿主注册机制（Linux 的 espeak-ng 仍可用），
+     并加入上游的 `IsRegistered`（包含宿主注册的引擎）：旧配置选中已移除引擎时回退 GPT-SoVITS。
+   - 9e3a0b00：攻略小窗默认自由位置、四项常用操作默认绑定方向键（键鼠监听），删除“小窗隐藏时继续显示字幕”与其余小窗快捷键；按键宏新增绝对坐标等指令。
+     小窗快捷键与按键宏只在 WPF；Avalonia 删除“小窗隐藏时继续显示字幕”开关。`KeyMacroHotkeyHost` 的截图区域在本分支是 `PixelRect`，转成 `RECT` 传给 `KeyMacroRunner`。
+2. 冲突 9 处（6 处是上游删除、本分支移到 Core 的文件，按上游删除；3 处内容冲突按上面方式合并），WPF 行为与上游相同。
 
 ### 8.2 同步步骤
 

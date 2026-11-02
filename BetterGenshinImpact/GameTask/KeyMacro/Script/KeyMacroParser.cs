@@ -18,6 +18,16 @@ public static class KeyMacroParser
     public const double MaxWaitSeconds = 3600;
 
     /// <summary>
+    /// 绝对坐标所用游戏画面的宽度。与 GameRegion1080PPosMove 和 JS 脚本的 moveMouseTo 一致，以 1920×1080 为准
+    /// </summary>
+    public const int GameWidth = 1920;
+
+    /// <summary>
+    /// 绝对坐标所用游戏画面的高度
+    /// </summary>
+    public const int GameHeight = 1080;
+
+    /// <summary>
     /// 战斗策略中的包装指令和别名。按键宏不支持它们，出现时给出明确提示而不是“未知指令”
     /// </summary>
     private static readonly HashSet<string> CombatCommandNames = new(StringComparer.OrdinalIgnoreCase)
@@ -281,14 +291,18 @@ public static class KeyMacroParser
             case KeyMacroCommandKind.MouseUp:
             case KeyMacroCommandKind.Click:
             {
-                if (args.Length > 1)
+                // click 可以写 click(鼠标键, x, y)；mousedown、mouseup 只有鼠标键
+                var isClick = info.Kind == KeyMacroCommandKind.Click;
+                if (isClick ? (args.Length is 2 or > 3) : args.Length > 1)
                 {
-                    Error($"{info.Name} 只能有一个鼠标键，例如 {info.Example}");
+                    Error(isClick
+                        ? "click 的参数是鼠标键，或鼠标键加坐标，例如 click(left) 或 click(left, 960, 540)"
+                        : $"{info.Name} 只能有一个鼠标键，例如 {info.Example}");
                     return null;
                 }
 
                 var button = KeyMacroMouseButton.Left;
-                if (args.Length == 1 && !KeyMacroKeys.TryParseButton(args[0], out button))
+                if (args.Length >= 1 && !KeyMacroKeys.TryParseButton(args[0], out button))
                 {
                     Error($"无法识别的鼠标键「{args[0]}」，可用 left、right、middle、x1、x2");
                     return null;
@@ -300,13 +314,40 @@ public static class KeyMacroParser
                     return null;
                 }
 
-                return step with { Button = button };
+                if (args.Length < 3)
+                {
+                    return step with { Button = button };
+                }
+
+                if (!TryParsePosition(args[1], args[2], "click(left, 960, 540)", out var clickX, out var clickY, out var clickError))
+                {
+                    Error(clickError);
+                    return null;
+                }
+
+                return step with { Button = button, HasPosition = true, X = clickX, Y = clickY };
             }
             case KeyMacroCommandKind.MoveBy:
             {
                 if (args.Length != 2 || !TryParseInt(args[0], out var x) || !TryParseInt(args[1], out var y))
                 {
                     Error("moveby 需要两个整数，例如 moveby(100, 0)");
+                    return null;
+                }
+
+                return step with { X = x, Y = y };
+            }
+            case KeyMacroCommandKind.MoveTo:
+            {
+                if (args.Length != 2)
+                {
+                    Error("moveto 需要两个整数坐标，例如 moveto(960, 540)");
+                    return null;
+                }
+
+                if (!TryParsePosition(args[0], args[1], "moveto(960, 540)", out var x, out var y, out var moveError))
+                {
+                    Error(moveError);
                     return null;
                 }
 
@@ -358,6 +399,34 @@ public static class KeyMacroParser
     private static bool TryParseInt(string text, out int value)
     {
         return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
+
+    /// <summary>
+    /// 解析游戏画面坐标：两个整数，范围 0–1920、0–1080（与 JS 脚本 moveMouseTo 的范围检查一致）
+    /// </summary>
+    /// <param name="xText">横坐标文本</param>
+    /// <param name="yText">纵坐标文本</param>
+    /// <param name="example">出错时提示的示例写法</param>
+    /// <param name="x">横坐标</param>
+    /// <param name="y">纵坐标</param>
+    /// <param name="error">失败原因</param>
+    private static bool TryParsePosition(string xText, string yText, string example, out int x, out int y, out string error)
+    {
+        y = 0;
+        if (!TryParseInt(xText, out x) || !TryParseInt(yText, out y))
+        {
+            error = $"坐标需要两个整数，例如 {example}";
+            return false;
+        }
+
+        if (x < 0 || x > GameWidth || y < 0 || y > GameHeight)
+        {
+            error = $"坐标要在游戏画面 {GameWidth}×{GameHeight} 内：x 为 0–{GameWidth}，y 为 0–{GameHeight}";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
     }
 
     /// <summary>

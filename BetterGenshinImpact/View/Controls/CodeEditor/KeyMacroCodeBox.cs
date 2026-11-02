@@ -252,6 +252,12 @@ public class KeyMacroCodeBox : CodeBox
                 return;
             }
 
+            // 只有第一个参数是按键名或鼠标键名；click(left, x, y) 后面的坐标不补全
+            if (before.AsSpan(lastOpen + 1).IndexOfAny(',', '，') >= 0)
+            {
+                return;
+            }
+
             items = info.Kind switch
             {
                 KeyMacroCommandKind.KeyDown or KeyMacroCommandKind.KeyUp or KeyMacroCommandKind.KeyPress =>

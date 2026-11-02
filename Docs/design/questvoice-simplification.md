@@ -10,7 +10,7 @@
 
 第 3 版变更：
 
-- 第 8 节按确认结果更新：流式合成保留，并记为可能的后续优化点；场景识别不改，OCR 直接使用 BetterGI 内置 OCR；新旧句接替不改；7 个引擎全部保留。
+- 第 8 节按确认结果更新：流式合成保留，并记为可能的后续优化点；场景识别不改，OCR 直接使用 BetterGI 内置 OCR；新旧句接替不改；当前保留 4 个引擎。
 - 第 6 节的方案从“自带会话改由 `BgiOnnxFactory` 创建”改为“直接调用内置识别组件 `Rec`”。自带的 ONNX 会话、CTC 解码以及“OCR 模型路径”“DirectML 设备序号”两项设置一并删除。
 - 第 3～5 节按实际实现更新。5.3 节逐项记录实施结果；第 9 项（配置两种存法合并）本次未做，移到第 9 节。
 - 新增 7.4 节：实施结果与验证。
@@ -37,11 +37,11 @@
 | 区域 | 优化前 | 优化后 | 内容 |
 | --- | ---: | ---: | --- |
 | `GameTask/QuestVoice/Features/Continuous` | 1,765 | 1,745 | 帧会话、配音会话两个状态机 |
-| `GameTask/QuestVoice/Features/Tts` | 1,607 | 1,607 | 7 个引擎、流式协议、路由分派 |
+| `GameTask/QuestVoice/Features/Tts` | 1,607 | 1,607 | 4 个引擎、流式协议、路由分派 |
 | `GameTask/QuestVoice/Features/Ocr` | 1,418 | 945 | 6 种布局的像素场景识别、预处理；优化前还有自带的 OCR 会话和 CTC 解码 |
 | `GameTask/QuestVoice` 其余（Core、Routing、Diagnostics、Audio、根目录） | 2,685 | 2,657 | 契约、路由目录、指标、悬浮摘要、会话包装 |
 | `Service/QuestVoiceService*.cs` | 983 | 1,080 | 启停、采样、状态投影、试听；优化后多了按触发器周期自动启停 |
-| `ViewModel/Pages`（19 个文件） | 2,016 | 1,680 | 设置窗口和卡片的 VM、路由草稿编辑器、7 个引擎 VM |
+| `ViewModel/Pages`（19 个文件） | 2,016 | 1,680 | 设置窗口和卡片的 VM、路由草稿编辑器、4 个引擎 VM |
 | `View/Pages`、`View/Windows`（优化前 30 个文件，优化后 28 个） | 1,251 | 1,051 | 优化前 4 个页面；优化后为卡片、设置窗口和引擎子视图 |
 | `Core/Config` | 96 | 108 | |
 | **合计** | **11,821** | **10,873** | 单元测试原有 49 个文件、7,723 行；第 2 版删除后 44 个文件、6,256 行；本次实施后 43 个文件、6,079 行 |
@@ -71,15 +71,15 @@
 | 帧多余复制 | `Mat.Clone` → BMP 编码 → Controller `ToArray` → Snapshot 再 `ToArray` → 场景检查和 OCR 每次读 `Bytes` 都整块克隆。2560×1440 的 BMP 约 11 MB，每 150 ms 一次 |
 | 路由每句读盘 | `VoiceRoutingService` 每句读 `routing.json`、算 SHA256、完整校验；`MatchesCurrentDialogueAsync` 每次 OCR 还要再解析 1～2 次。用户文档的语义是“修改在下次启动配音时生效”，读一次就够 |
 | 跨层 | Service 做“离开对话”的图像识别（`HasConfirmedExitEvidence`）；VM 直接读写文件、算 SHA256、发 HTTP（`GetVoicesAsync`、`ProbeAsync`），并直接 `new RoutingCatalogStore()`；`QuestVoiceSessionFactory.ExtraConfig` 这个读方法会改写配置 |
-| 配置两种存法 | GPT-SoVITS 和火山翻译的参数在 `QuestVoiceConfig` 顶层，其余 5 个引擎在 `ExtraProviders` 字典里；工厂因此到处是“字典有就用字典，否则用顶层字段”的分支，`CreateTtsSettings` 和 `CreateProviderSettings` 两个重载几乎相同 |
+| 配置两种存法 | GPT-SoVITS 的参数在 `QuestVoiceConfig` 顶层，其余 3 个引擎在 `ExtraProviders` 字典里；工厂仍需按配置位置解析服务实例，`CreateTtsSettings` 和 `CreateProviderSettings` 两个入口语义接近 |
 | 单实现接口 | 18 个只有一个实现的接口中，`ISceneSelector`、`ISceneProfileLoader`、`ISpeakerRouter`、`IReferenceAudioSelector`、`IImageOcrService`、`IImageProcessingService` 没有测试替身；其余 12 个在测试中用作替身 |
 
 ## 2. 原则与范围
 
 原则：
 
-- **保留全部现有功能。** 第 5.1 节逐项列出。设置项只删除“OCR 模型路径”和“DirectML 设备序号”两项：OCR 直接使用全局 OCR，模型和设备都跟随全局设置（第 6 节）。其余设置全部保留。
-- 第 8 节的 4 项按确认结果处理：流式合成、现有场景识别、旧句接替方式、7 个引擎都不改。
+- **保留当前支持的功能。** 第 5.1 节逐项列出。设置项删除“OCR 模型路径”和“DirectML 设备序号”两项：OCR 直接使用全局 OCR，模型和设备都跟随全局设置（第 6 节）。
+- 第 8 节的 4 项按确认结果处理：流式合成、现有场景识别和旧句接替方式不改；当前保留 4 个引擎。
 - 只删除三类代码：生产中没有调用方的死代码、没有绑定的 VM 成员、重复实现的同一逻辑。
 - 依赖方向为 View → ViewModel → Service → GameTask。
 
@@ -151,18 +151,15 @@
 
 `QuestVoiceSettingsWindow`：`ui:FluentWindow`，Mica 背景，`SourceInitialized` 中调用 `WindowHelper.TryApplySystemBackdrop`，`Owner` 为主窗口，`ShowDialog` 打开（与 `MusicSettingsWindow` 相同）。窗口分 4 页，底部固定一行状态。
 
-**引擎与声线**：左侧列出 7 个引擎，★ 标记默认引擎；右侧是所选引擎的全部设置，上方有“设为默认引擎”按钮。默认引擎和正在编辑的引擎在同一页可见，解决 1.2 第 2 条。
+**引擎与声线**：左侧列出 4 个引擎，★ 标记默认引擎；右侧是所选引擎的全部设置，上方有“设为默认引擎”按钮。默认引擎和正在编辑的引擎在同一页可见，解决 1.2 第 2 条。
 
 ```text
 ┌ [引擎与声线]  角色  识别  高级 ─────────────────────────────────────────┐
 │ ┌────────────────────┐ │ ★ 为正式配音使用的默认引擎……       [设为默认引擎]  │
 │ │★ GPT-SoVITS         │ │ GPT-SoVITS                                     │
-│ │  火山翻译            │ │ ── 服务 ───────────────────────────────────── │
-│ │  Windows 系统语音    │ │ [ ] 使用远程实例（本地与远程地址分别保留）         │
 │ │  VOICEVOX           │ │ 服务地址 [http://127.0.0.1:9880/          ]     │
 │ │  vits-simple-api    │ │ [测试连接] 尚未检测连接                          │
 │ │  OpenAI 兼容语音     │ │ [ ] 按句流式合成与增量播放（实验性）               │
-│ │  Google 翻译语音     │ │ ── 声线 ───────────────────────────────────── │
 │ └────────────────────┘ │ [派蒙                ▼] [+ 新增] [删除]         │
 │                        │ 名称 [派蒙]   服务实例 [跟随当前实例 ▼]            │
 │                        │ GPT 权重     [D:\gsv\paimon.ckpt ] [浏览]       │
@@ -317,7 +314,7 @@ private async Task ApplyDesiredStateAsync()
 - 场景识别：6 种对白布局的像素识别、墨迹签名稳定判定、姓名金色墨迹隔离。
 - 识别预处理（裁剪、墨迹隔离、按行切分）；识别本身改用全局 OCR（第 6 节）。
 - 对白跟踪：定向复核、正文清空判定话轮、同一句不重复朗读、离开对话停止播放、新句音频准备好后再接替旧句。
-- 7 个引擎，本地 / 远程两套地址；不同角色可用不同引擎（`RoutedTtsProvider`）。
+- 4 个引擎，本地 / 远程两套地址；不同角色可用不同引擎（`RoutedTtsProvider`）。
 - GPT-SoVITS：串行切换权重、已发出的请求排空、后端状态未知保护、流式合成与增量播放。
 - 角色目录：v1 / v2 格式、旅行者、默认 NPC、旁白字段、缺失策略、别名、识别纠错、草稿校验后自动保存、SHA 冲突检测、文件锁、`.bak` 备份、导入导出、退出前保存。
 - 运行信息：6 节点进度、当前处理内容、最近事件、悬浮摘要、日志分流、Debug 指标。
@@ -378,12 +375,12 @@ flowchart LR
 | 6 | 帧多余复制 | 编码结果直接交给 Controller，`TryObserve(byte[] owned, …)` 不再复制；`ContinuousFrameSnapshot.Bytes` 不再克隆 | 已完成，每帧少 3～4 次整帧复制（每次约 11 MB） |
 | 7 | 路由每句读盘 | `VoiceRoutingService.LoadOnceAsync` 在同一会话内只读取并校验一次目录；读取失败或取消不缓存。`MatchesCurrentDialogueAsync` 走同一缓存 | 已完成。运行中外部修改 `routing.json` 改为下次启动生效，与用户文档一致 |
 | 8 | 跨层 | 按 5.2 的约束移动；`ExtraConfig` 改为只读，引擎字典的缺省值由 `QuestVoiceConfig.OnExtraProvidersChanged` 在加载后补齐 | 已完成 |
-| 9 | 配置两种存法 | GPT-SoVITS 和火山翻译的参数并入引擎字典；合并 `CreateTtsSettings` / `CreateProviderSettings` | **未实施**，移到第 9 节。它改动持久化字段，并牵涉 4 个测试文件，收益约 60 行，本次不做 |
+| 9 | 配置两种存法 | GPT-SoVITS 的参数并入引擎字典；合并 `CreateTtsSettings` / `CreateProviderSettings` | **未实施**，移到第 9 节。它改动持久化字段并牵涉兼容迁移，本次不做 |
 | 10 | 单实现接口 | 删除 `ISceneSelector`、`ISceneProfileLoader`、`ISpeakerRouter`、`IReferenceAudioSelector`、`IImageOcrService`、`IImageProcessingService`；其余 12 个保留作测试替身 | 已完成 |
 | 11 | OCR | 改用全局 OCR 服务（第 6 节）；删除 `DirectMlOcrEngine`、`DirectMlOcrSession`、`IDirectMlOcrSession`、`OcrExecutionProfile`、`CtcDecoder`、`ImageSnapshot`、`ImageOcrService.Frames.cs`（连续帧识别并入 `ImageOcrService` 和 `ContinuousFrameRecognizer`）、工厂中的运行库 DML 检查；删除 `OcrModelPath`、`DeviceId` 两项配置 | 已完成 |
 | 12 | 界面 | 卡片 + 设置窗口，子视图复用；删除 4 个页面和导航项 | 已完成 |
 
-主体算法、并发模型（两个会话的泵、版本号、观察租约）和 7 个 Provider 没有改动。
+主体算法、并发模型（两个会话的泵、版本号、观察租约）和现有 4 个 Provider 没有改动。
 
 保留并在设计中注明的两处：
 
@@ -522,7 +519,7 @@ UI（View / ViewModel）测试不持久化；只测试生产中无调用方的�
 1. **流式合成**：保留，不移除。记为可能的后续优化点（第 9 节）。
 2. **识别方式**：不改，保留现有 6 种布局的场景识别和识别预处理；OCR 直接使用 BetterGI 全局 OCR，配置也完全跟随全局 OCR 配置（第 6 节）。
 3. **新旧句接替**：不改，原方式合理：旧句继续播放，直到新句音频准备好再接替。
-4. **引擎**：7 个引擎全部保留，不移除。
+4. **引擎**：当前保留 4 个引擎。
 
 ## 9. 不在本次范围与后续优化点
 
@@ -535,5 +532,5 @@ UI（View / ViewModel）测试不持久化；只测试生产中无调用方的�
 可能的后续优化点：
 
 - **流式合成**：按句流式与增量播放的状态机（Ready / EOF、缺料、安全排空）是 TTS 部分最复杂的代码，只对 GPT-SoVITS 生效且默认关闭。积累使用反馈后，再评估是否简化或移除。
-- **配置两种存法合并**（原 5.3 第 9 项）：GPT-SoVITS 和火山翻译的参数并入引擎字典，合并 `CreateTtsSettings` / `CreateProviderSettings`。需要同步调整持久化字段和 4 个测试文件。
+- **配置两种存法合并**（原 5.3 第 9 项）：GPT-SoVITS 的参数并入引擎字典，合并 `CreateTtsSettings` / `CreateProviderSettings`。需要同步调整持久化字段和兼容迁移测试。
 - **`_encoding` 去重**（原 5.3 第 5 项的剩余部分）：把克隆、编码和离开对话检测移进 Controller，由 `_observing` 统一限制同时一帧。

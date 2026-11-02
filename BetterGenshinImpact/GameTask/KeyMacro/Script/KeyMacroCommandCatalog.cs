@@ -27,10 +27,12 @@ public static class KeyMacroCommandCatalog
         new("keypress", KeyMacroCommandKind.KeyPress, "keypress(键)", "keypress(e)", "按一下键盘键"),
         new("keydown", KeyMacroCommandKind.KeyDown, "keydown(键)", "keydown(e)", "按下键盘键并保持"),
         new("keyup", KeyMacroCommandKind.KeyUp, "keyup(键)", "keyup(e)", "松开键盘键"),
-        new("click", KeyMacroCommandKind.Click, "click(鼠标键)", "click(left)", "点击鼠标键：left、right、middle、x1、x2"),
+        new("click", KeyMacroCommandKind.Click, "click(鼠标键[, x, y])", "click(left)",
+            "点击鼠标键：left、right、middle、x1、x2；可加坐标，如 click(left, 960, 540) 先移到该位置再点击"),
         new("mousedown", KeyMacroCommandKind.MouseDown, "mousedown(鼠标键)", "mousedown(left)", "按下鼠标键并保持"),
         new("mouseup", KeyMacroCommandKind.MouseUp, "mouseup(鼠标键)", "mouseup(left)", "松开鼠标键"),
         new("moveby", KeyMacroCommandKind.MoveBy, "moveby(x, y)", "moveby(100, 0)", "鼠标相对移动"),
+        new("moveto", KeyMacroCommandKind.MoveTo, "moveto(x, y)", "moveto(960, 540)", "鼠标绝对移动到游戏画面坐标，以 1920×1080 为准"),
         new("scroll", KeyMacroCommandKind.Scroll, "scroll(格数)", "scroll(1)", "滚轮，正数向上"),
         new("wait", KeyMacroCommandKind.Wait, "wait(秒)", "wait(0.1)", "等待，单位秒")
     ];
