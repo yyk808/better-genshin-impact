@@ -103,6 +103,36 @@ public partial class MaskWindow : Window
         LogView.InvalidateVisual();
     }
 
+    /// <summary>小地图 / 大地图点位层（用于验证与输入区域）</summary>
+    public MapPointsLayer MiniMapLayer => MiniMapPoints;
+    public MapPointsLayer BigMapLayer => BigMapPoints;
+    public bool MapLoadingVisible => MapLoadingBanner.IsVisible;
+
+    /// <summary>
+    /// 地图点位（同 WPF MaskWindow.xaml 的绑定）：小地图层在 MiniMapMaskEnabled 时显示，位置为 MapAssets 小地图区域按比例换算
+    /// （左 = 比例 × 宽，上与边长 = 比例 × 高）；大地图层在大地图界面时显示并铺满遮罩；加载点位时顶部居中显示提示
+    /// </summary>
+    public void ApplyMapPoints(BetterGenshinImpact.ViewModel.MaskWindowViewModel? map, double width, double height)
+    {
+        if (map is null)
+        {
+            MiniMapPoints.IsVisible = BigMapPoints.IsVisible = MapLoadingBanner.IsVisible = false;
+            return;
+        }
+
+        MiniMapPoints.IsVisible = map.Config.MapMaskConfig.MiniMapMaskEnabled;
+        Canvas.SetLeft(MiniMapPoints, map.MiniMapOverlayLeftRatio * width);
+        Canvas.SetTop(MiniMapPoints, map.MiniMapOverlayTopRatio * height);
+        MiniMapPoints.Width = MiniMapPoints.Height = map.MiniMapOverlaySizeRatio * height;
+        MiniMapPoints.Update(map.MapPoints, map.MapPointLabels, map.MiniMapViewport);
+
+        BigMapPoints.IsVisible = map.IsInBigMapUi;
+        BigMapPoints.Update(map.MapPoints, map.MapPointLabels, map.BigMapViewport);
+
+        MapLoadingBanner.IsVisible = map.IsMapPointsLoading;
+        MapLoadingText.Text = map.MapPointsLoadingText;
+    }
+
     private static void Place(Control control, double left, double top, double w, double h, double width, double height)
     {
         Canvas.SetLeft(control, left * width);

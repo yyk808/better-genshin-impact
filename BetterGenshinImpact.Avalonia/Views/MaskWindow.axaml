@@ -10,6 +10,8 @@
         <v:MaskDrawingLayer x:Name="Drawing" />
         <!-- 状态栏与日志框：位置、大小、配色、字体、阴影都取自 MaskWindowConfig，与 WPF 遮罩相同（见 ApplyOverlay） -->
         <Canvas x:Name="Root">
+            <!-- 小地图点位（WPF MiniMapPointsCanvas），在状态栏和日志框之下 -->
+            <v:MapPointsLayer x:Name="MiniMapPoints" IsMiniMap="True" IsVisible="False" />
             <Border x:Name="StatusBox" CornerRadius="4" ClipToBounds="True" Padding="4,2" MinWidth="160" MinHeight="24">
                 <StackPanel x:Name="StatusPanel" Orientation="Horizontal" VerticalAlignment="Top" />
             </Border>
@@ -22,6 +24,16 @@
             <Rectangle x:Name="LogOutline" IsVisible="False" IsHitTestVisible="False" RadiusX="4" RadiusY="4"
                        Stroke="#C5FFFFFF" StrokeDashArray="3,2" StrokeThickness="1" />
         </Canvas>
+        <!-- 大地图点位（WPF PointsCanvas），铺满遮罩 -->
+        <v:MapPointsLayer x:Name="BigMapPoints" IsVisible="False" />
+        <!-- 正在加载点位（WPF MaskWindow.xaml 的加载提示） -->
+        <Border x:Name="MapLoadingBanner" IsVisible="False" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Top"
+                Margin="0,16,0,0" Padding="12,10" Background="#CC1F232A" BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="12">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="18" Height="18" Margin="0,0,10,0" Stroke="#FFFFFF" StrokeThickness="2" StrokeDashArray="6,3" />
+                <TextBlock x:Name="MapLoadingText" Foreground="White" FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
         <!-- 布局编辑提示（同 WPF MaskWindow.xaml） -->
         <StackPanel x:Name="EditBanner" IsVisible="False" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel.Effect>

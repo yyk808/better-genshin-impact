@@ -185,7 +185,7 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
   输入区域只含这两个控件，其余部分仍点击穿透（同 WPF 透明部分不接收鼠标）：X11 用 SHAPE 输入区域（`X11Overlay.SetInputRegion`），
   Wayland 覆盖层设置 `wl_surface.set_input_region`，从 `wl_seat` / `wl_pointer` 读指针事件（编辑模式下每 15 ms 读一次），光标形状用 `wp_cursor_shape_v1`（合成器不支持时为默认光标）。
   编辑不需要键盘，所以覆盖层仍不接收键盘（`keyboard_interactivity none`）。
-- **地图点位**（进行中）：点位服务（米游社 / 空荧酒馆 / HoYoLAB 三个数据源、文件缓存 `Cache/Files`）与界面模型 `MaskWindowViewModel.MapPoints.cs`、点位信息弹窗模型与 WPF 共用，在 Linux 宿主注册；选择的标签和隐藏的点位存到 `User/MapMask`（同 WPF）。界面模型只依赖“回到界面线程”的钩子（WPF 为 Dispatcher，Linux 为 Avalonia 的 UI 线程），弹窗位置与图片由各自界面提供。遮罩上的绘制与交互在后续提交。
+- **地图点位**（进行中）：点位服务（米游社 / 空荧酒馆 / HoYoLAB 三个数据源、文件缓存 `Cache/Files`）与界面模型 `MaskWindowViewModel.MapPoints.cs`、点位信息弹窗模型与 WPF 共用，在 Linux 宿主注册；选择的标签和隐藏的点位存到 `User/MapMask`（同 WPF）。界面模型只依赖“回到界面线程”的钩子（WPF 为 Dispatcher，Linux 为 Avalonia 的 UI 线程），弹窗位置与图片由各自界面提供。遮罩上的绘制（X11 与 Wayland 相同，`MapPointsLayer`）：小地图点位（`MiniMapMaskEnabled`，MapAssets 小地图区域、圆形裁剪）与大地图点位（大地图界面时铺满遮罩），画法同 WPF `MiniMapPointsCanvas` / `PointsCanvas`，隐藏的点位整体 35% 不透明度；图标与详情图片由 `MapImageCache` 加载（网络图片走 `Cache/Files` 文件缓存）。大地图上的交互在后续提交。
 - xwayland-satellite 会给没声明“无装饰”的 X 窗口加一条标题栏，niri 报告的窗口比游戏客户区高；屏幕位置按客户区大小对齐到窗口底部。
 - 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
 - 实机检查清单见 `wayland-niri-checklist.md`。

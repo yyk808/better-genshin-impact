@@ -79,12 +79,83 @@ public sealed class MaskWindowController : IDisposable
         }
 
         host.Config.MaskWindowConfig.PropertyChanged += OnMaskConfigChanged;
+        InitMapPoints();
         // Wayland 覆盖层没有 Avalonia 输入：编辑模式下定时读取 wl_pointer 事件
         _pumpTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(15), DispatcherPriority.Input, (_, _) => PumpOverlay());
     }
 
     private readonly DispatcherTimer _pumpTimer;
     private string _inputRegionKey = "";
+
+    private BetterGenshinImpact.ViewModel.MaskWindowViewModel? _map;
+    private IMaskWindowSnapshotSource<MaskWindowMapSnapshot>? _mapSource;
+    private int _mapQueued;
+    private int _mapRefreshQueued;
+
+    /// <summary>
+    /// 地图点位：界面模型（与 WPF 共用）来自宿主；大地图识别（MapMaskTrigger → MaskWindowMapState）的快照在 UI 线程上合并后交给模型（同 WPF UiCoalescer），
+    /// 模型或图标变化后重绘点位层。图标 / 详情图片由 <see cref="MapImageCache"/> 加载
+    /// </summary>
+    private void InitMapPoints()
+    {
+        MapImageCache.Configure(_host.Services.GetService(typeof(BetterGenshinImpact.Infrastructure.Cache.IFileCache)) as BetterGenshinImpact.Infrastructure.Cache.IFileCache,
+            _host.Services.GetService(typeof(IHttpClientFactory)) as IHttpClientFactory, _log);
+        BetterGenshinImpact.ViewModel.MapLabelItemVm.IconLoader = async (url, ct) => await MapImageCache.GetAsync(url, ct);
+        BetterGenshinImpact.ViewModel.MaskMapPointInfoPopupViewModel.ImageLoader = async (url, ct) => await MapImageCache.LoadPointImageAsync(url, ct);
+        MapImageCache.ImageUpdated += OnMapImageUpdated;
+        _mapSource = _host.Services.GetService(typeof(IMaskWindowMapState)) as IMaskWindowSnapshotSource<MaskWindowMapSnapshot>;
+        if (_mapSource is not null) _mapSource.Changed += OnMapSnapshotChanged;
+        UseMapViewModel(_host.Services.GetService(typeof(BetterGenshinImpact.ViewModel.MaskWindowViewModel)) as BetterGenshinImpact.ViewModel.MaskWindowViewModel);
+    }
+
+    /// <summary>当前的地图点位界面模型（自测可换成用假点位服务的模型）</summary>
+    public BetterGenshinImpact.ViewModel.MaskWindowViewModel? MapViewModel => _map;
+
+    public void UseMapViewModel(BetterGenshinImpact.ViewModel.MaskWindowViewModel? map)
+    {
+        if (_map is not null) _map.PropertyChanged -= OnMapPropertyChanged;
+        _map = map;
+        if (_map is not null)
+        {
+            _map.PropertyChanged += OnMapPropertyChanged;
+            if (_mapSource is not null) _map.ApplyMapSnapshot(_mapSource.Current);
+        }
+
+        QueueMapRefresh();
+    }
+
+    private void OnMapSnapshotChanged()
+    {
+        if (Interlocked.Exchange(ref _mapQueued, 1) != 0) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            Volatile.Write(ref _mapQueued, 0);
+            if (_mapSource is not null) _map?.ApplyMapSnapshot(_mapSource.Current);
+        }, DispatcherPriority.Background);
+    }
+
+    private void OnMapPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => QueueMapRefresh();
+
+    private void OnMapImageUpdated(object? sender, string url) => QueueMapRefresh();
+
+    private void QueueMapRefresh()
+    {
+        if (Interlocked.Exchange(ref _mapRefreshQueued, 1) != 0) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            Volatile.Write(ref _mapRefreshQueued, 0);
+            RefreshMapPoints();
+        }, DispatcherPriority.Background);
+    }
+
+    private void RefreshMapPoints()
+    {
+        if (_window is not { } window || !IsShown) return;
+        var (width, height, _, _) = OverlayLayout;
+        if (width <= 0 || height <= 0) return;
+        window.ApplyMapPoints(_map, width, height);
+        _surface?.Render();
+    }
 
     /// <summary>布局编辑模式（MaskWindowConfig.OverlayLayoutEditEnabled）：遮罩强制显示，可编辑控件接收鼠标</summary>
     public bool Editing => _host.Config.MaskWindowConfig.OverlayLayoutEditEnabled;
@@ -410,6 +481,7 @@ public sealed class MaskWindowController : IDisposable
             }
 
             ApplyOverlay(_window, _window.Width, _window.Height, rect, _window.RenderScaling > 0 ? _window.RenderScaling : 1);
+            _window.ApplyMapPoints(_map, _window.Width, _window.Height);
             ApplyInputRegion(_window.RenderScaling > 0 ? _window.RenderScaling : 1);
             RefreshDrawing();
             if (!_drawingLogged && DrawnShapes > 0)
@@ -476,6 +548,7 @@ public sealed class MaskWindowController : IDisposable
         _surface.Place(placement);
         _lastRect = rect;
         ApplyOverlay(_window!, placement.Width, placement.Height, rect, Math.Max(1, placement.Scale));
+        _window!.ApplyMapPoints(_map, placement.Width, placement.Height);
         ApplyInputRegion(1); // 覆盖层的输入区域用逻辑坐标
         RefreshDrawing();
         if (!_drawingLogged && DrawnShapes > 0)
@@ -584,6 +657,9 @@ public sealed class MaskWindowController : IDisposable
     {
         _host.MaskDrawing.Changed -= OnDrawingChanged;
         _host.Config.MaskWindowConfig.PropertyChanged -= OnMaskConfigChanged;
+        MapImageCache.ImageUpdated -= OnMapImageUpdated;
+        if (_mapSource is not null) _mapSource.Changed -= OnMapSnapshotChanged;
+        if (_map is not null) _map.PropertyChanged -= OnMapPropertyChanged;
         _pumpTimer.Stop();
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();

@@ -104,10 +104,17 @@ internal sealed partial class UiTests
         }
     }
 
+    /// <summary>假点位服务：两个分类各两个标签；第 i 个点位在地图图片坐标 (100 + 200i, 100 + 100i)，Id 为 1000 + i；不联网</summary>
     private sealed class FakeMapPointService : IMaskMapPointService
     {
-        private static MaskMapPointLabel L(string id, string name, int count) =>
-            new() { LabelId = id, LabelIds = [id], Name = name, PointCount = count };
+        /// <summary>标签图标地址（标签 Id → 地址）</summary>
+        public Dictionary<string, string> Icons { get; } = new();
+
+        /// <summary>加载点位前等待的毫秒数（用于看加载提示）</summary>
+        public int PointsDelayMs { get; set; }
+
+        private MaskMapPointLabel L(string id, string name, int count) =>
+            new() { LabelId = id, LabelIds = [id], Name = name, PointCount = count, IconUrl = Icons.GetValueOrDefault(id, "") };
 
         public Task<IReadOnlyList<MaskMapPointLabel>> GetLabelCategoriesAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<MaskMapPointLabel>>(
@@ -116,15 +123,18 @@ internal sealed partial class UiTests
                 new MaskMapPointLabel { LabelId = "c2", Name = "神瞳", Children = [L("c", "风神瞳", 1), L("d", "岩神瞳", 1)] },
             ]);
 
-        public Task<MaskMapPointsResult> GetPointsAsync(IReadOnlyList<MaskMapPointLabel> selectedItems, CancellationToken ct = default)
+        public async Task<MaskMapPointsResult> GetPointsAsync(IReadOnlyList<MaskMapPointLabel> selectedItems, CancellationToken ct = default)
         {
-            var pts = selectedItems.SelectMany(l => Enumerable.Range(0, l.PointCount).Select(i => new MaskMapPoint
+            if (PointsDelayMs > 0) await Task.Delay(PointsDelayMs, ct);
+            var pts = selectedItems.SelectMany(l => Enumerable.Range(0, l.PointCount).Select(_ => new MaskMapPoint { LabelId = l.LabelId })).ToList();
+            for (var i = 0; i < pts.Count; i++)
             {
-                Id = $"{l.LabelId}{i}", LabelId = l.LabelId, X = 100 * i, Y = 50 * i, GameX = 100 * i, GameY = 50 * i,
-            })).ToList();
-            // 米游社点位 Id 是数字：1000、1001、1002……
-            for (var i = 0; i < pts.Count; i++) pts[i].Id = $"{1000 + i}";
-            return Task.FromResult(new MaskMapPointsResult { Labels = selectedItems, Points = pts });
+                pts[i].Id = $"{1000 + i}";
+                pts[i].ImageX = pts[i].X = pts[i].GameX = 100 + 200 * i;
+                pts[i].ImageY = pts[i].Y = pts[i].GameY = 100 + 100 * i;
+            }
+
+            return new MaskMapPointsResult { Labels = selectedItems, Points = pts };
         }
 
         public Task<MaskMapPointInfo> GetPointInfoAsync(MaskMapPoint point, CancellationToken ct = default) =>

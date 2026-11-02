@@ -86,6 +86,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "mask-layout": await MaskLayoutAsync(); break;
                 case "mask-edit": await MaskEditAsync(); break;
                 case "map-points-model": await MapPointsModelAsync(); break;
+                case "map-points-draw": await MapPointsDrawAsync(); break;
                 case "inference-select": await InferenceSelectAsync(); break;
                 case "inference-fallback": await InferenceFallbackAsync(); break;
                 case "pulonia-accounts": await PuloniaAccountsAsync(); break;
