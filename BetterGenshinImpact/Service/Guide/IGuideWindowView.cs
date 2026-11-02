@@ -1,5 +1,4 @@
 using System;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Service.Guide;
 
@@ -42,12 +41,12 @@ public interface IGuideWindowView
     /// <summary>
     /// 设置窗口位置和尺寸（物理像素），不激活窗口
     /// </summary>
-    void SetBounds(RECT bounds);
+    void SetBounds(System.Drawing.Rectangle bounds);
 
     /// <summary>
     /// 读取窗口位置和尺寸（物理像素）
     /// </summary>
-    bool TryGetBounds(out RECT bounds);
+    bool TryGetBounds(out System.Drawing.Rectangle bounds);
 
     /// <summary>
     /// 重新放到置顶层的最上方，不激活窗口
@@ -93,7 +92,7 @@ public interface IGuideSubtitleView
     /// <summary>
     /// 更新定位参照区域（物理像素）：游戏画面，没有游戏窗口时为主显示器工作区。浮窗按配置中的比例放在其中
     /// </summary>
-    void UpdateAnchor(RECT anchor);
+    void UpdateAnchor(System.Drawing.Rectangle anchor);
 
     /// <summary>
     /// 重新放到置顶层的最上方，不激活窗口

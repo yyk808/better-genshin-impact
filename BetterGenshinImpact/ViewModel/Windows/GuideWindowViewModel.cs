@@ -2,17 +2,12 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Service.Guide;
 using BetterGenshinImpact.Service.Interface;
-using BetterGenshinImpact.View.Pages;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Wpf.Ui;
-using FormsScreen = System.Windows.Forms.Screen;
 
 namespace BetterGenshinImpact.ViewModel.Windows;
 
@@ -48,20 +43,7 @@ public partial class GuideWindowViewModel : ObservableObject, IViewModel
 
     private readonly IGuideWindowService _service;
     private readonly GuideLibraryStore _library;
-    private readonly INavigationService _navigationService;
     private readonly HotKeyConfig _hotKeyConfig;
-
-    /// <summary>鼠标进入计时</summary>
-    private readonly DispatcherTimer _enterTimer;
-
-    /// <summary>鼠标离开计时</summary>
-    private readonly DispatcherTimer _leaveTimer;
-
-    /// <summary>鼠标静止计时</summary>
-    private readonly DispatcherTimer _idleTimer;
-
-    /// <summary>热键反馈显示计时</summary>
-    private readonly DispatcherTimer _osdTimer;
 
     /// <summary>当前打开的菜单数量，菜单打开期间保持窗口栏显示</summary>
     private int _openMenuCount;
@@ -134,30 +116,6 @@ public partial class GuideWindowViewModel : ObservableObject, IViewModel
     /// </summary>
     [ObservableProperty]
     private bool _isCursorInside;
-
-    /// <param name="service">小窗服务</param>
-    /// <param name="configService">配置服务</param>
-    /// <param name="library">收藏与观看记录</param>
-    /// <param name="navigationService">主窗口导航</param>
-    public GuideWindowViewModel(IGuideWindowService service, IConfigService configService, GuideLibraryStore library,
-        INavigationService navigationService)
-    {
-        _service = service;
-        _library = library;
-        _navigationService = navigationService;
-        _hotKeyConfig = configService.Get().HotKeyConfig;
-        var dispatcher = Application.Current.Dispatcher;
-        _enterTimer = new DispatcherTimer(HoverEnterDelay, DispatcherPriority.Normal, OnEnterTimer, dispatcher);
-        _leaveTimer = new DispatcherTimer(HoverLeaveDelay, DispatcherPriority.Normal, OnLeaveTimer, dispatcher);
-        _idleTimer = new DispatcherTimer(IdleHideDelay, DispatcherPriority.Background, OnIdleTimer, dispatcher);
-        _osdTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1200), DispatcherPriority.Normal, OnOsdTimer, dispatcher);
-        _enterTimer.Stop();
-        _leaveTimer.Stop();
-        _idleTimer.Stop();
-        _osdTimer.Stop();
-        State.PropertyChanged += OnStatePropertyChanged;
-        Config.PropertyChanged += OnConfigPropertyChanged;
-    }
 
     /// <summary>
     /// 小窗状态
@@ -614,7 +572,7 @@ public partial class GuideWindowViewModel : ObservableObject, IViewModel
 
         try
         {
-            Clipboard.SetText(GuideLinkResolver.Normalize(State.Url));
+            SetClipboardText(GuideLinkResolver.Normalize(State.Url));
             State.ShowOsd("已复制链接");
         }
         catch (Exception)
@@ -779,28 +737,6 @@ public partial class GuideWindowViewModel : ObservableObject, IViewModel
     private void ReloadAfterCrash() => _service.ReloadAfterCrash();
 
     /// <summary>
-    /// 打开 BetterGI 主界面的“悬浮小窗”设置页
-    /// </summary>
-    [RelayCommand]
-    private void OpenSettings()
-    {
-        var main = Application.Current.MainWindow;
-        if (main is null)
-        {
-            return;
-        }
-
-        main.Show();
-        if (main.WindowState == WindowState.Minimized)
-        {
-            main.WindowState = WindowState.Normal;
-        }
-
-        main.Activate();
-        _navigationService.Navigate(typeof(GuideWindowSettingsPage));
-    }
-
-    /// <summary>
     /// 打开收藏或观看记录中的视频
     /// </summary>
     [RelayCommand]
@@ -916,11 +852,11 @@ public partial class GuideWindowViewModel : ObservableObject, IViewModel
     private void PrepareSettingsMenu()
     {
         MonitorOptions.Clear();
-        var screens = FormsScreen.AllScreens;
+        var screens = ScreenInfos();
         for (var i = 0; i < screens.Length; i++)
         {
             var screen = screens[i];
-            var name = $"显示器 {i + 1}（{screen.Bounds.Width}×{screen.Bounds.Height}{(screen.Primary ? "，主显示器" : string.Empty)}）";
+            var name = $"显示器 {i + 1}（{screen.Width}×{screen.Height}{(screen.Primary ? "，主显示器" : string.Empty)}）";
             MonitorOptions.Add(new GuideMenuOption(name, SelectMonitorCommand, i));
         }
 

@@ -26,7 +26,7 @@ public partial class GuideSubtitleWindow : Window, IGuideSubtitleView
     /// <summary>
     /// 定位参照区域（物理像素）
     /// </summary>
-    private RECT _anchor;
+    private System.Drawing.Rectangle _anchor;
 
     /// <summary>
     /// 由服务关闭时允许关闭
@@ -84,7 +84,7 @@ public partial class GuideSubtitleWindow : Window, IGuideSubtitleView
     }
 
     /// <inheritdoc />
-    public void UpdateAnchor(RECT anchor)
+    public void UpdateAnchor(System.Drawing.Rectangle anchor)
     {
         if (anchor.Width <= 0 || anchor.Height <= 0)
         {

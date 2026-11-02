@@ -487,6 +487,24 @@ public sealed class GameHost : IAsyncDisposable
                 accountService: sp.GetRequiredService<IPuloniaAccountService>()));
             services.AddSingleton<LinuxPuloniaTriggerHotkeys>();
             services.AddSingleton<PuloniaSchedulerHost>();
+            // 悬浮小窗 / 字幕浮窗：与 WPF 同一个协调服务；窗口由图形界面宿主经 configureServices 注册 Func<IGuideWindowView> / Func<IGuideSubtitleView>，
+            // 没有注册（无界面宿主）时打开小窗报错并提示。遮罩状态由图形界面宿主的遮罩窗口发布
+            services.AddSingleton<BetterGenshinImpact.Service.Guide.GuideLibraryStore>();
+            services.AddSingleton<BetterGenshinImpact.Core.Mask.MaskWindowStateSource>();
+            services.AddSingleton<BetterGenshinImpact.Core.Mask.IMaskWindowHost>(sp => sp.GetRequiredService<BetterGenshinImpact.Core.Mask.MaskWindowStateSource>());
+            services.AddSingleton(sp => new BetterGenshinImpact.Service.Guide.GuideWindowService(
+                sp.GetRequiredService<IConfigService>(),
+                sp.GetRequiredService<BetterGenshinImpact.Service.Guide.GuideLibraryStore>(),
+                sp.GetRequiredService<GameRuntimeService>(),
+                sp.GetRequiredService<TaskTriggerDispatcher>(),
+                sp.GetRequiredService<BetterGenshinImpact.Core.Mask.IMaskWindowHost>(),
+                sp.GetService<BetterGenshinImpact.Service.Instance.InstanceBootstrap>(),
+                sp.GetService<Func<BetterGenshinImpact.Service.Guide.IGuideWindowView>>()
+                    ?? (() => throw new InvalidOperationException("没有图形界面，不能打开悬浮小窗")),
+                sp.GetService<Func<BetterGenshinImpact.Service.Guide.IGuideSubtitleView>>()
+                    ?? (() => throw new InvalidOperationException("没有图形界面，不能打开字幕浮窗")),
+                sp.GetRequiredService<ILogger<BetterGenshinImpact.Service.Guide.GuideWindowService>>()));
+            services.AddSingleton<BetterGenshinImpact.Service.Guide.IGuideWindowService>(sp => sp.GetRequiredService<BetterGenshinImpact.Service.Guide.GuideWindowService>());
             configureServices?.Invoke(services);
             var provider = services.BuildServiceProvider();
             CoreServices.SetProvider(() => provider);
@@ -527,6 +545,27 @@ public sealed class GameHost : IAsyncDisposable
     /// <summary>界面就绪：处理在此之前收到的激活转发（与 WPF 主窗口加载后相同）</summary>
     public void MarkInstanceApplicationReady() =>
         _provider.GetService<BetterGenshinImpact.Service.Instance.InstanceService>()?.MarkApplicationReady();
+
+    /// <summary>悬浮小窗协调服务（与 WPF 相同）；图形界面就绪后调用 <see cref="StartGuide"/></summary>
+    public BetterGenshinImpact.Service.Guide.GuideWindowService Guide =>
+        _provider.GetRequiredService<BetterGenshinImpact.Service.Guide.GuideWindowService>();
+
+    /// <summary>
+    /// 启动悬浮小窗服务（订阅截图器、任务模式与配置变化，按设置自动打开）。在界面线程、主窗口打开后调用一次，
+    /// 对应 WPF 托管服务的 StartAsync
+    /// </summary>
+    public void StartGuide()
+    {
+        if (_guideStarted)
+        {
+            return;
+        }
+
+        _guideStarted = true;
+        Guide.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    private bool _guideStarted;
 
     /// <summary>多实例服务（未启用多实例时为 null）</summary>
     public BetterGenshinImpact.Service.Instance.InstanceService? Instances =>
@@ -684,6 +723,20 @@ public sealed class GameHost : IAsyncDisposable
         if (RuntimeService.IsRunning)
         {
             await RuntimeService.StopAsync();
+        }
+
+        // 悬浮小窗：保存播放进度与收藏（与 WPF 托管服务停止时相同），停止计时器
+        if (_guideStarted)
+        {
+            try
+            {
+                await Guide.StopAsync(CancellationToken.None);
+                Guide.StopPlatformTimers();
+            }
+            catch (Exception e)
+            {
+                _log.Warning(e, "停止悬浮小窗服务失败");
+            }
         }
 
         // 多实例：先停一步下发宿主与实例 IPC，再释放在线标记（与 WPF 托管服务的停止顺序相同：后启动的先停止）

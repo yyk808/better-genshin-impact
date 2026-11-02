@@ -78,6 +78,15 @@
 		<Compile Include="..\BetterGenshinImpact\Pulonia\Services\PuloniaRepositoryManagementService.cs" Link="ScriptRepo\Shared\PuloniaRepositoryManagementService.cs" />
 	</ItemGroup>
 
+	<!-- 悬浮小窗 / 字幕浮窗：服务、游戏窗口跟随、视图模型直接编译 WPF 项目的源文件；平台部分（计时器、显示器、前台窗口、提示）在 Guide/*.Linux.cs -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\Service\Guide\GuideWindowService.cs" Link="Guide\Shared\GuideWindowService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Guide\IGuideWindowView.cs" Link="Guide\Shared\IGuideWindowView.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\IViewModel.cs" Link="Guide\Shared\IViewModel.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Windows\GuideWindowViewModel.cs" Link="Guide\Shared\GuideWindowViewModel.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Windows\GuideSubtitleWindowViewModel.cs" Link="Guide\Shared\GuideSubtitleWindowViewModel.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
 		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />

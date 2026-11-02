@@ -3,21 +3,16 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Threading;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.Core.Mask;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.Runtime;
 using BetterGenshinImpact.Helpers;
-using BetterGenshinImpact.Infrastructure.WebView;
+using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Service.Instance;
 using BetterGenshinImpact.Service.Interface;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Vanara.PInvoke;
-using Wpf.Ui.Violeta.Controls;
-using FormsScreen = System.Windows.Forms.Screen;
 
 namespace BetterGenshinImpact.Service.Guide;
 
@@ -26,7 +21,7 @@ namespace BetterGenshinImpact.Service.Guide;
 /// 汇总用户偏好、悬停与交互、游戏前台、任务模式、网页状态，按 <see cref="GuideWindowPresentation"/> 计算结果后交给窗口呈现。
 /// 公开方法可以在任意线程调用，内部状态只在界面线程读写
 /// </summary>
-public sealed class GuideWindowService : IGuideWindowService, IHostedService, IDisposable
+public sealed partial class GuideWindowService : IGuideWindowService, IHostedService, IDisposable
 {
     /// <summary>默认宽度（DIP）</summary>
     private const double DefaultWidthDip = 480;
@@ -75,20 +70,6 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     /// </summary>
     private readonly GuideGameWatcher _watcher = new();
 
-    /// <summary>
-    /// 播放中定时保存进度
-    /// </summary>
-    private DispatcherTimer? _progressTimer;
-
-    /// <summary>
-    /// 交互模式下鼠标离开后自动结束
-    /// </summary>
-    private DispatcherTimer? _interactionExitTimer;
-
-    /// <summary>
-    /// 意外获得焦点后，等鼠标松开再把焦点还给游戏
-    /// </summary>
-    private DispatcherTimer? _focusRestoreTimer;
 
     /// <summary>当前小窗，未打开时为 null</summary>
     private IGuideWindowView? _view;
@@ -171,7 +152,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         GameRuntimeService runtimeService,
         TaskTriggerDispatcher dispatcher,
         IMaskWindowHost maskWindowHost,
-        InstanceBootstrap instanceBootstrap,
+        InstanceBootstrap? instanceBootstrap,
         Func<IGuideWindowView> windowFactory,
         Func<IGuideSubtitleView> subtitleFactory,
         ILogger<GuideWindowService> logger)
@@ -184,7 +165,8 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         _windowFactory = windowFactory;
         _subtitleFactory = subtitleFactory;
         _logger = logger;
-        IsAvailable = instanceBootstrap.Context.IsRoot;
+        // 没有实例引导（Linux 无界面宿主、自测只有一个实例）时视为主实例
+        IsAvailable = instanceBootstrap?.Context.IsRoot ?? true;
         State.IsTopmost = Config.Topmost;
         State.IsImmersive = Config.RememberImmersive && Config.Immersive;
     }
@@ -215,16 +197,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
 
         RunOnUi(() =>
         {
-            var dispatcher = Application.Current.Dispatcher;
-            _progressTimer = new DispatcherTimer(ProgressSaveInterval, DispatcherPriority.Background, (_, _) => SaveProgress(), dispatcher);
-            _interactionExitTimer = new DispatcherTimer(DispatcherPriority.Normal, dispatcher);
-            _interactionExitTimer.Tick += (_, _) =>
-            {
-                _interactionExitTimer.Stop();
-                EndInteractionCore(returnFocus: true);
-            };
-            _focusRestoreTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(80), DispatcherPriority.Normal, OnFocusRestoreTick, dispatcher);
-            _focusRestoreTimer.Stop();
+            CreateTimers();
 
             Config.PropertyChanged += OnConfigChanged;
             _runtimeService.Started += OnRuntimeStarted;
@@ -345,13 +318,12 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     {
         if (!IsAvailable)
         {
-            Toast.Warning("悬浮小窗只能在主实例中使用");
+            ToastWarning("悬浮小窗只能在主实例中使用");
             return;
         }
 
-        if (!WebViewRuntime.IsAvailable)
+        if (!CheckWebViewRuntime())
         {
-            Toast.Warning("悬浮小窗需要 Microsoft Edge WebView2 运行时，请安装后重试");
             return;
         }
 
@@ -366,7 +338,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
             catch (Exception e)
             {
                 _logger.LogError(e, "打开悬浮小窗失败");
-                Toast.Error($"打开悬浮小窗失败：{e.Message}");
+                ToastError($"打开悬浮小窗失败：{e.Message}");
                 return;
             }
         }
@@ -758,7 +730,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         var keepBottom = Config.PositionMode == GuidePositionMode.FollowGame && _watcher.IsAttached
                          && Config.FollowAnchor is GuideAnchor.BottomLeft or GuideAnchor.BottomRight;
         var top = keepBottom ? bounds.Bottom - height : bounds.Top;
-        view.SetBounds(new RECT(bounds.Left, top, bounds.Right, top + height));
+        view.SetBounds(System.Drawing.Rectangle.FromLTRB(bounds.Left, top, bounds.Right, top + height));
         CommitBoundsCore();
     }
 
@@ -983,7 +955,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         }
 
         _focusRestoreTimer?.Stop();
-        if ((nint)User32.GetForegroundWindow() == _view.Handle)
+        if (GetForegroundWindowHandle() == _view.Handle)
         {
             _watcher.FocusGame();
         }
@@ -1026,7 +998,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         }
         else
         {
-            var area = FormsScreen.FromHandle(view.Handle).WorkingArea;
+            var area = WorkingAreaOf(view.Handle);
             var (left, top) = PlaceAtCorner(anchor, area.Left, area.Top, area.Right, area.Bottom, bounds.Width, bounds.Height, margin, margin);
             Config.FreeLeft = left;
             Config.FreeTop = top;
@@ -1040,13 +1012,13 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     /// <inheritdoc />
     public void MoveToMonitor(int monitorIndex) => RunOnUi(() =>
     {
-        var screens = FormsScreen.AllScreens;
+        var screens = AllWorkingAreas();
         if (_view is not { } view || monitorIndex < 0 || monitorIndex >= screens.Length || !view.TryGetBounds(out var bounds))
         {
             return;
         }
 
-        var area = screens[monitorIndex].WorkingArea;
+        var area = screens[monitorIndex];
         var margin = (int)Math.Round(DefaultMarginDip * SystemScale);
         var width = Math.Min(bounds.Width, area.Width);
         var height = Math.Min(bounds.Height, area.Height);
@@ -1105,7 +1077,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     /// <summary>
     /// 按位置模式计算小窗的位置和尺寸（物理像素），并夹回可见的工作区
     /// </summary>
-    private RECT ComputeBounds()
+    private System.Drawing.Rectangle ComputeBounds()
     {
         var scale = SystemScale;
         var minWidth = (int)Math.Round(MinWidthDip * scale);
@@ -1127,13 +1099,13 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         }
         else
         {
-            var area = FormsScreen.PrimaryScreen?.WorkingArea ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
+            var area = PrimaryWorkingArea() ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
             left = area.Right - margin - width;
             top = area.Top + margin;
         }
 
         (left, top) = EnsureVisible(left, top, width, height);
-        return new RECT(left, top, left + width, top + height);
+        return System.Drawing.Rectangle.FromLTRB(left, top, left + width, top + height);
     }
 
     /// <summary>
@@ -1153,7 +1125,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     /// </summary>
     private static (int Left, int Top) EnsureVisible(int left, int top, int width, int height)
     {
-        var screens = FormsScreen.AllScreens;
+        var screens = AllWorkingAreas();
         if (screens.Length == 0)
         {
             return (left, top);
@@ -1162,14 +1134,13 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         var visibleWidth = Math.Min(width, 120);
         var visibleHeight = Math.Min(height, 24);
         var titleBar = new System.Drawing.Rectangle(left, top, width, visibleHeight);
-        if (screens.Any(screen => System.Drawing.Rectangle.Intersect(titleBar, screen.WorkingArea) is var hit
-                                  && hit.Width >= visibleWidth && hit.Height >= visibleHeight))
+        if (screens.Any(work => System.Drawing.Rectangle.Intersect(titleBar, work) is var hit
+                                && hit.Width >= visibleWidth && hit.Height >= visibleHeight))
         {
             return (left, top);
         }
 
         var area = screens
-            .Select(screen => screen.WorkingArea)
             .OrderBy(work => DistanceSquared(left, top, work))
             .First();
         var correctedLeft = width <= area.Width ? Math.Clamp(left, area.Left, area.Right - width) : area.Left;
@@ -1185,18 +1156,6 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         var dx = x < rect.Left ? rect.Left - x : x > rect.Right ? x - rect.Right : 0d;
         var dy = y < rect.Top ? rect.Top - y : y > rect.Bottom ? y - rect.Bottom : 0d;
         return dx * dx + dy * dy;
-    }
-
-    /// <summary>
-    /// 系统 DPI 缩放比例：界面单位与物理像素的换算
-    /// </summary>
-    private static double SystemScale
-    {
-        get
-        {
-            var scale = DpiHelper.GetScale().X;
-            return scale > 0 ? scale : 1;
-        }
     }
 
     /// <summary>
@@ -1240,10 +1199,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
         string? text = null;
         try
         {
-            if (Clipboard.ContainsText())
-            {
-                text = Clipboard.GetText();
-            }
+            text = ReadClipboardText();
         }
         catch (Exception e)
         {
@@ -1259,7 +1215,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
             }
             else
             {
-                Toast.Information("剪贴板中没有可打开的链接");
+                ToastInformation("剪贴板中没有可打开的链接");
             }
 
             return;
@@ -1334,7 +1290,7 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     {
         if (!IsOpen)
         {
-            Toast.Information("请先打开悬浮小窗");
+            ToastInformation("请先打开悬浮小窗");
             return;
         }
 
@@ -1391,8 +1347,8 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
             return;
         }
 
-        var area = FormsScreen.PrimaryScreen?.WorkingArea ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
-        _subtitleView.UpdateAnchor(new RECT(area.Left, area.Top, area.Right, area.Bottom));
+        var area = PrimaryWorkingArea() ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
+        _subtitleView.UpdateAnchor(area);
     }
 
     #endregion
@@ -1531,7 +1487,8 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     private void OnRuntimeStarted(object? sender, EventArgs e)
     {
         var runtime = _runtimeService.Current;
-        if (runtime is null || runtime.Kind != GameRuntimeKind.Win32Window)
+        // Linux 宿主的游戏窗口为 PlatformWindow（X11 / Wayland），Windows 只有 Win32Window
+        if (runtime is null || runtime.Kind is not (GameRuntimeKind.Win32Window or GameRuntimeKind.PlatformWindow))
         {
             return;
         }
@@ -1657,21 +1614,6 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
 
         _view?.BringToTopmost();
         _subtitleView?.BringToTopmost();
-    }
-
-    /// <summary>
-    /// 任务模式变化（在任务线程上触发）：开始时暂停并隐藏，结束后按设置恢复
-    /// </summary>
-    private void OnTaskModeChanged(object? sender, bool inTask)
-    {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.HasShutdownStarted)
-        {
-            return;
-        }
-
-        // 以最高优先级投递，在任务的第一次点击之前隐藏
-        _ = dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() => ApplyTaskMode(inTask)));
     }
 
     /// <summary>
@@ -1976,26 +1918,6 @@ public sealed class GuideWindowService : IGuideWindowService, IHostedService, ID
     /// </summary>
     private static string HotkeyText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? string.Empty : value.Replace(" ", string.Empty);
-
-    /// <summary>
-    /// 在界面线程执行
-    /// </summary>
-    private void RunOnUi(Action action)
-    {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.HasShutdownStarted)
-        {
-            return;
-        }
-
-        if (dispatcher.CheckAccess())
-        {
-            Invoke(action);
-            return;
-        }
-
-        _ = dispatcher.BeginInvoke(new Action(() => Invoke(action)));
-    }
 
     /// <summary>
     /// 在界面线程执行异步操作，异常只记录日志

@@ -124,6 +124,9 @@ internal static class AvaloniaHostProgram
                     services.AddSingleton<BetterGenshinImpact.ViewModel.SoloTaskSettings.IResinPlanSettingsDialogs, AvaloniaResinPlanSettingsDialogs>();
                     // 云原神（网页版）窗口：WebKitGTK
                     services.AddSingleton<ICloudGamePageHost, GtkCloudGameHost>();
+                    // 悬浮小窗 / 字幕浮窗的窗口（GuideWindowService 每次打开时调用）
+                    services.AddSingleton<Func<BetterGenshinImpact.Service.Guide.IGuideWindowView>>(_ => () => GuideViews.CreateWindow());
+                    services.AddSingleton<Func<BetterGenshinImpact.Service.Guide.IGuideSubtitleView>>(_ => () => GuideViews.CreateSubtitle());
                 });
         }
         catch (Exception e)
@@ -217,6 +220,8 @@ internal static class AvaloniaHostProgram
         window.Opened += async (_, _) =>
         {
             host?.MarkInstanceApplicationReady();
+            // 悬浮小窗按显示器工作区定位
+            GuideViews.AttachScreens(window);
             if (options.Page is { } page && !viewModel.Navigate(page))
             {
                 log.Warning("没有名为 {Page} 的页面", page);

@@ -85,7 +85,7 @@ public sealed class GuideGameWatcher : IDisposable
     /// <summary>
     /// 游戏画面区域（物理像素），未挂接或无法获取时返回 false
     /// </summary>
-    public bool TryGetGameRect(out RECT rect)
+    public bool TryGetGameRect(out System.Drawing.Rectangle rect)
     {
         rect = default;
         if (_window is not { } window || !User32.IsWindow(window.Handle))
@@ -93,7 +93,8 @@ public sealed class GuideGameWatcher : IDisposable
             return false;
         }
 
-        rect = SystemControl.GetCaptureRect(window.Handle);
+        var capture = SystemControl.GetCaptureRect(window.Handle);
+        rect = System.Drawing.Rectangle.FromLTRB(capture.Left, capture.Top, capture.Right, capture.Bottom);
         return rect.Width > 0 && rect.Height > 0;
     }
 

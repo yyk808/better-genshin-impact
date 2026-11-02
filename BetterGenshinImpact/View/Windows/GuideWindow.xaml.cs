@@ -42,7 +42,7 @@ public partial class GuideWindow : Window, IGuideWindowView
     /// <summary>
     /// 缩放开始时的窗口矩形（物理像素）
     /// </summary>
-    private RECT _resizeStartBounds;
+    private System.Drawing.Rectangle _resizeStartBounds;
 
     /// <summary>
     /// 缩放开始时的光标位置（物理像素）
@@ -112,7 +112,7 @@ public partial class GuideWindow : Window, IGuideWindowView
     }
 
     /// <inheritdoc />
-    public void SetBounds(RECT bounds)
+    public void SetBounds(System.Drawing.Rectangle bounds)
     {
         _ = User32.SetWindowPos(Handle, HWND.NULL, bounds.Left, bounds.Top, bounds.Width, bounds.Height,
             User32.SetWindowPosFlags.SWP_NOZORDER | User32.SetWindowPosFlags.SWP_NOACTIVATE
@@ -120,11 +120,17 @@ public partial class GuideWindow : Window, IGuideWindowView
     }
 
     /// <inheritdoc />
-    public bool TryGetBounds(out RECT bounds)
+    public bool TryGetBounds(out System.Drawing.Rectangle bounds)
     {
         bounds = default;
         var handle = new WindowInteropHelper(this).Handle;
-        return handle != IntPtr.Zero && User32.GetWindowRect(handle, out bounds) && bounds.Width > 0;
+        if (handle == IntPtr.Zero || !User32.GetWindowRect(handle, out RECT rect))
+        {
+            return false;
+        }
+
+        bounds = System.Drawing.Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom);
+        return bounds.Width > 0;
     }
 
     /// <inheritdoc />
@@ -344,7 +350,7 @@ public partial class GuideWindow : Window, IGuideWindowView
             }
         }
 
-        SetBounds(new RECT(left, top, right, bottom));
+        SetBounds(System.Drawing.Rectangle.FromLTRB(left, top, right, bottom));
     }
 
     /// <summary>

@@ -61,6 +61,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "macro": await MacroAsync(); break;
                 case "key-macro": await KeyMacroAsync(); break;
                 case "script-repo": await ScriptRepoAsync(); break;
+                case "guide-service": await GuideServiceAsync(); break;
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
