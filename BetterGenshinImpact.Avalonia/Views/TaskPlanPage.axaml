@@ -78,6 +78,16 @@
                             </StackPanel>
                             <TextBlock Classes="pageTitle" FontSize="20" Text="{Binding SelectedPlan.Name, FallbackValue=''}" />
                         </DockPanel>
+                        <!-- 运行账户：跟随当前账户或指定填写了 UID 的账户；账户目录只有一个账户且计划跟随当前账户时不显示（与 WPF 相同） -->
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6" IsVisible="{Binding ShowRunAccountEntry}">
+                            <ContentControl Content="{svc:FluentIcon PeopleSwap24, Size=14}" VerticalAlignment="Center" Opacity="0.7" />
+                            <TextBlock Classes="desc" Text="运行账户" VerticalAlignment="Center" />
+                            <ComboBox Name="RunAccountBox" MinWidth="200" MaxWidth="320" ItemsSource="{Binding RunAccountOptions}" SelectedItem="{Binding SelectedRunAccount}"
+                                      DisplayMemberBinding="{Binding Value}"
+                                      ToolTip.Tip="跟随当前账户：不切换，为本实例当前账户执行。指定账户：运行前切换到该账户并核验 UID，只能选择填写了 UID 的账户。" />
+                            <TextBlock Name="RunAccountProblemText" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"
+                                       Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="{Binding RunAccountProblem}" IsVisible="{Binding HasRunAccountProblem}" />
+                        </StackPanel>
                         <TabControl SelectedIndex="{Binding SelectedTab}">
                             <TabItem Header="任务">
                                 <DockPanel Margin="0,6,0,0">

@@ -74,7 +74,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             if (host.Services.GetService<IPuloniaAccountService>() is { } accounts)
             {
                 accounts.AccountProgressChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
-                accounts.AccountsChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshCooldownsAsync());
+                accounts.AccountsChanged += (_, _) => Dispatcher.UIThread.Post(() => { _ = RefreshCooldownsAsync(); _ = RefreshRunAccountsAsync(); });
             }
         }
 
@@ -183,6 +183,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             await ReloadProfilesAsync();
             await RefreshRunsAsync();
             await RefreshCooldownsAsync();
+            await RefreshRunAccountsAsync();
             // 与 WPF 页面加载时相同，读取本机仓库检查任务资源更新（只显示标签，不改写使用版本）
             _ = CheckResourcesAsync(false);
         }
@@ -207,6 +208,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         if (IsOneDragon) SelectedNode = Nodes.FirstOrDefault();
         RebuildTriggers();
         OnPropertyChanged(nameof(HasSelectedPlan));
+        NotifyRunAccountChanged();
         _ = RefreshRunsAsync();
     }
 

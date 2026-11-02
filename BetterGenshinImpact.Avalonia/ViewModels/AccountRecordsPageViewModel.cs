@@ -65,6 +65,12 @@ public partial class AccountRecordsPageViewModel : PageViewModel
             var uids = await _store.ListUidsAsync();
             foreach (var uid in UidOptions.Except(uids).ToArray()) UidOptions.Remove(uid);
             foreach (var uid in uids.Except(UidOptions)) UidOptions.Add(uid);
+            // 账户页“打开狛荷屋”：选中该账户的 UID
+            if (AccountsPageViewModel.PendingAccountRecordsUid is { } pending)
+            {
+                AccountsPageViewModel.PendingAccountRecordsUid = null;
+                if (UidOptions.Contains(pending)) SelectedUid = pending;
+            }
             if (SelectedUid == null || !UidOptions.Contains(SelectedUid)) SelectedUid = uids.FirstOrDefault();
             else await SelectUidAsync(SelectedUid);
             if (UidOptions.Count == 0) { _all = []; ApplyFilter(); StatusText = "尚未添加 UID。"; }

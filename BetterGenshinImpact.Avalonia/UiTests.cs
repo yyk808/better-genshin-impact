@@ -2436,7 +2436,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         moreButton?.Flyout?.ShowAt(moreButton);
         await Settle(300);
         var menu = (moreButton?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）", "导入旧配置（Linux 版尚未迁移）", "查看导入报告（随导入旧配置迁移，Linux 版暂不可用）", "重新加载"]),
+        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理", "导入旧配置（Linux 版尚未迁移）", "查看导入报告（随导入旧配置迁移，Linux 版暂不可用）", "重新加载"]),
             string.Join(",", menu.Select(m => m.Header)));
         menu.FirstOrDefault()?.Command?.Execute(null);
         moreButton?.Flyout?.Hide();
@@ -3201,7 +3201,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         var headers = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
         Check("“更多”菜单：复制 / 粘贴 / 撤销 / 预览 / 定时与热键 / 配置共享设置 / 设置方案",
             new[] { "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "配置共享设置…", "设置方案…" }.All(headers.Contains), string.Join(",", headers));
-        Check("账号管理、导入旧配置置灰并说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("账号管理") || (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true);
+        Check("导入旧配置置灰并说明、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true
+            && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => i.Header as string == "账号管理" && i.Command is not null) == true);
         more?.Flyout?.ShowAt(more);
         await Settle(400);
         Shot("avalonia-newonedragon-more.png");
@@ -3362,7 +3363,8 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         await Settle(600);
         var texts = All<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? "").ToList();
         Check("右栏“任务名称”及说明", texts.Contains("任务名称") && texts.Contains("只影响当前任务的显示名称。"));
-        Check("账号切换步骤置灰说明", Named<Border>("AccountStepNote") is { Opacity: < 1 } && texts.Any(t => t.Contains("账号切换依赖 Windows")));
+        // M64：账号切换已迁移；只有一个账户且跟随当前账户时不显示“切换账号”步骤（与 WPF 相同）
+        Check("切换账号步骤按账户目录显示", (Named<Border>("AccountStepCard") is not null) == plans.ShowRunAccountEntry && !texts.Any(t => t.Contains("账号切换依赖 Windows")));
         var more = Named<DropDownButton>("MoreButton");
         Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (i.Header as string ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
         Check("高级设置按钮", Named<Button>("AdvancedNodeButton") is not null);

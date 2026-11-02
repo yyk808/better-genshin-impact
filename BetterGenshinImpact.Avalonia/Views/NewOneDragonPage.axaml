@@ -32,7 +32,7 @@
                                 <Separator />
                                 <MenuItem Header="配置共享设置…" Command="{Binding ShowPlanSettingsCommand}" ToolTip.Tip="修改会传给这份配置中的全部任务，任务自身的修改优先" />
                                 <MenuItem Header="设置方案…" Command="{Binding ShowProfilesCommand}" ToolTip.Tip="管理可复用的共享设置方案" />
-                                <MenuItem Header="账号管理（依赖 Windows 版账号切换，Linux 版暂不可用）" IsEnabled="False" />
+                                <MenuItem Header="账号管理" Command="{Binding ManageAccountsCommand}" />
                                 <MenuItem Header="导入旧配置（Linux 版尚未迁移）" IsEnabled="False" />
                                 <MenuItem Header="查看导入报告（随导入旧配置迁移，Linux 版暂不可用）" IsEnabled="False" />
                                 <Separator />
@@ -62,11 +62,19 @@
                     </DockPanel>
                 </StackPanel>
             </Border>
-            <Border x:Name="AccountStepNote" DockPanel.Dock="Top" Classes="card" Padding="10,8" Margin="0,0,0,6" Opacity="0.55"
-                    ToolTip.Tip="WPF 版在清单顶部显示“切换账号”步骤（任务前切换并核验 UID），依赖 Windows 版账号切换">
-                <StackPanel>
-                    <TextBlock Text="切换账号" FontWeight="SemiBold" />
-                    <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap" Text="使用当前登录状态（账号切换依赖 Windows，Linux 版不可用）" />
+            <!-- 切换账号步骤（与 WPF 清单顶部相同）：运行账户为指定账户时，任务前切换并核验 UID；跟随当前账户时不切换 -->
+            <Border x:Name="AccountStepCard" DockPanel.Dock="Top" Classes="card" Padding="10,8" Margin="0,0,0,6" IsVisible="{Binding Plans.ShowRunAccountEntry}">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ContentControl Content="{svc:FluentIcon PeopleSwap24, Size=14}" VerticalAlignment="Center" />
+                        <TextBlock Text="切换账号" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <ComboBox x:Name="OneDragonRunAccountBox" HorizontalAlignment="Stretch" ItemsSource="{Binding Plans.RunAccountOptions}"
+                              SelectedItem="{Binding Plans.SelectedRunAccount}" DisplayMemberBinding="{Binding Value}"
+                              ToolTip.Tip="跟随当前账户：不切换，为本实例当前账户执行。指定账户：运行前切换到该账户并核验 UID，只能选择填写了 UID 的账户。" />
+                    <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap" Text="{Binding Plans.RunAccountText}" />
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                               Text="{Binding Plans.RunAccountProblem}" IsVisible="{Binding Plans.HasRunAccountProblem}" />
                 </StackPanel>
             </Border>
             <Panel>

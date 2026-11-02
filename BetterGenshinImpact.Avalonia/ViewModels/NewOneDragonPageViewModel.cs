@@ -31,6 +31,10 @@ public sealed partial class NewOneDragonPageViewModel(TaskPlanPageViewModel plan
     [RelayCommand]
     private void ShowTriggers() => RightTab = 1;
 
+    /// <summary>账号管理：转到“账户”页</summary>
+    [RelayCommand]
+    private void ManageAccounts() => navigate("账户");
+
     [RelayCommand]
     private void ToggleAddPanel() => IsAddPanelOpen = !IsAddPanelOpen;
 

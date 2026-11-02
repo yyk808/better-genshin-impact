@@ -50,6 +50,9 @@
         <DataTemplate DataType="vm:AccountRecordsPageViewModel">
             <views:AccountRecordsPage />
         </DataTemplate>
+        <DataTemplate DataType="vm:AccountsPageViewModel">
+            <views:AccountsPage />
+        </DataTemplate>
         <DataTemplate DataType="vm:NewOneDragonPageViewModel">
             <views:NewOneDragonPage />
         </DataTemplate>

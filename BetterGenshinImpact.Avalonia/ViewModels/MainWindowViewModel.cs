@@ -39,12 +39,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Guide = new GuideWindowSettingsPageViewModel(host, Navigate, log);
         Plugins = new PluginsPageViewModel(host, log);
         AccountRecords = new AccountRecordsPageViewModel();
+        Accounts = new AccountsPageViewModel(host, Navigate, log);
         NewOneDragon = new NewOneDragonPageViewModel(
             new TaskPlanPageViewModel(host, log, BetterGenshinImpact.Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon, TaskPlan), Navigate);
         Settings = new SettingsPageViewModel(host, log,
             () => Home.CanStop ? Home.StopAsync() : Home.CanStart ? Home.StartAsync() : Task.CompletedTask,
             taskId => Tasks.ToggleAsync(taskId));
         Settings.NavigateTo = title => Navigate(title);
+        // 账户页“指定了该账户的计划”：转到任务计划或新一条龙并选中该计划
+        Accounts.OpenPlanHandler = usage =>
+        {
+            var oneDragon = usage.Purpose == BetterGenshinImpact.Pulonia.Models.PuloniaTaskPlanPurpose.OneDragon;
+            Navigate(oneDragon ? "新一条龙" : "任务计划");
+            _ = (oneDragon ? NewOneDragon.Plans : TaskPlan).SelectPlanAsync(usage.PlanId);
+            return true;
+        };
         Trigger.NavigateTo = title => Navigate(title);
         // 导航栏与 WPF 版 MainWindow.xaml 相同的顺序、标题与图标；尚未迁移的页面为说明页（灰色）
         NavItems =
@@ -55,6 +64,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new("任务计划", "BranchFork24", TaskPlan),
             new("新一条龙", "AnimalTurtle24", NewOneDragon),
             new("执行记录", "History24", History),
+            new("账户", "PersonAccounts24", Accounts),
             new("狛荷屋(test)", "Box24", AccountRecords),
             new("一条龙", "AnimalTurtle24", OneDragon),
             new("全自动", "Bot24", Auto, () => Auto.SelectedTab = 0)
@@ -118,6 +128,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public PluginsPageViewModel Plugins { get; }
 
     public AccountRecordsPageViewModel AccountRecords { get; }
+
+    public AccountsPageViewModel Accounts { get; }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

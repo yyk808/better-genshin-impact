@@ -34,6 +34,12 @@
 		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Images\banner.jpg" Link="Assets\Images\banner.jpg" />
 	</ItemGroup>
 	<ItemGroup>
+		<!-- 账户页：与 WPF 共用账户草稿、当前账户选项与运行账户文字（只依赖 Core 模型与 CommunityToolkit） -->
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaAccountItemViewModel.cs" Link="Shared\PuloniaAccountItemViewModel.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaAccountChoiceViewModel.cs" Link="Shared\PuloniaAccountChoiceViewModel.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\Pulonia\PuloniaRunAccountText.cs" Link="Shared\PuloniaRunAccountText.cs" />
+	</ItemGroup>
+	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Host.Common\BetterGenshinImpact.Host.Common.csproj" />
 	</ItemGroup>
 

@@ -1,0 +1,194 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
+             xmlns:pv="using:BetterGenshinImpact.ViewModel.Pages.Pulonia"
+             xmlns:pm="using:BetterGenshinImpact.Pulonia.Models"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             x:Class="BetterGenshinImpact.Avalonia.Views.AccountsPage"
+             x:DataType="vm:AccountsPageViewModel">
+    <!-- 对应 WPF PuloniaAccountsPage：顶部本实例当前账户，左侧账户列表（只有一个账户时收起），右侧所选账户的概况 / 登录资料 / 狛荷屋，底部保存栏 -->
+    <DockPanel Margin="20,16,20,10">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <TextBlock Classes="pagetitle" Text="账户" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button x:Name="AddAccountButton" Classes="accent" Command="{Binding AddAccountCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ContentControl Content="{svc:FluentIcon PersonAdd24, Size=16}" />
+                        <TextBlock Text="新增账户" />
+                    </StackPanel>
+                </Button>
+                <DropDownButton x:Name="AccountActionsButton" Content="操作">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuItem Header="上移" Command="{Binding MoveUpCommand}" />
+                            <MenuItem Header="下移" Command="{Binding MoveDownCommand}" />
+                            <Separator />
+                            <MenuItem Header="改名…" Command="{Binding RenameAccountCommand}" />
+                            <MenuItem Header="删除账户…" Command="{Binding DeleteAccountCommand}" />
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+            </StackPanel>
+        </Grid>
+        <TextBlock DockPanel.Dock="Top" Classes="desc" Text="{Binding HeaderText}" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+        <!-- 本实例当前账户：修改立即保存 -->
+        <Border DockPanel.Dock="Top" Classes="card" Padding="14,10" Margin="0,0,0,10">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                <ContentControl Content="{svc:FluentIcon PersonAccounts24, Size=20}" VerticalAlignment="Center" Margin="0,0,12,0" Grid.RowSpan="2" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock FontWeight="SemiBold" Text="本实例当前账户" />
+                    <TextBlock Classes="desc" FontSize="12" Text="{Binding CurrentInstanceText}" TextWrapping="Wrap" />
+                </StackPanel>
+                <ComboBox x:Name="CurrentAccountBox" Grid.Column="2" MinWidth="240" VerticalAlignment="Center" PlaceholderText="未确定"
+                          ItemsSource="{Binding CurrentAccountOptions}" SelectedItem="{Binding CurrentAccountChoice}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="pv:PuloniaAccountChoiceViewModel">
+                            <TextBlock Text="{Binding DisplayText}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock x:Name="CurrentAccountHintText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="{Binding CurrentAccountHint}" IsVisible="{Binding HasCurrentAccountHint}" />
+            </Grid>
+        </Border>
+
+        <!-- 底部：结果说明与保存栏 -->
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+            <TextBlock x:Name="AccountsMessageText" Classes="desc" Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <TextBlock x:Name="UnsavedText" Text="有未保存的修改" VerticalAlignment="Center" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                           IsVisible="{Binding HasUnsavedChanges}" />
+                <Button x:Name="CancelOperationButton" Content="取消" Command="{Binding CancelOperationCommand}" IsVisible="{Binding IsGameOperationRunning}" />
+                <Button x:Name="DiscardAccountsButton" Content="放弃修改" Command="{Binding DiscardChangesCommand}" />
+                <Button x:Name="SaveAccountsButton" Classes="accent" Content="保存" Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*">
+            <!-- 账户列表：多个账户时显示 -->
+            <ListBox x:Name="AccountList" Width="260" Margin="0,0,14,0" IsVisible="{Binding ShowAccountList}" Background="Transparent"
+                     ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Margin" Value="0,0,0,6" />
+                        <Setter Property="Padding" Value="12,8" />
+                        <Setter Property="CornerRadius" Value="4" />
+                        <Setter Property="Background" Value="#0FFFFFFF" />
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="pv:PuloniaAccountItemViewModel">
+                        <StackPanel Spacing="2">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="未保存" FontSize="11" Foreground="{DynamicResource SystemFillColorCautionBrush}" IsVisible="{Binding IsDirty}" />
+                            </Grid>
+                            <TextBlock Classes="desc" FontSize="12" Text="{Binding UidText}" />
+                            <TextBlock Classes="desc" FontSize="12" Text="{Binding LoginProfileText}" />
+                            <TextBlock FontSize="12" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Text="{Binding RunningText}" IsVisible="{Binding IsRunning}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 所选账户的详情 -->
+            <TabControl x:Name="AccountDetailTabs" Grid.Column="1" SelectedIndex="{Binding SelectedDetailTabIndex}" IsVisible="{Binding HasSelectedAccount}">
+                <TabItem Header="概况">
+                    <ScrollViewer>
+                        <StackPanel Spacing="12" Margin="2,8,8,8" IsEnabled="{Binding CanEdit}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="账户名称" />
+                                <TextBox x:Name="AccountNameBox" Text="{Binding SelectedAccount.Name, FallbackValue=''}" MaxWidth="420" HorizontalAlignment="Left" Width="420" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="UID" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox x:Name="AccountUidBox" Width="240" Watermark="9 或 10 位数字" Text="{Binding SelectedAccount.Uid, FallbackValue=''}" />
+                                    <Button x:Name="ReadUidButton" Content="从当前游戏读取" Command="{Binding ReadUidCommand}" />
+                                </StackPanel>
+                                <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap"
+                                           Text="完整的 9 或 10 位数字，不能与其他账户重复。目录中最多一个账户可以不填 UID；没有 UID 的账户不能被计划指定，也不能自动切换。" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="服务器" />
+                                <ComboBox x:Name="ServerTimeZoneBox" Width="300" ItemsSource="{Binding ServerTimeZones}" SelectedItem="{Binding SelectedServerTimeZone}"
+                                          DisplayMemberBinding="{Binding Value}" />
+                                <TextBlock Classes="desc" FontSize="12" Text="决定这个账户的路线 CD 按哪个时区日切。" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="作为哪些实例的当前账户" />
+                                <TextBlock x:Name="InstancesText" Classes="desc" Text="{Binding SelectedAccount.InstancesDetailText, FallbackValue=''}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="最近一次运行" />
+                                <TextBlock x:Name="LastRunText" Classes="desc" Text="{Binding LastRunText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="指定了该账户的计划" />
+                                <TextBlock Classes="desc" Text="没有计划指定这个账户。跟随当前账户的计划为各实例的当前账户运行。" TextWrapping="Wrap"
+                                           IsVisible="{Binding !HasPlanUsages}" />
+                                <ItemsControl x:Name="PlanUsageList" ItemsSource="{Binding PlanUsages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="pm:PuloniaAccountPlanUsage">
+                                            <Button Content="{Binding PlanName}" Margin="0,0,0,4" Classes="link"
+                                                    Command="{Binding $parent[UserControl].((vm:AccountsPageViewModel)DataContext).OpenPlanCommand}" CommandParameter="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="登录资料">
+                    <ScrollViewer>
+                        <StackPanel Spacing="12" Margin="2,8,8,8">
+                            <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap"
+                                       Text="只有需要 BetterGI 自动切换到这个账户时才需要填写。自动切换只支持本机 PC 官服窗口：Linux 版为 X11 / Wayland 本机输入（XTest / uinput）下用 Wine / Proton 运行的 YuanShen.exe，云原神不能切换。" />
+                            <StackPanel Spacing="6" IsEnabled="{Binding CanEdit}">
+                                <TextBlock Text="登录方式" />
+                                <ComboBox x:Name="LoginModeBox" Width="320" ItemsSource="{Binding LoginModes}" SelectedItem="{Binding SelectedLoginMode}"
+                                          DisplayMemberBinding="{Binding Value}" />
+                            </StackPanel>
+                            <StackPanel Spacing="6" IsEnabled="{Binding CanEdit}">
+                                <TextBlock Text="登录列表中的账号文字（按登录列表填写脱敏手机号或邮箱）" />
+                                <TextBox x:Name="ListTextBox" Width="320" HorizontalAlignment="Left" Watermark="如 138****0001" Text="{Binding SelectedAccount.ListText, FallbackValue=''}" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="账户图片" />
+                                <TextBlock x:Name="ImagePathText" Classes="desc" Text="{Binding SelectedAccount.ImagePathText, FallbackValue=''}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="ImportImageButton" Content="导入图片" Command="{Binding ImportImageCommand}" />
+                                    <Button x:Name="CaptureImageButton" Content="采集当前账户图片" Command="{Binding CaptureImageCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Spacing="6" IsEnabled="{Binding CanEdit}">
+                                <TextBlock Text="账号和密码（可选，作为备用登录方式）" />
+                                <TextBlock x:Name="CredentialStoreText" FontSize="12" TextWrapping="Wrap" Text="{Binding CredentialStoreText}"
+                                           Classes.desc="{Binding CredentialStoreAvailable}"
+                                           Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                                <TextBlock Classes="desc" FontSize="12" TextWrapping="Wrap"
+                                           Text="留空保留已保存的凭据；登录方式为账户图片或列表文字时，找不到目标账户才使用密码。" />
+                                <TextBox x:Name="LoginUsernameBox" Width="320" HorizontalAlignment="Left" Watermark="账号" Text="{Binding SelectedAccount.LoginUsername, FallbackValue=''}" />
+                                <TextBox x:Name="LoginPasswordBox" Width="320" HorizontalAlignment="Left" Watermark="密码" PasswordChar="●" RevealPassword="False"
+                                         Text="{Binding SelectedAccount.LoginPassword, FallbackValue=''}" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="测试切换" />
+                                <TextBlock x:Name="TestSwitchHintText" Classes="desc" FontSize="12" TextWrapping="Wrap" Text="{Binding TestSwitchHint}" />
+                                <Button x:Name="TestSwitchButton" Content="测试切换" Command="{Binding TestSwitchCommand}" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="狛荷屋">
+                    <StackPanel Spacing="10" Margin="2,8,8,8">
+                        <TextBlock Classes="desc" TextWrapping="Wrap"
+                                   Text="狛荷屋按 UID 记录这个账户的库存、异常和事件。修改 UID 时记录随之改名，删除账户时一并删除。" />
+                        <Button x:Name="OpenAccountRecordsButton" Content="打开狛荷屋" Command="{Binding OpenAccountRecordsCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
+</UserControl>
