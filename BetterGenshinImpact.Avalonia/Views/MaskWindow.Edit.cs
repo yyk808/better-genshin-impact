@@ -225,6 +225,13 @@ public partial class MaskWindow
         if ((CursorAt(p) ?? MapCursorAt(p)) is { } cursor) Cursor = new Cursor(cursor);
     }
 
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        // 同 WPF ScrollViewer：滚轮一格 48（3 行 × 16）
+        if (MapPointerWheel(e.GetPosition(Root), -e.Delta.Y * 48)) e.Handled = true;
+    }
+
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);

@@ -76,6 +76,8 @@ internal sealed partial class UiTests
                 (mw.MapLoadingVisible, mw.BigMapLayer.LastDrawnCount));
             fake.PointsDelayMs = 0;
             await map.SelectMapLabelItemCommand.ExecuteAsync(map.MapLabelItems.First(x => x.Id == "b"));
+            // 关掉选择面板（面板与已选列会盖住点位，同 WPF）
+            map.IsMapPointPickerOpen = false;
             Check("两个标签共 5 个点位", await Until(() => mw.BigMapLayer.LastDrawnCount == 5, 5000), mw.BigMapLayer.LastDrawnCount);
             Check("有图标的 3 个点位用图标画", await Until(() => mw.BigMapLayer.LastIconCount == 3, 5000), mw.BigMapLayer.LastIconCount);
             await Settle(300);

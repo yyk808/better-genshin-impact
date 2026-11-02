@@ -88,6 +88,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "map-points-model": await MapPointsModelAsync(); break;
                 case "map-points-draw": await MapPointsDrawAsync(); break;
                 case "map-points-interact": await MapPointsInteractAsync(); break;
+                case "map-points-picker": await MapPointsPickerAsync(); break;
                 case "inference-select": await InferenceSelectAsync(); break;
                 case "inference-fallback": await InferenceFallbackAsync(); break;
                 case "pulonia-accounts": await PuloniaAccountsAsync(); break;

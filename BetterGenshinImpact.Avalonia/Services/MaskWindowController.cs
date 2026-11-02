@@ -130,6 +130,7 @@ public sealed class MaskWindowController : IDisposable
             if (_mapSource is not null) _map.ApplyMapSnapshot(_mapSource.Current);
         }
 
+        WatchMapCollections();
         QueueMapRefresh();
     }
 
@@ -143,7 +144,29 @@ public sealed class MaskWindowController : IDisposable
         }, DispatcherPriority.Background);
     }
 
-    private void OnMapPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => QueueMapRefresh();
+    private void OnMapPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        WatchMapCollections();
+        QueueMapRefresh();
+    }
+
+    private readonly List<System.Collections.Specialized.INotifyCollectionChanged> _watchedMapCollections = [];
+
+    /// <summary>选择面板里的列表（分类、标签、已选标签）是集合，增删不触发模型的属性变化，所以单独监听（集合整个换掉时重新监听）</summary>
+    private void WatchMapCollections()
+    {
+        System.Collections.Specialized.INotifyCollectionChanged[] now = _map is { } m ? [m.MapLabelCategories, m.MapLabelItems, m.SelectedMapLabelItems] : [];
+        if (now.SequenceEqual(_watchedMapCollections)) return;
+        foreach (var c in _watchedMapCollections) c.CollectionChanged -= OnMapCollectionChanged;
+        _watchedMapCollections.Clear();
+        foreach (var c in now)
+        {
+            c.CollectionChanged += OnMapCollectionChanged;
+            _watchedMapCollections.Add(c);
+        }
+    }
+
+    private void OnMapCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => QueueMapRefresh();
 
     private void OnMapImageUpdated(object? sender, string url) => QueueMapRefresh();
 
@@ -201,6 +224,7 @@ public sealed class MaskWindowController : IDisposable
         var window = new MaskWindow();
         window.SetEditing(Editing);
         window.LayoutCommitted += CommitLayout;
+        window.MapLayoutChanged += QueueMapRefresh;
         window.ExitEditRequested += ExitEdit;
         return window;
     }
@@ -303,6 +327,8 @@ public sealed class MaskWindowController : IDisposable
             OverlayPointerKind.Move => window.EditPointerMoved(p) | window.MapPointerMoved(p),
             OverlayPointerKind.Release => window.EditPointerReleased(p) || window.MapPointerReleased(p),
             OverlayPointerKind.Leave => window.MapPointerMoved(new Point(-1, -1)),
+            // wl_pointer.axis：滚轮一格约 10（niri / mutter / KWin），换算成 WPF ScrollViewer 的一格 48
+            OverlayPointerKind.Scroll => window.MapPointerWheel(p, e.Delta * 4.8),
             _ => false,
         };
         _surface?.SetCursorShape((window.CursorAt(p) ?? window.MapCursorAt(p)) switch
@@ -688,6 +714,8 @@ public sealed class MaskWindowController : IDisposable
             _map.PointInfoPopup.PropertyChanged -= OnMapPropertyChanged;
         }
 
+        foreach (var c in _watchedMapCollections) c.CollectionChanged -= OnMapCollectionChanged;
+        _watchedMapCollections.Clear();
         _pumpTimer.Stop();
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();

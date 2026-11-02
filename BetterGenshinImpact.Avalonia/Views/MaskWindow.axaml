@@ -26,8 +26,10 @@
         </Canvas>
         <!-- 大地图点位（WPF PointsCanvas），铺满遮罩 -->
         <v:MapPointsLayer x:Name="BigMapPoints" IsVisible="False" />
-        <!-- 大地图上的弹窗（点位信息），位置按点位换算（见 MaskWindow.Map.cs） -->
+        <!-- 大地图上的弹窗与面板（点位选择、点位信息），位置见 MaskWindow.Map.cs -->
         <Canvas x:Name="MapCanvas">
+            <!-- 点位选择（左下角地球按钮与选择面板，见 MapPointPicker），点位信息弹窗在它上面（WPF 中弹窗是独立的 Popup 窗口） -->
+            <v:MapPointPicker x:Name="Picker" IsVisible="False" />
             <v:MapPointInfoPanel x:Name="PointInfo" />
         </Canvas>
         <!-- 正在加载点位（WPF MaskWindow.xaml 的加载提示） -->

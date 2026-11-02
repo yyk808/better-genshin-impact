@@ -110,6 +110,9 @@ internal sealed partial class UiTests
         /// <summary>标签图标地址（标签 Id → 地址）</summary>
         public Dictionary<string, string> Icons { get; } = new();
 
+        /// <summary>“宝箱”分类里额外加的标签数（用于滚动）</summary>
+        public int ExtraItems { get; set; }
+
         /// <summary>加载点位前等待的毫秒数（用于看加载提示）</summary>
         public int PointsDelayMs { get; set; }
 
@@ -119,7 +122,7 @@ internal sealed partial class UiTests
         public Task<IReadOnlyList<MaskMapPointLabel>> GetLabelCategoriesAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<MaskMapPointLabel>>(
             [
-                new MaskMapPointLabel { LabelId = "c1", Name = "宝箱", Children = [L("a", "普通宝箱", 3), L("b", "精致宝箱", 2)] },
+                new MaskMapPointLabel { LabelId = "c1", Name = "宝箱", Children = [L("a", "普通宝箱", 3), L("b", "精致宝箱", 2), .. Enumerable.Range(0, ExtraItems).Select(i => L($"x{i}", $"宝箱 {i}", 1))] },
                 new MaskMapPointLabel { LabelId = "c2", Name = "神瞳", Children = [L("c", "风神瞳", 1), L("d", "岩神瞳", 1)] },
             ]);
 

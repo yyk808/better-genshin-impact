@@ -118,8 +118,9 @@ internal sealed partial class UiTests
             map.IsMapPointPickerOpen = false;
             Check("5 个点位", await Until(() => mw.BigMapLayer.LastDrawnCount == 5, 5000), mw.BigMapLayer.LastDrawnCount);
             var scale = wayland ? 1 : mw.RenderScaling;
-            Check("输入区域 = 5 个点位", await Until(() => mask.InputRegion.Count == 5, 3000), string.Join(";", mask.InputRegion));
-            var r0 = mask.InputRegion.OrderBy(r => r.X).First();
+            // 5 个点位 + 左下角打开点位选择的地球按钮
+            Check("输入区域 = 5 个点位 + 地球按钮", await Until(() => mask.InputRegion.Count == 6, 3000), string.Join(";", mask.InputRegion));
+            var r0 = mask.InputRegion.OrderBy(r => Math.Abs(r.X + r.Width / 2.0 - 101 * scale) + Math.Abs(r.Y + r.Height / 2.0 - 101 * scale)).First();
             Check("点位 0 的输入范围（32 + 阴影，居中于点位）", Math.Abs((r0.X + r0.Width / 2.0) / scale - 101) < 2 && Math.Abs((r0.Y + r0.Height / 2.0) / scale - 101) < 2 && r0.Width / scale >= 32,
                 r0);
             if (!wayland)
@@ -142,7 +143,7 @@ internal sealed partial class UiTests
             var above = 300 - 16 - 8 - pb.Height >= 0;
             Check(above ? "弹窗在点位上方 8、水平居中" : "上方放不下：弹窗翻到点位下方 8、水平居中",
                 (above ? Math.Abs(pb.Bottom - (300 - 16 - 8)) < 1.5 : Math.Abs(pb.Y - (300 + 16 + 8)) < 1.5) && Math.Abs(pb.X + 180 - 500) < 1.5, pb);
-            Check("输入区域加上弹窗", await Until(() => mask.InputRegion.Count == 6, 3000), mask.InputRegion.Count);
+            Check("输入区域加上弹窗", await Until(() => mask.InputRegion.Count == 7, 3000), mask.InputRegion.Count);
             var imgPixel = Pixel(mask, mw, pb.X + 180, pb.Y + 200);
             Check("弹窗图片（本地 PNG，蓝）", imgPixel is { } ip && (ip & 0xFF) > 0x90 && ((ip >> 16) & 0xFF) < 0x60, $"{imgPixel:X8}");
             Check("弹窗画出（不透明）", Pixel(mask, mw, pb.X + 20, pb.Y + 20) is { } pp && pp >> 24 > 0x80, $"{Pixel(mask, mw, pb.X + 20, pb.Y + 20):X8}");
@@ -167,7 +168,7 @@ internal sealed partial class UiTests
             var closePos = ButtonCenter(mw.PointInfoPanel.CloseButton);
             if (closePos is { } cp) await Click(cp);
             Check("关闭弹窗", await Until(() => !pop.IsOpen && !mw.PointInfoPanel.IsVisible, 3000));
-            Check("关闭后输入区域只剩点位", await Until(() => mask.InputRegion.Count == 5, 3000), mask.InputRegion.Count);
+            Check("关闭后输入区域只剩点位与地球按钮", await Until(() => mask.InputRegion.Count == 6, 3000), mask.InputRegion.Count);
 
             // 右键点位 3（700,400）
             await Click(new Point(700, 400), 3);

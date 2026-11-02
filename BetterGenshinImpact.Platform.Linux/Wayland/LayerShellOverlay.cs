@@ -5,10 +5,13 @@ using System.Text;
 namespace BetterGenshinImpact.Platform.Linux.Wayland;
 
 /// <summary>遮罩上画的一个矩形（相对覆盖层左上角的像素坐标，颜色为 0xAARRGGBB）</summary>
-/// <summary>覆盖层上的指针事件（坐标为覆盖层逻辑坐标；Button 为 Linux 按键码，如 0x110 左键、0x111 右键）</summary>
-public readonly record struct OverlayPointerEvent(OverlayPointerKind Kind, double X, double Y, uint Button = 0);
+/// <summary>
+/// 覆盖层上的指针事件（坐标为覆盖层逻辑坐标；Button 为 Linux 按键码，如 0x110 左键、0x111 右键；
+/// Scroll 的 Delta 为 wl_pointer.axis 的竖直滚动量，正数向下，滚轮一格通常为 10 或 15）
+/// </summary>
+public readonly record struct OverlayPointerEvent(OverlayPointerKind Kind, double X, double Y, uint Button = 0, double Delta = 0);
 
-public enum OverlayPointerKind { Enter, Leave, Move, Press, Release }
+public enum OverlayPointerKind { Enter, Leave, Move, Press, Release, Scroll }
 
 public readonly record struct OverlayRect(int X, int Y, int Width, int Height, uint Argb, int Thickness = 2, bool Fill = false);
 
@@ -509,6 +512,13 @@ public sealed class LayerShellOverlay : IDisposable
                 var button = BinaryPrimitives.ReadUInt32LittleEndian(a[8..]);
                 var pressed = BinaryPrimitives.ReadUInt32LittleEndian(a[12..]) == 1;
                 _pointerQueue.Enqueue(new OverlayPointerEvent(pressed ? OverlayPointerKind.Press : OverlayPointerKind.Release, _pointerX, _pointerY, button));
+                break;
+            case 4: // axis(time, axis, value)：只取竖直方向（axis 0）
+                if (BinaryPrimitives.ReadUInt32LittleEndian(a[4..]) == 0)
+                {
+                    _pointerQueue.Enqueue(new OverlayPointerEvent(OverlayPointerKind.Scroll, _pointerX, _pointerY, 0, Fixed(a[8..])));
+                }
+
                 break;
         }
     }

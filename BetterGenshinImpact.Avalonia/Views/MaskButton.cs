@@ -22,6 +22,9 @@ public sealed class MaskButton : Border
     /// <summary>悬停时显示的子元素（如已选标签右上角的删除标记）</summary>
     public Control? HoverOnly { get; set; }
 
+    /// <summary>悬停变化时（如已选标签悬停时换边框色）</summary>
+    public Action<bool>? HoverChanged { get; set; }
+
     /// <summary>是否可用（不可用时半透明、不响应）</summary>
     public bool Enabled
     {
@@ -45,6 +48,7 @@ public sealed class MaskButton : Border
             _hovered = value;
             if (HoverBackground is not null) Background = value ? HoverBackground : _normal;
             if (HoverOnly is not null) HoverOnly.IsVisible = value;
+            HoverChanged?.Invoke(value);
         }
     }
 
