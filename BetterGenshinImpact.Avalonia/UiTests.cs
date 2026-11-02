@@ -40,6 +40,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "html-mask": await HtmlMaskAsync(); break;
                 case "wayland-mask": await WaylandMaskAsync(); break;
                 case "wayland-capture": await WaylandCaptureAsync(); break;
+                case "wayland-hotkeys": await WaylandHotkeysAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
@@ -497,6 +498,46 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     /// 资源访问限制、点击穿透切换；遮罩打开期间抓一帧截图器画面，核对画面里没有遮罩内容（红框位置不是红色）。
     /// 日志中的“HTMLMASK-PHASE”行供外部脚本截屏、模拟点击
     /// </summary>
+    /// <summary>
+    /// Wayland 快捷键页：录制靠窗口 KeyDown（经 xwayland-satellite 的真实按键，外部脚本在“等待外部按键”时用 xdotool 按 Ctrl+Shift+F9），
+    /// 录制期间全局热键回调被抑制；状态文字说明 evdev / 退回 X11
+    /// </summary>
+    private async Task WaylandHotkeysAsync()
+    {
+        Check("Wayland 平台", vm.Host?.Platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices, vm.Host?.Platform.Name);
+        vm.Navigate("快捷键");
+        await Settle(800);
+        var page = vm.Settings;
+        Check("状态文字说明 Wayland 热键来源", page.HotkeyStatus.Contains("evdev") || page.HotkeyStatus.Contains("退回 X11"), page.HotkeyStatus);
+        var item = page.Hotkeys.First(h => h.Property == "TakeScreenshotHotkey");
+        var old = item.Value;
+        // 与用户操作相同：点该项的录制按钮（按钮获得键盘焦点，按键经页面隧道处理）
+        var button = All<Button>().FirstOrDefault(b => ReferenceEquals(b.DataContext, item) && b.Command is not null);
+        button?.BringIntoView();
+        await Settle();
+        window.Activate();
+        button?.Focus();
+        page.StartRecordCommand.Execute(item);
+        await Settle();
+        Check("进入录制", button is not null && item.IsRecording && item.DisplayValue.StartsWith("请按下"));
+        if (dir is not null)
+        {
+            var done = Path.Combine(dir, "wayland-hotkeys.keys");
+            File.Delete(done);
+            await Settle(300);
+            log.Information("UI 自测 wayland-hotkeys 等待外部按键：Ctrl+Shift+F9");
+            Check("外部按键已发送", await Until(() => File.Exists(done), 20000));
+            Check("真实按键录制为 Ctrl + Shift + F9", await Until(() => item.Value == "Ctrl + Shift + F9", 5000), item.Value);
+            Check("录制结束", !item.IsRecording);
+            Shot("avalonia-wayland-hotkeys.png");
+        }
+
+        item.Value = old;
+        page.RegisterHotkeys();
+        await Settle();
+        Check("恢复原值", item.Value == old, old);
+    }
+
     /// <summary>
     /// Wayland（niri）遮罩：截图器运行后遮罩经 layer-shell 覆盖层显示在游戏窗口所在输出上，
     /// 识别框、文字、日志框、状态文字都离屏渲染进覆盖层位图；外部脚本在“等待外部截图”时截合成器画面核对，

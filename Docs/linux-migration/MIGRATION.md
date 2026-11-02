@@ -122,6 +122,20 @@ Portal 截的是合成后的画面，遮罩（layer-shell 覆盖层，namespace 
 `layer-rule { match namespace="^bettergi-mask$"; block-out-from "screencast"; }`，或者用 XGetImage 窗口截图。
 临时抓帧（音游引导等）不用 Portal（每次都要新建会话），X 窗口改用 `GetImageWindow`。Wayland 下遮罩是 layer-shell 覆盖层，不会被 X 窗口截图截到，所以不再像 X11 那样在启用遮罩时改用 Composite。
 
+与 X11 后端逐项对照（Wayland 下的做法）：
+
+- **窗口变化 / 失焦**：除了 X `ConfigureNotify`，还订阅 niri IPC 的 `EventStream`（独立连接，断开后每 2 秒重连）；
+  游戏窗口的 `WindowLayoutsChanged` / `WindowOpenedOrChanged` / `WindowFocusChanged` / `WorkspaceActivated` 等事件触发 `ViewportChanged`，
+  前台判断与位置换算用的窗口 / 输出列表按事件失效缓存（事件流在线时最长 1 秒，否则 100 ms），不再每次调用都连一次 niri。
+- **DPI 缩放**：输出缩放 ≠ 1 时 satellite 把 X 窗口按缩放显示，位置统一按 niri 逻辑坐标 × 缩放换算；遮罩的缓冲缩放 = 输出缩放向上取整，文字按物理分辨率渲染。
+- **光标锁定 / 相对鼠标**：游戏是 X 客户端，视角转动走 XTest 相对移动，经 satellite 与 X11 相同（驱动 e2e 测试覆盖锁定指针下的相对移动）。
+- **快捷键录制**：设置页录制靠窗口自己的按键事件（经 satellite），与 evdev 无关；录制期间 evdev 全局热键的回调被抑制，
+  避免按下要录的组合键时同时触发旧的动作。快捷键页说明写明当前是 evdev 还是退回了 X11，以及原因（如不在 `input` 组）。
+- **Portal 授权失败**：保存的 `restore_token` 失效（对话框被拒、显示器已拔掉等）时自动作废 token 并重新询问一次；
+  用户在对话框里取消或超时时给出明确提示（再次启动截图器会重新弹出对话框，或改用 XGetImage 窗口截图），不会卡住；
+  PipeWire 流中途断开（读取进程退出）时不返回旧帧，自动重连（最多 3 次，间隔 ≥ 5 秒）；重新询问、断开 / 重连、显示器选错、拿不到窗口位置都会写进日志（警告“截图（ScreenCast 门户）：…”）。
+- **uinput / input 组权限**：缺少时环境页、日志、快捷键页给出下面的命令。
+
 权限（缺少时环境页 / 日志会给出同样的提示）：
 
 ```bash

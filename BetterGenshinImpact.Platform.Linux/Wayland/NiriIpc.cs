@@ -18,11 +18,61 @@ public sealed record NiriOutputInfo(string Name, int X, int Y, int Width, int He
 
 /// <summary>
 /// niri IPC 客户端：连接 $NIRI_SOCKET（Unix 套接字），每个请求一行 JSON，回一行 {"Ok":…} 或 {"Err":"…"}。
-/// 协议见 niri-ipc（与 <c>niri msg --json</c> 相同）。每次请求新建连接，线程安全
+/// 协议见 niri-ipc（与 <c>niri msg --json</c> 相同）。每次请求新建连接，线程安全。
+/// 窗口 / 输出列表会缓存：事件流可用时缓存到下一个事件（最多 1 秒），否则 100 ms；每帧都查前台窗口时不会每次都走 IPC
 /// </summary>
-public sealed class NiriIpc
+public sealed class NiriIpc : IDisposable
 {
     public NiriIpc(string socketPath) => SocketPath = socketPath;
+
+    private readonly object _gate = new();
+    private NiriEventStream? _events;
+    private long _version;
+    private (long Version, long At, IReadOnlyList<NiriWindowInfo> Value)? _windowsCache;
+    private (long Version, long At, IReadOnlyList<NiriOutputInfo> Value)? _outputsCache;
+
+    /// <summary>niri 事件流（第一次访问时连接）；窗口移动 / 缩放 / 焦点变化等由它通知，缓存也按它失效</summary>
+    public NiriEventStream Events
+    {
+        get
+        {
+            lock (_gate)
+            {
+                if (_events is null)
+                {
+                    _events = new NiriEventStream(SocketPath);
+                    _events.Received += _ => Interlocked.Increment(ref _version);
+                }
+
+                return _events;
+            }
+        }
+    }
+
+    /// <summary>不用缓存（测试用）</summary>
+    public bool CacheDisabled { get; set; }
+
+    private long CacheMs => _events is { IsActive: true } ? 1000 : 100;
+
+    private T Cached<T>(ref (long Version, long At, T Value)? cache, Func<T> load)
+    {
+        var now = Environment.TickCount64;
+        var version = Interlocked.Read(ref _version);
+        lock (_gate)
+        {
+            if (!CacheDisabled && cache is { } c && c.Version == version && now - c.At < CacheMs) return c.Value;
+        }
+
+        var value = load();
+        lock (_gate)
+        {
+            cache = (version, now, value);
+        }
+
+        return value;
+    }
+
+    public void Dispose() => _events?.Dispose();
 
     public string SocketPath { get; }
 
@@ -57,7 +107,11 @@ public sealed class NiriIpc
     }
 
     /// <summary>执行动作，如 <c>{"FocusWindow":{"id":1}}</c></summary>
-    public void Action(string actionJson) => Request("{\"Action\":" + actionJson + "}");
+    public void Action(string actionJson)
+    {
+        Request("{\"Action\":" + actionJson + "}");
+        Interlocked.Increment(ref _version); // 动作会改变窗口状态，缓存作废
+    }
 
     public void FocusWindow(ulong id) => Action($"{{\"FocusWindow\":{{\"id\":{id}}}}}");
 
@@ -66,7 +120,9 @@ public sealed class NiriIpc
 
     public void CloseWindow(ulong id) => Action($"{{\"CloseWindow\":{{\"id\":{id}}}}}");
 
-    public IReadOnlyList<NiriOutputInfo> Outputs()
+    public IReadOnlyList<NiriOutputInfo> Outputs() => Cached(ref _outputsCache, LoadOutputs);
+
+    private IReadOnlyList<NiriOutputInfo> LoadOutputs()
     {
         var list = new List<NiriOutputInfo>();
         if (Request("\"Outputs\"")?["Outputs"] is not JsonObject outputs) return list;
@@ -81,11 +137,13 @@ public sealed class NiriIpc
     }
 
     /// <summary>窗口列表，并按工作区所在输出算出屏幕位置</summary>
-    public IReadOnlyList<NiriWindowInfo> Windows()
+    public IReadOnlyList<NiriWindowInfo> Windows() => Cached(ref _windowsCache, LoadWindows);
+
+    private IReadOnlyList<NiriWindowInfo> LoadWindows()
     {
         var windows = Request("\"Windows\"")?["Windows"] as JsonArray ?? [];
         var workspaces = Request("\"Workspaces\"")?["Workspaces"] as JsonArray ?? [];
-        var outputs = Outputs().ToDictionary(o => o.Name);
+        var outputs = LoadOutputs().ToDictionary(o => o.Name);
         var wsOutput = new Dictionary<ulong, string>();
         foreach (var w in workspaces)
         {

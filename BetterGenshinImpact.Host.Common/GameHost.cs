@@ -65,6 +65,10 @@ public sealed class GameHost : IAsyncDisposable
         _provider = provider;
         _log = log;
         Dispatcher = provider.GetRequiredService<TaskTriggerDispatcher>();
+        if (platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices)
+        {
+            BetterGenshinImpact.Platform.Linux.Wayland.PortalScreenCastCapture.Diagnostic += OnPortalDiagnostic;
+        }
         RuntimeService = provider.GetRequiredService<GameRuntimeService>();
         // 与 WPF 相同在启动时创建，订阅截图器与开关状态
         QuestVoice = provider.GetRequiredService<QuestVoiceService>();
@@ -602,6 +606,8 @@ public sealed class GameHost : IAsyncDisposable
         }
     }
 
+    private void OnPortalDiagnostic(string message) => _log.Warning("截图（ScreenCast 门户）：{Message}", message);
+
     public async ValueTask DisposeAsync()
     {
         await QuestVoice.StopAsync(applicationExit: true);
@@ -613,6 +619,7 @@ public sealed class GameHost : IAsyncDisposable
         // 写入未保存的配置改动
         _fileConfig?.Dispose();
         _linuxConfigStore?.Dispose();
+        BetterGenshinImpact.Platform.Linux.Wayland.PortalScreenCastCapture.Diagnostic -= OnPortalDiagnostic;
         await _provider.DisposeAsync();
         _platform.Dispose();
     }

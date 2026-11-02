@@ -733,8 +733,16 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                     var press = action.Press!;
                     var service = (IHotkeyService?)passthrough ?? _host.Platform.Hotkeys;
                     var checkForeground = passthrough != null;
+                    var wayland = _host.Platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices;
                     _registrations.Add(service.Register(gesture, _ =>
                     {
+                        // Wayland 的 evdev 热键不抓取按键：录制新快捷键时按下的键同时会触发已注册的快捷键，录制期间不执行
+                        // （X11 的 XGrabKey 会把已注册的键抓走，行为不变）
+                        if (wayland && Hotkeys.Any(h => h.IsRecording))
+                        {
+                            return;
+                        }
+
                         if (checkForeground && !foreground())
                         {
                             return;
@@ -751,7 +759,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
                     }, noRepeat: true));
                 }
 
-                item.Status = (passthrough != null ? "已注册：键鼠监听（不拦截）" : "已注册：全局热键（XGrabKey，游戏收不到该键）") + modeNote;
+                item.Status = (passthrough != null ? "已注册：键鼠监听（不拦截）" : GlobalHotkeyDescription) + modeNote;
                 ok.Add($"{item.Name}={item.Value}{(passthrough != null ? "[监听]" : "[抓取]")}");
             }
             catch (Exception e)
@@ -761,9 +769,21 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
             }
         }
 
-        HotkeyStatus = $"已注册 {ok.Count} 个快捷键" + (failed.Count > 0 ? $"，{failed.Count} 个失败" : "");
+        HotkeyStatus = $"已注册 {ok.Count} 个快捷键" + (failed.Count > 0 ? $"，{failed.Count} 个失败" : "")
+                       + (_host.Platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices { HotkeyProblem: { } problem } ? $"。全局热键退回 X11：{problem}" : "");
         _log.Information("快捷键：{Status} {List}", HotkeyStatus, string.Join("；", ok.Concat(failed)));
     }
+
+    /// <summary>
+    /// “全局热键”方式的说明：X11 为 XGrabKey（抓取，游戏收不到该键，与以前相同）；Wayland 为 evdev 直接读键盘（不抓取，游戏同样收到），
+    /// 读不到 /dev/input 时退回 X11 热键（只在 X 窗口有焦点时有效）
+    /// </summary>
+    private string GlobalHotkeyDescription => _host?.Platform switch
+    {
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices { HotkeyProblem: null } => "已注册：全局热键（evdev 读取键盘，不拦截，游戏同样收到该键）",
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices => "已注册：全局热键（退回 X11 XGrabKey，只在 X 窗口有焦点时有效）",
+        _ => "已注册：全局热键（XGrabKey，游戏收不到该键）",
+    };
 
     [RelayCommand]
     private void StartRecord(HotkeyItemViewModel? item)

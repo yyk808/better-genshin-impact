@@ -262,6 +262,7 @@ public sealed class WaylandPlatformServices : IPlatformServices
         if (_evdev.IsValueCreated) _evdev.Value.Hook?.Dispose();
         if (_wm.IsValueCreated) _wm.Value.Dispose();
         _x11?.Dispose();
+        Niri?.Dispose();
     }
 }
 

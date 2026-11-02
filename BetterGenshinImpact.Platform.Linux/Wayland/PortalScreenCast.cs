@@ -11,6 +11,9 @@ namespace BetterGenshinImpact.Platform.Linux.Wayland;
 /// <param name="X">流在合成器坐标中的位置（只有显示器来源提供；逻辑像素）</param>
 public sealed record ScreenCastStream(uint NodeId, int Width, int Height, uint SourceType, int X = 0, int Y = 0, bool HasPosition = false);
 
+/// <summary>ScreenCast 门户授权没有完成（用户取消或超时）；消息里带下一步操作</summary>
+public sealed class PortalAuthorizationException(string message) : InvalidOperationException(message);
+
 /// <summary>
 /// xdg-desktop-portal ScreenCast 会话（CreateSession → SelectSources → Start）。
 /// 首次会弹出合成器 / portal 的选择对话框（niri 下由 xdg-desktop-portal-gnome 提供，可选窗口或输出）；
@@ -37,9 +40,58 @@ public sealed class ScreenCastPortalSession : IAsyncDisposable
     /// <summary>portal 返回的新 restore_token（已写入文件）；不支持持久化时为 null</summary>
     public string? RestoreToken { get; private set; }
 
-    /// <summary>建立会话并开始投屏，等待用户在对话框中选择（<paramref name="timeout"/> 内）</summary>
+    /// <summary>
+    /// 建立会话并开始投屏，等待用户在对话框中选择（<paramref name="timeout"/> 内）。
+    /// 用保存的 restore_token 恢复失败（来源已不存在、后端拒绝等）时删掉它、重新弹出选择对话框再试一次；
+    /// 用户取消或超时时抛出带操作提示的异常（再次启动截图器会重新询问）
+    /// </summary>
     /// <param name="sourceTypes">1 显示器、2 窗口，可按位或</param>
     public static async Task<ScreenCastPortalSession> StartAsync(uint sourceTypes = 3, bool useSavedToken = true, TimeSpan? timeout = null)
+    {
+        var hadToken = useSavedToken && File.Exists(RestoreTokenPath);
+        try
+        {
+            try
+            {
+                return await StartOnceAsync(sourceTypes, useSavedToken, timeout);
+            }
+            catch (InvalidOperationException e) when (hadToken)
+            {
+                // 保存的来源恢复失败：作废 token，重新询问一次
+                LastRetryReason = e.Message;
+                PortalScreenCastCapture.RaiseDiagnostic($"保存的屏幕共享授权已失效（{e.Message}），重新询问");
+                TryDelete(RestoreTokenPath);
+                return await StartOnceAsync(sourceTypes, false, timeout);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw new PortalAuthorizationException("已取消屏幕共享授权（ScreenCast 门户）：再次启动截图器会重新弹出选择对话框；或在截图模式里改用 XGetImage 窗口");
+        }
+        catch (TimeoutException)
+        {
+            throw new PortalAuthorizationException("等待屏幕共享授权超时：请在系统弹出的选择对话框里选择游戏窗口或游戏所在的显示器，然后再次启动截图器");
+        }
+    }
+
+    /// <summary>最近一次因为 restore_token 失效而重新询问的原因（诊断用）</summary>
+    public static string? LastRetryReason { get; private set; }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static async Task<ScreenCastPortalSession> StartOnceAsync(uint sourceTypes, bool useSavedToken, TimeSpan? timeout)
     {
         var address = DBusAddress.Session ?? throw new InvalidOperationException("没有 D-Bus 会话总线（DBUS_SESSION_BUS_ADDRESS），无法使用 ScreenCast portal");
         var conn = new DBusConnection(address);
@@ -299,6 +351,21 @@ public sealed class PortalScreenCastCapture : IGameCapture
     /// <summary>最近一次错误（GStreamer 退出、portal 拒绝等）</summary>
     public string? LastError { get; private set; }
 
+    /// <summary>需要告诉用户的状态变化（流断开 / 重连、授权重新询问、显示器选错、拿不到窗口位置）；宿主写进日志。同一条消息不重复发出</summary>
+    public static event Action<string>? Diagnostic;
+
+    private string? _lastReport;
+
+    internal static void RaiseDiagnostic(string message) => Diagnostic?.Invoke(message);
+
+    private void Report(string message)
+    {
+        LastError = message;
+        if (message == _lastReport) return;
+        _lastReport = message;
+        RaiseDiagnostic(message);
+    }
+
     /// <summary>portal 与 GStreamer 是否齐备（诊断用）</summary>
     public static string ProbeAvailability()
     {
@@ -318,7 +385,23 @@ public sealed class PortalScreenCastCapture : IGameCapture
     /// </param>
     public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
+        _restarts = 0;
+        _restartAt = 0;
+        StartCore(window, settings);
+    }
+
+    private Dictionary<string, object>? _settings;
+    private int _restarts;
+    private long _restartAt;
+    private Task? _restartTask;
+
+    /// <summary>流断开后自动重连的次数（每次 Start 后最多 3 次，间隔至少 5 秒）</summary>
+    public int Restarts => _restarts;
+
+    private void StartCore(IPlatformWindow window, Dictionary<string, object>? settings)
+    {
         Stop();
+        _settings = settings;
         uint types = settings?.TryGetValue("portalSourceTypes", out var t) == true ? Convert.ToUInt32(t) : 3u;
         var forget = settings?.TryGetValue("portalForget", out var f) == true && Convert.ToBoolean(f);
         var timeout = settings?.TryGetValue("portalTimeoutSeconds", out var s) == true ? TimeSpan.FromSeconds(Convert.ToDouble(s)) : TimeSpan.FromMinutes(2);
@@ -410,6 +493,13 @@ public sealed class PortalScreenCastCapture : IGameCapture
 
     public GameCaptureFrame? Capture()
     {
+        if (_gst is { HasExited: true } && !_stop)
+        {
+            // PipeWire 流断开（在合成器里停止了共享、portal 撤销授权、gst 进程退出）：用保存的授权自动重连
+            TryRestart();
+            return null;
+        }
+
         PixelRect? crop = null;
         if (CropsToWindow)
         {
@@ -429,6 +519,30 @@ public sealed class PortalScreenCastCapture : IGameCapture
                 return new GameCaptureFrame(roi.Clone());
             }
         }
+    }
+
+    private void TryRestart()
+    {
+        var now = Environment.TickCount64;
+        if (_restartTask is { IsCompleted: false } || _restarts >= 3 || (_restartAt != 0 && now - _restartAt < 5000) || _window is not { } window) return;
+        _restarts++;
+        _restartAt = now;
+        var settings = _settings;
+        Report($"PipeWire 流已断开{(string.IsNullOrEmpty(LastError) ? "" : $"（{LastError}）")}，正在重新连接（第 {_restarts} 次）");
+        _restartTask = Task.Run(() =>
+        {
+            try
+            {
+                StartCore(window, settings);
+                LastError = null;
+                Report("PipeWire 流已重新连接");
+                LastError = null;
+            }
+            catch (Exception e) when (e is InvalidOperationException or IOException or TimeoutException or OperationCanceledException or System.ComponentModel.Win32Exception)
+            {
+                Report("重新连接 ScreenCast 失败：" + e.Message);
+            }
+        });
     }
 
     /// <summary>显示器来源对应的 niri 输出：位置与流位置相同的输出；portal 没给位置时取唯一的输出</summary>
@@ -468,12 +582,12 @@ public sealed class PortalScreenCastCapture : IGameCapture
         }
         else if (crop is null && p is not null)
         {
-            LastError = $"游戏窗口在输出 {p.Output}，不在共享的显示器（{_streamOutput?.Name ?? "未知"}）上；请在门户对话框里选择游戏所在的显示器或直接选择游戏窗口";
+            Report($"游戏窗口在输出 {p.Output}，不在共享的显示器（{_streamOutput?.Name ?? "未知"}）上；请在门户对话框里选择游戏所在的显示器或直接选择游戏窗口");
         }
         else if (p is null)
         {
-            LastError = "拿不到游戏窗口在屏幕上的位置（niri 只报告浮动和全屏窗口的位置），与整屏画面比对也没有找到游戏，无法从整个显示器的画面里裁出游戏；" +
-                        "请把游戏设为浮动或全屏，或在门户对话框里直接选择游戏窗口";
+            Report("拿不到游戏窗口在屏幕上的位置（niri 只报告浮动和全屏窗口的位置），与整屏画面比对也没有找到游戏，无法从整个显示器的画面里裁出游戏；" +
+                   "请把游戏设为浮动或全屏，或在门户对话框里直接选择游戏窗口");
         }
 
         _crop = crop;

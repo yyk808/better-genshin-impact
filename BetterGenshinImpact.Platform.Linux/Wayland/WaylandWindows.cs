@@ -66,13 +66,53 @@ public sealed class XWaylandWindow(X11Window inner, NiriIpc? niri) : IPlatformWi
 
     public void RequestClose() => Inner.RequestClose();
 
+    private EventHandler? _niriViewportChanged;
+    private ulong? _niriId;
+
+    /// <summary>
+    /// 窗口移动或缩放：X 侧的 ConfigureNotify（客户区大小变化），加上 niri 事件流里本窗口的布局变化（在屏幕上移动、浮动 / 平铺切换、
+    /// 切换工作区），以及焦点变化（前台判断随之更新）
+    /// </summary>
     public event EventHandler? ViewportChanged
     {
-        add => Inner.ViewportChanged += value;
-        remove => Inner.ViewportChanged -= value;
+        add
+        {
+            Inner.ViewportChanged += value;
+            if (niri is null) return;
+            lock (this)
+            {
+                var first = _niriViewportChanged is null;
+                _niriViewportChanged += value;
+                if (first) niri.Events.Received += OnNiriEvent;
+            }
+        }
+        remove
+        {
+            Inner.ViewportChanged -= value;
+            if (niri is null) return;
+            lock (this)
+            {
+                _niriViewportChanged -= value;
+                if (_niriViewportChanged is null) niri.Events.Received -= OnNiriEvent;
+            }
+        }
     }
 
-    public void Dispose() => Inner.Dispose();
+    private void OnNiriEvent(NiriEvent e)
+    {
+        if (e.Kind is not ("WindowLayoutsChanged" or "WindowOpenedOrChanged" or "WindowFocusChanged" or "WorkspaceActivated" or "WindowsChanged")) return;
+        _niriId ??= FindNiriWindow()?.Id;
+        if (e.Kind == "WorkspaceActivated" || _niriId is null || e.WindowIds.Count == 0 || e.WindowIds.Contains(_niriId.Value) || e.Kind == "WindowFocusChanged")
+        {
+            _niriViewportChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (niri is not null && _niriViewportChanged is not null) niri.Events.Received -= OnNiriEvent;
+        Inner.Dispose();
+    }
 }
 
 /// <summary>
@@ -136,14 +176,41 @@ public sealed class NiriWindow(NiriIpc niri, ulong id) : IPlatformWindow
 
     public void RequestClose() => niri.CloseWindow(Id);
 
+    private EventHandler? _viewportChanged;
+
+    /// <summary>niri 事件流里本窗口的布局变化（移动、缩放、浮动 / 平铺切换）、工作区切换、焦点变化</summary>
     public event EventHandler? ViewportChanged
     {
-        add { }
-        remove { }
+        add
+        {
+            lock (this)
+            {
+                var first = _viewportChanged is null;
+                _viewportChanged += value;
+                if (first) niri.Events.Received += OnNiriEvent;
+            }
+        }
+        remove
+        {
+            lock (this)
+            {
+                _viewportChanged -= value;
+                if (_viewportChanged is null) niri.Events.Received -= OnNiriEvent;
+            }
+        }
+    }
+
+    private void OnNiriEvent(NiriEvent e)
+    {
+        if (e.Kind is "WorkspaceActivated" or "WindowFocusChanged" || e.WindowIds.Contains(Id))
+        {
+            _viewportChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void Dispose()
     {
+        if (_viewportChanged is not null) niri.Events.Received -= OnNiriEvent;
     }
 }
 
