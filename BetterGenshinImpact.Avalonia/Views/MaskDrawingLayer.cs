@@ -111,7 +111,7 @@ public sealed class MaskDrawingLayer : Control
         var foreground = GetBrush(textStyle?.Foreground ?? style.TextColor);
         var origin = new Point(text.Origin.X * sx, text.Origin.Y * sy);
         var formatted = new FormattedText(text.Text, CultureInfo.GetCultureInfo("zh-CN"), FlowDirection.LeftToRight,
-            new Typeface(FontInfo.UiFontFamily), fontSize, foreground);
+            new Typeface(MaskWindow.TextFont), fontSize, foreground);
         if (textStyle?.Background is { } background)
         {
             var px = fontSize * BadgePaddingXRatio;

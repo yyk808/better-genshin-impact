@@ -30,7 +30,7 @@ internal static class AvaloniaHostProgram
     public static int Main(string[] args)
     {
         var options = AvaloniaOptions.Parse(args);
-        HostLogging.Configure(options.LogFile, c => c.WriteTo.Sink(UiLogSink.Instance));
+        HostLogging.Configure(options.LogFile, c => c.WriteTo.Sink(UiLogSink.Instance).WriteTo.Sink(MaskLogSink.Instance));
         var log = Log.ForContext("SourceContext", "Avalonia");
         try
         {

@@ -79,6 +79,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "plan-advanced-source": await PlanAdvancedSourceAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
                 case "mask-focus": await MaskFocusAsync(); break;
+                case "mask-layout": await MaskLayoutAsync(); break;
                 case "pulonia-accounts": await PuloniaAccountsAsync(); break;
                 case "account-switch": await AccountSwitchAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
@@ -579,11 +580,16 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var textPixels = Count(Px(600), Px(120), Px(300), Px(48), c => (c >> 24) > 200 && ((c >> 16) & 0xFF) > 200 && (c & 0xFF) > 200);
         var textBack = Count(Px(600), Px(120), Px(300), Px(48), c => (c >> 24) > 200 && ((c >> 16) & 0xFF) < 30 && (c & 0xFF) > 100 && (c & 0xFF) < 160);
         Check("文字（白字 + 底色）", textPixels > 20 && textBack > 200, $"白 {textPixels} 底 {textBack}");
-        var h = p.Height * p.BufferScale;
-        var status = Count(20 * p.BufferScale, h - 60 * p.BufferScale, 200 * p.BufferScale, 24 * p.BufferScale, c => (c >> 24) > 180 && ((c >> 16) & 0xFF) > 150);
-        Check("状态文字", status > 10, status);
-        var logBox = Count(20 * p.BufferScale, (int)(h * 0.62) + 2, 460 * p.BufferScale, 30 * p.BufferScale, c => (c >> 24) >= 0x50);
-        Check("日志框", !host.Config.MaskWindowConfig.ShowLogBox || logBox > 1000, logBox);
+        // 状态栏、日志框按 MaskWindowConfig 比例摆放（同 WPF）
+        var mc = host.Config.MaskWindowConfig;
+        var bs = p.BufferScale;
+        int Bx(double ratio, double size) => (int)(ratio * size * bs);
+        var status = Count(Bx(mc.StatusListLeftRatio, p.Width) + 2, Bx(mc.StatusListTopRatio, p.Height) + 2, Bx(mc.StatusListWidthRatio, p.Width) - 4, Math.Max(20 * bs, Bx(mc.StatusListHeightRatio, p.Height)) - 4,
+            c => (c >> 24) > 180 && ((c >> 16) & 0xFF) > 150);
+        Check("状态文字", !mc.ShowStatus || status > 10, status);
+        var logText = Count(Bx(mc.LogTextBoxLeftRatio, p.Width) + 2, Bx(mc.LogTextBoxTopRatio, p.Height) + 2, Bx(mc.LogTextBoxWidthRatio, p.Width) - 4, Bx(mc.LogTextBoxHeightRatio, p.Height) - 4,
+            c => (c >> 24) > 180 && ((c >> 16) & 0xFF) > 150 && ((c >> 8) & 0xFF) > 150);
+        Check("日志文字", !mc.ShowLogBox || logText > 50, logText);
         Check("其余区域透明", mask.OverlayPixel(p.Width * p.BufferScale / 2, p.Height * p.BufferScale / 3) is { } empty && empty >> 24 == 0);
 
         if (dir is not null)
@@ -3204,10 +3210,11 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var headers = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
         Check("“更多”菜单：复制 / 粘贴 / 撤销 / 预览 / 定时与热键 / 配置共享设置 / 设置方案",
             new[] { "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "配置共享设置…", "设置方案…" }.All(headers.Contains), string.Join(",", headers));
-        Check("导入旧配置置灰并说明、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true
-            && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => i.Header as string == "账号管理" && i.Command is not null) == true);
+        // 菜单项的命令绑定在弹出后才生效
         more?.Flyout?.ShowAt(more);
         await Settle(400);
+        Check("导入旧配置置灰并说明、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true
+            && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => i.Header as string == "账号管理" && i.Command is not null && i.IsEnabled) == true);
         Shot("avalonia-newonedragon-more.png");
         more?.Flyout?.Hide();
 

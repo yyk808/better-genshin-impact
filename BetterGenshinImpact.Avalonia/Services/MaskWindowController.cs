@@ -39,6 +39,8 @@ public sealed class MaskWindowController : IDisposable
         _log = log;
         _wayland = host.Platform as WaylandPlatformServices;
         Current = this;
+        // 遮罩日志框：同 WPF，只有遮罩启用且显示日志框时才接收日志
+        MaskLogSink.Instance.IsEnabled = () => _host.LinuxConfig.MaskWindowEnabled && _host.Config.MaskWindowConfig is { MaskEnabled: true, ShowLogBox: true };
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => Update());
         _timer.Start();
         // 焦点：每 100 ms 判断一次（X11 读 _NET_ACTIVE_WINDOW / 输入焦点），niri 的 WindowFocusChanged 事件立即判断；防抖见 MaskFocusPolicy
@@ -99,7 +101,7 @@ public sealed class MaskWindowController : IDisposable
         }
 
         var config = _host.Config.MaskWindowConfig;
-        window.DrawingLayer.Update(_host.MaskDrawing.Current, CreateStyle(config, _lastRect.Width / 1920d),
+        window.DrawingLayer.Update(_host.MaskDrawing.Current, CreateStyle(config, ScaleTo1080P(_lastRect)),
             config.DisplayRecognitionResultsOnMask, _lastRect.Size);
         _surface?.Render();
     }
@@ -140,6 +142,12 @@ public sealed class MaskWindowController : IDisposable
 
     /// <summary>防抖后遮罩是否应随游戏焦点显示（用于验证）</summary>
     public bool FocusVisible => _focus.Visible;
+
+    /// <summary>遮罩窗口（X11 为真实窗口，Wayland 为渲染到覆盖层的内容；用于验证）</summary>
+    public MaskWindow? Window => _window;
+
+    /// <summary>上次摆放状态栏与日志框用的遮罩大小（DIP）、1080P 比例与显示缩放（用于验证）</summary>
+    public (double Width, double Height, double ScaleTo1080P, double DpiScale) OverlayLayout { get; private set; }
 
     /// <summary>遮罩因焦点显示 / 隐藏的次数（用于验证防抖）</summary>
     public int FocusHideCount { get; private set; }
@@ -249,8 +257,7 @@ public sealed class MaskWindowController : IDisposable
                 _lastRect = rect;
             }
 
-            _window.SetStatus($"BetterGI · 已处理 {_host.FramesProcessed} 帧", _window.Height);
-            _window.SetLog(_host.Config.MaskWindowConfig.ShowLogBox ? RecentLog() : null, _window.Height);
+            ApplyOverlay(_window, _window.Width, _window.Height, rect, _window.RenderScaling > 0 ? _window.RenderScaling : 1);
             RefreshDrawing();
             if (!_drawingLogged && DrawnShapes > 0)
             {
@@ -311,8 +318,7 @@ public sealed class MaskWindowController : IDisposable
         var wasShown = _surface.IsShown;
         _surface.Place(placement);
         _lastRect = rect;
-        _window!.SetStatus($"BetterGI · 已处理 {_host.FramesProcessed} 帧", placement.Height);
-        _window.SetLog(_host.Config.MaskWindowConfig.ShowLogBox ? RecentLog() : null, placement.Height);
+        ApplyOverlay(_window!, placement.Width, placement.Height, rect, Math.Max(1, placement.Scale));
         RefreshDrawing();
         if (!_drawingLogged && DrawnShapes > 0)
         {
@@ -336,23 +342,25 @@ public sealed class MaskWindowController : IDisposable
         }
     }
 
-    /// <summary>日志框内容：最近 6 行信息及以上级别的日志（时间 + 消息）</summary>
-    private static string RecentLog()
-    {
-        var lines = UiLogSink.Instance.Lines;
-        var start = Math.Max(0, lines.Count - 6);
-        var text = new System.Text.StringBuilder();
-        for (var i = start; i < lines.Count; i++)
-        {
-            var line = lines[i];
-            text.Append(line.Time.ToString("HH:mm:ss")).Append(' ').Append(line.Message.Replace('\n', ' '));
-            if (i < lines.Count - 1)
-            {
-                text.Append('\n');
-            }
-        }
+    /// <summary>游戏画面相对 1080P 的比例：宽高比例取小（同 WPF MaskWindowViewModel.RecalculateScaleTo1080PRatio）</summary>
+    private static double ScaleTo1080P(PixelRect rect) => rect.Width > 0 && rect.Height > 0 ? Math.Min(rect.Width / 1920d, rect.Height / 1080d) : 1;
 
-        return text.ToString();
+    /// <summary>状态栏与日志框（WPF 遮罩的 StatusList 与日志 RichTextBox）</summary>
+    private void ApplyOverlay(MaskWindow window, double width, double height, PixelRect rect, double dpiScale)
+    {
+        var all = _host.Config;
+        IReadOnlyList<MaskStatusItem> status =
+        [
+            new("\uf256 拾取", all.AutoPickConfig.Enabled),
+            new("\uf075 剧情", all.AutoSkipConfig.Enabled),
+            new("\ue5c8 邀约", all.AutoSkipConfig.AutoHangoutEventEnabled),
+            new("\uf578 钓鱼", all.AutoFishingConfig.Enabled),
+            new("\uf3c5 传送", all.QuickTeleportConfig.Enabled),
+        ];
+        var logs = MaskLogSink.Instance;
+        OverlayLayout = (width, height, ScaleTo1080P(rect), dpiScale);
+        window.ApplyOverlay(all.MaskWindowConfig, width, height, ScaleTo1080P(rect), dpiScale, status,
+            all.MaskWindowConfig.ShowLogBox ? logs.Snapshot() : null, logs.Version);
     }
 
     private void OnOpened()

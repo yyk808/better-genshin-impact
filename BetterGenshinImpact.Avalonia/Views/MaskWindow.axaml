@@ -8,13 +8,13 @@
     <Panel>
         <!-- 识别框、线、文字（MaskWindowDrawingBoard 的快照） -->
         <v:MaskDrawingLayer x:Name="Drawing" />
-        <!-- 左侧日志框（对应原版遮罩的日志框，MaskWindowConfig.ShowLogBox）与左下角状态 -->
+        <!-- 状态栏与日志框：位置、大小、配色、字体、阴影都取自 MaskWindowConfig，与 WPF 遮罩相同（见 ApplyOverlay） -->
         <Canvas x:Name="Root">
-            <Border x:Name="LogBox" Canvas.Left="20" Background="#66000000" CornerRadius="4" Padding="8,4" Width="460">
-                <TextBlock x:Name="LogText" Foreground="#E0FFFFFF" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+            <Border x:Name="StatusBox" CornerRadius="4" ClipToBounds="True" Padding="4,2" MinWidth="160" MinHeight="24">
+                <StackPanel x:Name="StatusPanel" Orientation="Horizontal" VerticalAlignment="Top" />
             </Border>
-            <Border x:Name="StatusBox" Canvas.Left="20" Background="#99000000" CornerRadius="4" Padding="8,4">
-                <TextBlock x:Name="StatusText" Foreground="#E0FFFFFF" FontSize="12" Text="BetterGI" />
+            <Border x:Name="LogBox" CornerRadius="4" MinWidth="240" MinHeight="80" ClipToBounds="True">
+                <v:MaskLogView x:Name="LogView" />
             </Border>
         </Canvas>
     </Panel>

@@ -174,6 +174,11 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
   游戏在前台显示；前台属于 BetterGI 自身（主窗口、对话框、遮罩本身）或游戏进程、或没有前台窗口时保持原状；其他进程在前台隐藏。
   焦点每 100 ms 判断一次（X11：`_NET_ACTIVE_WINDOW`，没有窗口管理器时 `XGetInputFocus`；Wayland：niri 窗口 `is_focused`），niri 的 `WindowFocusChanged` 事件立即判断。
   WPF 没有防抖，这里加了防抖：隐藏前需稳定 300 ms、重新显示前稳定 120 ms，焦点短暂切走再回来不闪烁。
+- **遮罩外观与 WPF 一致**（X11 与 Wayland 相同，`MaskWindow.ApplyOverlay` / `MaskLogView` / `MaskLogSink`）：状态栏和日志框的位置大小按 `MaskWindowConfig` 比例 × 遮罩大小
+  （最小 160×24 / 240×80），圆角 4，背景、边框、阴影、文字颜色与透明度取自配置；日志框内外两层背景同 WPF。字号按 `ComputeEffectiveSize`（1080P 比例、显示缩放、`LogFontScale`）。
+  日志是 Information 及以上、`[HH:mm:ss INF] 消息` 格式、Serilog Literate 配色，最新一行贴底；字体按 `LogFontFamily`（`monospace` 换成已装的等宽字体，中文回退系统字体），
+  行距取首选字体行距（中文回退字形不撑高行，同 WPF）。状态栏五项（拾取 / 剧情 / 邀约 / 钓鱼 / 传送）按开关着色。识别文字用 MiSans。
+  已知差异：Avalonia 遮罩日志里多几条启动信息（截图器、ONNX），WPF 在 Wine 下状态图标显示为方框（Wine 字体问题，原生 Windows 正常）。
 - xwayland-satellite 会给没声明“无装饰”的 X 窗口加一条标题栏，niri 报告的窗口比游戏客户区高；屏幕位置按客户区大小对齐到窗口底部。
 - 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
 - 实机检查清单见 `wayland-niri-checklist.md`。

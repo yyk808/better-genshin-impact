@@ -73,7 +73,12 @@ internal sealed partial class UiTests
         {
             Check("没有密钥环：目录保存但提示凭据未保存", page.Message.Contains("没有可用的系统密钥环") && page.Message.Contains("不会把账户密码以明文保存"), page.Message);
             Check("没有密钥环：保留密码草稿以便重试", b.LoginPassword == PassB && b.IsDirty);
-            Check("没有密钥环：凭据引用为空", saved?.CredentialReference is null);
+            // 与 Windows 相同：目录先保存（记下凭据引用），凭据写入失败只提示；凭据不会落到任何明文文件里
+            string? readBack;
+            try { readBack = saved?.CredentialReference is { } r ? store.CredentialVault.Read(r)?.Password : null; }
+            catch (Exception e) { readBack = null; log.Information("UI 自测 没有密钥环时读取凭据：{Message}", e.Message); }
+            Check("没有密钥环：凭据没有保存到任何地方", readBack is null
+                && !Directory.EnumerateFiles(Global.Absolute(@"User\Pulonia"), "*", SearchOption.AllDirectories).Any(f => File.ReadAllText(f).Contains(PassB)));
             Check("页面说明密钥环不可用", !page.CredentialStoreAvailable && page.CredentialStoreText.Contains("没有可用的系统密钥环"), page.CredentialStoreText);
         }
         return (new(a), new(b));
