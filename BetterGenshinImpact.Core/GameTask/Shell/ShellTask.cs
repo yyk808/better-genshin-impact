@@ -148,8 +148,9 @@ public class ShellTask(GameRuntime runtime) : ISoloTask<ShellTaskParam, NoData>
     {
         return new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = "/k @echo off",
+            // Linux：命令经标准输入交给 /bin/sh（Windows 不变）
+            FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh",
+            Arguments = OperatingSystem.IsWindows() ? "/k @echo off" : "-s",
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             CreateNoWindow = param.NoWindow,

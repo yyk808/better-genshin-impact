@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Avalonia;
 /// <summary>账户页（M64）：账户目录与密钥环凭据（pulonia-accounts），在假游戏登录界面上切换账户（account-switch）</summary>
 internal sealed partial class UiTests
 {
-    private const string UidA = "100000001", UidB = "100000002", UserB = "bob@example.com", PassB = "pw-b-123";
+    private const string UidA = "100000001", UidB = "100000002", UserB = "bob@example.com", PassB = "pw-b-123", ListB = "bob****0002";
 
     private static string AccountsJson => Path.Combine(Global.Absolute(@"User\Pulonia"), "accounts.json");
 
@@ -48,7 +48,7 @@ internal sealed partial class UiTests
         page.SelectedDetailTabIndex = 1;
         await Settle();
         page.SelectedLoginMode = page.LoginModes.First(m => m.Key == PuloniaGenshinAccountLoginMode.Password);
-        b.ListText = "139****0002";
+        b.ListText = ListB;
         b.LoginUsername = UserB;
         b.LoginPassword = PassB;
         await Settle();
@@ -164,7 +164,7 @@ internal sealed partial class UiTests
 
     /// <summary>
     /// 在 Wine 运行的假 YuanShen.exe 登录界面上切换账户（--ui-test account-switch，需 --auto-start；
-    /// 假游戏世界 m64/world-login 以账号A 登录）：环境检查、读取 UID、密码登录、采集图片、图片登录、列表文字登录、按计划运行账户、UID 核验失败、密码错误
+    /// 假游戏世界 m64/world-login 以账号A 登录）：环境检查、读取 UID、密码登录、采集图片、图片登录、列表文字登录、按计划运行账户、UID 核验失败、密码错误、密钥环锁定时超时
     /// </summary>
     private async Task AccountSwitchAsync()
     {
@@ -193,8 +193,9 @@ internal sealed partial class UiTests
         a.Uid = "";
         await Click(Named<Button>("ReadUidButton"), "从当前游戏读取");
         await WaitIdle(page, 30000);
-        Check("从游戏读取 UID", a.Uid == UidA, page.Message);
-        await Click(Named<Button>("SaveAccountsButton"), "保存");
+        Check("从游戏读取 UID", a.Uid == UidA && page.Message.Contains("已读取 UID"), page.Message);
+        // 读回的 UID 与原值相同时没有未保存的修改，“保存”不可用属正常
+        if (Named<Button>("SaveAccountsButton") is { IsEffectivelyEnabled: true } save) await Click(save, "保存");
         await WaitIdle(page);
 
         async Task<bool> SwitchTo(PuloniaAccountItemViewModel target, string expectInMessage, string what)
@@ -244,11 +245,15 @@ internal sealed partial class UiTests
         await plans.NewPlanCommand.ExecuteAsync(null);
         await Settle();
         var id = plans.SelectedPlan?.Plan.Id;
+        // 需要游戏会话的节点才做账户准备：用一个空的录制回放（文件名排在最前，添加时默认选中）
+        var noop = Path.Combine(Global.Absolute(@"User\KeyMouseScript"), "000-m64-noop.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(noop)!);
+        await File.WriteAllTextAsync(noop, "{\"macroEvents\":[],\"info\":{\"x\":0,\"y\":0,\"width\":1920,\"height\":1080,\"recordDpi\":1.0,\"startTime\":\"2026-11-03 00:00:00\",\"startTimeUnixTimestamp\":0}}");
         try
         {
-            plans.SelectedAddOption = plans.AddOptions.First(o => o.Definition.TaskType == "shell");
-            await Settle();
-            await Click(ButtonByText("＋ 添加"), "添加 Shell");
+            plans.SelectedAddOption = plans.AddOptions.First(o => o.Definition.TaskType == "keymouse");
+            await Settle(800);
+            await Click(ButtonByText("＋ 添加"), "添加录制回放（空）");
             plans.SelectedRunAccount = plans.RunAccountOptions.First(o => o.Key == a.Id);
             await Settle(600);
             var logStart = UiLogLines().Count;
@@ -262,6 +267,7 @@ internal sealed partial class UiTests
         {
             plans.SelectedPlan = plans.Plans.FirstOrDefault(p => p.Plan.Id == id);
             if (plans.SelectedPlan is not null) await plans.DeletePlanCommand.ExecuteAsync(null);
+            File.Delete(noop);
         }
         vm.Navigate("账户");
         await Settle(600);
@@ -271,7 +277,7 @@ internal sealed partial class UiTests
         var c = page.SelectedAccount!;
         c.Name = "账号C";
         c.Uid = "100000003";
-        c.ListText = "139****0002";
+        c.ListText = ListB;
         page.SelectedLoginMode = page.LoginModes.First(m => m.Key == PuloniaGenshinAccountLoginMode.ListText);
         await Click(Named<Button>("SaveAccountsButton"), "保存");
         await WaitIdle(page);
@@ -285,10 +291,55 @@ internal sealed partial class UiTests
         b.LoginPassword = "wrong-pw";
         await Click(Named<Button>("SaveAccountsButton"), "保存");
         await WaitIdle(page);
-        page.CurrentAccountChoice = page.CurrentAccountOptions.First(o => o.Id == b.Id);
-        await Settle(400);
+        // 游戏先回到账号A，再用错误密码切到账号B
+        await SwitchTo(a, $"UID {UidA} 核验通过", "列表文字切回账号A");
         await SwitchTo(b, "账号密码错误", "密码错误时识别错误提示并停止");
         Shot("switch-3-wrong-password.png");
+
+        // 10. 密钥环锁定：读取凭据时密钥环弹出解锁对话框；无人操作时等到超时（2 分钟）后停止切换并说明原因，界面不卡住
+        // 密码错误后切换器停下等人工处理：模拟用户关闭密码表单（右上角关闭），再切回账号A
+        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+        using (var lease = await coordinator.AcquireAsync(cts.Token))
+        using (var frame = BetterGenshinImpact.GameTask.Common.GameRuntimeExtensions.CaptureToRectArea(lease.Runtime))
+            frame.ClickTo(1260 * frame.Width / 1920d, 259 * frame.Width / 1920d);
+        await Settle(1500);
+        await SwitchTo(a, $"UID {UidA} 核验通过", "关闭密码表单后列表文字切回账号A");
+        var collection = Gdbus("/org/freedesktop/secrets", "org.freedesktop.Secret.Service.ReadAlias", "default").Trim();
+        collection = System.Text.RegularExpressions.Regex.Match(collection, @"'(/[^']+)'").Groups[1].Value;
+        Gdbus("/org/freedesktop/secrets", "org.freedesktop.Secret.Service.Lock", $"['{collection}']");
+        Check("密钥环已锁定", Gdbus(collection, "org.freedesktop.DBus.Properties.Get", "org.freedesktop.Secret.Collection", "Locked").Contains("true"), collection);
+        page.SelectedAccount = b;
+        page.SelectedDetailTabIndex = 1;
+        await Settle();
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var locked = page.TestSwitchCommand.ExecuteAsync(null);
+        await AnswerDialogAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary, "测试切换 密钥环锁定");
+        // 等待期间界面仍响应：每次短暂 Settle 都按时返回
+        var maxTick = 0L;
+        while (!locked.IsCompleted && watch.Elapsed < TimeSpan.FromMinutes(4))
+        {
+            var tick = System.Diagnostics.Stopwatch.StartNew();
+            await Settle(200);
+            maxTick = Math.Max(maxTick, tick.ElapsedMilliseconds);
+            if (watch.Elapsed is { TotalSeconds: > 20 and < 21 }) Shot("switch-4-keyring-locked-waiting.png");
+        }
+        await locked;
+        var elapsed = watch.Elapsed;
+        Check("密钥环锁定：等待解锁超时后停止切换并说明原因", page.Message.Contains("等待密钥环对话框超时"), page.Message);
+        Check("密钥环锁定：按 PromptTimeout（2 分钟）超时", elapsed > TimeSpan.FromSeconds(115) && elapsed < TimeSpan.FromMinutes(3), elapsed);
+        Check("密钥环锁定：等待期间界面不卡住", maxTick < 1500, maxTick);
+        Shot("switch-4-keyring-locked.png");
+    }
+
+    /// <summary>调用会话总线上的 Secret Service（gdbus），返回输出</summary>
+    private static string Gdbus(string objectPath, string method, params string[] args)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo("gdbus") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var a in new[] { "call", "--session", "--dest", "org.freedesktop.secrets", "--object-path", objectPath, "--method", method }.Concat(args)) psi.ArgumentList.Add(a);
+        using var proc = System.Diagnostics.Process.Start(psi)!;
+        var output = proc.StandardOutput.ReadToEnd() + proc.StandardError.ReadToEnd();
+        proc.WaitForExit(10000);
+        return output;
     }
 
     private static List<string> UiLogLines() => Services.UiLogSink.Instance.Lines.Select(l => l.Message).ToList();

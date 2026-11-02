@@ -230,7 +230,7 @@ public sealed class SecretServiceCredentialVault : IPuloniaCredentialVault
                 return (r.ReadArrayOfObjectPath(), r.ReadObjectPathAsString());
             }, null);
             if (prompt != "/" && await PromptAsync(prompt))
-                throw new InvalidOperationException("密钥环仍是锁定状态（解锁对话框被取消），无法读写账户密码");
+                throw new InvalidOperationException("密钥环仍是锁定状态（解锁对话框被取消），无法读写账户密码。");
         }
 
         public async Task CreateItemAsync(string collection, string label, Dictionary<string, string> attributes, byte[] secret)
@@ -305,7 +305,7 @@ public sealed class SecretServiceCredentialVault : IPuloniaCredentialVault
             w.WriteString("");
             await conn.CallMethodAsync(w.CreateMessage());
             var done = await Task.WhenAny(tcs.Task, Task.Delay(promptTimeout));
-            if (done != tcs.Task) throw new TimeoutException("等待密钥环对话框超时（请在弹出的解锁 / 授权对话框里确认）");
+            if (done != tcs.Task) throw new TimeoutException("等待密钥环对话框超时（请在弹出的解锁 / 授权对话框里确认）。");
             return await tcs.Task;
         }
 

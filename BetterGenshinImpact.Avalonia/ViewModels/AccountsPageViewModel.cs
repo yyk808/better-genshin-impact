@@ -534,8 +534,12 @@ public sealed partial class AccountsPageViewModel : PageViewModel
                 Message = "没有读到 UID，请让游戏停在主界面后重试。";
                 return;
             }
-            account.Uid = uid;
-            Message = $"已读取 UID {uid}，点“保存”后生效。";
+            // 账户草稿绑定在界面上，必须在界面线程修改
+            await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                account.Uid = uid;
+                Message = $"已读取 UID {uid}，点“保存”后生效。";
+            });
         });
     }
 
@@ -573,9 +577,12 @@ public sealed partial class AccountsPageViewModel : PageViewModel
         await RunGameOperationAsync("正在采集账户图片…", "采集未完成：", async (lease, ct) =>
         {
             var result = await _switcher!.CaptureCurrentAccountAsync(lease.Runtime, account.Id, ct);
-            account.Uid = result.Uid;
-            account.ImagePath = result.ImagePath;
-            Message = "采集完成，已返回游戏。点“保存”后生效。";
+            await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                account.Uid = result.Uid;
+                account.ImagePath = result.ImagePath;
+                Message = "采集完成，已返回游戏。点“保存”后生效。";
+            });
         });
     }
 

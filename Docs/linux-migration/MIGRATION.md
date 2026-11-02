@@ -211,8 +211,9 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | TTS | 与平台无关的 GPT-SoVITS / HTTP 引擎（上游已移除 SAPI） | 同左，另有 espeak-ng |
 | 网页视图 | WebView2 | WebKitGTK 4.1（自定义协议 `bgi-settings://`、`bgi-mask://`，内容安全策略与 Windows 相同） |
 | 通知 | Windows 通知 | 系统通知（notify-send / D-Bus）；Webhook、企业微信、邮件相同；微信 Clawbot 未接入 |
-| 凭据（任务计划账号） | 凭据管理器 | 系统密钥环（freedesktop Secret Service：GNOME Keyring / KWallet / KeePassXC），D-Bus 会话加密传输；没有密钥环时明确提示，不以明文保存 |
+| 凭据（任务计划账号） | 凭据管理器 | 系统密钥环（freedesktop Secret Service：GNOME Keyring / KWallet / KeePassXC），D-Bus 会话加密传输；没有密钥环时明确提示，不以明文保存；密钥环锁定时由密钥环弹出解锁对话框，2 分钟无人操作则停止（保存 / 切换）并提示，界面不卡住 |
 | 账号切换 | 支持（Win32 输入 + YuanShen 进程） | 切换流程在 Core，与 Windows 相同；运行环境检查为本机 XTest / uinput 输入 + 窗口进程（X 窗口 `_NET_WM_PID`，niri 原生窗口为 IPC pid）是 Wine / Proton 下的 YuanShen.exe；云原神仍不能切换（只读核验 UID） |
+| Shell 任务 | cmd.exe | /bin/sh（独立任务的 Shell 命令经标准输入交给 `/bin/sh -s`）；任务计划里 Windows 上创建的 `cmd.exe [/d /s /q] /c 命令` 改用 `/bin/sh -c 命令` 运行并记日志，其他程序原样启动 |
 | 多实例派发 | 支持 | 未接入 |
 | 插件（上游插件系统） | 加载外部插件，有插件页、OCR 模型选择 | 只使用 Core 中的内置实现（PP-OCRv6、内置传送），不加载外部插件，没有插件页和 OCR 模型选择界面 |
 | 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如脚本仓库、部分名单编辑）尚未迁移，见 phase4-avalonia.md |

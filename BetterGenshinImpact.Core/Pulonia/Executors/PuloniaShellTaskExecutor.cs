@@ -32,8 +32,11 @@ public sealed class PuloniaShellTaskExecutor : IPuloniaTaskExecutor
         Description = "启动一个独立进程；命令、参数和工作目录会在创建前完成校验。",
         DefaultParameters = new(PuloniaTaskCommonSettings.CreateDefaults("shell"))
         {
-            ["file_name"] = "cmd.exe",
-            ["arguments"] = new JArray("/d", "/c", "echo Pulonia Shell sample")
+            // Linux 上默认用 /bin/sh（Windows 不变）
+            ["file_name"] = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh",
+            ["arguments"] = OperatingSystem.IsWindows()
+                ? new JArray("/d", "/c", "echo Pulonia Shell sample")
+                : new JArray("-c", "echo Pulonia Shell sample")
         },
         ParameterSchema = new JObject
         {
@@ -77,6 +80,15 @@ public sealed class PuloniaShellTaskExecutor : IPuloniaTaskExecutor
         if (string.IsNullOrWhiteSpace(fileName))
             return PuloniaTaskOutcome.Failure("Shell file_name 不能为空。");
 
+        var arguments = (parameters["arguments"]?.Values<string>() ?? []).Select(a => a!).ToList();
+        if (!OperatingSystem.IsWindows() && TranslateCmd(fileName, arguments) is { } translated)
+        {
+            // Windows 上创建的计划（cmd.exe /c 命令）在 Linux 上改用 /bin/sh -c 运行同一条命令
+            TaskControl.Logger.LogInformation("Shell：Linux 上没有 cmd.exe，改用 /bin/sh -c 运行：{Command}", translated[1]);
+            fileName = "/bin/sh";
+            arguments = translated;
+        }
+
         var startInfo = new ProcessStartInfo
         {
             FileName = fileName,
@@ -86,7 +98,7 @@ public sealed class PuloniaShellTaskExecutor : IPuloniaTaskExecutor
             RedirectStandardError = true,
             WorkingDirectory = ResolveWorkingDirectory(parameters.Value<string?>("working_directory"))
         };
-        foreach (var argument in parameters["arguments"]?.Values<string>() ?? [])
+        foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
 
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
@@ -194,4 +206,15 @@ public sealed class PuloniaShellTaskExecutor : IPuloniaTaskExecutor
     /// 一路子进程输出的有限捕获结果。
     /// </summary>
     private readonly record struct CapturedText(string Text, bool Truncated);
+
+    /// <summary>cmd.exe [/d] [/s] [/q] /c 命令 → ["-c", 命令]；不是这种形式时返回 null</summary>
+    internal static List<string>? TranslateCmd(string fileName, IReadOnlyList<string> arguments)
+    {
+        var name = Path.GetFileName(fileName.Replace('\\', '/'));
+        if (!name.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase) && !name.Equals("cmd", StringComparison.OrdinalIgnoreCase)) return null;
+        var index = 0;
+        while (index < arguments.Count && arguments[index] is { Length: 2 } flag && flag[0] == '/' && "dDsSqQ".Contains(flag[1])) index++;
+        if (index >= arguments.Count || !arguments[index].Equals("/c", StringComparison.OrdinalIgnoreCase) || index + 1 >= arguments.Count) return null;
+        return ["-c", string.Join(" ", arguments.Skip(index + 1))];
+    }
 }

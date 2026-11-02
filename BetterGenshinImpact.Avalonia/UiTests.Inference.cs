@@ -65,7 +65,7 @@ internal sealed partial class UiTests
         vm.Settings.Inference?.Refresh();
         var status = vm.Settings.Inference?.Status ?? "";
         Check("设置页显示回退提示", status.Contains("CPU") && status.Contains("ROCm"), status.Replace("\n", " "));
-        Check("下拉显示 CPU", vm.Settings.Inference?.Selected.Engine == InferenceDeviceType.Cpu && Named<ComboBox>("InferenceEngineCombo")?.SelectedItem == vm.Settings.Inference?.Selected,
+        Check("下拉显示 CPU", vm.Settings.Inference?.Selected.Engine == InferenceDeviceType.Cpu && ReferenceEquals(Named<ComboBox>("InferenceEngineCombo")?.SelectedItem, vm.Settings.Inference?.Selected),
             vm.Settings.Inference?.Selected.Name);
         Shot("inference-fallback.png");
         Check("回退后 OCR 可用", await Until(() => host.RuntimeService.Current is not null, 30000));
