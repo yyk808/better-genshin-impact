@@ -87,6 +87,9 @@ public sealed class MaskWindowController : IDisposable
     private readonly DispatcherTimer _pumpTimer;
     private string _inputRegionKey = "";
 
+    /// <summary>最近一次设置的输入区域（窗口像素 / Wayland 逻辑坐标；空 = 完全点击穿透），用于验证</summary>
+    public IReadOnlyList<System.Drawing.Rectangle> InputRegion { get; private set; } = [];
+
     private BetterGenshinImpact.ViewModel.MaskWindowViewModel? _map;
     private IMaskWindowSnapshotSource<MaskWindowMapSnapshot>? _mapSource;
     private int _mapQueued;
@@ -113,11 +116,17 @@ public sealed class MaskWindowController : IDisposable
 
     public void UseMapViewModel(BetterGenshinImpact.ViewModel.MaskWindowViewModel? map)
     {
-        if (_map is not null) _map.PropertyChanged -= OnMapPropertyChanged;
+        if (_map is not null)
+        {
+            _map.PropertyChanged -= OnMapPropertyChanged;
+            _map.PointInfoPopup.PropertyChanged -= OnMapPropertyChanged;
+        }
+
         _map = map;
         if (_map is not null)
         {
             _map.PropertyChanged += OnMapPropertyChanged;
+            _map.PointInfoPopup.PropertyChanged += OnMapPropertyChanged;
             if (_mapSource is not null) _map.ApplyMapSnapshot(_mapSource.Current);
         }
 
@@ -154,7 +163,17 @@ public sealed class MaskWindowController : IDisposable
         var (width, height, _, _) = OverlayLayout;
         if (width <= 0 || height <= 0) return;
         window.ApplyMapPoints(_map, width, height);
+        ApplyInputRegion(_wayland is not null ? 1 : window.RenderScaling > 0 ? window.RenderScaling : 1);
+        UpdatePump();
         _surface?.Render();
+    }
+
+    /// <summary>Wayland：编辑模式或大地图时定时读取覆盖层的指针事件</summary>
+    private void UpdatePump()
+    {
+        var want = _wayland is not null && (Editing || _map?.IsInBigMapUi == true);
+        if (want && !_pumpTimer.IsEnabled) _pumpTimer.Start();
+        else if (!want && _pumpTimer.IsEnabled) _pumpTimer.Stop();
     }
 
     /// <summary>布局编辑模式（MaskWindowConfig.OverlayLayoutEditEnabled）：遮罩强制显示，可编辑控件接收鼠标</summary>
@@ -173,8 +192,7 @@ public sealed class MaskWindowController : IDisposable
         var editing = Editing;
         _log.Information(editing ? "遮罩：进入布局编辑模式" : "遮罩：退出布局编辑模式");
         _window?.SetEditing(editing);
-        if (editing && _wayland is not null) _pumpTimer.Start();
-        else _pumpTimer.Stop();
+        UpdatePump();
         Update();
     }
 
@@ -230,11 +248,12 @@ public sealed class MaskWindowController : IDisposable
     }
 
     /// <summary>
-    /// 输入区域：平时为空（完全点击穿透）；编辑模式下为状态栏与日志框的区域（同 WPF：只有可编辑控件接收鼠标，透明部分仍然穿透）
+    /// 输入区域：平时为空（完全点击穿透）；编辑模式下为状态栏与日志框的区域，大地图时为点位与弹窗 / 面板
+    /// （同 WPF：只有画出来的可交互部分接收鼠标，透明部分仍然穿透）
     /// </summary>
     private void ApplyInputRegion(double scale)
     {
-        var regions = _window?.EditableRegions ?? [];
+        var regions = _window is { } w ? w.EditableRegions.Concat(w.MapRegions).ToList() : [];
         var rects = regions.Select(r => new System.Drawing.Rectangle((int)Math.Floor(r.X * scale), (int)Math.Floor(r.Y * scale),
             (int)Math.Ceiling(r.Width * scale), (int)Math.Ceiling(r.Height * scale))).ToList();
         var key = string.Join(";", rects);
@@ -256,6 +275,7 @@ public sealed class MaskWindowController : IDisposable
         }
 
         _inputRegionKey = key;
+        InputRegion = rects;
         if (rects.Count > 0) _log.Information("遮罩输入区域：{Rects}", key);
     }
 
@@ -276,15 +296,18 @@ public sealed class MaskWindowController : IDisposable
     {
         if (_window is not { } window) return;
         var p = new Point(e.X, e.Y);
+        var right = e.Button == 0x111;
         var changed = e.Kind switch
         {
-            OverlayPointerKind.Press => window.EditPointerPressed(p, e.Button == 0x111),
-            OverlayPointerKind.Move => window.EditPointerMoved(p),
-            OverlayPointerKind.Release => window.EditPointerReleased(p),
+            OverlayPointerKind.Press => window.EditPointerPressed(p, right) || window.MapPointerPressed(p, right),
+            OverlayPointerKind.Move => window.EditPointerMoved(p) | window.MapPointerMoved(p),
+            OverlayPointerKind.Release => window.EditPointerReleased(p) || window.MapPointerReleased(p),
+            OverlayPointerKind.Leave => window.MapPointerMoved(new Point(-1, -1)),
             _ => false,
         };
-        _surface?.SetCursorShape(window.CursorAt(p) switch
+        _surface?.SetCursorShape((window.CursorAt(p) ?? window.MapCursorAt(p)) switch
         {
+            StandardCursorType.Hand => 4u,
             StandardCursorType.SizeAll => 13u,
             StandardCursorType.SizeWestEast => 26u,
             StandardCursorType.SizeNorthSouth => 27u,
@@ -659,7 +682,12 @@ public sealed class MaskWindowController : IDisposable
         _host.Config.MaskWindowConfig.PropertyChanged -= OnMaskConfigChanged;
         MapImageCache.ImageUpdated -= OnMapImageUpdated;
         if (_mapSource is not null) _mapSource.Changed -= OnMapSnapshotChanged;
-        if (_map is not null) _map.PropertyChanged -= OnMapPropertyChanged;
+        if (_map is not null)
+        {
+            _map.PropertyChanged -= OnMapPropertyChanged;
+            _map.PointInfoPopup.PropertyChanged -= OnMapPropertyChanged;
+        }
+
         _pumpTimer.Stop();
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();

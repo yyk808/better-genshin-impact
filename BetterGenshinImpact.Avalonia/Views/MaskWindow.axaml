@@ -5,7 +5,7 @@
         Title="BetterGI 遮罩" SystemDecorations="None" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         CanResize="False" Background="Transparent" TransparencyLevelHint="Transparent"
         WindowStartupLocation="Manual">
-    <Panel>
+    <Panel x:Name="ContentRoot">
         <!-- 识别框、线、文字（MaskWindowDrawingBoard 的快照） -->
         <v:MaskDrawingLayer x:Name="Drawing" />
         <!-- 状态栏与日志框：位置、大小、配色、字体、阴影都取自 MaskWindowConfig，与 WPF 遮罩相同（见 ApplyOverlay） -->
@@ -26,6 +26,10 @@
         </Canvas>
         <!-- 大地图点位（WPF PointsCanvas），铺满遮罩 -->
         <v:MapPointsLayer x:Name="BigMapPoints" IsVisible="False" />
+        <!-- 大地图上的弹窗（点位信息），位置按点位换算（见 MaskWindow.Map.cs） -->
+        <Canvas x:Name="MapCanvas">
+            <v:MapPointInfoPanel x:Name="PointInfo" />
+        </Canvas>
         <!-- 正在加载点位（WPF MaskWindow.xaml 的加载提示） -->
         <Border x:Name="MapLoadingBanner" IsVisible="False" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Top"
                 Margin="0,16,0,0" Padding="12,10" Background="#CC1F232A" BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="12">

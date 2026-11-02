@@ -198,14 +198,20 @@ public partial class MaskWindow
         return true;
     }
 
-    // X11：真实窗口，直接用 Avalonia 的指针事件（Wayland 覆盖层由 MaskWindowController 转发 wl_pointer 事件）
+    // X11：真实窗口，直接用 Avalonia 的指针事件（Wayland 覆盖层由 MaskWindowController 转发 wl_pointer 事件）；
+    // 编辑模式优先，其余交给大地图交互（MaskWindow.Map.cs）
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
         var point = e.GetCurrentPoint(Root);
-        if (EditPointerPressed(point.Position, point.Properties.IsRightButtonPressed))
+        var right = point.Properties.IsRightButtonPressed;
+        if (EditPointerPressed(point.Position, right))
         {
             if (_dragBox is not null) e.Pointer.Capture(this);
+            e.Handled = true;
+        }
+        else if (MapPointerPressed(point.Position, right))
+        {
             e.Handled = true;
         }
     }
@@ -215,7 +221,8 @@ public partial class MaskWindow
         base.OnPointerMoved(e);
         var p = e.GetPosition(Root);
         EditPointerMoved(p);
-        if (CursorAt(p) is { } cursor) Cursor = new Cursor(cursor);
+        MapPointerMoved(p);
+        if ((CursorAt(p) ?? MapCursorAt(p)) is { } cursor) Cursor = new Cursor(cursor);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -224,6 +231,10 @@ public partial class MaskWindow
         if (EditPointerReleased(e.GetPosition(Root)))
         {
             e.Pointer.Capture(null);
+            e.Handled = true;
+        }
+        else if (MapPointerReleased(e.GetPosition(Root)))
+        {
             e.Handled = true;
         }
     }

@@ -137,7 +137,11 @@ internal sealed partial class UiTests
             return new MaskMapPointsResult { Labels = selectedItems, Points = pts };
         }
 
+        /// <summary>点位详情里的图片地址（本地文件）与链接</summary>
+        public string InfoImage { get; set; } = "";
+        public IReadOnlyList<MaskMapLink> InfoLinks { get; set; } = [];
+
         public Task<MaskMapPointInfo> GetPointInfoAsync(MaskMapPoint point, CancellationToken ct = default) =>
-            Task.FromResult(new MaskMapPointInfo { Text = "说明 " + point.Id });
+            Task.FromResult(new MaskMapPointInfo { Text = "说明 " + point.Id, ImageUrl = InfoImage, UrlList = InfoLinks });
     }
 }

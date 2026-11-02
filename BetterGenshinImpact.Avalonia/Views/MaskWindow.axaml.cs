@@ -114,8 +114,10 @@ public partial class MaskWindow : Window
     /// </summary>
     public void ApplyMapPoints(BetterGenshinImpact.ViewModel.MaskWindowViewModel? map, double width, double height)
     {
+        _mapVm = map;
         if (map is null)
         {
+            PointInfo.IsVisible = false;
             MiniMapPoints.IsVisible = BigMapPoints.IsVisible = MapLoadingBanner.IsVisible = false;
             return;
         }
@@ -127,7 +129,15 @@ public partial class MaskWindow : Window
         MiniMapPoints.Update(map.MapPoints, map.MapPointLabels, map.MiniMapViewport);
 
         BigMapPoints.IsVisible = map.IsInBigMapUi;
+        if (map.BigMapViewport != _lastBigViewport)
+        {
+            // 同 WPF PointsCanvas.ViewportChanged → CloseTransientPopupsCommand：地图拖动 / 缩放后关闭点位弹窗和选择面板
+            _lastBigViewport = map.BigMapViewport;
+            map.CloseTransientPopupsCommand.Execute(null);
+        }
+
         BigMapPoints.Update(map.MapPoints, map.MapPointLabels, map.BigMapViewport);
+        ApplyMapPopups(map, width, height);
 
         MapLoadingBanner.IsVisible = map.IsMapPointsLoading;
         MapLoadingText.Text = map.MapPointsLoadingText;
