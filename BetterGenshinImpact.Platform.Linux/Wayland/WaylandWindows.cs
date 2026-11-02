@@ -39,8 +39,18 @@ public sealed class XWaylandWindow(X11Window inner, NiriIpc? niri) : IPlatformWi
         }
     }
 
-    /// <summary>窗口内容在合成器全局坐标中的位置（遮罩等需要屏幕位置时用）；不可见或无 niri 时为 null</summary>
-    public PixelRect? ScreenRect => FindNiriWindow()?.ScreenRect;
+    /// <summary>
+    /// 游戏客户区在合成器全局坐标中的位置（遮罩、点击换算用）；不可见或无 niri 时为 null。
+    /// xwayland-satellite 会给没有声明“无装饰”的 X 窗口在顶部加一条标题栏，niri 报告的窗口比 X 客户区高出这一截，
+    /// 所以按 X 客户区大小对齐到 niri 窗口的底部（水平居中）
+    /// </summary>
+    public PixelRect? ScreenRect => FindNiriWindow()?.ScreenRect is { } r ? ClientRect(r, Inner.Viewport.ScreenRect) : null;
+
+    internal static PixelRect ClientRect(PixelRect niriRect, PixelRect client)
+    {
+        if (client.Width <= 0 || client.Height <= 0 || client.Width > niriRect.Width || client.Height > niriRect.Height) return niriRect;
+        return new PixelRect(niriRect.X + (niriRect.Width - client.Width) / 2, niriRect.Y + niriRect.Height - client.Height, client.Width, client.Height);
+    }
 
     public bool IsForeground => niri is not null ? FindNiriWindow()?.IsFocused ?? false : Inner.IsForeground;
 
