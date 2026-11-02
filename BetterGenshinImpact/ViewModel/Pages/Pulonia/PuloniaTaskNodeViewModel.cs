@@ -87,8 +87,7 @@ public partial class PuloniaTaskNodeViewModel : ObservableObject
     /// <summary>
     /// 当前节点是否可以从本机内容更新并固定任务使用版本。
     /// </summary>
-    public bool CanUpdateResourceVersion => _model.TaskType is "pathing" or "javascript" or "keymouse"
-                                            || _model is { TaskType: "group", Source.Kind: "directory" };
+    public bool CanUpdateResourceVersion => PuloniaResourceUpdateRules.CanUpdate(_model);
 
     /// <summary>最近读取的磁盘资源版本，仅用于更新提示，不自动写回计划。</summary>
     [ObservableProperty]
@@ -119,37 +118,18 @@ public partial class PuloniaTaskNodeViewModel : ObservableObject
     private int _referencedResourceUpdateCount;
 
     /// <summary>资源版本不同或尚未固定，等待用户更新任务资源。</summary>
-    public bool HasResourceUpdate => ReferencedResourceUpdateCount > 0 || (CanUpdateResourceVersion && CurrentResourceVersion is not null
-        && CurrentResourceVersion != (_model.Source?.Kind == "directory" ? _model.Source.Version : _model.ResourceVersion));
+    public bool HasResourceUpdate => ReferencedResourceUpdateCount > 0 || PuloniaResourceUpdateRules.HasUpdate(_model, CurrentResourceVersion);
 
     /// <summary>树名称后是否显示资源更新或读取错误标签。</summary>
     public bool HasResourceNotice => HasResourceUpdate || ResourceCheckError is not null;
 
     /// <summary>小标签的状态文本，不以颜色作为唯一提示。</summary>
-    public string ResourceUpdateText => ResourceCheckError is not null
-        ? ResourceCheckError.StartsWith("来源中已移除：", StringComparison.Ordinal) ? "来源中已移除"
-        : _model.Resource is not null || _model.Source?.Resource is not null ? "检查失败" : "资源不可用"
-        : ReferencedResourceUpdateCount > 0 ? $"{ReferencedResourceUpdateCount} 项有更新"
-        : HasDeclaredVersionChange ? $"有更新 {FormatDeclaredVersion(ApprovedDeclaredVersion)} → {FormatDeclaredVersion(CurrentDeclaredVersion)}"
-        : "有更新";
+    public string ResourceUpdateText => PuloniaResourceUpdateRules.BadgeText(_model, ResourceCheckError, ReferencedResourceUpdateCount,
+        HasResourceUpdate, ApprovedDeclaredVersion, CurrentDeclaredVersion);
 
     /// <summary>标签的具体原因，文件更新必须用户确认后才影响新运行。</summary>
-    public string ResourceUpdateToolTip => ResourceCheckError
-        ?? (ReferencedResourceUpdateCount > 0
-            ? $"引用计划中有 {ReferencedResourceUpdateCount} 项任务资源可更新。"
-            : HasDeclaredVersionChange
-                ? $"任务使用版本 {ApprovedDeclaredVersion}，本机仓库版本 {CurrentDeclaredVersion}。可右键更新此任务资源，或在计划卡片上更新整个计划。"
-                : "本机仓库内容与任务使用版本不同；可右键更新此任务资源，或在计划卡片上更新整个计划。");
-
-    /// <summary>声明版本仅在两端都有值且文字不同时显示箭头，不参与更新判断。</summary>
-    private bool HasDeclaredVersionChange => HasResourceUpdate
-        && !string.IsNullOrWhiteSpace(ApprovedDeclaredVersion)
-        && !string.IsNullOrWhiteSpace(CurrentDeclaredVersion)
-        && !string.Equals(ApprovedDeclaredVersion, CurrentDeclaredVersion, StringComparison.Ordinal);
-
-    /// <summary>把仓库声明版本限制为适合任务树标签的长度，完整值仍通过悬停展示。</summary>
-    private static string FormatDeclaredVersion(string? version)
-        => version is { Length: > 14 } ? version[..13] + "…" : version ?? string.Empty;
+    public string ResourceUpdateToolTip => PuloniaResourceUpdateRules.BadgeToolTip(ResourceCheckError, ReferencedResourceUpdateCount,
+        HasResourceUpdate, ApprovedDeclaredVersion, CurrentDeclaredVersion);
 
     /// <summary>
     /// 当前固定的资源版本摘要。

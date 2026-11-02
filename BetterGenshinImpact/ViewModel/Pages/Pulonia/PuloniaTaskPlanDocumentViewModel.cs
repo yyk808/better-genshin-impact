@@ -102,18 +102,8 @@ public partial class PuloniaTaskPlanDocumentViewModel : ObservableObject
         ApplyMutation(() =>
         {
             foreach (var node in nodes)
-            {
-                if (node.Model.Source?.Kind == "directory")
-                {
-                    node.Model.Source.Version = versions[node.Id];
-                    if (references?.TryGetValue(node.Id, out var reference) == true) node.Model.Source.Resource = reference;
-                }
-                else
-                {
-                    node.Model.ResourceVersion = versions[node.Id];
-                    if (references?.TryGetValue(node.Id, out var reference) == true) node.Model.Resource = reference;
-                }
-            }
+                PuloniaResourceUpdateRules.ApplyVersion(node.Model, versions[node.Id],
+                    references?.TryGetValue(node.Id, out var reference) == true ? reference : null);
         }, SelectedNode);
         foreach (var node in nodes)
             node.NotifyResourceVersionChanged();

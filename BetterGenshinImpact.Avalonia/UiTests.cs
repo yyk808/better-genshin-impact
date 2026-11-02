@@ -71,6 +71,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "solo-params": await SoloParamsAsync(); break;
                 case "solo-boss": await SoloBossAsync(); break;
                 case "plan-paste-inherit": await PlanPasteInheritAsync(); break;
+                case "plan-resource-update": await PlanResourceUpdateAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
@@ -3222,6 +3223,122 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
             page.SelectedTab = 0;
             await Settle();
             await DeleteTempPlanAsync(page, id);
+        }
+    }
+
+    // —— 任务计划：资源更新（检查更新、更新此任务资源、使用本机仓库更新所有计划、一键同步并更新；gaps 16） ——
+
+    private async Task PlanResourceUpdateAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M61 资源更新自测") is not { } id) return;
+        const string dir = "/tmp/m61-res";
+        Directory.CreateDirectory(dir);
+        await File.WriteAllTextAsync($"{dir}/甲.json", "{\"info\":{\"name\":\"M61 甲\",\"version\":\"1.0\"},\"positions\":[]}");
+        await File.WriteAllTextAsync($"{dir}/乙.json", "{\"info\":{\"name\":\"M61 乙\"},\"positions\":[]}");
+        try
+        {
+            page.SelectedTab = 0;
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M61 甲", TaskType = "pathing", Path = $"{dir}/甲.json" });
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M61 乙", TaskType = "pathing", Path = $"{dir}/乙.json" });
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M61 普通分组", TaskType = "group" });
+            await Settle(500);
+            TaskPlanNodeRow? Row(string name) => page.Nodes.FirstOrDefault(n => n.Name == name);
+            JArray Kids() => Children(ReadPlan(id));
+            string? Version(string name) => Kids().FirstOrDefault(k => k.Value<string>("name") == name)?.Value<string>("resource_version");
+
+            await page.CheckResourceUpdatesCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("检查：未固定的资源显示“有更新”", Row("M61 甲")?.ResourceBadge == "有更新" && Row("M61 乙")?.ResourceBadge == "有更新",
+                $"{Row("M61 甲")?.ResourceBadge} {Row("M61 乙")?.ResourceBadge} / {page.StatusMessage}");
+            Check("检查：普通分组没有资源标签", Row("M61 普通分组")?.ResourceBadge is null, Row("M61 普通分组")?.ResourceBadge);
+            Check("检查：状态栏汇总", page.StatusMessage.Contains("项任务资源可更新"), page.StatusMessage);
+
+            // 更新此任务资源：选中行按钮可用，弹出确认，选“否”不改，选“是”写入使用版本
+            page.SelectedNode = Row("M61 普通分组");
+            await Settle(200);
+            Check("普通分组不能更新资源", !page.CanUpdateSelectedResource && Named<Button>("UpdateResourceButton")?.IsEnabled == false);
+            page.SelectedNode = Row("M61 甲");
+            await Settle(300);
+            Check("路线行可以更新资源", page.CanUpdateSelectedResource && Named<Button>("UpdateResourceButton")?.IsEnabled == true);
+            async Task<FluentAvalonia.UI.Controls.FAContentDialog?> UpdateSelectedAsync(FluentAvalonia.UI.Controls.FAContentDialogResult answer, string? shot)
+            {
+                var last = Services.FluentMessageBox.Current;
+                var run = page.UpdateSelectedResourceCommand.ExecuteAsync(null);
+                var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+                if (dialog is not null)
+                {
+                    await Settle(300);
+                    if (shot is not null) Shot(shot);
+                    dialog.Hide(answer);
+                }
+                await run;
+                await Settle(400);
+                return dialog;
+            }
+            var dlg = await UpdateSelectedAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.None, null);
+            Check("更新此任务资源：弹出确认", dlg is { Title: "更新任务资源" } && page.LastResourceDialogText?.Contains("确认后只影响之后的运行") == true,
+                dlg?.Title as string);
+            Check("选“否”不写入", Version("M61 甲") is null, Version("M61 甲"));
+            await UpdateSelectedAsync(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary, "avalonia-plan-resource-confirm.png");
+            var v1 = Version("M61 甲");
+            Check("选“是”写入任务使用版本", !string.IsNullOrEmpty(v1) && Row("M61 甲")?.ResourceBadge is null,
+                $"{v1} / {Row("M61 甲")?.ResourceBadge} / {page.StatusMessage}");
+            Check("只更新选中任务", Version("M61 乙") is null && Row("M61 乙")?.ResourceBadge == "有更新", Version("M61 乙"));
+            await page.UpdateSelectedResourceCommand.ExecuteAsync(null);
+            Check("版本没有变化时直接提示", page.StatusMessage.Contains("资源版本没有变化"), page.StatusMessage);
+
+            // 改动磁盘文件：检查后显示“有更新”，已确认的使用版本不变（磁盘变化不自动改写）
+            await File.WriteAllTextAsync($"{dir}/甲.json", "{\"info\":{\"name\":\"M61 甲\",\"version\":\"1.1\"},\"positions\":[{\"x\":1}]}");
+            await page.CheckResourceUpdatesCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("文件变化后显示“有更新”且不自动改写", Row("M61 甲")?.ResourceBadge == "有更新" && Version("M61 甲") == v1,
+                $"{Row("M61 甲")?.ResourceBadge} {Version("M61 甲")}");
+            page.SelectedNode = Row("M61 甲");
+            await Settle(300);
+            var syncMenu = await WaitFor(() => Named<DropDownButton>("ResourceSyncButton"));
+            var headers = (syncMenu?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+            Check("计划列表标题栏的同步菜单：一键同步并更新 / 使用本机仓库更新所有计划 / 检查任务资源更新",
+                headers.SequenceEqual(["一键同步并更新", "使用本机仓库更新所有计划", "检查任务资源更新"]), string.Join(",", headers));
+            syncMenu?.Flyout?.ShowAt(syncMenu);
+            await Settle(500);
+            Shot("avalonia-plan-resource-menu.png");
+            syncMenu?.Flyout?.Hide();
+            await Settle(200);
+
+            // 使用本机仓库更新所有计划：确认对话框列出待更新项，确认后全部写入
+            page.AutoConfirmResourceDialogs = true;
+            await page.UpdateAllResourcesCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("全部更新：确认文字列出待更新项", page.LastResourceDialogText?.Contains("M61 资源更新自测 / M61 乙") == true
+                && page.LastResourceDialogText.Contains("M61 资源更新自测 / M61 甲"), page.LastResourceDialogText);
+            Check("全部更新：两项都已固定、标签消失", Version("M61 甲") is { } v2 && v2 != v1 && Version("M61 乙") is not null
+                && Row("M61 甲")?.ResourceBadge is null && Row("M61 乙")?.ResourceBadge is null, $"{Version("M61 甲")} {Version("M61 乙")} / {page.StatusMessage}");
+            Check("全部更新可撤销", page.UndoCount > 0, page.UndoCount.ToString());
+
+            // 一键同步并更新：没有仓库引用时刷新 0 个仓库，再更新本机资源
+            await File.WriteAllTextAsync($"{dir}/乙.json", "{\"info\":{\"name\":\"M61 乙\"},\"positions\":[{\"x\":2}]}");
+            var vB = Version("M61 乙");
+            await page.SyncAndUpdateResourcesCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("一键同步并更新：确认文字", page.LastResourceDialogText?.Contains("然后更新全部 Pulonia 任务计划中的可用资源") == true
+                || page.StatusMessage.Contains("仓库同步/刷新成功"), page.LastResourceDialogText);
+            Check("一键同步并更新：资源已更新并汇总", Version("M61 乙") != vB && page.StatusMessage.Contains("任务资源更新成功 1 项"), page.StatusMessage);
+
+            // 删除文件：检查失败标签
+            File.Delete($"{dir}/乙.json");
+            await page.CheckResourceUpdatesCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("文件不存在时显示“资源不可用”", Row("M61 乙")?.ResourceBadge == "资源不可用" && !string.IsNullOrEmpty(Row("M61 乙")?.ResourceTip),
+                $"{Row("M61 乙")?.ResourceBadge} {Row("M61 乙")?.ResourceTip}");
+        }
+        finally
+        {
+            page.AutoConfirmResourceDialogs = false;
+            page.SelectedTab = 0;
+            await Settle();
+            await DeleteTempPlanAsync(page, id);
+            try { Directory.Delete(dir, true); } catch (IOException) { }
         }
     }
 

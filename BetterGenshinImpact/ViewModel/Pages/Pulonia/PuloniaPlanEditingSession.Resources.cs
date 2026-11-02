@@ -77,9 +77,7 @@ public partial class PuloniaPlanEditingSession
                 node.CurrentRepositoryRevision = null;
                 node.ApprovedDeclaredVersion = null;
                 node.CurrentDeclaredVersion = null;
-                node.ResourceCheckError = snapshot.Resource is not null || snapshot.Source?.Resource is not null
-                    ? (ex is FileNotFoundException or DirectoryNotFoundException ? "来源中已移除：" : "检查失败：")
-                        + ex.Message + "；仍可使用已确认缓存。" : ex.Message;
+                node.ResourceCheckError = PuloniaResourceUpdateRules.CheckErrorText(snapshot, ex);
             }
             UpdateResourceSummaries(documents);
         }
@@ -114,7 +112,7 @@ public partial class PuloniaPlanEditingSession
                 var reviewed = await _resourceVersionService.ReadCurrentStateAsync(snapshot, TaskService.Definitions);
                 newVersion = reviewed.CurrentContentVersion
                              ?? throw new InvalidOperationException("当前节点没有可确认的资源。");
-                var oldVersion = model.Source?.Kind == "directory" ? model.Source.Version : model.ResourceVersion;
+                var oldVersion = PuloniaResourceUpdateRules.ApprovedVersion(model);
 
                 if (oldVersion == newVersion)
                 {
@@ -140,19 +138,7 @@ public partial class PuloniaPlanEditingSession
             }
             if (key != ResourceCheckKey(model))
                 throw new InvalidOperationException("提取期间任务配置变化，请重新确认。");
-            node.Document.ApplyMutation(() =>
-            {
-                if (model.Source?.Kind == "directory")
-                {
-                    model.Source.Version = newVersion;
-                    if (updatedReference is not null) model.Source.Resource = updatedReference;
-                }
-                else
-                {
-                    model.ResourceVersion = newVersion;
-                    if (updatedReference is not null) model.Resource = updatedReference;
-                }
-            }, node);
+            node.Document.ApplyMutation(() => PuloniaResourceUpdateRules.ApplyVersion(model, newVersion, updatedReference), node);
             node.NotifyResourceVersionChanged();
             if (!await SaveDocumentAsync(node.Document)) return;
             await RefreshResourceVersionsAsync();
@@ -169,13 +155,7 @@ public partial class PuloniaPlanEditingSession
 
     /// <summary>优先展示资源声明版本变化；缺少可读版本时只说明内容已经变化。</summary>
     private static string FormatVersionChange(PuloniaTaskResourceVersionState state)
-    {
-        if (!string.IsNullOrWhiteSpace(state.ApprovedDeclaredVersion)
-            && !string.IsNullOrWhiteSpace(state.CurrentDeclaredVersion)
-            && state.ApprovedDeclaredVersion != state.CurrentDeclaredVersion)
-            return $"版本：{state.ApprovedDeclaredVersion} → {state.CurrentDeclaredVersion}";
-        return "内容已经变化，但资源没有可显示的版本号变化。";
-    }
+        => PuloniaResourceUpdateRules.FormatVersionChange(state);
 
     /// <summary>卡片目标必须有已完成检查的更新且没有资源读取错误，不依赖当前选中计划。</summary>
     private bool CanConfirmResourceUpdates(PuloniaTaskPlanDocumentViewModel? document)
@@ -228,12 +208,8 @@ public partial class PuloniaPlanEditingSession
     private async Task SyncAndUpdateResourcesAsync()
     {
         var documents = GetResourceDocuments();
-        var repositoryIds = documents.SelectMany(document => document.EnumerateNodes())
-            .Select(node => node.Model.Resource ?? node.Model.Source?.Resource)
-            .Where(reference => reference is not null)
-            .Select(reference => reference!.RepositoryId)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
+        var repositoryIds = PuloniaResourceUpdateRules.ReferencedRepositoryIds(
+            documents.SelectMany(document => document.EnumerateNodes()).Select(node => node.Model));
         var result = await ThemedMessageBox.ShowAsync(
             $"将同步或刷新 {repositoryIds.Length} 个任务实际引用的仓库，然后更新全部 Pulonia 任务计划中的可用资源。\n"
             + "同步失败但本机副本仍可用时，将继续使用本机内容；失败资源保持原版本。",
@@ -468,8 +444,7 @@ public partial class PuloniaPlanEditingSession
     }
 
     /// <summary>只捕获影响资源定位和比较的字段，参数或名称修改不会把无关 IO 结果误判为新版本。</summary>
-    private static string ResourceCheckKey(PuloniaTask task)
-        => PuloniaTaskJson.Write(new { task.TaskType, task.Path, task.Resource, task.Source, task.ResourceVersion });
+    private static string ResourceCheckKey(PuloniaTask task) => PuloniaResourceUpdateRules.CheckKey(task);
 
     /// <summary>
     /// 页面可见时登记为资源检查的使用者；至少一个页面可见时保持定期检查外部编辑或本机仓库变化。

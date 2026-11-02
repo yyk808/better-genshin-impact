@@ -183,6 +183,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             await ReloadProfilesAsync();
             await RefreshRunsAsync();
             await RefreshCooldownsAsync();
+            // 与 WPF 页面加载时相同，读取本机仓库检查任务资源更新（只显示标签，不改写使用版本）
+            _ = CheckResourcesAsync(false);
         }
         catch (Exception e)
         {
@@ -250,6 +252,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
                 {
                     var row = new TaskPlanNodeRow(this, item.Plan.RootTask, child, 0, true) { Chain = [item.Plan.RootTask, child] };
                     row.RefreshCooldown();
+                    row.RefreshResource();
                     row.UpdateStatus(_latestRun, item.Plan.RootTask.Id);
                     Nodes.Add(row);
                 }
@@ -278,6 +281,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             List<PuloniaTask> chain = [.. ancestors, child];
             var row = new TaskPlanNodeRow(this, ancestors[^1], child, depth, parentEnabled) { Chain = chain };
             row.RefreshCooldown();
+            row.RefreshResource();
             Nodes.Add(row);
             AddRows(chain, depth + 1, parentEnabled && child.IsEnabled);
         }
@@ -304,6 +308,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         var definition = value is null || _tasks is null ? null : PuloniaParameterResolver.FindDefinition(_tasks.Definitions.ToList(), value.Task);
         NodeEditor = value is null ? null : new TaskNodeEditor(value, definition, _services, SelectedPlan?.Plan.Id,
             SelectedPlan is { } selected ? GetCooldownScope(selected.Plan) : null);
+        OnPropertyChanged(nameof(CanUpdateSelectedResource));
     }
 
     partial void OnSelectedTriggerChanged(TaskPlanTriggerRow? value)
@@ -887,6 +892,13 @@ public sealed partial class TaskPlanNodeRow : ObservableObject
     [ObservableProperty] private string? _cooldownTip;
 
     public void RefreshCooldown() => (CooldownBadge, CooldownTip) = _owner.DescribeCooldown(Chain.Count > 0 ? Chain : [Task]);
+
+    /// <summary>资源更新 / 检查失败标签（文字规则在 Core PuloniaResourceUpdateRules，与 WPF 任务树相同）</summary>
+    [ObservableProperty] private string? _resourceBadge;
+
+    [ObservableProperty] private string? _resourceTip;
+
+    public void RefreshResource() => (ResourceBadge, ResourceTip) = _owner.DescribeResource(Task);
 
     public Thickness Indent => new(Depth * 20, 0, 0, 0);
 
