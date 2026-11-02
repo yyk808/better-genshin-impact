@@ -212,6 +212,24 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     /// <summary>页面跳转（由主窗口设置，用于“管理插件”）</summary>
     public Action<string>? NavigateTo { get; set; }
 
+    /// <summary>遮罩状态栏、日志框与指标栏恢复默认位置（同 WPF CommonSettingsPageViewModel.OnResetMaskOverlayLayout）</summary>
+    [RelayCommand]
+    private void ResetMaskOverlayLayout()
+    {
+        var c = Config.MaskWindowConfig;
+        c.StatusListLeftRatio = 20.0 / 1920;
+        c.StatusListTopRatio = 807.0 / 1080;
+        c.StatusListWidthRatio = 477.0 / 1920;
+        c.StatusListHeightRatio = 24.0 / 1080;
+
+        c.LogTextBoxLeftRatio = 20.0 / 1920;
+        c.LogTextBoxTopRatio = 832.0 / 1080;
+        c.LogTextBoxWidthRatio = 477.0 / 1920;
+        c.LogTextBoxHeightRatio = 188.0 / 1080;
+
+        c.ResetOverlayMetricsLayout();
+    }
+
     [RelayCommand]
     private void GoToPlugins() => NavigateTo?.Invoke("插件");
 

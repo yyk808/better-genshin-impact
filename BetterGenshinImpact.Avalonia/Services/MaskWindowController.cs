@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using BetterGenshinImpact.Core.Mask;
@@ -70,6 +71,157 @@ public sealed class MaskWindowController : IDisposable
 
         // 绘制板可在任意线程变化，合并到 UI 线程上刷新
         host.MaskDrawing.Changed += OnDrawingChanged;
+
+        // 布局编辑模式：启动时关闭（同 WPF MainWindowViewModel），之后跟随设置页开关
+        if (host.Config.MaskWindowConfig.OverlayLayoutEditEnabled)
+        {
+            host.Config.MaskWindowConfig.OverlayLayoutEditEnabled = false;
+        }
+
+        host.Config.MaskWindowConfig.PropertyChanged += OnMaskConfigChanged;
+        // Wayland 覆盖层没有 Avalonia 输入：编辑模式下定时读取 wl_pointer 事件
+        _pumpTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(15), DispatcherPriority.Input, (_, _) => PumpOverlay());
+    }
+
+    private readonly DispatcherTimer _pumpTimer;
+    private string _inputRegionKey = "";
+
+    /// <summary>布局编辑模式（MaskWindowConfig.OverlayLayoutEditEnabled）：遮罩强制显示，可编辑控件接收鼠标</summary>
+    public bool Editing => _host.Config.MaskWindowConfig.OverlayLayoutEditEnabled;
+
+    private void OnMaskConfigChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Core.Config.MaskWindowConfig.OverlayLayoutEditEnabled))
+        {
+            Dispatcher.UIThread.Post(OnEditingChanged);
+        }
+    }
+
+    private void OnEditingChanged()
+    {
+        var editing = Editing;
+        _log.Information(editing ? "遮罩：进入布局编辑模式" : "遮罩：退出布局编辑模式");
+        _window?.SetEditing(editing);
+        if (editing && _wayland is not null) _pumpTimer.Start();
+        else _pumpTimer.Stop();
+        Update();
+    }
+
+    private MaskWindow CreateWindow()
+    {
+        var window = new MaskWindow();
+        window.SetEditing(Editing);
+        window.LayoutCommitted += CommitLayout;
+        window.ExitEditRequested += ExitEdit;
+        return window;
+    }
+
+    /// <summary>右键控件退出编辑模式并把焦点还给游戏（同 WPF OnExitOverlayLayoutEditMode）</summary>
+    private void ExitEdit()
+    {
+        _host.Config.MaskWindowConfig.OverlayLayoutEditEnabled = false;
+        try
+        {
+            _host.RuntimeService.Current?.Window.Activate();
+        }
+        catch (Exception e)
+        {
+            _log.Debug(e, "激活游戏窗口失败");
+        }
+    }
+
+    /// <summary>拖动结束：位置与大小换算成相对遮罩大小的比例写回配置（同 WPF MaskWindowViewModel.OnOverlayLayoutCommitted）</summary>
+    private void CommitLayout(MaskLayoutCommit commit)
+    {
+        var (width, height, _, _) = OverlayLayout;
+        if (width <= 0 || height <= 0) return;
+        var c = _host.Config.MaskWindowConfig;
+        var b = commit.Bounds;
+        double Ratio(double v, double size) => Math.Clamp(double.IsNaN(v) ? 0 : v / size, 0, 1);
+        switch (commit.LayoutKey)
+        {
+            case "LogTextBox":
+                c.LogTextBoxLeftRatio = Ratio(b.X, width);
+                c.LogTextBoxTopRatio = Ratio(b.Y, height);
+                c.LogTextBoxWidthRatio = Ratio(b.Width, width);
+                c.LogTextBoxHeightRatio = Ratio(b.Height, height);
+                break;
+            case "StatusList":
+                c.StatusListLeftRatio = Ratio(b.X, width);
+                c.StatusListTopRatio = Ratio(b.Y, height);
+                c.StatusListWidthRatio = Ratio(b.Width, width);
+                c.StatusListHeightRatio = Ratio(b.Height, height);
+                break;
+        }
+
+        _log.Information("遮罩布局：{Key} 调整为 ({X:0},{Y:0}) {W:0}x{H:0}", commit.LayoutKey, b.X, b.Y, b.Width, b.Height);
+        Update();
+    }
+
+    /// <summary>
+    /// 输入区域：平时为空（完全点击穿透）；编辑模式下为状态栏与日志框的区域（同 WPF：只有可编辑控件接收鼠标，透明部分仍然穿透）
+    /// </summary>
+    private void ApplyInputRegion(double scale)
+    {
+        var regions = _window?.EditableRegions ?? [];
+        var rects = regions.Select(r => new System.Drawing.Rectangle((int)Math.Floor(r.X * scale), (int)Math.Floor(r.Y * scale),
+            (int)Math.Ceiling(r.Width * scale), (int)Math.Ceiling(r.Height * scale))).ToList();
+        var key = string.Join(";", rects);
+        if (key == _inputRegionKey) return;
+        if (_wayland is not null)
+        {
+            if (_surface is null) return;
+            _surface.SetInputRegion(rects);
+        }
+        else
+        {
+            if (Handle == 0) return;
+            var error = X11Overlay.SetInputRegion(_display, Handle, rects);
+            if (error is not null)
+            {
+                _log.Warning("遮罩窗口无法设置输入区域：{Error}", error);
+                return;
+            }
+        }
+
+        _inputRegionKey = key;
+        if (rects.Count > 0) _log.Information("遮罩输入区域：{Rects}", key);
+    }
+
+    /// <summary>Wayland 编辑模式：读取覆盖层上的指针事件</summary>
+    private void PumpOverlay()
+    {
+        try
+        {
+            _surface?.Pump();
+        }
+        catch (Exception e)
+        {
+            _log.Debug(e, "读取 Wayland 覆盖层事件失败");
+        }
+    }
+
+    private void OnOverlayPointer(OverlayPointerEvent e)
+    {
+        if (_window is not { } window) return;
+        var p = new Point(e.X, e.Y);
+        var changed = e.Kind switch
+        {
+            OverlayPointerKind.Press => window.EditPointerPressed(p, e.Button == 0x111),
+            OverlayPointerKind.Move => window.EditPointerMoved(p),
+            OverlayPointerKind.Release => window.EditPointerReleased(p),
+            _ => false,
+        };
+        _surface?.SetCursorShape(window.CursorAt(p) switch
+        {
+            StandardCursorType.SizeAll => 13u,
+            StandardCursorType.SizeWestEast => 26u,
+            StandardCursorType.SizeNorthSouth => 27u,
+            StandardCursorType.TopLeftCorner => 29u,
+            StandardCursorType.TopRightCorner => 28u,
+            _ => 1u,
+        });
+        if (changed) _surface?.Render();
     }
 
     private int _drawingQueued;
@@ -184,7 +336,7 @@ public sealed class MaskWindowController : IDisposable
             {
                 FocusHideCount++;
                 _log.Information("遮罩：游戏窗口失去焦点（前台为{Foreground}），隐藏遮罩", _focusReason);
-                Hide();
+                if (!Editing) Hide();
             }
         }
         catch (Exception e)
@@ -229,8 +381,8 @@ public sealed class MaskWindowController : IDisposable
                 return;
             }
 
-            // 游戏失去焦点（其他进程在前台）时不显示，规则与 WPF 相同
-            if (!_focus.Visible)
+            // 游戏失去焦点（其他进程在前台）时不显示，规则与 WPF 相同；布局编辑模式强制显示（WPF MaskWindowHost.IsForcedVisibleLocked）
+            if (!_focus.Visible && !Editing)
             {
                 Hide();
                 return;
@@ -244,7 +396,7 @@ public sealed class MaskWindowController : IDisposable
 
             if (_window is null)
             {
-                _window = new MaskWindow();
+                _window = CreateWindow();
                 _window.Opened += (_, _) => OnOpened();
             }
 
@@ -258,6 +410,7 @@ public sealed class MaskWindowController : IDisposable
             }
 
             ApplyOverlay(_window, _window.Width, _window.Height, rect, _window.RenderScaling > 0 ? _window.RenderScaling : 1);
+            ApplyInputRegion(_window.RenderScaling > 0 ? _window.RenderScaling : 1);
             RefreshDrawing();
             if (!_drawingLogged && DrawnShapes > 0)
             {
@@ -290,10 +443,12 @@ public sealed class MaskWindowController : IDisposable
 
         if (_surface is null)
         {
-            _window ??= new MaskWindow();
+            _window ??= CreateWindow();
             try
             {
                 _surface = WaylandMaskSurface.Create(_window);
+                _surface.Pointer += OnOverlayPointer;
+                _inputRegionKey = "";
                 _log.Information("Wayland 遮罩：使用 layer-shell 覆盖层（输出 {Outputs}）", string.Join("、", _surface.OutputNames));
             }
             catch (Exception e) when (e is NotSupportedException or IOException or InvalidOperationException)
@@ -321,6 +476,7 @@ public sealed class MaskWindowController : IDisposable
         _surface.Place(placement);
         _lastRect = rect;
         ApplyOverlay(_window!, placement.Width, placement.Height, rect, Math.Max(1, placement.Scale));
+        ApplyInputRegion(1); // 覆盖层的输入区域用逻辑坐标
         RefreshDrawing();
         if (!_drawingLogged && DrawnShapes > 0)
         {
@@ -378,6 +534,7 @@ public sealed class MaskWindowController : IDisposable
             _log.Warning("没有检测到合成器（_NET_WM_CM_S0），遮罩的透明部分会显示为黑色并挡住游戏画面（Composite 窗口截图不受影响，屏幕区域截图会截到黑色）；请启用桌面合成（如 picom）或关闭遮罩");
         }
 
+        _inputRegionKey = "";
         var error = X11Overlay.SetClickThrough(_display, Handle);
         if (error is null)
         {
@@ -426,6 +583,8 @@ public sealed class MaskWindowController : IDisposable
     public void Dispose()
     {
         _host.MaskDrawing.Changed -= OnDrawingChanged;
+        _host.Config.MaskWindowConfig.PropertyChanged -= OnMaskConfigChanged;
+        _pumpTimer.Stop();
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();
         _focusTimer.Stop();

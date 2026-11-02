@@ -179,6 +179,12 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
   日志是 Information 及以上、`[HH:mm:ss INF] 消息` 格式、Serilog Literate 配色，最新一行贴底；字体按 `LogFontFamily`（`monospace` 换成已装的等宽字体，中文回退系统字体），
   行距取首选字体行距（中文回退字形不撑高行，同 WPF）。状态栏五项（拾取 / 剧情 / 邀约 / 钓鱼 / 传送）按开关着色。识别文字用 MiSans。
   已知差异：Avalonia 遮罩日志里多几条启动信息（截图器、ONNX），WPF 在 Wine 下状态图标显示为方框（Wine 字体问题，原生 Windows 正常）。
+- **遮罩布局编辑**（X11 与 Wayland 相同，`MaskWindow.Edit.cs`）：设置页“启用遮罩窗口”下的“启用拖拽调整位置大小”（`OverlayLayoutEditEnabled`，启动时关闭，同 WPF）。
+  编辑模式下遮罩强制显示（BetterGI 在前台也显示），状态栏与日志框显示半透明白底和虚线框、中间显示“当前处于编辑模式”；拖动内部移动、拖动边缘 6 DIP 以内改变大小
+  （最小尺寸同上），松开后按“位置 / 遮罩大小”写回比例；右键控件退出编辑并激活游戏窗口；“重置位置”恢复默认比例。
+  输入区域只含这两个控件，其余部分仍点击穿透（同 WPF 透明部分不接收鼠标）：X11 用 SHAPE 输入区域（`X11Overlay.SetInputRegion`），
+  Wayland 覆盖层设置 `wl_surface.set_input_region`，从 `wl_seat` / `wl_pointer` 读指针事件（编辑模式下每 15 ms 读一次），光标形状用 `wp_cursor_shape_v1`（合成器不支持时为默认光标）。
+  编辑不需要键盘，所以覆盖层仍不接收键盘（`keyboard_interactivity none`）。
 - xwayland-satellite 会给没声明“无装饰”的 X 窗口加一条标题栏，niri 报告的窗口比游戏客户区高；屏幕位置按客户区大小对齐到窗口底部。
 - 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
 - 实机检查清单见 `wayland-niri-checklist.md`。

@@ -77,6 +77,14 @@
                                 <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.ShowStatus}" OnContent="" OffContent="" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem x:Name="MaskLayoutEditItem" Content="启用拖拽调整位置大小" Description="开启后可以拖拽调整日志与状态栏位置，并调整大小；右键控件退出">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button x:Name="ResetMaskLayoutButton" Content="重置位置" Command="{Binding ResetMaskOverlayLayoutCommand}" />
+                                    <ToggleSwitch x:Name="MaskLayoutEditToggle" IsChecked="{Binding Config.MaskWindowConfig.OverlayLayoutEditEnabled}" OnContent="" OffContent="" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
                         <ui:FASettingsExpanderItem Content="显示帧率" Description="遮罩上显示截图帧率">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Config.MaskWindowConfig.ShowFps}" OnContent="" OffContent="" />

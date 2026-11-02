@@ -38,6 +38,23 @@ internal sealed class WaylandMaskSurface : IDisposable
 
     public WaylandOverlayPlacement? Placement => _placement;
 
+    /// <summary>覆盖层上的指针事件（只在输入区域内；在 <see cref="Pump"/> 里触发）</summary>
+    public event Action<OverlayPointerEvent>? Pointer
+    {
+        add => _overlay.Pointer += value;
+        remove => _overlay.Pointer -= value;
+    }
+
+    /// <summary>输入区域（逻辑坐标；空 = 完全点击穿透），用于布局编辑</summary>
+    public void SetInputRegion(IReadOnlyList<System.Drawing.Rectangle> rects) =>
+        _overlay.SetInputRegion(rects.Select(r => (r.X, r.Y, r.Width, r.Height)).ToList());
+
+    /// <summary>读取已到达的合成器事件（指针事件在此触发）</summary>
+    public void Pump() => _overlay.Pump();
+
+    /// <summary>指针在覆盖层上时的光标形状（cursor-shape-v1 编号）</summary>
+    public void SetCursorShape(uint shape) => _overlay.SetCursorShape(shape);
+
     public bool IsShown => _placement is not null;
 
     /// <summary>合成器关闭了覆盖层（如输出被拔掉）</summary>

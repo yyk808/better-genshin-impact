@@ -16,6 +16,20 @@
             <Border x:Name="LogBox" CornerRadius="4" MinWidth="240" MinHeight="80" ClipToBounds="True">
                 <v:MaskLogView x:Name="LogView" />
             </Border>
+            <!-- 布局编辑：虚线框（同 WPF AdjustableOverlayItem 的 PART_EditOutline），只在编辑模式显示 -->
+            <Rectangle x:Name="StatusOutline" IsVisible="False" IsHitTestVisible="False" RadiusX="4" RadiusY="4"
+                       Stroke="#C5FFFFFF" StrokeDashArray="3,2" StrokeThickness="1" />
+            <Rectangle x:Name="LogOutline" IsVisible="False" IsHitTestVisible="False" RadiusX="4" RadiusY="4"
+                       Stroke="#C5FFFFFF" StrokeDashArray="3,2" StrokeThickness="1" />
         </Canvas>
+        <!-- 布局编辑提示（同 WPF MaskWindow.xaml） -->
+        <StackPanel x:Name="EditBanner" IsVisible="False" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel.Effect>
+                <DropShadowEffect Opacity="0.8" BlurRadius="10" OffsetX="0" OffsetY="0" />
+            </StackPanel.Effect>
+            <TextBlock Text="当前处于编辑模式" FontSize="72" FontWeight="DemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+            <TextBlock Text="可以调整日志框、状态栏控件的位置和大小" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+            <TextBlock Text="右键相关控件可退出编辑状态" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+        </StackPanel>
     </Panel>
 </Window>

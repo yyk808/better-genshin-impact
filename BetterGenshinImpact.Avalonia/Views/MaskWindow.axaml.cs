@@ -47,7 +47,7 @@ public partial class MaskWindow : Window
     {
         // 状态栏
         StatusBox.IsVisible = c.ShowStatus;
-        Place(StatusBox, c.StatusListLeftRatio, c.StatusListTopRatio, c.StatusListWidthRatio, c.StatusListHeightRatio, width, height);
+        PlaceUnlessDragging(StatusBox, c.StatusListLeftRatio, c.StatusListTopRatio, c.StatusListWidthRatio, c.StatusListHeightRatio, width, height);
         StatusBox.Background = Brush(c.StatusPanelBackgroundColor, Colors.Transparent);
         StatusBox.BorderBrush = Brush(c.StatusPanelBorderColor, Color.Parse("#33000000"));
         StatusBox.BorderThickness = new Thickness(Math.Max(0, c.StatusPanelBorderThickness));
@@ -76,11 +76,12 @@ public partial class MaskWindow : Window
 
         // 日志框
         LogBox.IsVisible = c.ShowLogBox && log is not null;
-        Place(LogBox, c.LogTextBoxLeftRatio, c.LogTextBoxTopRatio, c.LogTextBoxWidthRatio, c.LogTextBoxHeightRatio, width, height);
+        PlaceUnlessDragging(LogBox, c.LogTextBoxLeftRatio, c.LogTextBoxTopRatio, c.LogTextBoxWidthRatio, c.LogTextBoxHeightRatio, width, height);
         LogBox.Background = Brush(c.LogPanelBackgroundColor, Colors.Transparent);
         LogBox.BorderBrush = Brush(c.LogPanelBorderColor, Color.Parse("#33000000"));
         LogBox.BorderThickness = new Thickness(Math.Max(0, c.LogPanelBorderThickness));
         LogBox.Effect = Shadow(c.LogShadowEnabled, c.LogShadowOpacity, c.LogShadowBlurRadius, c.LogShadowColor, Colors.Black);
+        ApplyEditState();
         if (!LogBox.IsVisible || log is null)
         {
             return;
@@ -96,7 +97,7 @@ public partial class MaskWindow : Window
         _logVersion = logVersion;
         _logStyleKey = styleKey;
         // WPF：日志框外层与内部 RichTextBox 都用 LogPanelBackgroundColor 作背景（半透明时叠两层）
-        LogView.Background = LogBox.Background;
+        LogView.Background = Brush(c.LogPanelBackgroundColor, Colors.Transparent);
         LogView.TextOpacity = c.TextOpacity;
         LogView.SetContent(log, LogFontFamily(c.LogFontFamily), logSize, Brush(c.LogTextColor, Colors.LightGray));
         LogView.InvalidateVisual();

@@ -5,6 +5,11 @@ using System.Text;
 namespace BetterGenshinImpact.Platform.Linux.Wayland;
 
 /// <summary>遮罩上画的一个矩形（相对覆盖层左上角的像素坐标，颜色为 0xAARRGGBB）</summary>
+/// <summary>覆盖层上的指针事件（坐标为覆盖层逻辑坐标；Button 为 Linux 按键码，如 0x110 左键、0x111 右键）</summary>
+public readonly record struct OverlayPointerEvent(OverlayPointerKind Kind, double X, double Y, uint Button = 0);
+
+public enum OverlayPointerKind { Enter, Leave, Move, Press, Release }
+
 public readonly record struct OverlayRect(int X, int Y, int Width, int Height, uint Argb, int Thickness = 2, bool Fill = false);
 
 /// <summary>
@@ -37,6 +42,19 @@ public sealed class LayerShellOverlay : IDisposable
     private readonly Dictionary<uint, string> _outputs = new();
     private string? _outputName;
     private int _bufferScale = 1;
+    private uint _seat, _pointer, _cursorShapeManager, _cursorShapeDevice, _enterSerial;
+    private uint _cursorShape = 1;
+    private double _pointerX, _pointerY;
+    private IReadOnlyList<(int X, int Y, int Width, int Height)> _inputRects = [];
+
+    /// <summary>
+    /// 指针事件（只有输入区域非空时合成器才会发送，见 <see cref="SetInputRegion"/>）。
+    /// 在调用 <see cref="Pump"/> 的线程上触发
+    /// </summary>
+    public event Action<OverlayPointerEvent>? Pointer;
+
+    /// <summary>读事件时先排队，只在 <see cref="Pump"/> 里送出（避免在渲染中途重入）</summary>
+    private readonly Queue<OverlayPointerEvent> _pointerQueue = new();
 
     /// <summary>合成器上的输出名（wl_output.name，与 niri 的输出名相同）</summary>
     public IReadOnlyCollection<string> OutputNames => _outputs.Values;
@@ -79,6 +97,15 @@ public sealed class LayerShellOverlay : IDisposable
             o._compositor = o.Bind("wl_compositor", 4);
             o._shm = o.Bind("wl_shm", 1);
             o._layerShell = o.Bind("zwlr_layer_shell_v1", 3);
+            if (o._globals.ContainsKey("wl_seat"))
+            {
+                o._seat = o.Bind("wl_seat", 5); // capabilities 事件里有指针时再 get_pointer
+            }
+
+            if (o._globals.ContainsKey("wp_cursor_shape_manager_v1"))
+            {
+                o._cursorShapeManager = o.Bind("wp_cursor_shape_manager_v1", 1); // 指针在覆盖层上时的光标形状
+            }
             foreach (var (name, version) in o._outputGlobals)
             {
                 var id = o.NewId();
@@ -118,10 +145,7 @@ public sealed class LayerShellOverlay : IDisposable
             var outputId = output is null ? 0u : _outputs.FirstOrDefault(kv => kv.Value == output).Key;
             _surface = NewId();
             Send(_compositor, 0, w => w.NewId(_surface)); // wl_compositor.create_surface
-            var region = NewId();
-            Send(_compositor, 1, w => w.NewId(region)); // create_region：空区域 = 不接收任何指针输入
-            Send(_surface, 5, w => w.Object(region)); // wl_surface.set_input_region
-            Send(region, 0, _ => { }); // wl_region.destroy
+            SendInputRegion(); // 默认空区域 = 不接收任何指针输入
             _layerSurface = NewId();
             Send(_layerShell, 0, w => w.NewId(_layerSurface).Object(_surface).Object(outputId).UInt(3 /*overlay*/).String("bettergi-mask"));
             Send(_layerSurface, 4, w => w.UInt(0)); // keyboard_interactivity none
@@ -148,6 +172,65 @@ public sealed class LayerShellOverlay : IDisposable
         var pw = width * bufferScale;
         var ph = height * bufferScale;
         if (pw != _width || ph != _height) AllocateBuffers(pw, ph);
+    }
+
+    /// <summary>
+    /// 设置输入区域（逻辑坐标的矩形；空列表 = 完全点击穿透）。矩形内的指针事件经 <see cref="Pointer"/> 送出，
+    /// 其余部分仍穿透到下面的窗口。覆盖层重建（换输出）后沿用
+    /// </summary>
+    public void SetInputRegion(IReadOnlyList<(int X, int Y, int Width, int Height)> rects)
+    {
+        _inputRects = rects.ToArray();
+        if (_surface == 0) return;
+        SendInputRegion();
+        if (_configured) Send(_surface, 6, _ => { }); // wl_surface.commit（输入区域是双缓冲状态）
+        Flush();
+    }
+
+    private void SendInputRegion()
+    {
+        var region = NewId();
+        Send(_compositor, 1, w => w.NewId(region)); // wl_compositor.create_region
+        foreach (var (x, y, width, height) in _inputRects)
+        {
+            if (width > 0 && height > 0) Send(region, 1, w => w.Int(x).Int(y).Int(width).Int(height)); // wl_region.add
+        }
+
+        Send(_surface, 5, w => w.Object(region)); // wl_surface.set_input_region
+        Send(region, 0, _ => { }); // wl_region.destroy
+    }
+
+    /// <summary>
+    /// 指针在覆盖层上时的光标形状（wp_cursor_shape_device_v1.shape：1 默认、13 移动、26 左右、27 上下、28 右上左下、29 左上右下）；
+    /// 合成器不支持 cursor-shape 时忽略
+    /// </summary>
+    public void SetCursorShape(uint shape)
+    {
+        if (shape == _cursorShape) return;
+        _cursorShape = shape;
+        SendCursorShape();
+    }
+
+    private void SendCursorShape()
+    {
+        if (_cursorShapeDevice == 0 || _enterSerial == 0) return;
+        var serial = _enterSerial;
+        var shape = _cursorShape;
+        Send(_cursorShapeDevice, 1, w => w.UInt(serial).UInt(shape)); // set_shape
+    }
+
+    /// <summary>读取并处理已到达的事件（不阻塞），指针事件在此触发</summary>
+    public void Pump()
+    {
+        Flush();
+        while (_pointerQueue.TryDequeue(out var e)) Pointer?.Invoke(e);
+    }
+
+    private void Flush()
+    {
+        while (Dispatch(blocking: false))
+        {
+        }
     }
 
     /// <summary>缓冲区像素尺寸（逻辑尺寸 × 缓冲缩放）</summary>
@@ -309,13 +392,14 @@ public sealed class LayerShellOverlay : IDisposable
         while (!_syncDone) Dispatch(blocking: true);
     }
 
-    private void Dispatch(bool blocking)
+    /// <summary>读一次事件并处理；非阻塞且没有数据时返回 false</summary>
+    private bool Dispatch(bool blocking)
     {
         var n = Native.recv(_fd, ref _rx[_rxLen], _rx.Length - _rxLen, blocking ? 0 : 0x40 /*MSG_DONTWAIT*/);
         if (n < 0)
         {
             var errno = Marshal.GetLastWin32Error();
-            if (!blocking && errno == 11) return;
+            if (!blocking && errno == 11) return false;
             throw new IOException($"读取 Wayland 事件失败 errno={errno}");
         }
 
@@ -335,6 +419,7 @@ public sealed class LayerShellOverlay : IDisposable
 
         Array.Copy(_rx, pos, _rx, 0, _rxLen - pos);
         _rxLen -= pos;
+        return true;
     }
 
     private void HandleEvent(uint obj, uint op, ReadOnlySpan<byte> a)
@@ -361,6 +446,30 @@ public sealed class LayerShellOverlay : IDisposable
         {
             _outputs[obj] = ReadString(a, out _);
         }
+        else if (obj == _seat && _seat != 0 && op == 0) // wl_seat.capabilities
+        {
+            var caps = BinaryPrimitives.ReadUInt32LittleEndian(a);
+            if ((caps & 1) != 0 && _pointer == 0)
+            {
+                _pointer = NewId();
+                Send(_seat, 0, w => w.NewId(_pointer)); // wl_seat.get_pointer
+                if (_cursorShapeManager != 0)
+                {
+                    _cursorShapeDevice = NewId();
+                    Send(_cursorShapeManager, 1, w => w.NewId(_cursorShapeDevice).Object(_pointer)); // get_pointer
+                }
+            }
+            else if ((caps & 1) == 0 && _pointer != 0)
+            {
+                if (_cursorShapeDevice != 0) Send(_cursorShapeDevice, 0, _ => { }); // destroy
+                Send(_pointer, 1, _ => { }); // wl_pointer.release（v3+）
+                _pointer = _cursorShapeDevice = _enterSerial = 0;
+            }
+        }
+        else if (obj == _pointer && _pointer != 0)
+        {
+            HandlePointer(op, a);
+        }
         else if (obj == _layerSurface && _layerSurface != 0)
         {
             if (op == 0) _configureSerial = BinaryPrimitives.ReadUInt32LittleEndian(a);
@@ -372,6 +481,35 @@ public sealed class LayerShellOverlay : IDisposable
             {
                 if (obj == _buffers[i] && op == 0) _busy[i] = false; // wl_buffer.release
             }
+        }
+    }
+
+    private void HandlePointer(uint op, ReadOnlySpan<byte> a)
+    {
+        static double Fixed(ReadOnlySpan<byte> b) => BinaryPrimitives.ReadInt32LittleEndian(b) / 256.0;
+        switch (op)
+        {
+            case 0: // enter(serial, surface, x, y)
+                if (BinaryPrimitives.ReadUInt32LittleEndian(a[4..]) != _surface) return;
+                _enterSerial = BinaryPrimitives.ReadUInt32LittleEndian(a);
+                SendCursorShape();
+                _pointerX = Fixed(a[8..]);
+                _pointerY = Fixed(a[12..]);
+                _pointerQueue.Enqueue(new OverlayPointerEvent(OverlayPointerKind.Enter, _pointerX, _pointerY));
+                break;
+            case 1: // leave(serial, surface)
+                _pointerQueue.Enqueue(new OverlayPointerEvent(OverlayPointerKind.Leave, _pointerX, _pointerY));
+                break;
+            case 2: // motion(time, x, y)
+                _pointerX = Fixed(a[4..]);
+                _pointerY = Fixed(a[8..]);
+                _pointerQueue.Enqueue(new OverlayPointerEvent(OverlayPointerKind.Move, _pointerX, _pointerY));
+                break;
+            case 3: // button(serial, time, button, state)
+                var button = BinaryPrimitives.ReadUInt32LittleEndian(a[8..]);
+                var pressed = BinaryPrimitives.ReadUInt32LittleEndian(a[12..]) == 1;
+                _pointerQueue.Enqueue(new OverlayPointerEvent(pressed ? OverlayPointerKind.Press : OverlayPointerKind.Release, _pointerX, _pointerY, button));
+                break;
         }
     }
 
