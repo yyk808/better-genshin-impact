@@ -73,9 +73,7 @@ public partial class PuloniaTaskPlanDocumentViewModel
     internal void ApplyRawSource(PuloniaTaskNodeViewModel node, string json)
     {
         EnsureEditableNode(node);
-        var source = string.IsNullOrWhiteSpace(json)
-            ? null
-            : PuloniaTaskJson.Read<PuloniaTaskSource>(json);
+        var source = PuloniaNodeAdvancedEditing.ReadSource(json);
         ApplyMutation(() =>
         {
             node.Model.Source = source;

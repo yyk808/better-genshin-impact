@@ -173,6 +173,9 @@ public sealed partial class TaskPlanPageViewModel
             if (key != PuloniaResourceUpdateRules.CheckKey(task)) throw new InvalidOperationException("提取期间任务配置变化，请重新确认。");
             PuloniaResourceUpdateRules.ApplyVersion(task, newVersion, reference);
             await SaveAsync(item, $"已更新“{task.Name}”的任务使用版本。");
+            // 保存会换成新的计划对象：重建节点，避免之后的编辑写到旧对象上
+            RebuildNodes();
+            SelectedNode = Nodes.FirstOrDefault(n => n.Task.Id == task.Id) ?? SelectedNode;
             await CheckResourceUpdatesAsync();
             StatusMessage = $"已更新“{task.Name}”的任务使用版本。";
         }

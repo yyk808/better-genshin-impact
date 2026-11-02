@@ -62,7 +62,7 @@ public partial class PuloniaTaskNodeAdvancedSettingsViewModel : ObservableObject
     public bool CanEditParameters => Node.IsLeaf;
 
     /// <summary>当前节点是否允许编辑资源定位。</summary>
-    public bool CanEditPath => Node.IsLeaf && Node.Model.Resource is null;
+    public bool CanEditPath => PuloniaNodeAdvancedEditing.CanEditPath(Node.Model);
 
     /// <summary>当前节点是否存在来源配置。</summary>
     public bool HasSource => Node.Model.Source is not null;
@@ -133,9 +133,7 @@ public partial class PuloniaTaskNodeAdvancedSettingsViewModel : ObservableObject
             ParameterJson = Node.Model.Parameters.ToString(Formatting.Indented);
             SettingsJson = Node.Model.Settings.ToString(Formatting.Indented);
             PolicyJson = JObject.FromObject(Node.Model.Policy).ToString(Formatting.Indented);
-            SourceJson = Node.Model.Source is null
-                ? string.Empty
-                : JObject.FromObject(Node.Model.Source).ToString(Formatting.Indented);
+            SourceJson = PuloniaNodeAdvancedEditing.FormatSource(Node.Model);
 
             EffectiveParameters.Clear();
             foreach (var item in Document.GetEffectiveParameterSources(Node))
