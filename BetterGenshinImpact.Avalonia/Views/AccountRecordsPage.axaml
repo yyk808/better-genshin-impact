@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:ar="using:BetterGenshinImpact.Service.AccountRecords"
+             xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              x:Class="BetterGenshinImpact.Avalonia.Views.AccountRecordsPage"
              x:DataType="vm:AccountRecordsPageViewModel">
     <!-- 对应 WPF AccountRecordsPage 的库存记录分页：标题栏 UID 选择/新增、搜索、只读库存表 -->
@@ -26,6 +27,34 @@
                     </DropDownButton.Flyout>
                 </DropDownButton>
                 <TextBox x:Name="SearchBox" Width="200" Watermark="搜索库存记录" Text="{Binding SearchText}" />
+                <!-- 与 WPF 库存页签“更多操作”相同的刷新、快照、字典与图像缓存项（Linux 版暂不显示物品图像） -->
+                <DropDownButton x:Name="AccountMoreButton" Content="{svc:FluentIcon MoreHorizontal24, Size=14}" ToolTip.Tip="当前页签的更多操作">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="刷新库存" Command="{Binding RefreshInventoryCommand}" />
+                            <Separator />
+                            <MenuItem Header="快照设置">
+                                <MenuItem Header="查看快照（未建设）" IsEnabled="False" />
+                                <Separator />
+                                <MenuItem Header="自动日期快照" ToggleType="CheckBox" IsChecked="{Binding SnapshotsEnabled, Mode=OneWay}" Command="{Binding ToggleSnapshotsCommand}" />
+                                <MenuItem Header="快照保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="snapshots" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="高级">
+                                <MenuItem Header="查看物品字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="items" />
+                                <MenuItem Header="查看补充字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="user" />
+                                <MenuItem Header="查看来源字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="sources" />
+                                <Separator />
+                                <MenuItem Header="来源记录保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="recent" />
+                                <MenuItem Header="事件保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="events" />
+                                <Separator />
+                                <MenuItem Header="使用图像缓存" ToggleType="CheckBox" IsChecked="{Binding UseImageCache, Mode=OneWay}" Command="{Binding ToggleImageCacheCommand}"
+                                          ToolTip.Tip="所有子表共用；关闭仅停用图片缓存，不删除文件。Linux 版库存列表暂不显示物品图像" />
+                                <MenuItem Header="清理所有图像缓存（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
+                            </MenuItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
             </StackPanel>
         </Grid>
         <Border DockPanel.Dock="Top" x:Name="AddUidPanel" IsVisible="{Binding IsAddingUid}" Margin="0,0,0,8" Padding="12,8" CornerRadius="6"

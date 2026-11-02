@@ -408,16 +408,10 @@ public partial class AccountRecordsInventoryViewModel : ObservableObject
     [RelayCommand]
     private async Task ViewDictionary(string kind)
     {
-        var relativePath = kind switch
-        {
-            "items" => @"Assets\Model\ItemV2\item.csv",
-            "user" => @"User\AccountRecords\item-overrides.json",
-            "sources" => @"User\AccountRecords\sources.json",
-            _ => null
-        };
+        var relativePath = AccountRecordsMaintenance.DictionaryRelativePath(kind);
         if (relativePath == null) return;
         var path = Global.Absolute(relativePath);
-        var title = kind switch { "items" => "物品字典", "user" => "补充字典", _ => "来源字典" };
+        var title = AccountRecordsMaintenance.DictionaryTitle(kind);
         new AccountRecordsDictionaryDialog(new AccountRecordsDictionaryViewModel(title, path, kind != "items", _catalog,
             kind == "user", kind == "user" ? _store.RestorePresetCategoriesAsync : null))
         { Owner = Application.Current.MainWindow }.ShowDialog();
@@ -580,26 +574,20 @@ public partial class AccountRecordsInventoryViewModel : ObservableObject
     /// <summary>编辑有明确上限的保存数量。</summary>
     [RelayCommand] private async Task SetRetention(string kind)
     {
-        var snapshots = kind == "snapshots";
-        var events = kind == "events";
         int previous;
-        try { previous = InventoryStore.GetRetentionLimit(await _store.GetSettingsAsync(), kind); }
+        try { previous = AccountRecordsMaintenance.RetentionLimit(await _store.GetSettingsAsync(), kind); }
         catch (Exception ex)
         {
             await ThemedMessageBox.ShowAsync(AccountRecordsErrorMessages.Describe(ex), "读取保存设置", MessageBoxButton.OK);
             return;
         }
-        var prompt = events ? "每个 UID 保留多少条事件？（1000～50000，默认 5000）超限清理最旧的已结束记录；未解决事件保留，实际数量可能超过上限。"
-            : snapshots ? "保留最近几个有记录的日期？（1～30）" : "每个物品保留几个最近来源？（1～10，含当前记录）";
-        var value = PromptDialog.Prompt(prompt, "保存设置", previous.ToString(CultureInfo.InvariantCulture));
+        var value = PromptDialog.Prompt(AccountRecordsMaintenance.RetentionPrompt(kind), "保存设置", previous.ToString(CultureInfo.InvariantCulture));
         if (string.IsNullOrEmpty(value)) return;
-        if (!int.TryParse(value, out var count) || count < (events ? 1000 : 1) || count > (events ? 50000 : snapshots ? 30 : 10))
-        { await ThemedMessageBox.ShowAsync($"保留数量须为 {(events ? "1000～50000" : snapshots ? "1～30" : "1～10")} 范围内的整数，设置尚未保存。", "保存设置", MessageBoxButton.OK); return; }
+        if (!AccountRecordsMaintenance.TryParseRetention(kind, value, out var count))
+        { await ThemedMessageBox.ShowAsync(AccountRecordsMaintenance.RetentionInvalidMessage(kind), "保存设置", MessageBoxButton.OK); return; }
         if (count < previous)
         {
-            var records = events ? "已结束事件" : snapshots ? "日期快照" : "每个物品的来源记录";
-            if (await ThemedMessageBox.ShowAsync(
-                    $"将{records}保留数量从 {previous} 调小至 {count}，会立即清理所有 UID 中超出上限的旧记录。\n调大数量不会恢复已清理的记录。请先备份运行目录下的 User/AccountRecords 文件夹，再继续操作。\n\n是否继续？",
+            if (await ThemedMessageBox.ShowAsync(AccountRecordsMaintenance.RetentionShrinkWarning(kind, previous, count),
                     "减少保留数量", MessageBoxButton.YesNo, ThemedMessageBox.MessageBoxIcon.Warning) != MessageBoxResult.Yes)
                 return;
         }
@@ -612,7 +600,7 @@ public partial class AccountRecordsInventoryViewModel : ObservableObject
     /// <summary>清理公共派生图片，不影响任何 UID 的库存。</summary>
     [RelayCommand] private async Task ClearIconCache()
     {
-        if (await ThemedMessageBox.ShowAsync("清理所有 UID 共用的物品图标？删除后需重新采集或手动上传，当前尚未接入图标自动重建。库存和事件记录不受影响。",
+        if (await ThemedMessageBox.ShowAsync(AccountRecordsMaintenance.ClearIconCacheConfirm,
             "清理所有图像缓存", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             await RunManualAsync(() => Task.Run(_icons.Clear), AccountRecordsRefreshKind.Icons);
     }

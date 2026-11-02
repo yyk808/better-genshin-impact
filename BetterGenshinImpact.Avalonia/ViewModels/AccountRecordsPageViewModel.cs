@@ -68,6 +68,7 @@ public partial class AccountRecordsPageViewModel : PageViewModel
             if (SelectedUid == null || !UidOptions.Contains(SelectedUid)) SelectedUid = uids.FirstOrDefault();
             else await SelectUidAsync(SelectedUid);
             if (UidOptions.Count == 0) { _all = []; ApplyFilter(); StatusText = "尚未添加 UID。"; }
+            await LoadMaintenanceSettingsAsync();
         }
         catch (Exception ex) { StatusText = AccountRecordsErrorMessages.Describe(ex); }
     }

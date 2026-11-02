@@ -63,6 +63,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "onedragon-domain": await OneDragonDomainAsync(); break;
                 case "onedragon-more": await OneDragonMoreAsync(); break;
                 case "onedragon-edit": await OneDragonEditAsync(); break;
+                case "onedragon-sort": await OneDragonSortAsync(); break;
                 case "home-banner": await HomeBannerAsync(); break;
                 case "key-bindings": await KeyBindingsAsync(); break;
                 case "settings-more": await SettingsMoreAsync(); break;
@@ -72,8 +73,10 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "solo-boss": await SoloBossAsync(); break;
                 case "plan-paste-inherit": await PlanPasteInheritAsync(); break;
                 case "plan-resource-update": await PlanResourceUpdateAsync(); break;
+                case "plan-advanced-source": await PlanAdvancedSourceAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
+                case "accounts-more": await AccountRecordsMoreAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
                 default: log.Warning("未知的界面自测 {Name}", name); break;
             }
@@ -2480,6 +2483,93 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     /// <summary>
     /// 狛荷屋(test)（对应 WPF AccountRecordsPage）：UID 校验与新增（Core AccountRecordsAccounts / InventoryStore）、只读库存表（Core InventoryRowBuilder）、搜索、UID 切换互不串号
     /// </summary>
+    // —— 狛荷屋“更多”：快照设置、保留数量、字典查看、图像缓存（gaps 21） ——
+
+    private async Task AccountRecordsMoreAsync()
+    {
+        var page = vm.AccountRecords;
+        var root = Global.Absolute(@"User\AccountRecords");
+        var createdRoot = !Directory.Exists(root);
+        var store = new BetterGenshinImpact.Service.AccountRecords.InventoryStore(new BetterGenshinImpact.Service.AccountRecords.InventoryCatalog(), root);
+        var before = await store.GetSettingsAsync();
+        try
+        {
+            vm.Navigate("狛荷屋(test)");
+            await Settle(800);
+            var more = Named<DropDownButton>("AccountMoreButton");
+            var items = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
+            string H(MenuItem i) => i.Header as string ?? "";
+            var all = items.Concat(items.SelectMany(i => i.Items.OfType<MenuItem>())).Select(H).ToList();
+            Check("“更多”菜单：刷新 / 快照设置 / 字典 / 保留数量 / 图像缓存",
+                new[] { "刷新库存", "快照设置", "自动日期快照", "快照保留数量…", "查看物品字典…", "查看补充字典…", "查看来源字典…", "来源记录保留数量…", "事件保留数量…", "使用图像缓存" }.All(all.Contains),
+                string.Join(",", all));
+            more?.Flyout?.ShowAt(more);
+            await Settle(500);
+            Shot("avalonia-accounts-more.png");
+            more?.Flyout?.Hide();
+            await Settle(200);
+
+            Check("菜单勾选与设置一致", page.SnapshotsEnabled == before.SnapshotsEnabled && page.UseImageCache == before.UseImageCache);
+            await page.ToggleSnapshotsCommand.ExecuteAsync(null);
+            Check("关闭自动日期快照并写入设置", page.SnapshotsEnabled != before.SnapshotsEnabled && (await store.GetSettingsAsync()).SnapshotsEnabled == page.SnapshotsEnabled);
+            await page.ToggleSnapshotsCommand.ExecuteAsync(null);
+            await page.ToggleImageCacheCommand.ExecuteAsync(null);
+            Check("图像缓存开关写入设置", (await store.GetSettingsAsync()).UseImageCache == !before.UseImageCache && page.UseImageCache == !before.UseImageCache);
+            await page.ToggleImageCacheCommand.ExecuteAsync(null);
+
+            async Task<FluentAvalonia.UI.Controls.FAContentDialog?> Retention(string kind, string? text, bool confirmShrink = true)
+            {
+                var last = Services.FluentMessageBox.Current;
+                var run = page.SetRetentionCommand.ExecuteAsync(kind);
+                var prompt = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+                await Settle(300);
+                var box = (prompt?.Content as Panel)?.Children.OfType<TextBox>().FirstOrDefault(t => t.Name == "PromptTextBox");
+                if (box is not null && text is not null) box.Text = text;
+                prompt?.Hide(text is null ? FluentAvalonia.UI.Controls.FAContentDialogResult.None : FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+                var follow = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != prompt ? c : null);
+                if (follow is not null)
+                {
+                    await Settle(300);
+                    follow.Hide(confirmShrink ? FluentAvalonia.UI.Controls.FAContentDialogResult.Primary : FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+                }
+                await run;
+                await Settle(300);
+                return follow;
+            }
+            var bad = await Retention("snapshots", "99");
+            Check("快照保留数量超出 1～30：提示且不保存", bad is not null && (await store.GetSettingsAsync()).SnapshotLimit == before.SnapshotLimit);
+            var up = before.SnapshotLimit < 30 ? before.SnapshotLimit + 1 : before.SnapshotLimit - 1;
+            await Retention("snapshots", up.ToString());
+            Check("快照保留数量写入", (await store.GetSettingsAsync()).SnapshotLimit == up, (await store.GetSettingsAsync()).SnapshotLimit.ToString());
+            await Retention("snapshots", before.SnapshotLimit.ToString());
+            Check("恢复快照保留数量（调小时确认）", (await store.GetSettingsAsync()).SnapshotLimit == before.SnapshotLimit);
+            var ev = await Retention("events", "500");
+            Check("事件保留数量下限 1000", ev is not null && (await store.GetSettingsAsync()).EventLimit == before.EventLimit);
+
+            // 字典：只读查看
+            var lastD = Services.FluentMessageBox.Current;
+            var view = page.ViewDictionaryCommand.ExecuteAsync("items");
+            var dict = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != lastD ? c : null);
+            await Settle(500);
+            var dictBox = (dict?.Content as Control)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == "DictionaryTextBox");
+            Check("查看物品字典：只读显示 item.csv", dict is { Title: "物品字典" } && dictBox is { IsReadOnly: true } && dictBox.Text?.Length > 100, dictBox?.Text?[..Math.Min(60, dictBox.Text.Length)]);
+            Shot("avalonia-accounts-dictionary.png");
+            dict?.Hide();
+            await view;
+            await Settle(300);
+        }
+        finally
+        {
+            if (createdRoot && Directory.Exists(root)) Directory.Delete(root, true);
+            else
+            {
+                var now = await store.GetSettingsAsync();
+                if (now.SnapshotsEnabled != before.SnapshotsEnabled || now.UseImageCache != before.UseImageCache)
+                    await store.UpdateSettingsAsync(x => { x.SnapshotsEnabled = before.SnapshotsEnabled; x.UseImageCache = before.UseImageCache; });
+            }
+        }
+    }
+
     private async Task AccountRecordsAsync()
     {
         var page = vm.AccountRecords;
@@ -3342,6 +3432,103 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
         }
     }
 
+    // —— 高级设置：引用来源编辑、资源位置、更新此任务资源（WPF 一条龙步骤配置窗口；gaps 17） ——
+
+    private async Task PlanAdvancedSourceAsync()
+    {
+        var page = vm.TaskPlan;
+        if (await CreateTempPlanAsync(page, "M61 高级来源自测") is not { } id) return;
+        const string dir = "/tmp/m61-adv";
+        Directory.CreateDirectory($"{dir}/目录");
+        await File.WriteAllTextAsync($"{dir}/甲.json", "{\"info\":{\"name\":\"M61 甲\"},\"positions\":[]}");
+        await File.WriteAllTextAsync($"{dir}/乙.json", "{\"info\":{\"name\":\"M61 乙\"},\"positions\":[]}");
+        await File.WriteAllTextAsync($"{dir}/目录/丙.json", "{\"info\":{\"name\":\"M61 丙\"},\"positions\":[]}");
+        try
+        {
+            page.SelectedTab = 0;
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M61 路线", TaskType = "pathing", Path = $"{dir}/甲.json" });
+            await page.AppendTaskAsync(new Pulonia.Models.PuloniaTask { Name = "M61 分组", TaskType = "group" });
+            await Settle(500);
+            TaskPlanNodeRow? Row(string name) => page.Nodes.FirstOrDefault(n => n.Name == name);
+            JObject? Node(string name) => Children(ReadPlan(id)).OfType<JObject>().FirstOrDefault(k => k.Value<string>("name") == name);
+            static TextBox? Box(Control? root, string name) => Find<TextBox>(root, name);
+            static T? Find<T>(Control? root, string name) where T : Control => root?.GetLogicalDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);
+
+            async Task Advanced(Action<Control?> edit, FluentAvalonia.UI.Controls.FAContentDialogResult result, string? shot = null)
+            {
+                var last = Services.FluentMessageBox.Current;
+                var run = page.EditNodeAdvancedCommand.ExecuteAsync(null);
+                var dialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != last ? c : null);
+                await Settle(500);
+                edit(dialog?.Content as Control);
+                if (shot is not null) Shot(shot);
+                if (Services.FluentMessageBox.Current == dialog) dialog?.Hide(result);
+                await run;
+                await Settle();
+            }
+
+            // 路线：资源位置可编辑，显示资源版本与“更新此任务资源”
+            page.SelectedNode = Row("M61 路线");
+            await Settle(400);
+            bool hasPath = false, hasUpdate = false; string? ver = null;
+            await Advanced(root =>
+            {
+                hasPath = Box(root, "AdvancedPathBox") is { } p && p.Text == $"{dir}/甲.json";
+                hasUpdate = Find<Button>(root, "AdvancedUpdateResourceButton") is not null;
+                ver = Find<TextBlock>(root, "AdvancedResourceVersionText")?.Text;
+                if (Box(root, "AdvancedPathBox") is { } b) b.Text = $"{dir}/乙.json";
+            }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary, "avalonia-plan-advanced-source.png");
+            Check("路线：显示资源位置、资源版本与更新按钮", hasPath && hasUpdate && ver == "资源版本：未固定", $"{hasPath} {hasUpdate} {ver}");
+            Check("修改资源位置并保存", Node("M61 路线")?.Value<string>("path") == $"{dir}/乙.json", Node("M61 路线")?.ToString(Newtonsoft.Json.Formatting.None));
+
+            // 高级设置里的“更新此任务资源”：关闭本窗口后弹出更新确认
+            page.SelectedNode = Row("M61 路线");
+            await Settle(300);
+            var lastDialog = Services.FluentMessageBox.Current;
+            var adv = page.EditNodeAdvancedCommand.ExecuteAsync(null);
+            var advDialog = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != lastDialog ? c : null);
+            await Settle(400);
+            var updateButton = Find<Button>(advDialog?.Content as Control, "AdvancedUpdateResourceButton");
+            updateButton?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            var confirm = await WaitFor(() => Services.FluentMessageBox.Current is { } c && c != advDialog && c != lastDialog ? c : null);
+            Check("更新此任务资源：弹出确认", confirm is { Title: "更新任务资源" }, confirm?.Title as string);
+            await Settle(300);
+            confirm?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            await adv;
+            await Settle(500);
+            Check("确认后写入任务使用版本", !string.IsNullOrEmpty(Node("M61 路线")?.Value<string>("resource_version")), Node("M61 路线")?.ToString(Newtonsoft.Json.Formatting.None));
+
+            // 分组：没有资源位置；引用来源编辑为目录引用
+            page.SelectedNode = Row("M61 分组");
+            await Settle(400);
+            bool groupPath = true, groupSource = false;
+            await Advanced(root =>
+            {
+                groupPath = Box(root, "AdvancedPathBox") is not null;
+                groupSource = Box(root, "AdvancedSourceBox") is { } s && string.IsNullOrEmpty(s.Text);
+                if (Box(root, "AdvancedSourceBox") is { } b) b.Text = $"{{\"kind\":\"directory\",\"task_type\":\"pathing\",\"path\":\"{dir}/目录\",\"recursive\":true}}";
+            }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            Check("分组：没有资源位置，引用来源为空", !groupPath && groupSource, $"{groupPath} {groupSource}");
+            var source = Node("M61 分组")?["source"] as JObject;
+            Check("引用来源写入为目录引用", source?.Value<string>("kind") == "directory" && source?.Value<string>("path") == $"{dir}/目录", source?.ToString(Newtonsoft.Json.Formatting.None) + " " + page.StatusMessage);
+
+            await Advanced(root => { if (Box(root, "AdvancedSourceBox") is { } b) b.Text = "{\"path\": 1"; }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            Check("无效来源不写入并提示", page.StatusMessage.Contains("引用来源无效") && (Node("M61 分组")?["source"] as JObject)?.Value<string>("kind") == "directory", page.StatusMessage);
+
+            page.SelectedNode = Row("M61 分组");
+            await Settle(300);
+            await Advanced(root => { if (Box(root, "AdvancedSourceBox") is { } b) b.Text = ""; }, FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            Check("清空引用来源", Node("M61 分组")?["source"] is null || Node("M61 分组")?["source"]?.Type == JTokenType.Null, Node("M61 分组")?.ToString(Newtonsoft.Json.Formatting.None));
+        }
+        finally
+        {
+            page.SelectedTab = 0;
+            await Settle();
+            await DeleteTempPlanAsync(page, id);
+            try { Directory.Delete(dir, true); } catch (IOException) { }
+        }
+    }
+
     // —— 独立任务“首领讨伐”：选择首领、树脂使用、按材料数量提前结束（gaps 12） ——
 
     private async Task SoloBossAsync()
@@ -3701,6 +3888,57 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
     /// <summary>
     /// 旧一条龙页：新增/删除/复制/排序任务，新增/重命名/删除配置（FAContentDialog 确认），结束后切回原配置
     /// </summary>
+    // —— 旧一条龙：拖动排序与右键菜单（gaps 25） ——
+
+    private async Task OneDragonSortAsync()
+    {
+        vm.Navigate("一条龙");
+        await Settle(800);
+        var page = vm.OneDragon;
+        var view = All<OneDragonPage>().FirstOrDefault();
+        var name = page.SelectedConfig?.Name;
+        Check("当前配置与任务", view is not null && name is not null && page.TaskList.Count >= 3, $"{name} {page.TaskList.Count}");
+        if (view is null || name is null || page.TaskList.Count < 3) return;
+        var original = page.TaskList.Select(t => t.Id).ToList();
+        var rows = view.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("odRow")).ToList();
+        var handles = view.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("dragHandle")).ToList();
+        Check("每行左侧有拖动把手", handles.Count == page.TaskList.Count && rows.Count == page.TaskList.Count, $"{handles.Count}/{rows.Count}/{page.TaskList.Count}");
+
+        // 右键菜单：与 WPF 相同的“新增 / 删除 / 从此执行 / 清除标记”
+        var menu = rows[1].ContextMenu;
+        var headers = menu?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+        Check("行右键菜单：新增任务 / 删除 / 从此执行 / 清除标记", headers.SequenceEqual(["新增任务", "删除", "从此执行", "清除标记"]), string.Join(",", headers));
+        var listMenu = Named<ScrollViewer>("OneDragonTaskScroll")?.ContextMenu;
+        Check("空白处右键菜单：新增任务 / 清除标记", listMenu?.Items.OfType<MenuItem>().Select(i => i.Header as string).SequenceEqual(["新增任务", "清除标记"]) == true);
+        menu?.Open(rows[1]);
+        await Settle(500);
+        Shot("avalonia-onedragon-contextmenu.png");
+        var next = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "从此执行");
+        next?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        menu?.Close();
+        await Settle(400);
+        Check("右键“从此执行”标记该行", page.TaskList[1].IsNextTask && page.NextTaskText.Contains(page.TaskList[1].Name), page.NextTaskText);
+        var clear = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "清除标记");
+        clear?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        await Settle(300);
+        Check("右键“清除标记”", page.TaskList.All(t => !t.IsNextTask), page.NextTaskText);
+
+        // 拖动排序：命中测试找到松开位置所在行，移到该行位置并立即保存
+        var center = rows[2].TranslatePoint(new Point(rows[2].Bounds.Width / 2, rows[2].Bounds.Height / 2), view);
+        var target = center is { } c ? view.TaskAt(c) : null;
+        Check("松开位置命中第三行", ReferenceEquals(target, page.TaskList[2]), target?.Name);
+        var first = page.TaskList[0];
+        if (target is not null) page.MoveTaskTo(first, target);
+        await Settle(400);
+        var saved = BetterGenshinImpact.Core.Config.OneDragonFlowConfigStore.Load(name);
+        Check("拖动第一行到第三行：顺序改变并保存", ReferenceEquals(page.TaskList[2], first) && saved?.TaskOrder.SequenceEqual(page.TaskList.Select(t => t.Id)) == true,
+            string.Join(",", page.TaskList.Select(t => t.Name)));
+        Shot("avalonia-onedragon-sorted.png");
+        page.MoveTaskTo(first, page.TaskList[0]);
+        await Settle(300);
+        Check("拖回原位", page.TaskList.Select(t => t.Id).SequenceEqual(original), string.Join(",", page.TaskList.Select(t => t.Name)));
+    }
+
     private async Task OneDragonEditAsync()
     {
         vm.Navigate("一条龙");
