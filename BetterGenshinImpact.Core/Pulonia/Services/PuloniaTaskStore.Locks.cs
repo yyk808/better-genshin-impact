@@ -87,7 +87,7 @@ public sealed partial class PuloniaTaskStore
             FileStream stream;
             try
             {
-                stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+                stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, HolderShare);
             }
             catch (IOException ex) when (IsSharingViolation(ex))
             {
@@ -134,7 +134,7 @@ public sealed partial class PuloniaTaskStore
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var stream = OpenOwnerForRead(path);
             using var reader = new StreamReader(stream, Utf8WithoutBom, detectEncodingFromByteOrderMarks: true);
             var json = reader.ReadToEnd();
             return json.Length == 0 ? null : PuloniaTaskJson.Read<PuloniaLockOwner>(json);
@@ -145,6 +145,38 @@ public sealed partial class PuloniaTaskStore
             return null;
         }
     }
+
+    /// <summary>
+    /// 持有者打开占用文件的共享方式。Windows：允许他人读、不允许他人写（共享冲突即互斥）。
+    /// Linux / macOS：.NET 把 <see cref="FileShare.None"/> 映射为 <c>flock(LOCK_EX|LOCK_NB)</c>，其余共享方式映射为共享锁 <c>LOCK_SH</c>，
+    /// 两个持有者都用 <see cref="FileShare.Read"/> 时都能取得、并不互斥，因此改用 <see cref="FileShare.None"/> 取得独占 flock；
+    /// 其他实例的判断（<see cref="IsLockHeld"/> 取 <c>LOCK_SH</c>）因此得到共享冲突，进程退出时由系统释放。
+    /// </summary>
+    private static FileShare HolderShare => OperatingSystem.IsWindows() ? FileShare.Read : FileShare.None;
+
+    /// <summary>
+    /// 只读打开占用文件读取持有者信息。Windows 照常以允许他人读写和删除的方式打开；
+    /// Linux 上 .NET 按路径打开文件时会取 <c>flock(LOCK_SH)</c>，会与持有者的独占锁冲突，
+    /// 因此直接用 <c>open(2)</c> 取得描述符再包装成流（按句柄构造的流不加 flock；flock 是建议性的，不妨碍读取）。
+    /// </summary>
+    private static FileStream OpenOwnerForRead(string path)
+    {
+        if (!OperatingSystem.IsLinux())
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var fd = UnixOpen(path, UnixOpenReadOnlyCloseOnExec);
+        if (fd < 0)
+        {
+            var errno = System.Runtime.InteropServices.Marshal.GetLastPInvokeError();
+            throw errno == 2 ? new FileNotFoundException(null, path) : new IOException($"打开 {path} 失败（errno {errno}）");
+        }
+        return new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(fd, ownsHandle: true), FileAccess.Read);
+    }
+
+    /// <summary>O_RDONLY | O_CLOEXEC（Linux 取值）</summary>
+    private const int UnixOpenReadOnlyCloseOnExec = 0x80000;
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "open", SetLastError = true)]
+    private static extern int UnixOpen([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)] string path, int flags);
 
     /// <summary>
     /// 以写方式短暂打开占用文件判断句柄是否仍被持有：共享冲突即被持有，打开成功立即关闭。

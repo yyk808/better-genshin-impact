@@ -129,7 +129,7 @@ public sealed partial class ScriptRepositoryStore
         {
             ct.ThrowIfCancellationRequested();
             try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
-            catch (IOException ex) when ((ex.HResult & 0xffff) is 32 or 33)
+            catch (IOException ex) when ((ex.HResult & 0xffff) is 32 or 33 || (!OperatingSystem.IsWindows() && ex.HResult == 11)) // Linux：flock 冲突为 EWOULDBLOCK
             {
                 if (deadline is { } end && Environment.TickCount64 >= end)
                     throw new IOException(timeoutMessage ?? "等待资源锁超时。", ex);

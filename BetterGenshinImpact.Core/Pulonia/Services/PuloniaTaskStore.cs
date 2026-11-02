@@ -650,8 +650,13 @@ public sealed partial class PuloniaTaskStore : IDisposable
     /// 判断打开文件失败是否因为文件正被其他句柄独占（共享冲突或锁冲突），只有这类失败值得重试。
     /// </summary>
     /// <param name="exception">打开文件时的异常</param>
+    /// <remarks>Linux 上 .NET 以 flock 实现独占打开，冲突时异常的 HResult 是 errno <c>EWOULDBLOCK</c>（11）。</remarks>
     private static bool IsSharingViolation(IOException exception)
-        => (exception.HResult & 0xFFFF) is ErrorSharingViolation or ErrorLockViolation;
+        => (exception.HResult & 0xFFFF) is ErrorSharingViolation or ErrorLockViolation
+           || (!OperatingSystem.IsWindows() && exception.HResult == UnixWouldBlock);
+
+    /// <summary>Linux 上 errno EWOULDBLOCK 的取值。</summary>
+    private const int UnixWouldBlock = 11;
 
     /// <summary>Win32 错误码 ERROR_SHARING_VIOLATION：文件正被其他进程使用。</summary>
     private const int ErrorSharingViolation = 32;
