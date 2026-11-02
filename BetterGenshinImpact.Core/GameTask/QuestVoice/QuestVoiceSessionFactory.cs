@@ -172,6 +172,8 @@ public sealed class QuestVoiceSessionFactory(QuestVoiceConfig config, string pro
         var extra = ExtraConfig(providerId);
         var address = extra is null ? remote ? config.RemoteServiceUrl : config.ServiceUrl
             : remote ? extra.RemoteUrl : extra.LocalUrl;
+        // 不连接服务的引擎（宿主注册的平台引擎，如 Linux espeak-ng）不使用地址，给一个占位地址；上游现有引擎都连接服务，不经过这里
+        if (!info.Capabilities.ServerConnection) address = "http://localhost/";
         if (!Uri.TryCreate(address?.Trim(), UriKind.Absolute, out var endpoint))
             throw new VoiceException(VoiceErrorCode.Configuration, "请填写有效的 HTTP/HTTPS 服务地址。");
         endpoint = new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/");
