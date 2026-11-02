@@ -28,6 +28,9 @@ public sealed class MaskWindowController : IDisposable
     private WaylandMaskSurface? _surface;
     private bool _surfaceFailed;
     private bool _placementWarned;
+    private readonly DispatcherTimer _focusTimer;
+    private readonly MaskFocusPolicy _focus = new();
+    private string _focusReason = "";
 
     public MaskWindowController(GameHost host, string? display, ILogger log)
     {
@@ -38,6 +41,23 @@ public sealed class MaskWindowController : IDisposable
         Current = this;
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => Update());
         _timer.Start();
+        // 焦点：每 100 ms 判断一次（X11 读 _NET_ACTIVE_WINDOW / 输入焦点），niri 的 WindowFocusChanged 事件立即判断；防抖见 MaskFocusPolicy
+        _focusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Background, (_, _) => EvaluateFocus());
+        _focusTimer.Start();
+        if (_wayland?.Niri is { } niri)
+        {
+            try
+            {
+                niri.Events.Received += e =>
+                {
+                    if (e.Kind == "WindowFocusChanged") Dispatcher.UIThread.Post(EvaluateFocus, DispatcherPriority.Background);
+                };
+            }
+            catch (Exception e) when (e is IOException or InvalidOperationException)
+            {
+                _log.Debug(e, "niri 事件流不可用，遮罩焦点改为轮询");
+            }
+        }
 
         // 配置里的颜色是 WPF 颜色文本（颜色名或 #AARRGGBB），用 Avalonia 的解析（语义相同）
         MaskColorParser.ColorTextConverter ??= text =>
@@ -118,6 +138,66 @@ public sealed class MaskWindowController : IDisposable
     /// <summary>Wayland 覆盖层的位置（输出名、相对输出的逻辑坐标；非 Wayland 或未显示时为 null），用于验证</summary>
     public WaylandOverlayPlacement? OverlayPlacement => _surface?.Placement;
 
+    /// <summary>防抖后遮罩是否应随游戏焦点显示（用于验证）</summary>
+    public bool FocusVisible => _focus.Visible;
+
+    /// <summary>遮罩因焦点显示 / 隐藏的次数（用于验证防抖）</summary>
+    public int FocusHideCount { get; private set; }
+    public int FocusShowCount { get; private set; }
+
+    /// <summary>
+    /// 按 WPF 规则判断游戏焦点（MaskFocusPolicy），可见状态变化时立即隐藏或显示遮罩
+    /// </summary>
+    private void EvaluateFocus()
+    {
+        try
+        {
+            if (!Wanted)
+            {
+                _focus.Reset();
+                return;
+            }
+
+            var runtime = _host.RuntimeService.Current!;
+            var window = runtime.Window;
+            var active = window.IsForeground;
+            var owned = !active && IsForegroundOwnedByBetterGiOrGame(window, out _focusReason);
+            var decision = MaskFocusPolicy.Decide(runtime.Capture.IsCapturing, window.IsMinimized, active, owned);
+            var before = _focus.Visible;
+            var visible = _focus.Update(decision, Environment.TickCount64, immediate: !runtime.Capture.IsCapturing);
+            if (visible == before) return;
+            if (visible)
+            {
+                FocusShowCount++;
+                _log.Information("遮罩：游戏窗口重新获得焦点，显示遮罩");
+                Update();
+            }
+            else
+            {
+                FocusHideCount++;
+                _log.Information("遮罩：游戏窗口失去焦点（前台为{Foreground}），隐藏遮罩", _focusReason);
+                Hide();
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Debug(e, "判断遮罩焦点失败");
+        }
+    }
+
+    /// <summary>前台属于 BetterGI 自身或游戏进程（或者没有前台窗口），按进程 ID 判断（同 WPF TaskTriggerDispatcher）</summary>
+    private static bool IsForegroundOwnedByBetterGiOrGame(BetterGenshinImpact.Platform.IPlatformWindow window, out string foreground)
+    {
+        if (BetterGenshinImpact.Platform.PlatformHost.ForegroundProcessId() is not { } pid)
+        {
+            foreground = "无";
+            return true;
+        }
+
+        foreground = pid == (uint)Environment.ProcessId ? "BetterGI" : pid == (uint)window.ProcessId ? "游戏进程" : $"进程 {pid}";
+        return pid == 0 || pid == (uint)Environment.ProcessId || pid == (uint)window.ProcessId;
+    }
+
     private bool Wanted => _host.LinuxConfig.MaskWindowEnabled && _host.Config.MaskWindowConfig.MaskEnabled && _host.RuntimeService.Current is not null;
 
     private void Update()
@@ -136,6 +216,13 @@ public sealed class MaskWindowController : IDisposable
             var r = window.Viewport.ScreenRect;
             var rect = new PixelRect(r.X, r.Y, r.Width, r.Height);
             if (rect.Width <= 0 || rect.Height <= 0 || window.IsMinimized)
+            {
+                Hide();
+                return;
+            }
+
+            // 游戏失去焦点（其他进程在前台）时不显示，规则与 WPF 相同
+            if (!_focus.Visible)
             {
                 Hide();
                 return;
@@ -312,6 +399,7 @@ public sealed class MaskWindowController : IDisposable
         _host.MaskDrawing.Changed -= OnDrawingChanged;
         RecognitionObject.ForceDrawOnWindow = false;
         _timer.Stop();
+        _focusTimer.Stop();
         _surface?.Dispose();
         _surface = null;
         _window?.Close();

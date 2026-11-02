@@ -170,6 +170,10 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
   位置换成相对该输出左上角的逻辑坐标；缓冲缩放 = 输出缩放向上取整（分数缩放由合成器缩小），换输出时重建 layer surface。
   拿不到窗口位置（平铺窗口）时遮罩不显示，并在日志里提示把游戏设为浮动或全屏。
   合成器不支持 layer-shell 时日志警告一次、遮罩不显示，其它功能不受影响。HTML 遮罩（WebKitGTK）仍只支持 X11。
+- **遮罩随游戏焦点显示 / 隐藏**（X11 与 Wayland 相同，`MaskFocusPolicy`）：规则与 WPF `MaskWindowHost.DecideVisibleLocked` 一致——截图器未运行隐藏；
+  游戏在前台显示；前台属于 BetterGI 自身（主窗口、对话框、遮罩本身）或游戏进程、或没有前台窗口时保持原状；其他进程在前台隐藏。
+  焦点每 100 ms 判断一次（X11：`_NET_ACTIVE_WINDOW`，没有窗口管理器时 `XGetInputFocus`；Wayland：niri 窗口 `is_focused`），niri 的 `WindowFocusChanged` 事件立即判断。
+  WPF 没有防抖，这里加了防抖：隐藏前需稳定 300 ms、重新显示前稳定 120 ms，焦点短暂切走再回来不闪烁。
 - xwayland-satellite 会给没声明“无装饰”的 X 窗口加一条标题栏，niri 报告的窗口比游戏客户区高；屏幕位置按客户区大小对齐到窗口底部。
 - 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
 - 实机检查清单见 `wayland-niri-checklist.md`。

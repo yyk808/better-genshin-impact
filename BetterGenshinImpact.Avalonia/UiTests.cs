@@ -18,7 +18,7 @@ namespace BetterGenshinImpact.Avalonia;
 /// 像用户一样点击按钮、选择下拉、勾选、输入，然后直接读取磁盘上的配置文件核对保存结果。
 /// 每项检查在日志中输出“UI 自测 PASS/FAIL”，结束时汇总
 /// </summary>
-internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger log, string? dir)
+internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm, ILogger log, string? dir)
 {
     private int _pass;
     private int _fail;
@@ -78,6 +78,9 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "plan-resource-update": await PlanResourceUpdateAsync(); break;
                 case "plan-advanced-source": await PlanAdvancedSourceAsync(); break;
                 case "script-more": await ScriptMoreAsync(); break;
+                case "mask-focus": await MaskFocusAsync(); break;
+                case "pulonia-accounts": await PuloniaAccountsAsync(); break;
+                case "account-switch": await AccountSwitchAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-more": await AccountRecordsMoreAsync(); break;
                 case "accounts-io": await AccountRecordsIoAsync(); break;
