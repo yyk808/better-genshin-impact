@@ -44,6 +44,16 @@
 		<Message Importance="high" Condition="'$(UseLocalOpenCvSharpExtern)' != 'true'" Text="OpenCvSharpExtern：未找到 $(OpenCvSharpExternPath)，使用 Sdcb 精简构建（无 features2d 等模块），完整构建见 Build/Linux/build-opencvsharp.sh" />
 	</Target>
 
+	<!-- 多实例（实例 IPC、Pulonia 远程派发）：与平台无关的部分直接编译 WPF 项目的源文件，平台部分在 Instance/*.Linux.cs -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\InstanceService.cs" Link="Instance\Shared\InstanceService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\InstanceBootstrap.cs" Link="Instance\Shared\InstanceBootstrap.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\InstanceConnection.cs" Link="Instance\Shared\InstanceConnection.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\MessageHandlers\InstanceRequestHandler.cs" Link="Instance\Shared\InstanceRequestHandler.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\MessageHandlers\InstanceMessageState.cs" Link="Instance\Shared\InstanceMessageState.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Instance\MessageHandlers\PuloniaRunMessageHandler.cs" Link="Instance\Shared\PuloniaRunMessageHandler.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
 		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />

@@ -214,7 +214,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | 凭据（任务计划账号） | 凭据管理器 | 系统密钥环（freedesktop Secret Service：GNOME Keyring / KWallet / KeePassXC），D-Bus 会话加密传输；没有密钥环时明确提示，不以明文保存；密钥环锁定时由密钥环弹出解锁对话框，2 分钟无人操作则停止（保存 / 切换）并提示，界面不卡住 |
 | 账号切换 | 支持（Win32 输入 + YuanShen 进程） | 切换流程在 Core，与 Windows 相同；运行环境检查为本机 XTest / uinput 输入 + 窗口进程（X 窗口 `_NET_WM_PID`，niri 原生窗口为 IPC pid）是 Wine / Proton 下的 YuanShen.exe；云原神仍不能切换（只读核验 UID） |
 | Shell 任务 | cmd.exe | /bin/sh（独立任务的 Shell 命令经标准输入交给 `/bin/sh -s`）；任务计划里 Windows 上创建的 `cmd.exe [/d /s /q] /c 命令` 改用 `/bin/sh -c 命令` 运行并记日志，其他程序原样启动 |
-| 多实例派发 | 支持 | 未接入；跨实例的账户占用 / 在线标记 / 写锁 / 脚本仓库资源锁已在 Linux 上真正互斥：占用文件以独占 flock（`LOCK_EX`）持有，读持有者信息用不加锁的 `open(2)`，flock 冲突（`EWOULDBLOCK`）按共享冲突重试（Windows 不变） |
+| 多实例派发 | 支持（桌面分身子会话、云原神实例） | 与 Windows 相同的实例 IPC（WPF 项目里与平台无关的实例服务源文件由 Host.Common 直接编译）：第一个实例取根实例锁（`$TMPDIR/CoreFxPipe_BetterGI.v2.user-uid-<uid>.root.lock` 的独占 flock）并监听根管道（Unix 域套接字，仅本用户）；同一 Unix 会话里再次启动时把参数转发给它并退出（激活主窗口）；在另一 Unix 会话里启动（如 `setsid bgi-avalonia --display :2`，通常再配独立的 Wine 前缀运行另一个游戏）的是子实例（“桌面分身”），任务计划页“执行实例”可把已保存的计划整次下发给它执行并回报状态；对端进程取自 `SO_PEERCRED`，会话为 `getsid`。没有云原神子实例与桌面分身鼠标转发（每个实例有自己的显示和输入）；`--no-instances` 关闭；跨实例的账户占用 / 在线标记 / 写锁 / 脚本仓库资源锁以独占 flock 互斥（Windows 不变） |
 | 插件（上游插件系统） | 加载外部插件，有插件页、OCR 模型选择 | 只使用 Core 中的内置实现（PP-OCRv6、内置传送），不加载外部插件，没有插件页和 OCR 模型选择界面 |
 | 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如脚本仓库、部分名单编辑）尚未迁移，见 phase4-avalonia.md |
 

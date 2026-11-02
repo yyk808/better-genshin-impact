@@ -84,6 +84,8 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "inference-fallback": await InferenceFallbackAsync(); break;
                 case "pulonia-accounts": await PuloniaAccountsAsync(); break;
                 case "pulonia-shell": await PuloniaShellAsync(); break;
+                case "instances-root": await InstancesRootAsync(); break;
+                case "instances-child": await InstancesChildAsync(); break;
                 case "account-switch": await AccountSwitchAsync(); break;
                 case "accounts": await AccountRecordsAsync(); break;
                 case "accounts-more": await AccountRecordsMoreAsync(); break;

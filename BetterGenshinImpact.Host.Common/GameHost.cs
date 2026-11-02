@@ -442,8 +442,30 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IPuloniaTaskExecutor, PuloniaSoloTaskExecutor>();
             services.AddSingleton<PuloniaTaskResourceCatalog>();
             services.AddSingleton<PuloniaTaskCreationService>();
-            // 账户目录与实例当前账户（上游统筹设计）：Linux 只有主实例，没有桌面分身与云原神实例
-            services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => new PuloniaInstanceKeyProvider(PuloniaInstanceKey.Primary));
+            // 账户目录与实例当前账户（上游统筹设计）。多实例（宿主启动前调用了 InstanceBootstrap）时与 Windows 相同：
+            // 实例键取自实例上下文（根实例 = 主实例，另一 Unix 会话里的实例 = 子实例），注册实例 IPC、在线标记与 Pulonia 一步下发；
+            // 没有调用时（无界面宿主、自测）只有主实例，不注册远程派发
+            var instanceBootstrap = BetterGenshinImpact.Service.Instance.InstanceBootstrap.Current;
+            if (instanceBootstrap is not null)
+            {
+                services.AddSingleton(instanceBootstrap);
+                services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => PuloniaInstanceKeyProvider.FromContext(instanceBootstrap.Context));
+                services.AddSingleton<BetterGenshinImpact.Service.Instance.InstanceService>();
+                services.AddSingleton<PuloniaInstancePresence>();
+                services.AddSingleton(sp => new BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatcher(
+                    () => sp.GetRequiredService<BetterGenshinImpact.Service.Instance.InstanceService>(),
+                    sp.GetRequiredService<TimeProvider>(),
+                    sp.GetRequiredService<ILogger<BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatcher>>()));
+                services.AddSingleton(sp => new BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatchHost(
+                    sp.GetRequiredService<IPuloniaTaskService>(),
+                    sp.GetRequiredService<IPuloniaInstanceKeyProvider>(),
+                    () => sp.GetRequiredService<BetterGenshinImpact.Service.Instance.InstanceService>(),
+                    sp.GetRequiredService<ILogger<BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatchHost>>()));
+            }
+            else
+            {
+                services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => new PuloniaInstanceKeyProvider(PuloniaInstanceKey.Primary));
+            }
             services.AddSingleton<IPuloniaAccountService, PuloniaAccountService>();
             services.AddSingleton<IPuloniaTaskService>(sp => new PuloniaTaskService(
                 sp.GetRequiredService<PuloniaTaskStore>(),
@@ -466,7 +488,9 @@ public sealed class GameHost : IAsyncDisposable
             var inputLogger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
             InputChannelBase.LoggerFactory = () => inputLogger;
 
-            return new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
+            var gameHost = new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
+            gameHost.StartInstanceServices();
+            return gameHost;
         }
         catch
         {
@@ -474,6 +498,30 @@ public sealed class GameHost : IAsyncDisposable
             throw;
         }
     }
+
+    /// <summary>
+    /// 多实例：启动实例 IPC（根实例监听根管道 / 子实例连接根实例）、在线标记（online.lock）与 Pulonia 一步下发宿主（子实例接受下发）。
+    /// 与 WPF 版的托管服务启动顺序相同；宿主界面就绪后再调用 <see cref="MarkInstanceApplicationReady"/> 处理排队的激活
+    /// </summary>
+    private void StartInstanceServices()
+    {
+        if (_provider.GetService<BetterGenshinImpact.Service.Instance.InstanceService>() is not { } instances)
+            return;
+        instances.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<PuloniaInstancePresence>()).StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatchHost>()).StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var context = instances.Context;
+        _log.Information("多实例：{Type}，进程 {Pid}，Unix 会话 {Session}，实例键 {Key}", context.InstanceType, context.ProcessId,
+            context.WindowsSessionId, _provider.GetRequiredService<IPuloniaInstanceKeyProvider>().CurrentInstanceKey);
+    }
+
+    /// <summary>界面就绪：处理在此之前收到的激活转发（与 WPF 主窗口加载后相同）</summary>
+    public void MarkInstanceApplicationReady() =>
+        _provider.GetService<BetterGenshinImpact.Service.Instance.InstanceService>()?.MarkApplicationReady();
+
+    /// <summary>多实例服务（未启用多实例时为 null）</summary>
+    public BetterGenshinImpact.Service.Instance.InstanceService? Instances =>
+        _provider.GetService<BetterGenshinImpact.Service.Instance.InstanceService>();
 
     /// <summary>初始化 CPU 推理（OCR 等），首次启动截图器前调用</summary>
     public async Task InitializeInferenceAsync()
@@ -627,6 +675,21 @@ public sealed class GameHost : IAsyncDisposable
         if (RuntimeService.IsRunning)
         {
             await RuntimeService.StopAsync();
+        }
+
+        // 多实例：先停一步下发宿主与实例 IPC，再释放在线标记（与 WPF 托管服务的停止顺序相同：后启动的先停止）
+        if (_provider.GetService<BetterGenshinImpact.Service.Instance.InstanceService>() is { } instances)
+        {
+            try
+            {
+                await ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatchHost>()).StopAsync(CancellationToken.None);
+                await instances.StopAsync(CancellationToken.None);
+                await ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<PuloniaInstancePresence>()).StopAsync(CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                _log.Warning(e, "停止多实例服务失败");
+            }
         }
 
         // 写入未保存的配置改动

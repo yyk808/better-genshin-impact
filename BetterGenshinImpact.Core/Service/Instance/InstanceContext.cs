@@ -89,11 +89,17 @@ internal static class InstancePipeNames
 
     internal static string ForCurrentUser()
     {
+        // Linux：按用户 uid 区分（.NET 命名管道在 Unix 上是 /tmp 下的 Unix 域套接字，以 CurrentUserOnly 限定本用户）
+        if (!OperatingSystem.IsWindows())
+            return $"{Prefix}uid-{UnixGetUid()}.root";
         using var identity = WindowsIdentity.GetCurrent();
         var userSid = identity.User
                       ?? throw new InvalidOperationException("无法取得当前 Windows 用户 SID。");
         return ForUserSid(userSid.Value);
     }
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "getuid")]
+    private static extern uint UnixGetUid();
 
     internal static string ForUserSid(string userSid)
     {

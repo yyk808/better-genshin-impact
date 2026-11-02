@@ -8,12 +8,11 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
-using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Service.Instance.MessageHandlers;
 
 namespace BetterGenshinImpact.Service.Instance;
 
-public sealed class InstanceBootstrap : IDisposable
+public sealed partial class InstanceBootstrap : IDisposable
 {
     private NamedPipeServerStream? _firstServer;
     private InitialRootConnection? _firstRootConnection;
@@ -39,7 +38,7 @@ public sealed class InstanceBootstrap : IDisposable
             return;
         }
 
-        var options = CommandLineOptions.Instance;
+        var options = ReadStartupOptions();
         var rootPipeName = InstancePipeNames.ForCurrentUser();
         var currentSessionId = Process.GetCurrentProcess().SessionId;
 
@@ -138,63 +137,18 @@ public sealed class InstanceBootstrap : IDisposable
         }
     }
 
-    /// <summary>
-    /// 网页版实例的实例名互斥体，进程存活期间一直持有，进程退出时由系统释放。
-    /// 静态字段防止被 GC 回收；由启动线程（UI 线程）获取，线程一直存活
-    /// </summary>
-    private static Mutex? _webViewInstanceMutex;
+    /// <summary>启动参数中与实例选择有关的部分</summary>
+    internal readonly record struct StartupOptions(
+        bool HasExplicitInstanceType,
+        BetterGiInstanceType InstanceType,
+        int? RestartFromProcessId,
+        string? InstanceName);
 
-    /// <summary>
-    /// 校验网页版实例名并获取实例名互斥体。名称缺失或不合法、同名实例已在运行时提示并退出进程。
-    /// 此时 WPF 尚未启动，提示使用 WinForms MessageBox（与 App 启动失败的兜底方式一致）
-    /// </summary>
-    private static string AcquireWebViewInstanceName(CommandLineOptions options)
-    {
-        if (!WebViewInstanceStore.TryNormalizeName(options.InstanceName, out var name, out var error))
-        {
-            ShowStartupMessage(
-                $"网页版实例需要通过 {CommandLineOptions.InstanceNameArgument} 指定合法的实例名：{error}",
-                System.Windows.Forms.MessageBoxIcon.Error);
-            Environment.Exit(0xFFFF);
-            throw new InvalidOperationException(error);
-        }
+    /// <summary>读取本进程的启动参数，由界面平台实现</summary>
+    private static partial StartupOptions ReadStartupOptions();
 
-        var mutex = new Mutex(initiallyOwned: false, WebViewInstanceStore.MutexName(name));
-        bool acquired;
-        try
-        {
-            // 应用内重启时旧进程还没退出，最多等它 15 秒（与 WaitForRestartSource 一致）
-            acquired = mutex.WaitOne(options.RestartFromProcessId is null ? 0 : 15_000);
-        }
-        catch (AbandonedMutexException)
-        {
-            // 旧进程未释放就退出了，互斥体已归当前线程所有
-            acquired = true;
-        }
-
-        if (!acquired)
-        {
-            mutex.Dispose();
-            ShowStartupMessage($"网页版实例「{name}」已在运行。", System.Windows.Forms.MessageBoxIcon.Information);
-            Environment.Exit(0);
-            throw new InvalidOperationException($"网页版实例「{name}」已在运行。");
-        }
-
-        _webViewInstanceMutex = mutex;
-        return name;
-    }
-
-    private static void ShowStartupMessage(string message, System.Windows.Forms.MessageBoxIcon icon)
-    {
-        try
-        {
-            System.Windows.Forms.MessageBox.Show(message, "BetterGI", System.Windows.Forms.MessageBoxButtons.OK, icon);
-        }
-        catch (Exception exception)
-        {
-            Trace.TraceError("显示启动提示失败：{0}，原提示：{1}", exception.Message, message);
-        }
-    }
+    /// <summary>校验网页版实例名并取得同名互斥，由界面平台实现；失败时提示并退出进程</summary>
+    private static partial string AcquireWebViewInstanceName(StartupOptions options);
 
     internal NamedPipeServerStream? TakeFirstServer()
     {
@@ -346,8 +300,38 @@ internal sealed record InitialRootConnection(
 
 internal static class InstancePipeFactory
 {
+    /// <summary>Linux：根实例锁（静态持有，进程退出时释放）</summary>
+    private static FileStream? _rootLock;
+
+    /// <summary>取根实例锁 <c>$TMPDIR/CoreFxPipe_&lt;管道名&gt;.lock</c>（与 .NET 的套接字文件同目录）；已被其他进程持有时抛出 <see cref="IOException"/></summary>
+    private static void AcquireRootLock(string pipeName)
+    {
+        if (_rootLock is not null)
+            return;
+        var path = Path.Combine(Path.GetTempPath(), $"CoreFxPipe_{pipeName}.lock");
+        // FileShare.None 在 Unix 上即 flock(LOCK_EX | LOCK_NB)，冲突时抛出 IOException
+        _rootLock = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+    }
+
     internal static NamedPipeServerStream CreateServer(string pipeName, bool firstPipeInstance)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            // Unix 域套接字没有 ACL：CurrentUserOnly 让套接字只对本用户可访问并校验对端 uid。
+            // .NET 在 Unix 上创建服务端会先删除同名套接字文件再 bind，FirstPipeInstance 拦不住第二个进程（会抢走根实例的套接字），
+            // 因此根实例先取套接字旁锁文件的独占 flock（进程存续期间持有，退出或崩溃时由内核释放），取不到即视为根实例已存在
+            if (firstPipeInstance)
+                AcquireRootLock(pipeName);
+            return new NamedPipeServerStream(
+                pipeName,
+                PipeDirection.InOut,
+                NamedPipeServerStream.MaxAllowedServerInstances,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly,
+                inBufferSize: 16 * 1024,
+                outBufferSize: 16 * 1024);
+        }
+
         using var identity = WindowsIdentity.GetCurrent();
         var ownerSid = identity.User
                        ?? throw new InvalidOperationException("无法取得当前 Windows 用户 SID。");

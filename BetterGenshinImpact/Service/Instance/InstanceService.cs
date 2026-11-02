@@ -6,16 +6,10 @@ using System.IO.Pipes;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Interop;
-using BetterGenshinImpact.Core.Monitor;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.SoloTask.Execution;
-using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Pulonia.Remote;
 using BetterGenshinImpact.Service.Instance.MessageHandlers;
-using BetterGenshinImpact.Service.Interface;
-using BetterGenshinImpact.ViewModel.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,7 +17,7 @@ using Newtonsoft.Json.Linq;
 
 namespace BetterGenshinImpact.Service.Instance;
 
-public sealed class InstanceService : IHostedService, IAsyncDisposable, IPuloniaRunTransport
+public sealed partial class InstanceService : IHostedService, IAsyncDisposable, IPuloniaRunTransport
 {
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
     /// <summary>
@@ -55,47 +49,6 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
     private InstanceConnection? _rootConnection;
     private bool _applicationReady;
     private int _stopStarted;
-
-    public InstanceService(
-        InstanceBootstrap bootstrap,
-        IServiceProvider serviceProvider,
-        RawInputMonitor rawInputMonitor,
-        IConfigService configService,
-        SoloTaskExecutionService soloTaskExecutionService,
-        ILogger<InstanceService> logger)
-    {
-        _bootstrap = bootstrap;
-        _logger = logger;
-        _soloTaskExecutionService = soloTaskExecutionService;
-        _soloTaskExecutionService.StatusChanged += OnLocalSoloTaskStatusChanged;
-        _relativeMouseMessageHandler = new RelativeMouseMessageHandler(
-            Context,
-            serviceProvider,
-            rawInputMonitor,
-            IsRootConnection,
-            logger);
-        if (Context.InstanceType == BetterGiInstanceType.Primary)
-        {
-            _relativeMouseMessageHandler.SetGameMouseModeEnabled(
-                configService.Get().ChildSessionConfig.GameMouseModeEnabled);
-        }
-        // Pulonia 一步下发的子实例宿主与主实例客户端依赖 Pulonia 服务，收到请求时才从容器取得，避免构造期循环依赖
-        var puloniaRunMessageHandler = new PuloniaRunMessageHandler(
-            Context,
-            serviceProvider.GetRequiredService<PuloniaRunDispatchHost>,
-            serviceProvider.GetRequiredService<PuloniaRunDispatcher>);
-        _requestHandler = new InstanceRequestHandler(
-            Context,
-            _messageState,
-            _relativeMouseMessageHandler,
-            EnqueueActivation,
-            DispatchWebViewMessage,
-            _soloTaskExecutionService,
-            ReceiveSoloTaskStatus,
-            NotifyConnectedInstancesChanged,
-            puloniaRunMessageHandler,
-            logger);
-    }
 
     /// <inheritdoc />
     public event Action<InstanceEndpoint>? ChildInstanceDisconnected;
@@ -792,7 +745,7 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
     {
         var pendingInitialConnection = initialRootConnection;
         var includeActivationArguments = pendingInitialConnection is null;
-        var restartFromProcessId = CommandLineOptions.Instance.RestartFromProcessId;
+        var restartFromProcessId = GetRestartFromProcessId();
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -956,6 +909,9 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
         }
     }
 
+    /// <summary>本进程启动参数里的 --restart-from 进程号，由界面平台实现</summary>
+    private static partial int? GetRestartFromProcessId();
+
     private void EnqueueActivation(string[] args)
     {
         lock (_activationLock)
@@ -970,29 +926,8 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
         DispatchActivation(args);
     }
 
-    private void DispatchActivation(string[] args)
-    {
-        Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
-        {
-            var commandLineOptions = CommandLineOptions.Parse(args);
-            if (commandLineOptions.IsPuloniaAction)
-            {
-                // 二次启动转发来的 --pulonia-run 提交到接收转发的本实例（主实例或桌面分身），
-                // 不激活主窗口，不与用户正在操作的桌面争抢焦点。
-                _ = CoreServices.GetService<Pulonia.Services.PuloniaTaskTriggerHost>()?.HandleActivationAsync(commandLineOptions);
-                return;
-            }
-            var mainWindow = Application.Current.MainWindow;
-            mainWindow?.Show();
-            mainWindow?.Activate();
-            if (mainWindow is not null)
-            {
-                GameSystem.RestoreWindow(new WindowInteropHelper(mainWindow).Handle);
-            }
-
-            CoreServices.GetService<HomePageViewModel>()?.HandleActivation(commandLineOptions);
-        }));
-    }
+    /// <summary>处理转发来的启动参数（激活主窗口、提交 --pulonia-run 等），由界面平台实现</summary>
+    private partial void DispatchActivation(string[] args);
 
     private void DispatchWebViewMessage(WebViewMessage message)
     {
@@ -1184,17 +1119,8 @@ public sealed class InstanceService : IHostedService, IAsyncDisposable, IPulonia
                && endpoint.InstanceType == Context.InstanceType;
     }
 
-    private static void RequestApplicationShutdown()
-    {
-        var application = Application.Current;
-        if (application is null)
-        {
-            Environment.Exit(0);
-            return;
-        }
-
-        _ = application.Dispatcher.BeginInvoke(new Action(application.Shutdown));
-    }
+    /// <summary>关闭当前应用，由界面平台实现</summary>
+    private static partial void RequestApplicationShutdown();
 
     /// <summary>
     /// 在关闭请求的成功响应已经写回根实例后，关闭当前子实例应用。

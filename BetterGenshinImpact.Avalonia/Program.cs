@@ -34,6 +34,13 @@ internal static class AvaloniaHostProgram
         var log = Log.ForContext("SourceContext", "Avalonia");
         try
         {
+            if (options.Instances)
+            {
+                // 多实例（与 WPF 版相同的实例 IPC）：建立根实例管道，或连接已运行的根实例；
+                // 同一 Unix 会话里重复启动时把启动参数转发给已运行的实例后在这里退出进程
+                BetterGenshinImpact.Service.Instance.InstanceBootstrap.HasExplicitChildSessionType = options.ChildInstance;
+                BetterGenshinImpact.Service.Instance.InstanceBootstrap.InitializeForHost();
+            }
             App.Startup = desktop => Startup(desktop, options, log);
             return BuildAvaloniaApp().StartWithClassicDesktopLifetime([]);
         }
@@ -143,8 +150,23 @@ internal static class AvaloniaHostProgram
             }
         };
 
+        if (host?.Instances is not null)
+        {
+            // 另一次启动转发来的参数：显示并激活主窗口（与 WPF 相同）；根实例要求关闭时关闭应用
+            BetterGenshinImpact.Service.Instance.InstanceService.ActivationHandler = args => Dispatcher.UIThread.Post(() =>
+            {
+                log.Information("收到另一次启动转发：{Arguments}，激活主窗口", string.Join(" ", args.Skip(1)));
+                window.Show();
+                if (window.WindowState == global::Avalonia.Controls.WindowState.Minimized)
+                    window.WindowState = global::Avalonia.Controls.WindowState.Normal;
+                window.Activate();
+            });
+            BetterGenshinImpact.Service.Instance.InstanceService.ShutdownHandler = () => Dispatcher.UIThread.Post(() => desktop.Shutdown());
+        }
+
         window.Opened += async (_, _) =>
         {
+            host?.MarkInstanceApplicationReady();
             if (options.Page is { } page && !viewModel.Navigate(page))
             {
                 log.Warning("没有名为 {Page} 的页面", page);
@@ -574,7 +596,9 @@ internal sealed record AvaloniaOptions(
     int ScriptStopAfterSeconds = 0,
     bool NotifyTest = false,
     string? TaskPlan = null,
-    string? UiTest = null)
+    string? UiTest = null,
+    bool Instances = true,
+    bool ChildInstance = false)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -592,6 +616,8 @@ internal sealed record AvaloniaOptions(
         var notifyTest = false;
         string? taskPlan = null;
         string? uiTest = null;
+        var instances = true;
+        var childInstance = false;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -619,11 +645,15 @@ internal sealed record AvaloniaOptions(
                 case "--task-plan": taskPlan = Next(); break;
                 // 宿主内界面自测：script-settings（脚本设置）或 taskplan（任务计划编辑），点击控件后读取磁盘文件核对
                 case "--ui-test": uiTest = Next(); break;
+                // 多实例：默认启用（同一 Unix 会话里再次启动时转发给已运行的实例）；--no-instances 关闭；
+                // --child-instance 要求作为子实例连接根实例（须在另一 Unix 会话里，如 setsid 启动）
+                case "--no-instances": instances = false; break;
+                case "--child-instance": childInstance = true; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
         return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
-            scriptStopAfter, notifyTest, taskPlan, uiTest);
+            scriptStopAfter, notifyTest, taskPlan, uiTest, instances, childInstance);
     }
 }

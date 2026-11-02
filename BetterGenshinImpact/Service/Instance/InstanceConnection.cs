@@ -384,11 +384,47 @@ internal static class InstancePipePeerInfo
         uint processId,
         out uint sessionId);
 
+    /// <summary>Linux：SOL_SOCKET / SO_PEERCRED（.NET 的命名管道在 Unix 上是 Unix 域套接字）</summary>
+    private const int SolSocket = 1, SoPeerCred = 17;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct UnixPeerCredentials
+    {
+        public int Pid;
+        public uint Uid;
+        public uint Gid;
+    }
+
+    [DllImport("libc", EntryPoint = "getsockopt", SetLastError = true)]
+    private static extern int UnixGetSockOpt(SafePipeHandle socket, int level, int optionName, out UnixPeerCredentials value, ref uint length);
+
+    [DllImport("libc", EntryPoint = "getsid", SetLastError = true)]
+    private static extern int UnixGetSid(int processId);
+
     internal static bool TryGetClientProcessAndSession(
         SafePipeHandle pipe,
         out int processId,
         out int sessionId)
     {
+        if (OperatingSystem.IsLinux())
+        {
+            // 对端进程取自内核记录的连接凭据；“Session”对应 Unix 会话（getsid，与 .NET Process.SessionId 相同），
+            // 同一会话里再次启动视为重复启动（转发激活），用 setsid 在独立会话里启动的才是另一个实例
+            var length = (uint)Marshal.SizeOf<UnixPeerCredentials>();
+            if (UnixGetSockOpt(pipe, SolSocket, SoPeerCred, out var credentials, ref length) == 0
+                && credentials.Pid > 0
+                && UnixGetSid(credentials.Pid) is var unixSession and >= 0)
+            {
+                processId = credentials.Pid;
+                sessionId = unixSession;
+                return true;
+            }
+
+            processId = 0;
+            sessionId = 0;
+            return false;
+        }
+
         if (GetNamedPipeClientProcessId(pipe, out var nativeProcessId)
             && ProcessIdToSessionId(nativeProcessId, out var nativeSessionId)
             && nativeProcessId <= int.MaxValue

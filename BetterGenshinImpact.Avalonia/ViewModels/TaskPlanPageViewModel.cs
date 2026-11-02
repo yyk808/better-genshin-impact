@@ -60,6 +60,7 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         _catalog = host.Services.GetService<PuloniaTaskResourceCatalog>();
         _creation = host.Services.GetService<PuloniaTaskCreationService>();
         _scheduler = host.Services.GetService<PuloniaSchedulerHost>();
+        AttachInstances(host.Services);
         if (_tasks is not null)
         {
             // 进程内 C# 任务与 WPF 相同可添加（Core 执行器与操作注册表，不依赖 Windows）
@@ -139,7 +140,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     /// <summary>当前计划是否有未结束的运行</summary>
     private PuloniaTaskRunView? _latestRun;
 
-    public bool IsSelectedPlanRunning => SelectedPlan is { } p && Runs.Any(r => r.IsActive && r.PlanId == p.Plan.Id);
+    public bool IsSelectedPlanRunning => SelectedPlan is { } p && (Runs.Any(r => r.IsActive && r.PlanId == p.Plan.Id)
+                                                                  || DispatchedRuns.Any(r => r.CanCancel && r.PlanId == p.Plan.Id));
 
     public override void OnNavigatedTo()
     {
@@ -713,6 +715,8 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
         SelectedPlan = item;
         try
         {
+            if (SelectedRunTarget?.Endpoint is { } child)
+                return await SubmitToChildAsync(item, child);
             var runId = await _tasks.EnqueueAsync(new PuloniaTaskRequest { PlanId = item.Plan.Id, Source = "ui" });
             StatusMessage = $"已提交“{item.Name}”，将按提交顺序执行；之后的修改不影响本次运行。";
             _log.Information("任务计划：已提交 {Plan}（{RunId}）", item.Name, runId);
@@ -732,6 +736,19 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
     public async Task StopPlanAsync()
     {
         if (_tasks is null || SelectedPlan is not { } item) return;
+        // 下发到子实例、仍在执行的运行：请求子实例停止（最终状态随后回报）
+        foreach (var remote in DispatchedRuns.Where(r => r.CanCancel && r.PlanId == item.Plan.Id).ToList())
+        {
+            try
+            {
+                await _dispatcher!.CancelAsync(remote.RunId);
+                _log.Information("任务计划：已请求 {Target} 停止 {Plan}（{RunId}）", remote.InstanceName, item.Name, remote.RunId);
+            }
+            catch (Exception e)
+            {
+                StatusMessage = "停止失败：" + e.Message;
+            }
+        }
         foreach (var run in Runs.Where(r => r.IsActive && r.PlanId == item.Plan.Id).ToList())
         {
             try
@@ -827,6 +844,14 @@ public sealed partial class TaskPlanPageViewModel : PageViewModel
             if (SelectedPlan is { } current)
             {
                 foreach (var row in Nodes) row.UpdateStatus(_latestRun, current.Plan.RootTask.Id);
+            }
+
+            // 下发到子实例的运行（状态由子实例回报）：比本实例最近的运行更新时显示它
+            if (LatestDispatchedRun is { } remote && (_latestRun is null || remote.SubmittedAt >= _latestRun.SubmittedAt))
+            {
+                HasActiveRun = remote.IsActive;
+                ExecutionStatusText = $"[{remote.InstanceName}] " + PuloniaTaskRunStatusText.Get(remote.Status) + " · " + remote.Message
+                                      + (remote.IsDisconnected ? "（子实例已断开）" : "");
             }
 
             OnPropertyChanged(nameof(IsSelectedPlanRunning));

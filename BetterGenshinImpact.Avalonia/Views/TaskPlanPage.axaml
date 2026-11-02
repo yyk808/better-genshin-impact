@@ -69,6 +69,10 @@
                     <DockPanel IsVisible="{Binding HasSelectedPlan}">
                         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <!-- 执行实例：有在线子实例（另一 Unix 会话里的 BetterGI）时显示，选子实例时整次下发 -->
+                                <ComboBox Name="RunTargetBox" MinWidth="150" ItemsSource="{Binding RunTargets}" SelectedItem="{Binding SelectedRunTarget}"
+                                          DisplayMemberBinding="{Binding Label}" IsVisible="{Binding ShowRunTargets}"
+                                          ToolTip.Tip="执行实例：本实例，或把已保存的计划整次下发到子实例，由子实例执行并回报状态" />
                                 <Button Name="PreviewRunButton" Content="预览" MinWidth="64" HorizontalContentAlignment="Center"
                                         Command="{Binding PreviewRunCommand}" ToolTip.Tip="预览本次执行：逐项预测执行或因路线 CD 跳过" />
                                 <Button Classes="accent" Content="运行" MinWidth="72" HorizontalContentAlignment="Center"
