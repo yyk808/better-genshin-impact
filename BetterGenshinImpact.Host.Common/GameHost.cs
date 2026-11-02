@@ -422,6 +422,20 @@ public sealed class GameHost : IAsyncDisposable
             // 服务器时间（月卡判断、按服务器日期的执行周期等使用，与 WPF 相同）
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IServerTimeProvider, ServerTimeProvider>();
+            // 地图点位（遮罩小地图 / 大地图点位层）：点位服务与三个数据源接口与 WPF 相同；文件缓存放在 Cache/Files（与 WPF 相同的分区与过期规则，
+            // 定期清理的 CacheMaintenanceService 是托管服务，Linux 宿主不跑托管服务，过期条目在读取时按 FileCache 规则失效）
+            services.AddHttpClient(HttpClientNames.GameApi, c => c.Timeout = TimeSpan.FromSeconds(30));
+            services.AddHttpClient(HttpClientNames.Images, c => c.Timeout = TimeSpan.FromSeconds(15));
+            services.AddMemoryCache();
+            services.AddSingleton<LazyCache.IAppCache, LazyCache.CachingService>();
+            services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Cache.FileCache(BetterGenshinImpact.Infrastructure.Storage.AppPaths.FileCache,
+                sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Cache.FileCache>>()));
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Cache.IFileCache>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.FileCache>());
+            services.AddSingleton<IMihoyoMapApiService, MihoyoMapApiService>();
+            services.AddSingleton<IKongyingTavernApiService, BetterGenshinImpact.Service.Tavern.KongyingTavernApiService>();
+            services.AddSingleton<IHoYoLabMapApiService, HoYoLabMapApiService>();
+            services.AddSingleton<IMaskMapPointService, MaskMapPointService>();
+            services.AddSingleton<BetterGenshinImpact.ViewModel.MaskWindowViewModel>();
             // 任务计划（Pulonia）：模型、存储、执行服务与执行器都在 Core，与 Windows 相同；
             // 账户切换器在 Core，登录凭据存到系统密钥环（Secret Service），运行环境检查为本机 XTest / uinput 输入 + Wine 下的 YuanShen.exe；
             // 没有多实例（不注册远程派发）

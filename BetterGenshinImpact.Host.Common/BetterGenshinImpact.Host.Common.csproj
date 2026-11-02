@@ -66,6 +66,20 @@
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\KeyMacro\KeyMacroTemplates.cs" Link="KeyMacro\Shared\KeyMacroTemplates.cs" />
 	</ItemGroup>
 
+	<!-- 地图点位：点位服务与米游社 / HoYoLab / 空荧酒馆接口、文件缓存直接编译 WPF 项目的源文件（不依赖 WPF） -->
+	<ItemGroup>
+		<PackageReference Include="LazyCache" Version="2.4.0" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.12" />
+		<Compile Include="..\BetterGenshinImpact\Service\MaskMapPointService.cs" Link="MapPoints\Shared\MaskMapPointService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\MihoyoMapApiService.cs" Link="MapPoints\Shared\MihoyoMapApiService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\HoYoLabMapApiService.cs" Link="MapPoints\Shared\HoYoLabMapApiService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Tavern\KongyingTavernApiService.cs" Link="MapPoints\Shared\KongyingTavernApiService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Infrastructure\Cache\FileCache.cs" Link="MapPoints\Shared\FileCache.cs" />
+		<Compile Include="..\BetterGenshinImpact\Infrastructure\Cache\CacheMaintenanceService.cs" Link="MapPoints\Shared\CacheMaintenanceService.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\MaskWindowViewModel.MapPoints.cs" Link="MapPoints\Shared\MaskWindowViewModel.MapPoints.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\MaskMapPointInfoPopupViewModel.cs" Link="MapPoints\Shared\MaskMapPointInfoPopupViewModel.cs" />
+	</ItemGroup>
+
 	<!-- 脚本仓库：Git 同步、订阅更新、仓库网页桥接直接编译 WPF 项目的源文件；平台部分（网页窗口、确认框、Git 凭据）在 ScriptRepo/*.Linux.cs -->
 	<ItemGroup>
 		<Compile Include="..\BetterGenshinImpact\Core\Script\ScriptRepoUpdater.cs" Link="ScriptRepo\Shared\ScriptRepoUpdater.cs" />

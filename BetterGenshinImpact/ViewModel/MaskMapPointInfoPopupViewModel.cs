@@ -2,12 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using BetterGenshinImpact.Infrastructure.Cache;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using BetterGenshinImpact.Model.MaskMap;
 using BetterGenshinImpact.Service.Guide;
 using BetterGenshinImpact.Service.Interface;
@@ -21,10 +17,6 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
 {
     private readonly ILogger<MaskMapPointInfoPopupViewModel> _logger = CoreServices.GetLogger<MaskMapPointInfoPopupViewModel>();
     private CancellationTokenSource? _cts;
-    /// <summary>
-    /// 远程图片服务：点位图片经文件缓存下载，跟随网络与代理设置
-    /// </summary>
-    private static IRemoteImageService? Remote => CoreServices.GetService<IRemoteImageService>();
     private MemoryStream? _imageStream;
 
     public event EventHandler<MaskMapPoint?>? ToggleHiddenRequested;
@@ -33,14 +25,12 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isTextLoading;
     [ObservableProperty] private string _textError = string.Empty;
-    [ObservableProperty] private Rect _placementRect = Rect.Empty;
     [ObservableProperty] private string _title = string.Empty;
     [ObservableProperty] private MaskMapPoint? _currentPoint;
     [ObservableProperty] private bool _isCurrentPointHidden;
     [ObservableProperty] private string _text = string.Empty;
     [ObservableProperty] private IReadOnlyList<MaskMapLink> _urlList = Array.Empty<MaskMapLink>();
     [ObservableProperty] private bool _hasUrlList;
-    [ObservableProperty] private ImageSource? _image;
     [ObservableProperty] private bool _hasImage;
     [ObservableProperty] private bool _isImageLoading;
     [ObservableProperty] private string _imageError = string.Empty;
@@ -52,6 +42,11 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
     /// 悬浮小窗服务；子实例中不可用
     /// </summary>
     private static IGuideWindowService? GuideWindow => CoreServices.GetService<IGuideWindowService>();
+
+    /// <summary>
+    /// 查询点位详情的服务；未设置时取全局注册的点位服务
+    /// </summary>
+    public IMaskMapPointService? PointService { get; set; }
 
     /// <summary>
     /// 链接旁是否显示“换一种方式打开”的小按钮（悬浮小窗可用时）
@@ -68,18 +63,15 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
         HasUrlList = value is { Count: > 0 };
     }
 
-    public async Task ShowAsync(MaskMapPoint point, Point anchorPosition, string title, bool isHidden, CancellationToken externalCt = default)
+    /// <summary>打开点位信息弹窗；(anchorX, anchorY) 为点位在遮罩上的中心（遮罩坐标）</summary>
+    public async Task ShowAsync(MaskMapPoint point, double anchorX, double anchorY, string title, bool isHidden, CancellationToken externalCt = default)
     {
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = CancellationTokenSource.CreateLinkedTokenSource(externalCt);
         var ct = _cts.Token;
 
-        PlacementRect = new Rect(
-            anchorPosition.X - MaskMapPointStatic.Width / 2.0,
-            anchorPosition.Y - MaskMapPointStatic.Height / 2.0,
-            MaskMapPointStatic.Width,
-            MaskMapPointStatic.Height);
+        SetPlacement(anchorX, anchorY);
 
         Title = title ?? string.Empty;
         CurrentPoint = point;
@@ -105,7 +97,7 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
 
         try
         {
-            var service = CoreServices.GetService<IMaskMapPointService>();
+            var service = PointService ?? CoreServices.GetService<IMaskMapPointService>();
             if (service == null)
             {
                 TextError = "地图服务未就绪";
@@ -192,112 +184,6 @@ public partial class MaskMapPointInfoPopupViewModel : ObservableObject
         GifSourceStream = null;
         _imageStream?.Dispose();
         _imageStream = null;
-    }
-
-    private async Task<(bool IsGif, ImageSource? StaticImage, Uri? GifSourceUri, Stream? GifSourceStream)> LoadPopupImageNoCacheAsync(
-        string url,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return default;
-        }
-
-        try
-        {
-            if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                // 经文件缓存获取，7 天内再次查看同一点位不重复下载
-                var bytes = Remote is null ? null : await Remote.GetBytesAsync(CachePartitions.MapPointImages, url, ct);
-                if (bytes is not { Length: > 0 })
-                {
-                    return default;
-                }
-
-                if (IsGifBytes(bytes))
-                {
-                    DisposeImageStream();
-                    _imageStream = new MemoryStream(bytes, writable: false);
-                    _imageStream.Position = 0;
-                    return (IsGif: true, StaticImage: null, GifSourceUri: null, GifSourceStream: _imageStream);
-                }
-
-                var img = await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    using var ms = new MemoryStream(bytes, writable: false);
-                    ms.Position = 0;
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = ms;
-                    bmp.EndInit();
-                    bmp.Freeze();
-                    return (ImageSource)bmp;
-                });
-
-                return (IsGif: false, StaticImage: img, GifSourceUri: null, GifSourceStream: null);
-            }
-
-            if (LooksLikeGifUri(url))
-            {
-                if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var gifUri))
-                {
-                    DisposeImageStream();
-                    return (IsGif: true, StaticImage: null, GifSourceUri: gifUri, GifSourceStream: null);
-                }
-            }
-
-            var staticImg = await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                DisposeImageStream();
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.UriSource = new Uri(url, UriKind.RelativeOrAbsolute);
-                bmp.EndInit();
-                bmp.Freeze();
-                return (ImageSource)bmp;
-            });
-            return (IsGif: false, StaticImage: staticImg, GifSourceUri: null, GifSourceStream: null);
-        }
-        catch
-        {
-            return default;
-        }
-    }
-
-    private static bool LooksLikeGifUri(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return false;
-        }
-
-        if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri))
-        {
-            var path = uri.IsAbsoluteUri ? uri.AbsolutePath : uri.OriginalString;
-            var q = path.IndexOfAny(['?', '#']);
-            if (q >= 0)
-            {
-                path = path[..q];
-            }
-
-            return path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
-        }
-
-        return url.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsGifBytes(byte[] bytes)
-    {
-        return bytes is
-        [
-            (byte)'G', (byte)'I', (byte)'F', (byte)'8',
-            (byte)'7' or (byte)'9',
-            (byte)'a',
-            ..
-        ];
     }
 
     [RelayCommand]
