@@ -373,13 +373,23 @@ public sealed partial class OneDragonPageViewModel : PageViewModel
         UiHost.Dialogs.Toast(DialogKind.Success, $"已复制任务: {item.Name}");
     }
 
-    /// <summary>上移（WPF 为拖动排序）</summary>
+    /// <summary>上移（“⋯”菜单；WPF 为拖动排序，Avalonia 也可拖动左侧把手）</summary>
     [RelayCommand]
     private void MoveTaskUp(OneDragonTaskItem? item) => MoveTask(item, -1);
 
-    /// <summary>下移（WPF 为拖动排序）</summary>
+    /// <summary>下移（“⋯”菜单；WPF 为拖动排序，Avalonia 也可拖动左侧把手）</summary>
     [RelayCommand]
     private void MoveTaskDown(OneDragonTaskItem? item) => MoveTask(item, 1);
+
+    /// <summary>拖动排序：把任务移到目标任务的位置（WPF 列表拖放），排序立即保存</summary>
+    public void MoveTaskTo(OneDragonTaskItem item, OneDragonTaskItem target)
+    {
+        var index = TaskList.IndexOf(item);
+        var to = TaskList.IndexOf(target);
+        if (index < 0 || to < 0 || index == to) return;
+        TaskList.Move(index, to);
+        SaveTaskList();
+    }
 
     private void MoveTask(OneDragonTaskItem? item, int delta)
     {

@@ -22,12 +22,33 @@
             <Border DockPanel.Dock="Top" Height="1" Margin="8,0,0,8" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
             <TextBlock DockPanel.Dock="Top" Classes="desc" Margin="8,0,0,4" Text="{Binding Tasks.StatusText, StringFormat='状态：{0}'}" />
             <TextBlock DockPanel.Dock="Top" Classes="desc" Margin="8,0,0,8" Text="{Binding NextTaskText}" />
-            <ScrollViewer>
+            <!-- 与 WPF 相同：任务列表右键菜单（新增 / 删除 / 从此执行 / 清除标记），拖动左侧把手排序 -->
+            <ScrollViewer x:Name="OneDragonTaskScroll" Background="Transparent">
+                <ScrollViewer.ContextMenu>
+                    <ContextMenu x:Name="OneDragonListMenu">
+                        <MenuItem Header="新增任务" Command="{Binding AddTaskCommand}" />
+                        <Separator />
+                        <MenuItem Header="清除标记" Command="{Binding ClearNextTaskCommand}" />
+                    </ContextMenu>
+                </ScrollViewer.ContextMenu>
                 <ItemsControl x:Name="OneDragonTaskList" ItemsSource="{Binding TaskList}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="model:OneDragonTaskItem">
-                            <Border Margin="0,0,0,4" Padding="8,4" CornerRadius="4" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <Border Classes="odRow" Margin="0,0,0,4" Padding="8,4" CornerRadius="4" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                                <Border.ContextMenu>
+                                    <!-- ContextMenu 弹出层不在列表可视树内，命令由后台按菜单项 Tag 转给页面 ViewModel -->
+                                    <ContextMenu>
+                                        <MenuItem Header="新增任务" Tag="add" Click="OnRowMenuClick" />
+                                        <MenuItem Header="删除" Tag="delete" Click="OnRowMenuClick" />
+                                        <Separator />
+                                        <MenuItem Header="从此执行" Tag="next" Click="OnRowMenuClick" />
+                                        <MenuItem Header="清除标记" Tag="clear" Click="OnRowMenuClick" />
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <DockPanel>
+                                    <TextBlock Classes="dragHandle" DockPanel.Dock="Left" Text="⠿" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.6"
+                                               Cursor="SizeNorthSouth" Background="Transparent" ToolTip.Tip="拖动排序"
+                                               PointerPressed="OnDragHandlePressed" PointerReleased="OnDragHandleReleased" />
                                     <Button DockPanel.Dock="Right" Padding="6,4" Margin="4,0,0,0" ToolTip.Tip="更多" Content="{svc:FluentIcon MoreHorizontal24, Size=12}">
                                         <Button.Flyout>
                                             <MenuFlyout Placement="BottomEdgeAlignedRight">
