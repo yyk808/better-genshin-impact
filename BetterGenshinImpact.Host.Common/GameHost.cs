@@ -42,7 +42,7 @@ namespace BetterGenshinImpact.Host.Common;
 public sealed class GameHost : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
-    private readonly X11PlatformServices _platform;
+    private readonly IPlatformServices _platform;
     private readonly ILogger _log;
     private readonly ConcurrentDictionary<string, int> _tickErrors = new();
     private long _frames;
@@ -50,7 +50,7 @@ public sealed class GameHost : IAsyncDisposable
     private readonly FileConfigService? _fileConfig;
     private readonly LinuxHostConfigStore? _linuxConfigStore;
 
-    private GameHost(GameHostOptions options, X11PlatformServices platform, PlatformProbeResult probe, AllConfig config,
+    private GameHost(GameHostOptions options, IPlatformServices platform, PlatformProbeResult probe, AllConfig config,
         ServiceProvider provider, ILogger log, FileConfigService? fileConfig, LinuxHostConfigStore? linuxConfigStore,
         LinuxHostConfig linuxConfig, ManualWindowSelection manualWindow)
     {
@@ -174,8 +174,9 @@ public sealed class GameHost : IAsyncDisposable
             log.Warning("OpenCV 特征匹配探测失败：{Message}", e.Message);
         }
 
-        // 1. 平台服务：X11 找窗 / 截图 / XTest 输入
-        var platform = new X11PlatformServices(options.Display);
+        // 1. 平台服务：X11 会话为 X11 找窗 / 截图 / XTest 输入（与以前相同）；Wayland 会话（WAYLAND_DISPLAY / XDG_SESSION_TYPE，
+        //    或 BGI_LINUX_BACKEND=wayland）为 niri IPC + evdev 热键 + uinput / XTest 输入 + X 窗口或 ScreenCast portal 截图
+        var platform = BetterGenshinImpact.Platform.Linux.Wayland.LinuxSession.Create(options.Display);
         try
         {
             var probe = platform.Probe();
@@ -292,7 +293,7 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<IMaskWindowMapState, MaskWindowMapState>();
             services.AddSingleton<TaskStopService>();
             // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
-            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
+            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(BetterGenshinImpact.Platform.Linux.Wayland.LinuxSession.CreateRelativeMouseMonitor(platform, options.Display)));
             services.AddSingleton<KeyMouseRecordService>();
             services.AddSingleton<KeyMouseRecordController>();
             // 独立任务：注册表只扫描 Core（Linux 宿主没有 WPF 主程序集，一条龙另行迁移），执行走 Core 的 TaskRunner
@@ -350,7 +351,7 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<BetterGenshinImpact.GameTask.QuestVoice.Features.Routing.RoutingCatalogStore>();
             services.AddSingleton<BetterGenshinImpact.ViewModel.Pages.QuestVoiceSettingsViewModel>();
             // 键鼠录制：相对鼠标移动用 XInput2 原始移动（DirectInput / RawInput 两种方式都映射到它），按键与按钮来自全局键鼠监听
-            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(platform.CreateRelativeMouseMonitor()));
+            services.AddSingleton<IRelativeMouseInputMonitorFactory>(_ => new X11RelativeMouseInputMonitorFactory(BetterGenshinImpact.Platform.Linux.Wayland.LinuxSession.CreateRelativeMouseMonitor(platform, options.Display)));
             services.AddSingleton<KeyMouseRecordService>();
             services.AddSingleton<KeyMouseRecordController>();
             // 通知：网络通知器与 Windows 版相同（Core 的 NetworkNotifierFactory），系统通知走 freedesktop Notifications

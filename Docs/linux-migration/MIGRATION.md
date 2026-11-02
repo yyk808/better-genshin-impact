@@ -89,9 +89,62 @@ Core 不引用任何 Windows 专属包（WPF、WinForms、Vanara、System.Drawin
 | 系统语音（可选） | `espeak-ng` | 引擎列表中不出现 espeak-ng |
 | 系统通知（可选） | `libnotify-bin`（notify-send），或 `gdbus` | 不发系统通知 |
 | 剪贴板（可选） | `xclip` 或 `xsel`（Wayland 会话用 `wl-clipboard`） | 复制日志等操作不可用 |
-| 游戏本体 | Wine / Proton（窗口须为 X11 或 XWayland 窗口），或者云原神网页版 | — |
+| 游戏本体 | Wine / Proton（窗口须为 X11 或 XWayland 窗口；niri 下经 xwayland-satellite），或者云原神网页版 | — |
 
-纯 Wayland（portal 截图 / 输入）目前不支持。
+Wayland 会话（目前以 niri 为目标）的额外依赖与做法见下一节。
+
+### Wayland（niri）
+
+启动时按环境选择后端：`BGI_LINUX_BACKEND=x11|wayland` 优先；否则 `WAYLAND_DISPLAY` 非空或 `XDG_SESSION_TYPE=wayland` 时用 Wayland 后端，
+其余情况与之前完全相同（X11 后端，行为不变）。代码在 `BetterGenshinImpact.Platform.Linux/Wayland/`。
+
+Wine / Proton 里的游戏在 niri 下是经 xwayland-satellite 的 X 客户端，所以 Wayland 后端是混合实现：
+
+| 功能 | X 窗口（Wine 游戏，经 xwayland-satellite） | 原生 Wayland 窗口 | 依赖 / 权限 |
+| --- | --- | --- | --- |
+| 找窗口 | X11（satellite 不提供 `_NET_CLIENT_LIST`，退回 XQueryTree）+ niri IPC 按标题 / app_id 对应 | niri IPC（`$NIRI_SOCKET`，与 `niri msg --json windows` 相同） | niri |
+| 焦点 / 前台判断 | niri IPC `FocusWindow` / `is_focused` | 同左 | niri |
+| 截图 | 默认 `GetImageWindow`（rootless 下根窗口没有内容，`ShmRoot` / `GetImageRoot` 自动改成它）；可选 `Portal` | xdg-desktop-portal ScreenCast + PipeWire | `gstreamer1.0-pipewire`、`gstreamer1.0-tools`、`gstreamer1.0-plugins-base`；niri 用 `xdg-desktop-portal-gnome` |
+| 键鼠输入 | XTest（satellite 内的 Xwayland 收到，与 X11 相同） | uinput 虚拟键鼠（相对移动 + 0..65535 绝对坐标） | `/dev/uinput` 可写 |
+| 全局热键 / 键状态 | evdev 直接读 `/dev/input/event*`，不依赖合成器；读不到时退回 X11 热键（只在 X 窗口有焦点时有效） | 同左 | 用户在 `input` 组 |
+| 屏幕位置 | niri IPC：输出坐标 + `tile_pos_in_workspace_view` + `window_offset_in_tile`，乘输出缩放 | 同左 | 见下方“限制” |
+| 遮罩 | 尚未实现（见下方） | — | — |
+
+ScreenCast portal：第一次截图时 portal 弹出选择对话框（可选窗口或显示器），请求带 `persist_mode=2`，返回的 `restore_token`
+存到 `$XDG_CONFIG_HOME/bettergi/screencast-restore-token`（默认 `~/.config/bettergi/`），之后直接恢复、不再询问；删掉这个文件即可重新选择。
+请求的来源类型会先与 portal 的 `AvailableSourceTypes` 取交集（xdg-desktop-portal-wlr 只支持显示器，带“窗口”会被拒绝）。
+PipeWire 帧通过 `gst-launch-1.0 pipewiresrc … ! videoconvert ! BGRA ! fdsink` 子进程读取，这样不用在 C# 里实现 SPA 格式协商和 DMA-BUF 映射；
+代价是多一个进程和一次拷贝（1080p 约 8 MB/帧）。pipewiresrc 必须带 `media.type=Video` 等流属性，否则 WirePlumber 0.5 报 `target not found`。
+
+权限（缺少时环境页 / 日志会给出同样的提示）：
+
+```bash
+sudo usermod -aG input $USER                      # evdev 全局热键；重新登录生效
+echo uinput | sudo tee /etc/modules-load.d/uinput.conf
+echo 'KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"' | sudo tee /etc/udev/rules.d/60-bettergi-uinput.rules
+sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
+```
+
+限制与取舍：
+
+- **niri 只报告浮动窗口的位置**：平铺窗口的 `tile_pos_in_workspace_view` 为 null（只给出列 / 行序号），无法换算成屏幕坐标。
+  游戏全屏（窗口尺寸等于输出）时按输出原点处理；窗口化运行时请让游戏浮动，例如在 niri 配置（`~/.config/niri/config.kdl`）里加：
+
+  ```kdl
+  window-rule {
+      match title="^原神$"
+      match app-id="UnityWndClass"
+      open-floating true
+  }
+  ```
+  niri 也可能调整窗口大小（平铺列宽、浮动窗口初始尺寸），截图和坐标换算都以游戏自己的客户区为准。
+- **遮罩**：Avalonia 没有 wlr-layer-shell 支持，X11 遮罩窗口经 satellite 会变成普通的平铺窗口，无法覆盖在游戏上。
+  评估过的方案：(1) 单独的 layer-shell 小进程（wayland-client + `zwlr_layer_shell_v1`，overlay 层、空输入区域实现点击穿透、wl_shm 绘制），
+  由遮罩模型通过本地 socket 推送矩形 / 文字，最轻、与 Avalonia 解耦，计划采用；(2) GTK + gtk-layer-shell 写遮罩，
+  需要再引入一套 UI 依赖；(3) 等 Avalonia 原生 Wayland 后端，时间不确定。目前 Wayland 下遮罩不显示，其余功能不受影响。
+- 不支持合成器以外的焦点切换方式（目前只实现 niri IPC）；其它 Wayland 合成器上截图 / 输入 / 热键可用，但找窗口位置和聚焦会退化。
+- 实机检查清单见 `wayland-niri-checklist.md`。
+
 
 ### 构建
 
@@ -133,7 +186,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
   - Core 单测 293 项，其中 6 项失败，都是 `AutoFishingImageRecognitionTests.GetFishBarRect_ShouldMatchRectCount`。在 Linux 上与原始基线一致。
   - 主项目单测在 Linux 上原生运行（去掉 WindowsDesktop 框架）时，约 1120 项中有约 246 项失败。原因是依赖 Windows 路径分隔符、WinRT OCR、
     SAPI、Windows 字体与截图素材路径（反斜杠）等。比较方式是逐条与迁移前的基线对照，要求“没有新增失败”，而不是全部通过。
-- 纯 Wayland 不支持；HDR 截图不支持。
+- Wayland 只针对 niri 实现并在盒子上的嵌套 niri / 模拟 portal 中验证过（见 `wayland-niri-checklist.md`），遮罩尚未实现；HDR 截图不支持。
 - 自动秘境、一条龙等流程在 Linux 上只用假游戏和云原神网页版的本地模拟验证过，没有在真实账号上长时间运行。
 
 ## 7. 测试方法与结果

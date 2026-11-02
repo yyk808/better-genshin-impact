@@ -3,6 +3,8 @@
 	<!--
 		Linux 平台实现（纯 net10.0）。第一阶段：X11 / XWayland 下的窗口枚举、截图（MIT-SHM / XGetImage）、
 		XTest 输入与 XGrabKey 全局热键，实现 BetterGenshinImpact.Core 中的平台接口。
+		Wayland（Wayland/ 目录，首要目标 niri）：niri IPC 找窗与置前、evdev 全局热键、uinput 输入、ScreenCast portal 截图；
+		Wine 游戏经 xwayland-satellite / XWayland 运行时仍用 X11 实现截图与 XTest 输入。
 		代码从平台验证工程移植（只依赖 libX11 / libXext / libXtst，运行时通过 LibraryImport 加载）。
 		OpenCvSharp 的 native 运行时（OpenCvSharp4.official.runtime.linux-x64 或系统 libOpenCvSharpExtern）由宿主程序引用。
 	-->
@@ -19,6 +21,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Wayland：xdg-desktop-portal ScreenCast 的 D-Bus 调用（与 Avalonia.FreeDesktop 使用同一版本） -->
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
 	</ItemGroup>
 
 	<ItemGroup>

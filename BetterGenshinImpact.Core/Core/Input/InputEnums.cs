@@ -29,6 +29,11 @@ public enum InputBackendKind
     /// 没有可用的输入后端（宿主未设置默认后端时的占位，所有操作忽略并告警）
     /// </summary>
     None,
+
+    /// <summary>
+    /// Linux Wayland：uinput 虚拟键鼠（内核层注入，前台输入，没有后台通道）
+    /// </summary>
+    Uinput,
 }
 
 /// <summary>
