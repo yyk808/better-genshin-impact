@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro.Script;
 
@@ -504,7 +504,7 @@ public static class KeyMacroParser
         }
 
         // 按顺序模拟按下状态，找出到结尾仍未松开的键
-        var heldKeys = new Dictionary<User32.VK, KeyMacroStep>();
+        var heldKeys = new Dictionary<GameKey, KeyMacroStep>();
         var heldButtons = new Dictionary<KeyMacroMouseButton, KeyMacroStep>();
         foreach (var command in commands)
         {

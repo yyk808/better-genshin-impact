@@ -255,7 +255,7 @@ public partial class KeyMacroStepViewModel : ObservableObject
     /// </summary>
     public KeyMacroStep ToStep()
     {
-        var key = KeyMacroKeys.TryParseKey(KeyName, out var vk) ? vk : User32.VK.VK_E;
+        var key = KeyMacroKeys.TryParseKey(KeyName, out var vk) ? vk : GameKey.VK_E;
         // 相对移动用位移；绝对移动和带坐标点击用游戏画面坐标，限制在 1920×1080 内
         var usePosition = Kind == KeyMacroCommandKind.MoveTo || (Kind == KeyMacroCommandKind.Click && HasPosition);
         return new KeyMacroStep

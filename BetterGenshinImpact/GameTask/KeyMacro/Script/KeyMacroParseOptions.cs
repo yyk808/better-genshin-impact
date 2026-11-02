@@ -1,4 +1,4 @@
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro.Script;
 
@@ -10,7 +10,7 @@ namespace BetterGenshinImpact.GameTask.KeyMacro.Script;
 /// <param name="HotkeyButton">快捷键对应的鼠标侧键；脚本里出现它时报错</param>
 public sealed record KeyMacroParseOptions(
     KeyMacroTriggerMode Mode = KeyMacroTriggerMode.Once,
-    User32.VK? HotkeyKey = null,
+    GameKey? HotkeyKey = null,
     KeyMacroMouseButton? HotkeyButton = null)
 {
     /// <summary>

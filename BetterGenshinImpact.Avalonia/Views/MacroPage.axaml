@@ -9,6 +9,13 @@
     <ScrollViewer>
         <StackPanel Classes="page">
             <TextBlock Classes="pagetitle" Text="辅助操控设置" />
+            <!-- 按键宏入口（与 WPF 相同只做跳转，总开关在按键宏页） -->
+            <ui:FASettingsExpander x:Name="KeyMacroCard" Header="按键宏（不识图）" Description="每个宏单独绑定快捷键，按下后直接执行键鼠序列，不识别游戏画面。支持单次、按住循环、切换循环"
+                                   IconSource="{svc:FluentIconSource KeyboardLayoutFloat24}">
+                <ui:FASettingsExpander.Footer>
+                    <Button x:Name="GoToKeyMacroButton" Content="前往设置" Command="{Binding GoToKeyMacroPageCommand}" />
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
             <ui:FASettingsExpander x:Name="CombatMacroCard" Header="一键宏（按角色）" Description="触发后会识别当前出战角色，并根据配置执行对应的宏" IconSource="{svc:FluentIconSource Script16}">
                 <ui:FASettingsExpander.Footer>
                     <ToggleSwitch x:Name="CombatMacroToggle" IsChecked="{Binding Config.MacroConfig.CombatMacroEnabled}" OnContent="" OffContent="" />

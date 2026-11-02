@@ -6,8 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Windows.Input;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro;
 
@@ -15,7 +14,7 @@ namespace BetterGenshinImpact.GameTask.KeyMacro;
 /// 一个按键宏的触发状态机和执行线程。快捷键的设置变化时由宿主丢弃并重建，所以名称、触发方式、快捷键在实例内不变；
 /// 脚本在每次开始执行时读取最新内容
 /// </summary>
-internal sealed class KeyMacroRunner
+internal sealed partial class KeyMacroRunner
 {
     /// <summary>
     /// 循环模式下每轮之间的最小间隔，避免没有等待的脚本以 CPU 速度发送输入
@@ -37,7 +36,7 @@ internal sealed class KeyMacroRunner
     /// </summary>
     private const int MaxLoggedErrors = 3;
 
-    private static readonly ILogger Logger = App.GetLogger<KeyMacroRunner>();
+    private static readonly ILogger Logger = CreateLogger();
 
     /// <summary>
     /// 保护执行线程、取消源和停止原因
@@ -67,7 +66,7 @@ internal sealed class KeyMacroRunner
     /// <summary>
     /// 按住循环时用于检查物理按键状态的虚拟键
     /// </summary>
-    private readonly User32.VK? _holdCheckKey;
+    private readonly GameKey? _holdCheckKey;
 
     /// <summary>
     /// 判断游戏是否在前台
@@ -77,7 +76,7 @@ internal sealed class KeyMacroRunner
     /// <summary>
     /// 取游戏画面在屏幕上的区域，供 moveto 和带坐标的 click 换算坐标
     /// </summary>
-    private readonly Func<RECT?> _getGameArea;
+    private readonly Func<PixelRect?> _getGameArea;
 
     /// <summary>
     /// 正在执行的线程，未运行时为 null
@@ -132,44 +131,30 @@ internal sealed class KeyMacroRunner
     /// 创建 Runner
     /// </summary>
     /// <param name="definition">宏定义</param>
-    /// <param name="hotKey">已注册的快捷键</param>
+    /// <param name="parseOptions">按已注册的快捷键生成的解析选项（见各界面平台的 CreateParseOptions）</param>
     /// <param name="isGameForeground">判断游戏是否在前台</param>
     /// <param name="getGameArea">取游戏画面在屏幕上的区域，取不到时返回 null</param>
-    public KeyMacroRunner(KeyMacroDefinition definition, HotKey hotKey, Func<bool> isGameForeground, Func<RECT?> getGameArea)
+    public KeyMacroRunner(KeyMacroDefinition definition, KeyMacroParseOptions parseOptions, Func<bool> isGameForeground,
+        Func<PixelRect?> getGameArea)
     {
         _definition = definition;
         _name = definition.Name;
         _mode = definition.TriggerMode;
         _isGameForeground = isGameForeground;
         _getGameArea = getGameArea;
-        _parseOptions = CreateParseOptions(_mode, hotKey);
+        _parseOptions = parseOptions;
         _holdCheckKey = _parseOptions.HotkeyKey ?? _parseOptions.HotkeyButton switch
         {
-            KeyMacroMouseButton.X1 => User32.VK.VK_XBUTTON1,
-            KeyMacroMouseButton.X2 => User32.VK.VK_XBUTTON2,
+            KeyMacroMouseButton.X1 => GameKey.VK_XBUTTON1,
+            KeyMacroMouseButton.X2 => GameKey.VK_XBUTTON2,
             _ => null
         };
     }
 
     /// <summary>
-    /// 按快捷键生成解析选项：单键快捷键不能出现在脚本里。
-    /// 组合键（只有全局热键可用）单独按主键不会触发，不做这项检查
+    /// 日志，由界面平台提供
     /// </summary>
-    public static KeyMacroParseOptions CreateParseOptions(KeyMacroTriggerMode mode, HotKey hotKey)
-    {
-        if (hotKey.MouseButton is MouseButton.XButton1 or MouseButton.XButton2)
-        {
-            return new KeyMacroParseOptions(mode, null,
-                hotKey.MouseButton == MouseButton.XButton1 ? KeyMacroMouseButton.X1 : KeyMacroMouseButton.X2);
-        }
-
-        if (hotKey.Key == Key.None || hotKey.Modifiers != ModifierKeys.None)
-        {
-            return new KeyMacroParseOptions(mode);
-        }
-
-        return new KeyMacroParseOptions(mode, (User32.VK)KeyInterop.VirtualKeyFromKey(hotKey.Key));
-    }
+    private static partial ILogger CreateLogger();
 
     /// <summary>
     /// 键鼠监听：快捷键按下
@@ -358,7 +343,7 @@ internal sealed class KeyMacroRunner
             // 兜底：聊天框保护或切出游戏时 KeyUp 不会送达，直接查快捷键的物理状态
             if (_holdCheckKey is { } vk
                 && Stopwatch.GetElapsedTime(startTimestamp, now).TotalMilliseconds >= HoldCheckGraceMs
-                && (User32.GetAsyncKeyState((int)vk) & 0x8000) == 0)
+                && !PlatformHost.KeyState.IsKeyDown(vk))
             {
                 _keyHeld = false;
                 SetStopReason("松开快捷键");

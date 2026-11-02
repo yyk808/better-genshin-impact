@@ -59,6 +59,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "history": await HistoryAsync(); break;
                 case "newonedragon": await NewOneDragonAsync(); break;
                 case "macro": await MacroAsync(); break;
+                case "key-macro": await KeyMacroAsync(); break;
                 case "music": await MusicAsync(); break;
                 case "guide": await GuideAsync(); break;
                 case "plugins": await PluginsAsync(); break;
@@ -4499,7 +4500,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var page = vm.Macro;
         var macro = page.Config.MacroConfig;
         var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
-        Check("卡片与 WPF 相同", headers.SequenceEqual(["一键宏（按角色）", "一键领取奖励", "那维莱特 - 转圈圈", "快速强化圣遗物", "一键购买", "一键进出尘歌壶", "一键确认/取消",
+        Check("卡片与 WPF 相同", headers.SequenceEqual(["按键宏（不识图）", "一键宏（按角色）", "一键领取奖励", "那维莱特 - 转圈圈", "快速强化圣遗物", "一键购买", "一键进出尘歌壶", "一键确认/取消",
             "长按空格等于连续按下空格", "长按 F 等于连续按下 F"]), string.Join(",", headers));
         Check("绑定快捷键按钮", All<Button>().Count(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键") == 6);
 

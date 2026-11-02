@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro.Script;
 
@@ -14,17 +14,17 @@ public static class KeyMacroKeys
     /// <summary>
     /// 按键名 → 虚拟键（不区分大小写）。同一个虚拟键的第一个名称是规范名称
     /// </summary>
-    private static readonly Dictionary<string, User32.VK> KeyAliases = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, GameKey> KeyAliases = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 虚拟键 → 规范名称
     /// </summary>
-    private static readonly Dictionary<User32.VK, string> CanonicalNames = [];
+    private static readonly Dictionary<GameKey, string> CanonicalNames = [];
 
     /// <summary>
     /// 虚拟键 → 易读名称
     /// </summary>
-    private static readonly Dictionary<User32.VK, string> DisplayNames = [];
+    private static readonly Dictionary<GameKey, string> DisplayNames = [];
 
     /// <summary>
     /// 鼠标键的虚拟键名，键盘指令里出现时提示改用鼠标指令
@@ -65,75 +65,75 @@ public static class KeyMacroKeys
         for (var i = 0; i < 26; i++)
         {
             var name = ((char)('a' + i)).ToString();
-            Register((User32.VK)(0x41 + i), name.ToUpperInvariant(), name);
+            Register((GameKey)(0x41 + i), name.ToUpperInvariant(), name);
         }
 
         for (var i = 0; i < 10; i++)
         {
-            Register((User32.VK)(0x30 + i), i.ToString(), i.ToString());
+            Register((GameKey)(0x30 + i), i.ToString(), i.ToString());
         }
 
         for (var i = 0; i < 24; i++)
         {
-            Register((User32.VK)(0x70 + i), $"F{i + 1}", $"f{i + 1}");
+            Register((GameKey)(0x70 + i), $"F{i + 1}", $"f{i + 1}");
         }
 
         for (var i = 0; i < 10; i++)
         {
-            Register((User32.VK)(0x60 + i), $"小键盘 {i}", $"numpad{i}");
+            Register((GameKey)(0x60 + i), $"小键盘 {i}", $"numpad{i}");
         }
 
         // 常用功能键：第一个名称为规范名称，后面是兼容写法
-        Register(User32.VK.VK_SPACE, "Space", "space");
-        Register(User32.VK.VK_RETURN, "Enter", "enter", "return");
-        Register(User32.VK.VK_TAB, "Tab", "tab");
-        Register(User32.VK.VK_ESCAPE, "Esc", "esc", "escape");
-        Register(User32.VK.VK_BACK, "Backspace", "backspace", "back");
-        Register(User32.VK.VK_DELETE, "Delete", "delete", "del");
-        Register(User32.VK.VK_INSERT, "Insert", "insert", "ins");
-        Register(User32.VK.VK_HOME, "Home", "home");
-        Register(User32.VK.VK_END, "End", "end");
-        Register(User32.VK.VK_PRIOR, "PageUp", "pageup", "pgup", "prior");
-        Register(User32.VK.VK_NEXT, "PageDown", "pagedown", "pgdn", "next");
-        Register(User32.VK.VK_UP, "↑", "up");
-        Register(User32.VK.VK_DOWN, "↓", "down");
-        Register(User32.VK.VK_LEFT, "←", "left");
-        Register(User32.VK.VK_RIGHT, "→", "right");
-        Register(User32.VK.VK_SHIFT, "Shift", "shift");
-        Register(User32.VK.VK_LSHIFT, "左 Shift", "lshift");
-        Register(User32.VK.VK_RSHIFT, "右 Shift", "rshift");
-        Register(User32.VK.VK_CONTROL, "Ctrl", "ctrl", "control");
-        Register(User32.VK.VK_LCONTROL, "左 Ctrl", "lctrl", "lcontrol");
-        Register(User32.VK.VK_RCONTROL, "右 Ctrl", "rctrl", "rcontrol");
-        Register(User32.VK.VK_MENU, "Alt", "alt", "menu");
-        Register(User32.VK.VK_LMENU, "左 Alt", "lalt", "lmenu");
-        Register(User32.VK.VK_RMENU, "右 Alt", "ralt", "rmenu");
-        Register(User32.VK.VK_CAPITAL, "CapsLock", "capslock", "capital");
-        Register(User32.VK.VK_LWIN, "左 Win", "lwin");
-        Register(User32.VK.VK_RWIN, "右 Win", "rwin");
-        Register(User32.VK.VK_APPS, "菜单键", "apps");
-        Register(User32.VK.VK_PAUSE, "Pause", "pause");
-        Register(User32.VK.VK_SNAPSHOT, "PrintScreen", "printscreen", "snapshot");
-        Register(User32.VK.VK_NUMLOCK, "NumLock", "numlock");
-        Register(User32.VK.VK_SCROLL, "ScrollLock", "scrolllock");
-        Register(User32.VK.VK_MULTIPLY, "小键盘 *", "multiply");
-        Register(User32.VK.VK_ADD, "小键盘 +", "add");
-        Register(User32.VK.VK_SUBTRACT, "小键盘 -", "subtract");
-        Register(User32.VK.VK_DECIMAL, "小键盘 .", "decimal");
-        Register(User32.VK.VK_DIVIDE, "小键盘 /", "divide");
+        Register(GameKey.VK_SPACE, "Space", "space");
+        Register(GameKey.VK_RETURN, "Enter", "enter", "return");
+        Register(GameKey.VK_TAB, "Tab", "tab");
+        Register(GameKey.VK_ESCAPE, "Esc", "esc", "escape");
+        Register(GameKey.VK_BACK, "Backspace", "backspace", "back");
+        Register(GameKey.VK_DELETE, "Delete", "delete", "del");
+        Register(GameKey.VK_INSERT, "Insert", "insert", "ins");
+        Register(GameKey.VK_HOME, "Home", "home");
+        Register(GameKey.VK_END, "End", "end");
+        Register(GameKey.VK_PRIOR, "PageUp", "pageup", "pgup", "prior");
+        Register(GameKey.VK_NEXT, "PageDown", "pagedown", "pgdn", "next");
+        Register(GameKey.VK_UP, "↑", "up");
+        Register(GameKey.VK_DOWN, "↓", "down");
+        Register(GameKey.VK_LEFT, "←", "left");
+        Register(GameKey.VK_RIGHT, "→", "right");
+        Register(GameKey.VK_SHIFT, "Shift", "shift");
+        Register(GameKey.VK_LSHIFT, "左 Shift", "lshift");
+        Register(GameKey.VK_RSHIFT, "右 Shift", "rshift");
+        Register(GameKey.VK_CONTROL, "Ctrl", "ctrl", "control");
+        Register(GameKey.VK_LCONTROL, "左 Ctrl", "lctrl", "lcontrol");
+        Register(GameKey.VK_RCONTROL, "右 Ctrl", "rctrl", "rcontrol");
+        Register(GameKey.VK_MENU, "Alt", "alt", "menu");
+        Register(GameKey.VK_LMENU, "左 Alt", "lalt", "lmenu");
+        Register(GameKey.VK_RMENU, "右 Alt", "ralt", "rmenu");
+        Register(GameKey.VK_CAPITAL, "CapsLock", "capslock", "capital");
+        Register(GameKey.VK_LWIN, "左 Win", "lwin");
+        Register(GameKey.VK_RWIN, "右 Win", "rwin");
+        Register(GameKey.VK_APPS, "菜单键", "apps");
+        Register(GameKey.VK_PAUSE, "Pause", "pause");
+        Register(GameKey.VK_SNAPSHOT, "PrintScreen", "printscreen", "snapshot");
+        Register(GameKey.VK_NUMLOCK, "NumLock", "numlock");
+        Register(GameKey.VK_SCROLL, "ScrollLock", "scrolllock");
+        Register(GameKey.VK_MULTIPLY, "小键盘 *", "multiply");
+        Register(GameKey.VK_ADD, "小键盘 +", "add");
+        Register(GameKey.VK_SUBTRACT, "小键盘 -", "subtract");
+        Register(GameKey.VK_DECIMAL, "小键盘 .", "decimal");
+        Register(GameKey.VK_DIVIDE, "小键盘 /", "divide");
 
         // 符号键只登记易读名称，脚本里使用 oem_* 虚拟键名（通过 TryParseKey 的虚拟键名兜底解析）
-        DisplayNames[User32.VK.VK_OEM_1] = ";";
-        DisplayNames[User32.VK.VK_OEM_PLUS] = "=";
-        DisplayNames[User32.VK.VK_OEM_COMMA] = ",";
-        DisplayNames[User32.VK.VK_OEM_MINUS] = "-";
-        DisplayNames[User32.VK.VK_OEM_PERIOD] = ".";
-        DisplayNames[User32.VK.VK_OEM_2] = "/";
-        DisplayNames[User32.VK.VK_OEM_3] = "`";
-        DisplayNames[User32.VK.VK_OEM_4] = "[";
-        DisplayNames[User32.VK.VK_OEM_5] = "\\";
-        DisplayNames[User32.VK.VK_OEM_6] = "]";
-        DisplayNames[User32.VK.VK_OEM_7] = "'";
+        DisplayNames[GameKey.VK_OEM_1] = ";";
+        DisplayNames[GameKey.VK_OEM_PLUS] = "=";
+        DisplayNames[GameKey.VK_OEM_COMMA] = ",";
+        DisplayNames[GameKey.VK_OEM_MINUS] = "-";
+        DisplayNames[GameKey.VK_OEM_PERIOD] = ".";
+        DisplayNames[GameKey.VK_OEM_2] = "/";
+        DisplayNames[GameKey.VK_OEM_3] = "`";
+        DisplayNames[GameKey.VK_OEM_4] = "[";
+        DisplayNames[GameKey.VK_OEM_5] = "\\";
+        DisplayNames[GameKey.VK_OEM_6] = "]";
+        DisplayNames[GameKey.VK_OEM_7] = "'";
 
         // 补全列表：常用功能键在前，其后是字母、数字和功能键
         string[] common =
@@ -153,7 +153,7 @@ public static class KeyMacroKeys
     /// <summary>
     /// 登记一个按键：易读名称与名称列表，第一个名称为规范名称
     /// </summary>
-    private static void Register(User32.VK vk, string displayName, params string[] names)
+    private static void Register(GameKey vk, string displayName, params string[] names)
     {
         DisplayNames[vk] = displayName;
         CanonicalNames.TryAdd(vk, names[0]);
@@ -174,7 +174,7 @@ public static class KeyMacroKeys
     /// <param name="name">按键名</param>
     /// <param name="vk">解析出的虚拟键</param>
     /// <returns>是否解析成功</returns>
-    public static bool TryParseKey(string name, out User32.VK vk)
+    public static bool TryParseKey(string name, out GameKey vk)
     {
         vk = default;
         name = name.Trim();
@@ -195,27 +195,34 @@ public static class KeyMacroKeys
         }
 
         var enumName = name.StartsWith("vk_", StringComparison.OrdinalIgnoreCase) ? name : "VK_" + name;
-        return Enum.TryParse(enumName, true, out vk) && Enum.IsDefined(vk);
+        // GameKey 比原 Vanara VK 多一个 None（0），不是按键
+        return Enum.TryParse(enumName, true, out vk) && vk != GameKey.None && Enum.IsDefined(vk);
     }
 
     /// <summary>
     /// 虚拟键的规范名称，写回脚本时使用
     /// </summary>
-    public static string GetName(User32.VK vk)
+    public static string GetName(GameKey vk)
     {
         if (CanonicalNames.TryGetValue(vk, out var name))
         {
             return name;
         }
 
-        var enumName = vk.ToString();
+        // 同值别名的枚举名与原 Vanara VK 保持一致（GameKey 的 ToString 对这两个值取另一个别名）
+        var enumName = vk switch
+        {
+            GameKey.VK_KANA => "VK_KANA",
+            GameKey.VK_KANJI => "VK_KANJI",
+            _ => vk.ToString()
+        };
         return (enumName.StartsWith("VK_", StringComparison.Ordinal) ? enumName[3..] : enumName).ToLowerInvariant();
     }
 
     /// <summary>
     /// 虚拟键的易读名称，界面上显示
     /// </summary>
-    public static string GetDisplayName(User32.VK vk)
+    public static string GetDisplayName(GameKey vk)
     {
         return DisplayNames.TryGetValue(vk, out var name) ? name : GetName(vk).ToUpperInvariant();
     }

@@ -215,6 +215,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
 | 账号切换 | 支持（Win32 输入 + YuanShen 进程） | 切换流程在 Core，与 Windows 相同；运行环境检查为本机 XTest / uinput 输入 + 窗口进程（X 窗口 `_NET_WM_PID`，niri 原生窗口为 IPC pid）是 Wine / Proton 下的 YuanShen.exe；云原神仍不能切换（只读核验 UID） |
 | Shell 任务 | cmd.exe | /bin/sh（独立任务的 Shell 命令经标准输入交给 `/bin/sh -s`）；任务计划里 Windows 上创建的 `cmd.exe [/d /s /q] /c 命令` 改用 `/bin/sh -c 命令` 运行并记日志，其他程序原样启动 |
 | 多实例派发 | 支持（桌面分身子会话、云原神实例） | 与 Windows 相同的实例 IPC（WPF 项目里与平台无关的实例服务源文件由 Host.Common 直接编译）：第一个实例取根实例锁（`$TMPDIR/CoreFxPipe_BetterGI.v2.user-uid-<uid>.root.lock` 的独占 flock）并监听根管道（Unix 域套接字，仅本用户）；同一 Unix 会话里再次启动时把参数转发给它并退出（激活主窗口）；在另一 Unix 会话里启动（如 `setsid bgi-avalonia --display :2`，通常再配独立的 Wine 前缀运行另一个游戏）的是子实例（“桌面分身”），任务计划页“执行实例”可把已保存的计划整次下发给它执行并回报状态；对端进程取自 `SO_PEERCRED`，会话为 `getsid`。没有云原神子实例与桌面分身鼠标转发（每个实例有自己的显示和输入）；`--no-instances` 关闭；跨实例的账户占用 / 在线标记 / 写锁 / 脚本仓库资源锁以独占 flock 互斥（Windows 不变） |
+| 按键宏（不识图） | 按键宏页：列表 + 指令编辑 / 步骤视图，键鼠监听或全局热键触发 | 同一套脚本解析、执行器与文件存储（WPF 项目里的源文件由 Host.Common 直接编译，宏文件同在 `User/BgiMacro`）；Avalonia 按键宏页只有指令编辑（带语法检查与指令参考），没有步骤视图；单次 / 按住循环 / 切换循环相同；键鼠监听用本机全局输入监听（含鼠标侧键），全局热键用 XGrabKey（Ctrl+Alt+F1–F12 为切换虚拟终端，不可用）；精确等待用睡眠加最后 1 ms 自旋代替 Windows 高精度可等待计时器；删除移到 freedesktop 回收站（`$XDG_DATA_HOME/Trash`） |
 | 插件（上游插件系统） | 加载外部插件，有插件页、OCR 模型选择 | 只使用 Core 中的内置实现（PP-OCRv6、内置传送），不加载外部插件，没有插件页和 OCR 模型选择界面 |
 | 界面 | WPF 全部页面 | Avalonia 覆盖启动、实时触发、独立任务（含专属参数编辑器）、一条龙、全自动、任务计划、设置、通知、环境等；少量窗口（例如脚本仓库、部分名单编辑）尚未迁移，见 phase4-avalonia.md |
 
@@ -289,7 +290,7 @@ dotnet BetterGenshinImpact.Host.Headless/bin/Debug/net10.0/bgi-headless.dll --ch
      WPF 模块初始化不再注册 SAPI，Avalonia 自动配音设置窗口删除三个模板。Core 注册表保留本分支的宿主注册机制（Linux 的 espeak-ng 仍可用），
      并加入上游的 `IsRegistered`（包含宿主注册的引擎）：旧配置选中已移除引擎时回退 GPT-SoVITS。
    - 9e3a0b00：攻略小窗默认自由位置、四项常用操作默认绑定方向键（键鼠监听），删除“小窗隐藏时继续显示字幕”与其余小窗快捷键；按键宏新增绝对坐标等指令。
-     小窗快捷键与按键宏只在 WPF；Avalonia 删除“小窗隐藏时继续显示字幕”开关。`KeyMacroHotkeyHost` 的截图区域在本分支是 `PixelRect`，转成 `RECT` 传给 `KeyMacroRunner`。
+     小窗快捷键当时只在 WPF；Avalonia 删除“小窗隐藏时继续显示字幕”开关。按键宏后来已迁移（见第 5 节“按键宏”）：键名改用 Core 的 `GameKey`，`KeyMacroRunner` 的截图区域直接用 `PixelRect`。
 2. 冲突 9 处（6 处是上游删除、本分支移到 Core 的文件，按上游删除；3 处内容冲突按上面方式合并），WPF 行为与上游相同。
 
 ### 8.2 同步步骤

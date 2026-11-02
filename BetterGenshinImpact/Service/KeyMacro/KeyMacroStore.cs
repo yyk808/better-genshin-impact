@@ -9,8 +9,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows;
-using System.Windows.Threading;
 
 namespace BetterGenshinImpact.Service.KeyMacro;
 
@@ -18,7 +16,7 @@ namespace BetterGenshinImpact.Service.KeyMacro;
 /// 按键宏目录 User/BgiMacro 的读写。每个 txt 文件是一个宏，文件名即名称。
 /// 界面修改后防抖写入；监听目录，外部修改、新增、删除防抖后载入。全部方法都在 UI 线程上调用
 /// </summary>
-public sealed class KeyMacroStore
+public sealed partial class KeyMacroStore
 {
     /// <summary>
     /// 名称最大长度
@@ -53,11 +51,6 @@ public sealed class KeyMacroStore
     private readonly ILogger<KeyMacroStore> _logger;
 
     /// <summary>
-    /// 所属 UI 线程
-    /// </summary>
-    private readonly Dispatcher _dispatcher;
-
-    /// <summary>
     /// 界面修改后尚未写入文件的宏
     /// </summary>
     private readonly HashSet<KeyMacroDefinition> _dirty = [];
@@ -66,16 +59,6 @@ public sealed class KeyMacroStore
     /// 每个文件最近一次读到或写入的内容。监听到的变化与它相同时说明是自己写入的，忽略
     /// </summary>
     private readonly Dictionary<string, string> _knownContents = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// 写入防抖计时器
-    /// </summary>
-    private readonly DispatcherTimer _saveTimer;
-
-    /// <summary>
-    /// 重新载入防抖计时器
-    /// </summary>
-    private readonly DispatcherTimer _reloadTimer;
 
     /// <summary>
     /// 目录监听
@@ -103,32 +86,11 @@ public sealed class KeyMacroStore
     public ObservableCollection<KeyMacroDefinition> Macros { get; } = [];
 
     /// <summary>
-    /// 创建宏目录存储
-    /// </summary>
-    public KeyMacroStore(ILogger<KeyMacroStore> logger)
-    {
-        _logger = logger;
-        _dispatcher = Application.Current.Dispatcher;
-        _saveTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = SaveDelay };
-        _saveTimer.Tick += (_, _) =>
-        {
-            _saveTimer.Stop();
-            Flush();
-        };
-        _reloadTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = ReloadDelay };
-        _reloadTimer.Tick += (_, _) =>
-        {
-            _reloadTimer.Stop();
-            Reload();
-        };
-    }
-
-    /// <summary>
     /// 首次调用时创建目录、载入全部宏并开始监听；之后调用无作用
     /// </summary>
     public void EnsureLoaded()
     {
-        _dispatcher.VerifyAccess();
+        VerifyAccess();
         if (_loaded)
         {
             return;
@@ -154,7 +116,7 @@ public sealed class KeyMacroStore
     /// </summary>
     public void Reload()
     {
-        _dispatcher.VerifyAccess();
+        VerifyAccess();
         string[] files;
         try
         {
@@ -356,10 +318,7 @@ public sealed class KeyMacroStore
         _dirty.Remove(definition);
         if (File.Exists(definition.FilePath))
         {
-            // Microsoft.VisualBasic.FileIO 与 System.IO 有同名类型（SearchOption），这里写全名
-            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(definition.FilePath,
-                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            MoveToRecycleBin(definition.FilePath);
         }
 
         _knownContents.Remove(definition.FilePath);
@@ -545,8 +504,7 @@ public sealed class KeyMacroStore
         }
 
         _dirty.Add(definition);
-        _saveTimer.Stop();
-        _saveTimer.Start();
+        RestartSaveTimer();
     }
 
     /// <summary>
@@ -561,11 +519,11 @@ public sealed class KeyMacroStore
                 IncludeSubdirectories = false,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
             };
-            FileSystemEventHandler onChanged = (_, _) => _dispatcher.BeginInvoke(ScheduleReload);
+            FileSystemEventHandler onChanged = (_, _) => PostScheduleReload();
             _watcher.Changed += onChanged;
             _watcher.Created += onChanged;
             _watcher.Deleted += onChanged;
-            _watcher.Renamed += (_, _) => _dispatcher.BeginInvoke(ScheduleReload);
+            _watcher.Renamed += (_, _) => PostScheduleReload();
             _watcher.EnableRaisingEvents = true;
         }
         catch (Exception e)
@@ -576,11 +534,23 @@ public sealed class KeyMacroStore
     }
 
     /// <summary>
-    /// 重新开始载入防抖计时
+    /// 检查当前是否在所属 UI 线程上
     /// </summary>
-    private void ScheduleReload()
-    {
-        _reloadTimer.Stop();
-        _reloadTimer.Start();
-    }
+    private partial void VerifyAccess();
+
+    /// <summary>
+    /// 重新开始写入防抖计时，到时调用 <see cref="Flush"/>
+    /// </summary>
+    private partial void RestartSaveTimer();
+
+    /// <summary>
+    /// 从监听线程切回 UI 线程后重新开始载入防抖计时，到时调用 <see cref="Reload"/>
+    /// </summary>
+    private partial void PostScheduleReload();
+
+    /// <summary>
+    /// 把文件移到回收站（删除宏时使用）
+    /// </summary>
+    /// <exception cref="IOException">删除失败</exception>
+    private static partial void MoveToRecycleBin(string path);
 }

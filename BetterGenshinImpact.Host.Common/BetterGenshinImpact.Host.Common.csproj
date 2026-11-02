@@ -54,6 +54,18 @@
 		<Compile Include="..\BetterGenshinImpact\Service\Instance\MessageHandlers\PuloniaRunMessageHandler.cs" Link="Instance\Shared\PuloniaRunMessageHandler.cs" />
 	</ItemGroup>
 
+	<!-- 按键宏：解析器、执行器、Runner、文件格式、目录存储、模板直接编译 WPF 项目的源文件；平台部分（日志、计时、快捷键模型、回收站、热键宿主）在 KeyMacro/*.Linux.cs -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\Script\*.cs" Link="KeyMacro\Shared\Script\%(Filename)%(Extension)" />
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\KeyMacroDefinition.cs" Link="KeyMacro\Shared\KeyMacroDefinition.cs" />
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\KeyMacroFileFormat.cs" Link="KeyMacro\Shared\KeyMacroFileFormat.cs" />
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\KeyMacroExecutor.cs" Link="KeyMacro\Shared\KeyMacroExecutor.cs" />
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\KeyMacroRunner.cs" Link="KeyMacro\Shared\KeyMacroRunner.cs" />
+		<Compile Include="..\BetterGenshinImpact\GameTask\KeyMacro\PreciseDelay.cs" Link="KeyMacro\Shared\PreciseDelay.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\KeyMacro\KeyMacroStore.cs" Link="KeyMacro\Shared\KeyMacroStore.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Pages\KeyMacro\KeyMacroTemplates.cs" Link="KeyMacro\Shared\KeyMacroTemplates.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
 		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />

@@ -35,6 +35,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         TaskPlan = new TaskPlanPageViewModel(host, log);
         History = new TaskHistoryPageViewModel(host, TaskPlan, log);
         Macro = new MacroPageViewModel(host, Navigate, log);
+        KeyMacro = new KeyMacroPageViewModel(host, log);
         Music = new MusicPageViewModel(host, log);
         Guide = new GuideWindowSettingsPageViewModel(host, Navigate, log);
         Plugins = new PluginsPageViewModel(host, log);
@@ -78,6 +79,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 ],
             },
             new("辅助操控", "XboxController24", Macro),
+            new("按键宏", "KeyboardLayoutFloat24", KeyMacro),
             new("自动演奏", "MusicNote224", Music),
             new("悬浮小窗", "VideoClip24", Guide),
             new("快捷键", "Flash24", Settings, () => Settings.SelectedTab = 1),
@@ -120,6 +122,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public NewOneDragonPageViewModel NewOneDragon { get; }
 
     public MacroPageViewModel Macro { get; }
+
+    /// <summary>按键宏页（WPF 导航里位于“辅助操控”之后）</summary>
+    public KeyMacroPageViewModel KeyMacro { get; }
 
     public MusicPageViewModel Music { get; }
 

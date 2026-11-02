@@ -101,6 +101,10 @@ public sealed partial class MacroPageViewModel : PageViewModel, IDisposable
         }
     }
 
+    /// <summary>按键宏：转到“按键宏”页</summary>
+    [RelayCommand]
+    private void GoToKeyMacroPage() => _navigate("按键宏");
+
     /// <summary>绑定快捷键：转到“快捷键”页</summary>
     [RelayCommand]
     private void GoToHotKeyPage() => _navigate("快捷键");

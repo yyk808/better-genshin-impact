@@ -133,6 +133,8 @@ internal static class AvaloniaHostProgram
             mask?.Dispose();
             htmlMask?.Dispose();
             // 注销快捷键（X11 XGrabKey），再释放平台连接
+            // 按键宏：停止正在运行的宏、注销快捷键并写入未保存的修改
+            viewModel?.KeyMacro.Dispose();
             viewModel?.Settings.Dispose();
             if (host is not null)
             {

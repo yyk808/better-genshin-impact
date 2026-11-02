@@ -120,6 +120,7 @@ public static class FluentSymbols
         ["Image24"] = 0xF489,
         ["Info24"] = 0xF4A4,
         ["Keyboard24"] = 0xF4B9,
+        ["KeyboardLayoutFloat24"] = 0xF4BB,
         ["KeyboardMouse16"] = 0xF0EF,
         ["Library24"] = 0xF4D3,
         ["Link24"] = 0xF4E5,

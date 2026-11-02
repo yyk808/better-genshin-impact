@@ -349,15 +349,15 @@ public sealed class KeyMacroHotkeyHost : IHostedService
     /// 游戏画面在屏幕上的区域，供绝对坐标指令换算：有运行环境时用它的截图区域（与 GameRegion1080PPosMove 相同）；
     /// 截图器未启动时用前台窗口的游戏画面区域，执行每条指令前已确认前台窗口是游戏
     /// </summary>
-    private RECT? GetGameArea()
+    private PixelRect? GetGameArea()
     {
         if (_runtimeService.Current is { } runtime)
         {
-            return runtime.SystemInfo.CaptureAreaRect.ToRECT();
+            return runtime.SystemInfo.CaptureAreaRect;
         }
 
         var handle = SystemControl.GetForegroundWindowHandle();
-        return handle == 0 ? null : SystemControl.GetCaptureRect(handle);
+        return handle == 0 ? null : SystemControl.GetCaptureRect(handle).ToPixelRect();
     }
 
     /// <summary>

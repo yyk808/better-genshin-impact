@@ -157,18 +157,7 @@ public static partial class KeyMacroFileFormat
     };
 
     /// <summary>
-    /// 校验快捷键字符串：能解析时返回规范写法，不能解析时视为未设置
+    /// 校验快捷键字符串：能解析时返回规范写法，不能解析时视为未设置。由界面平台按各自的快捷键模型实现
     /// </summary>
-    private static string NormalizeHotkey(string value)
-    {
-        try
-        {
-            var hotKey = HotKey.FromString(value);
-            return hotKey.IsEmpty ? string.Empty : hotKey.ToString();
-        }
-        catch (ArgumentException)
-        {
-            return string.Empty;
-        }
-    }
+    private static partial string NormalizeHotkey(string value);
 }

@@ -1,4 +1,4 @@
-using Vanara.PInvoke;
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro.Script;
 
@@ -16,7 +16,7 @@ public sealed record KeyMacroStep
     /// <summary>
     /// 键盘指令的按键
     /// </summary>
-    public User32.VK Key { get; init; }
+    public GameKey Key { get; init; }
 
     /// <summary>
     /// 鼠标指令的鼠标键

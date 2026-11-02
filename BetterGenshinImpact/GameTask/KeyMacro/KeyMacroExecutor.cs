@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using BetterGenshinImpact.Platform;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.GameTask.KeyMacro;
 
@@ -23,7 +22,7 @@ internal sealed class KeyMacroExecutor
     /// <summary>
     /// 本次执行按下且未松开的键盘键
     /// </summary>
-    private readonly HashSet<User32.VK> _pressedKeys = [];
+    private readonly HashSet<GameKey> _pressedKeys = [];
 
     /// <summary>
     /// 本次执行按下且未松开的鼠标键
@@ -33,13 +32,13 @@ internal sealed class KeyMacroExecutor
     /// <summary>
     /// 取游戏画面在屏幕上的区域（物理像素），用于把 1920×1080 坐标换算为屏幕坐标；取不到时返回 null
     /// </summary>
-    private readonly Func<RECT?> _getGameArea;
+    private readonly Func<PixelRect?> _getGameArea;
 
     /// <summary>
     /// 创建执行器
     /// </summary>
     /// <param name="getGameArea">取游戏画面在屏幕上的区域，绝对坐标指令执行时调用</param>
-    public KeyMacroExecutor(Func<RECT?> getGameArea)
+    public KeyMacroExecutor(Func<PixelRect?> getGameArea)
     {
         _getGameArea = getGameArea;
     }
@@ -57,15 +56,15 @@ internal sealed class KeyMacroExecutor
         switch (step.Kind)
         {
             case KeyMacroCommandKind.KeyDown:
-                input.Keyboard.KeyDown((GameKey)step.Key);
+                input.Keyboard.KeyDown(step.Key);
                 _pressedKeys.Add(step.Key);
                 return true;
             case KeyMacroCommandKind.KeyUp:
-                input.Keyboard.KeyUp((GameKey)step.Key);
+                input.Keyboard.KeyUp(step.Key);
                 _pressedKeys.Remove(step.Key);
                 return true;
             case KeyMacroCommandKind.KeyPress:
-                input.Keyboard.KeyPress((GameKey)step.Key);
+                input.Keyboard.KeyPress(step.Key);
                 _pressedKeys.Remove(step.Key);
                 return true;
             case KeyMacroCommandKind.MouseDown:
@@ -120,7 +119,7 @@ internal sealed class KeyMacroExecutor
         {
             try
             {
-                input.Keyboard.KeyUp((GameKey)key);
+                input.Keyboard.KeyUp(key);
             }
             catch (Exception e)
             {

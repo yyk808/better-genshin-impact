@@ -86,7 +86,7 @@ public class KeyCaptureBox : TextBox
             return;
         }
 
-        var vk = (User32.VK)KeyInterop.VirtualKeyFromKey(key);
+        var vk = (GameKey)KeyInterop.VirtualKeyFromKey(key);
         if (vk == 0)
         {
             return;
