@@ -24,16 +24,18 @@ public sealed partial class PuloniaTaskStore
     /// 创建默认凭据保存位置。Windows 主程序加载时设为 Windows 凭据管理器；
     /// 未设置的平台不支持保存登录凭据（写入时抛出异常，删除时忽略）
     /// </summary>
-    internal static Func<IPuloniaCredentialVault> DefaultCredentialVaultFactory { get; set; } = static () => new UnsupportedCredentialVault();
+    public static Func<IPuloniaCredentialVault> DefaultCredentialVaultFactory { get; set; } = static () => new UnsupportedCredentialVault();
 
     /// <summary>登录凭据的保存位置；默认使用 <see cref="DefaultCredentialVaultFactory"/>，测试可替换为内存实现。</summary>
-    internal IPuloniaCredentialVault CredentialVault { get; init; } = DefaultCredentialVaultFactory();
+    public IPuloniaCredentialVault CredentialVault { get; init; } = DefaultCredentialVaultFactory();
 
     /// <summary>不支持凭据保存的平台使用的实现</summary>
     private sealed class UnsupportedCredentialVault : IPuloniaCredentialVault
     {
         public void Write(string target, string userName, string password) =>
             throw new InvalidOperationException("当前平台不支持保存账号登录凭据");
+
+        public PuloniaCredential? Read(string target) => null;
 
         public void Delete(string target)
         {

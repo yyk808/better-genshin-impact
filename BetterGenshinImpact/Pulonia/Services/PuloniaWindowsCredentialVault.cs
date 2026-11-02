@@ -14,5 +14,11 @@ internal sealed class PuloniaWindowsCredentialVault : IPuloniaCredentialVault
         => CredentialManagerHelper.SaveCredential(target, userName, password, Comment, CredentialPersistence.LocalMachine);
 
     /// <inheritdoc />
+    public PuloniaCredential? Read(string target)
+        => CredentialManagerHelper.ReadCredential(target) is { } credential
+            ? new PuloniaCredential(credential.UserName ?? "", credential.Password ?? "")
+            : null;
+
+    /// <inheritdoc />
     public void Delete(string target) => CredentialManagerHelper.DeleteCredential(target);
 }

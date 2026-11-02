@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using BetterGenshinImpact.Core.Input;
-using BetterGenshinImpact.Core.Input.Backends.Win32;
 using BetterGenshinImpact.Core.Recognition;
 using BetterGenshinImpact.Core.Script.Dependence;
 using BetterGenshinImpact.GameTask;
@@ -15,11 +14,9 @@ using BetterGenshinImpact.GameTask.Common.BgiVision;
 using BetterGenshinImpact.GameTask.Common.Job;
 using BetterGenshinImpact.GameTask.Model.Area;
 using BetterGenshinImpact.GameTask.Runtime;
-using BetterGenshinImpact.Helpers.Win32;
 using BetterGenshinImpact.Pulonia.Models;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
-using Vanara.PInvoke;
 
 namespace BetterGenshinImpact.Pulonia.Services;
 
@@ -27,8 +24,27 @@ namespace BetterGenshinImpact.Pulonia.Services;
 /// 将 AccountSwitchStateMachine 和 SwitchAccountMultipleMode 的 PC 官服流程移植到 C#。
 /// 调用方拥有输入租约；所有识别循环共享有限预算，不模拟停止热键、不运行 JS。
 /// </summary>
+/// <remarks>
+/// 流程只用 Core（截图、模板、OCR、InputHub）；与平台有关的两处做成接口：
+/// 运行环境检查 <see cref="DefaultEnvironmentFactory"/>（Windows：Win32 输入后端 + YuanShen 进程；Linux：本机 XTest / uinput 输入 + Wine 下的 YuanShen.exe），
+/// 登录凭据读取 <see cref="PuloniaTaskStore"/> 的凭据库（Windows 凭据管理器 / Linux Secret Service）。
+/// </remarks>
 public sealed class PuloniaGenshinAccountSwitcher(PuloniaTaskStore store) : IPuloniaGenshinAccountSwitcher
 {
+    /// <summary>
+    /// 创建运行环境检查。Windows 主程序加载时设为 Win32 检查，Linux 宿主设为 Linux 检查；
+    /// 未设置的平台不能切换账户（仍可只读核验 UID）。
+    /// </summary>
+    public static Func<IPuloniaAccountSwitchEnvironment> DefaultEnvironmentFactory { get; set; } =
+        static () => new UnsupportedAccountSwitchEnvironment();
+
+    private readonly IPuloniaAccountSwitchEnvironment _environment = DefaultEnvironmentFactory();
+
+    private sealed class UnsupportedAccountSwitchEnvironment : IPuloniaAccountSwitchEnvironment
+    {
+        public string? GetUnsupportedReason(GameRuntime runtime) => "当前平台不支持自动切换账户";
+    }
+
     /// <summary>整个登录准备的有限总时长。</summary>
     private static readonly TimeSpan PreparationBudget = TimeSpan.FromSeconds(180);
     /// <summary>键鼠响应与截图刷新等待时间。</summary>
@@ -122,21 +138,11 @@ public sealed class PuloniaGenshinAccountSwitcher(PuloniaTaskStore store) : IPul
     /// </summary>
     /// <param name="runtime">调用方租约持有的运行环境</param>
     /// <returns>不能切换的原因；可以切换时为 null</returns>
-    private static string? GetUnsupportedRuntimeReason(GameRuntime runtime)
-    {
-        if (InputHub.Backend is not Win32InputBackend)
-            return "自动切换账户只支持本机 PC 官服窗口，云原神实例不能切换账户";
-        User32.GetWindowThreadProcessId(runtime.Window.Handle, out var processId);
-        using var process = Process.GetProcessById((int)processId);
-        // B 服同为 YuanShen 进程，但登录界面与官服模板不同，会在模板匹配阶段停止而不会误操作，因此不再读取 config.ini 区分渠道。
-        return string.Equals(process.ProcessName, "YuanShen", StringComparison.OrdinalIgnoreCase)
-            ? null
-            : "自动切换账户只支持本机 PC 官服";
-    }
+    private string? GetUnsupportedRuntimeReason(GameRuntime runtime) => _environment.GetUnsupportedReason(runtime);
 
     /// <summary>要求当前租约绑定 PC 官服本机窗口，供采集账户图片等必须操作登录界面的功能使用。</summary>
     /// <param name="runtime">调用方租约持有的运行环境</param>
-    private static void EnsureSupportedRuntime(GameRuntime runtime)
+    private void EnsureSupportedRuntime(GameRuntime runtime)
     {
         if (GetUnsupportedRuntimeReason(runtime) is { } reason)
             throw new InvalidOperationException(reason + "。");
@@ -315,11 +321,11 @@ public sealed class PuloniaGenshinAccountSwitcher(PuloniaTaskStore store) : IPul
         return false;
     }
 
-    /// <summary>使用 Windows 凭据填充已识别的登录表单，密码不进入快照和日志。</summary>
-    private static async Task LoginWithPasswordAsync(GameRuntime runtime, PuloniaGenshinAccountProfile account,
+    /// <summary>使用凭据库（Windows 凭据管理器 / Linux Secret Service）中的凭据填充已识别的登录表单，密码不进入快照和日志。</summary>
+    private async Task LoginWithPasswordAsync(GameRuntime runtime, PuloniaGenshinAccountProfile account,
         PuloniaGenshinAccountRecognition recognition, CancellationToken ct)
     {
-        var credential = CredentialManagerHelper.ReadCredential(account.CredentialReference!)
+        var credential = store.CredentialVault.Read(account.CredentialReference!)
                          ?? throw new InvalidOperationException("登录凭据不存在，请在账户页重新填写账号和密码并保存。");
         var alreadyInForm = false;
         using (var frame = runtime.CaptureToRectArea())

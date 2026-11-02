@@ -60,5 +60,6 @@ internal static class InputModuleInitializer
         BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current = BetterGenshinImpact.View.WpfHtmlMaskWindowHost.Instance;
         BetterGenshinImpact.Core.Recognition.OpenCv.DebugLabelImage.Writer = BetterGenshinImpact.Helpers.GdiDebugLabelImageWriter.Instance;
         BetterGenshinImpact.Pulonia.Services.PuloniaTaskStore.DefaultCredentialVaultFactory = static () => new BetterGenshinImpact.Pulonia.Services.PuloniaWindowsCredentialVault();
+        BetterGenshinImpact.Pulonia.Services.PuloniaGenshinAccountSwitcher.DefaultEnvironmentFactory = static () => new BetterGenshinImpact.Pulonia.Services.PuloniaWindowsAccountSwitchEnvironment();
     }
 }

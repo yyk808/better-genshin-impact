@@ -10,8 +10,8 @@ namespace BetterGenshinImpact.Pulonia.Services;
 /// <summary>一次切号拥有的模板集合，按当前截图尺寸缩放并释放全部图像。</summary>
 internal sealed class PuloniaGenshinAccountRecognition : IDisposable
 {
-    /// <summary>模板所在的程序资源目录。</summary>
-    private readonly string _directory = Path.Combine(AppContext.BaseDirectory, "GameTask", "GenshinAccountSwitch", "Assets", "1920x1080");
+    /// <summary>模板所在的程序资源目录（Windows 为程序目录；Linux 宿主为 --assets 指定的资源目录）。</summary>
+    private readonly string _directory = Path.Combine(BetterGenshinImpact.Core.Config.Global.StartUpPath, "GameTask", "GenshinAccountSwitch", "Assets", "1920x1080");
     /// <summary>当前尺寸下由本次操作独占的模板对象。</summary>
     private readonly Dictionary<string, RecognitionObject> _templates = new(StringComparer.Ordinal);
     /// <summary>模板当前适配的截图宽度。</summary>

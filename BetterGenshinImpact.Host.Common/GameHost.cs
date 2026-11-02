@@ -420,13 +420,17 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<IServerTimeProvider, ServerTimeProvider>();
             // 任务计划（Pulonia）：模型、存储、执行服务与执行器都在 Core，与 Windows 相同；
-            // 没有多实例与账号切换（不注册远程派发、账号切换器），登录凭据不保存
+            // 账户切换器在 Core，登录凭据存到系统密钥环（Secret Service），运行环境检查为本机 XTest / uinput 输入 + Wine 下的 YuanShen.exe；
+            // 没有多实例（不注册远程派发）
+            PuloniaTaskStore.DefaultCredentialVaultFactory = static () => new BetterGenshinImpact.Platform.Linux.Accounts.SecretServiceCredentialVault();
+            PuloniaGenshinAccountSwitcher.DefaultEnvironmentFactory = static () => new BetterGenshinImpact.Platform.Linux.Accounts.LinuxAccountSwitchEnvironment();
             services.AddSingleton<PuloniaTaskStore>();
             services.AddSingleton(_ => ScriptRepositoryStore.Shared);
             services.AddSingleton<PuloniaTaskBuilder>();
             services.AddSingleton<PuloniaTaskClipboardService>();
             services.AddSingleton<PuloniaCSharpTaskRegistry>();
             services.AddSingleton<PuloniaGameTaskCoordinator>();
+            services.AddSingleton<IPuloniaGenshinAccountSwitcher, PuloniaGenshinAccountSwitcher>();
             services.AddSingleton<IPuloniaTaskExecutor, PuloniaCSharpTaskExecutor>();
             services.AddSingleton<IPuloniaTaskExecutor, PuloniaShellTaskExecutor>();
             services.AddSingleton<IPuloniaTaskExecutor, PuloniaPathingTaskExecutor>();
@@ -445,6 +449,7 @@ public sealed class GameHost : IAsyncDisposable
                 sp.GetRequiredService<PuloniaGameTaskCoordinator>(),
                 sp.GetRequiredService<TaskStopService>(),
                 sp.GetRequiredService<TimeProvider>(),
+                sp.GetService<IPuloniaGenshinAccountSwitcher>(),
                 logger: sp.GetRequiredService<ILogger<PuloniaTaskService>>(),
                 accountService: sp.GetRequiredService<IPuloniaAccountService>()));
             services.AddSingleton<LinuxPuloniaTriggerHotkeys>();
