@@ -93,7 +93,6 @@ public sealed class GameHost : IAsyncDisposable
     /// <summary>Linux 宿主设置文件路径（不保存配置时为 null）</summary>
     public string? LinuxConfigFilePath => _linuxConfigStore?.Store.FilePath;
 
-    /// <summary>X11 可用的截图方式</summary>
     /// <summary>
     /// 实际使用的截图方式：启用遮罩时，屏幕区域截图会截到遮罩上画的内容，默认的 MIT-SHM 屏幕区域改用 Composite 窗口图像
     /// （Composite 不可用时截图器自己回退）
@@ -103,6 +102,60 @@ public sealed class GameHost : IAsyncDisposable
             ? "CompositeWindow"
             : config.CaptureMode;
 
+    /// <summary>
+    /// 按平台取实际截图方式：Wayland 会话下根窗口没有画面，ShmRoot / GetImageRoot 改为 GetImageWindow，遮罩是 layer-shell 覆盖层、
+    /// 不会被 X 窗口截图截到，所以不需要改用 Composite；没有 X 显示（xwayland-satellite）时只能用 Portal。X11 下同 <see cref="EffectiveCaptureMode(LinuxHostConfig)"/>
+    /// </summary>
+    public static string EffectiveCaptureMode(LinuxHostConfig config, IPlatformServices? platform) => platform switch
+    {
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices { X11: null } => BetterGenshinImpact.Platform.Linux.Wayland.PortalScreenCastCapture.MethodName,
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices => BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices.MapCaptureMode(config.CaptureMode),
+        _ => EffectiveCaptureMode(config),
+    };
+
+    /// <summary>
+    /// 临时抓一帧（音游引导识别键位等）用的截图方式：Portal 每次都要新建会话、启动 PipeWire 读取进程，太慢，
+    /// X 窗口（Wine 游戏）改用 GetImageWindow；原生 Wayland 窗口只能用 Portal
+    /// </summary>
+    public static string TemporaryGrabMode(IPlatformServices platform, nint handle, string mode) =>
+        platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices { X11: not null }
+        && string.Equals(mode, BetterGenshinImpact.Platform.Linux.Wayland.PortalScreenCastCapture.MethodName, StringComparison.OrdinalIgnoreCase)
+        && ((long)handle & BetterGenshinImpact.Platform.Linux.Wayland.NiriWindow.HandleTag) == 0
+            ? "GetImageWindow"
+            : mode;
+
+    /// <summary>Wayland（niri）会话下可选的截图方式（Wine 游戏经 xwayland-satellite 是 X 窗口）</summary>
+    public static IReadOnlyList<CaptureMethodInfo> WaylandCaptureMethods { get; } =
+    [
+        new("GetImageWindow", "XGetImage 窗口（推荐）", "经 xwayland-satellite 直接读取 Wine 游戏的 X 窗口内容，不受遮罩和其它窗口遮挡影响，不需要授权"),
+        new("CompositeWindow", "Composite 窗口图像", "读取游戏 X 窗口的离屏图像（Composite 扩展 + MIT-SHM），比 XGetImage 快；Xwayland 不支持时自动回退"),
+        new(BetterGenshinImpact.Platform.Linux.Wayland.PortalScreenCastCapture.MethodName, "ScreenCast 门户（PipeWire）",
+            "经 xdg-desktop-portal 截图：第一次弹出系统的选择对话框（选游戏窗口；选整个显示器时按 niri 报告的窗口位置裁剪），之后自动恢复；原生 Wayland 窗口只能用这个"),
+    ];
+
+    /// <summary>没有 X 显示（没运行 xwayland-satellite）的 Wayland 会话只能用 Portal</summary>
+    private static IReadOnlyList<CaptureMethodInfo> PortalOnlyCaptureMethods { get; } = [WaylandCaptureMethods[2]];
+
+    /// <summary>当前平台下设置页可选的截图方式（X11 下为 <see cref="CaptureMethods"/>，与以前相同）</summary>
+    public static IReadOnlyList<CaptureMethodInfo> CaptureMethodsFor(IPlatformServices? platform) => platform switch
+    {
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices { X11: null } => PortalOnlyCaptureMethods,
+        BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices => WaylandCaptureMethods,
+        _ => CaptureMethods,
+    };
+
+    /// <summary>设置页里显示为选中的截图方式：配置值在当前平台的实际方式（Wayland 下默认的 ShmRoot 显示为 GetImageWindow），不在列表中时取第一项</summary>
+    public static CaptureMethodInfo SelectedCaptureMethodFor(IPlatformServices? platform, LinuxHostConfig config)
+    {
+        var list = CaptureMethodsFor(platform);
+        var id = platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices ? EffectiveCaptureMode(config, platform) : config.CaptureMode;
+        return list.FirstOrDefault(m => string.Equals(m.Id, id, StringComparison.OrdinalIgnoreCase)) ?? list[0];
+    }
+
+    /// <summary>当前平台下可选的截图方式</summary>
+    public IReadOnlyList<CaptureMethodInfo> AvailableCaptureMethods => CaptureMethodsFor(_platform);
+
+    /// <summary>X11 可用的截图方式</summary>
     public static IReadOnlyList<CaptureMethodInfo> CaptureMethods { get; } =
     [
         new("ShmRoot", "MIT-SHM 屏幕区域（推荐）", "XShmGetImage 截取游戏画面所在的屏幕区域，最快；游戏窗口须可见、不被遮挡（类似 Windows 的 BitBlt）"),
@@ -258,7 +311,7 @@ public sealed class GameHost : IAsyncDisposable
             var manualWindow = new ManualWindowSelection(platform);
             GameSystem.Control = new PlatformGameSystemControl(platform, options.ProcessNames, () => linuxConfig, log);
             // 临时抓帧（音游引导识别键位等）经平台截图器
-            GameFrameGrabber.Current = (handle, c) => GameFrameGrabber.GrabWith(platform, handle, c, EffectiveCaptureMode(linuxConfig));
+            GameFrameGrabber.Current = (handle, c) => GameFrameGrabber.GrabWith(platform, handle, c, TemporaryGrabMode(platform, handle, EffectiveCaptureMode(linuxConfig, platform)));
             // 音频输出：PulseAudio / PipeWire 可用时播放剧情语音，否则静音（流程照常推进），结果显示在环境页
             var audio = BetterGenshinImpact.Platform.Linux.Audio.LinuxAudioOutput.Install();
             log.Information("音频输出：{Status}", audio.Status);
@@ -315,7 +368,7 @@ public sealed class GameHost : IAsyncDisposable
             {
                 var local = ActivatorUtilities.CreateInstance<PlatformRuntimeProvider>(sp,
                     (Func<GameWindowSearch>)(() => new GameWindowSearch(options.ProcessNames)),
-                    (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)),
+                    (Func<string?>)(() => EffectiveCaptureMode(linuxConfig, platform)),
                     (Func<IPlatformWindow?>)manualWindow.Open);
                 // 云原神：页面宿主由图形界面宿主注册（无界面宿主没有），按设置在启动截图器时选择
                 var pageHost = sp.GetService<ICloudGamePageHost>();
@@ -323,7 +376,7 @@ public sealed class GameHost : IAsyncDisposable
                     ? null
                     : ActivatorUtilities.CreateInstance<CloudWebRuntimeProvider>(sp, pageHost,
                         (Func<string>)(() => CloudUrl(linuxConfig)),
-                        (Func<string?>)(() => EffectiveCaptureMode(linuxConfig)));
+                        (Func<string?>)(() => EffectiveCaptureMode(linuxConfig, platform)));
                 return new SwitchingRuntimeProvider(local, cloud, () => linuxConfig.CloudGameEnabled);
             });
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));

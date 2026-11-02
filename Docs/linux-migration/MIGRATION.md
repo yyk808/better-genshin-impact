@@ -104,7 +104,7 @@ Wine / Proton 里的游戏在 niri 下是经 xwayland-satellite 的 X 客户端�
 | --- | --- | --- | --- |
 | 找窗口 | X11（satellite 不提供 `_NET_CLIENT_LIST`，退回 XQueryTree）+ niri IPC 按标题 / app_id 对应 | niri IPC（`$NIRI_SOCKET`，与 `niri msg --json windows` 相同） | niri |
 | 焦点 / 前台判断 | niri IPC `FocusWindow` / `is_focused` | 同左 | niri |
-| 截图 | 默认 `GetImageWindow`（rootless 下根窗口没有内容，`ShmRoot` / `GetImageRoot` 自动改成它）；可选 `Portal` | xdg-desktop-portal ScreenCast + PipeWire | `gstreamer1.0-pipewire`、`gstreamer1.0-tools`、`gstreamer1.0-plugins-base`；niri 用 `xdg-desktop-portal-gnome` |
+| 截图 | 启动页“截图模式”在 Wayland 下列出 XGetImage 窗口（推荐，默认）/ Composite 窗口图像 / ScreenCast 门户；配置里的 X11 默认值 `ShmRoot` / `GetImageRoot` 自动按 `GetImageWindow` 处理，不用改 `linux-host.json` | xdg-desktop-portal ScreenCast + PipeWire（没有 X 显示时只有这一项） | `gstreamer1.0-pipewire`、`gstreamer1.0-tools`、`gstreamer1.0-plugins-base`；niri 用 `xdg-desktop-portal-gnome` |
 | 键鼠输入 | XTest（satellite 内的 Xwayland 收到，与 X11 相同） | uinput 虚拟键鼠（相对移动 + 0..65535 绝对坐标） | `/dev/uinput` 可写 |
 | 全局热键 / 键状态 | evdev 直接读 `/dev/input/event*`，不依赖合成器；读不到时退回 X11 热键（只在 X 窗口有焦点时有效） | 同左 | 用户在 `input` 组 |
 | 屏幕位置 | niri IPC：输出坐标 + `tile_pos_in_workspace_view` + `window_offset_in_tile`，乘输出缩放 | 同左 | 见下方“限制” |
@@ -115,6 +115,12 @@ ScreenCast portal：第一次截图时 portal 弹出选择对话框（可选窗�
 请求的来源类型会先与 portal 的 `AvailableSourceTypes` 取交集（xdg-desktop-portal-wlr 只支持显示器，带“窗口”会被拒绝）。
 PipeWire 帧通过 `gst-launch-1.0 pipewiresrc … ! videoconvert ! BGRA ! fdsink` 子进程读取，这样不用在 C# 里实现 SPA 格式协商和 DMA-BUF 映射；
 代价是多一个进程和一次拷贝（1080p 约 8 MB/帧）。pipewiresrc 必须带 `media.type=Video` 等流属性，否则 WirePlumber 0.5 报 `target not found`。
+在对话框里选“整个显示器”时（`source_type=1`），按流的 `position` 找到对应的 niri 输出，帧按输出缩放取物理分辨率，
+再按 niri 报告的游戏客户区位置（每 500 ms 刷新）裁剪成游戏画面；游戏不在共享的显示器上时不出帧，并提示重新选择。
+游戏平铺、niri 不报告位置时，每 2 秒用游戏 X 窗口本身的画面（XGetImage）在整屏帧里做模板比对定位（先缩小 4 倍粗定位，再原分辨率精定位，相关系数 ≥ 0.9）。
+Portal 截的是合成后的画面，遮罩（layer-shell 覆盖层，namespace `bettergi-mask`）也会被截进去；同时用遮罩和 Portal 时请在 niri 配置里加
+`layer-rule { match namespace="^bettergi-mask$"; block-out-from "screencast"; }`，或者用 XGetImage 窗口截图。
+临时抓帧（音游引导等）不用 Portal（每次都要新建会话），X 窗口改用 `GetImageWindow`。Wayland 下遮罩是 layer-shell 覆盖层，不会被 X 窗口截图截到，所以不再像 X11 那样在启用遮罩时改用 Composite。
 
 权限（缺少时环境页 / 日志会给出同样的提示）：
 
@@ -127,8 +133,10 @@ sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
 
 限制与取舍：
 
-- **niri 只报告浮动窗口的位置**：平铺窗口的 `tile_pos_in_workspace_view` 为 null（只给出列 / 行序号），无法换算成屏幕坐标。
-  游戏全屏（窗口尺寸等于输出）时按输出原点处理；窗口化运行时请让游戏浮动，例如在 niri 配置（`~/.config/niri/config.kdl`）里加：
+- **niri 只报告浮动窗口的位置**：平铺窗口的 `tile_pos_in_workspace_view` 为 null（只给出列 / 行序号），无法换算成屏幕坐标；
+  查过 niri 主分支（2026-11）的 IPC：新增了 `EventStream` 的 `WindowLayoutsChanged`、`Casts`、`ScreenshotWindow` 等，但平铺窗口仍然没有屏幕位置。
+  游戏全屏（窗口尺寸等于输出）时按输出原点处理；Portal 整屏截图时用画面比对兜底（见上）；遮罩和 uinput 绝对坐标拿不到位置时不工作，
+  遮罩会在日志里提示。窗口化运行时请让游戏浮动，例如在 niri 配置（`~/.config/niri/config.kdl`）里加：
 
   ```kdl
   window-rule {

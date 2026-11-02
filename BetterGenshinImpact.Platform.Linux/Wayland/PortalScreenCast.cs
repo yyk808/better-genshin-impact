@@ -8,7 +8,8 @@ namespace BetterGenshinImpact.Platform.Linux.Wayland;
 /// <param name="NodeId">PipeWire 节点 id</param>
 /// <param name="Width">流的大小（portal 提供时），未知为 0</param>
 /// <param name="SourceType">1 = 显示器，2 = 窗口</param>
-public sealed record ScreenCastStream(uint NodeId, int Width, int Height, uint SourceType);
+/// <param name="X">流在合成器坐标中的位置（只有显示器来源提供；逻辑像素）</param>
+public sealed record ScreenCastStream(uint NodeId, int Width, int Height, uint SourceType, int X = 0, int Y = 0, bool HasPosition = false);
 
 /// <summary>
 /// xdg-desktop-portal ScreenCast 会话（CreateSession → SelectSources → Start）。
@@ -185,7 +186,8 @@ public sealed class ScreenCastPortalSession : IAsyncDisposable
             var item = streams.GetItem(i);
             var node = item.GetItem(0).GetUInt32();
             var props = item.GetItem(1);
-            int w = 0, h = 0;
+            int w = 0, h = 0, x = 0, y = 0;
+            var hasPosition = false;
             uint type = 0;
             for (var j = 0; j < props.Count; j++)
             {
@@ -201,9 +203,15 @@ public sealed class ScreenCastPortalSession : IAsyncDisposable
                 {
                     type = value.GetUInt32();
                 }
+                else if (key == "position")
+                {
+                    x = value.GetItem(0).GetInt32();
+                    y = value.GetItem(1).GetInt32();
+                    hasPosition = true;
+                }
             }
 
-            list.Add(new ScreenCastStream(node, w, h, type));
+            list.Add(new ScreenCastStream(node, w, h, type, x, y, hasPosition));
         }
 
         return list;
@@ -249,7 +257,40 @@ public sealed class PortalScreenCastCapture : IGameCapture
     private volatile bool _stop;
     private readonly object _gate = new();
 
-    public PortalScreenCastCapture(NiriIpc? niri = null) => _niri = niri;
+    private readonly Func<IPlatformWindow, WaylandOverlayPlacement?>? _locate;
+    private IPlatformWindow? _window;
+    private ScreenCastStream? _stream;
+    private NiriOutputInfo? _streamOutput;
+    private double _streamScale = 1;
+    private PixelRect? _crop;
+    private long _cropAt;
+
+    private readonly Func<IPlatformWindow, Mat?>? _grabWindow;
+    private PixelRect? _matched;
+    private long _matchedAt;
+
+    /// <param name="locate">游戏窗口在哪个输出、相对输出的逻辑位置（<see cref="WaylandPlatformServices.LocateOverlay"/>）；用于显示器来源时裁剪到游戏</param>
+    /// <param name="grabWindow">直接截游戏窗口本身的画面（X 窗口经 XGetImage）；niri 不报告位置（平铺窗口）时用它在整屏画面里比对定位</param>
+    public PortalScreenCastCapture(NiriIpc? niri = null, Func<IPlatformWindow, WaylandOverlayPlacement?>? locate = null, Func<IPlatformWindow, Mat?>? grabWindow = null)
+    {
+        _niri = niri;
+        _locate = locate;
+        _grabWindow = grabWindow;
+    }
+
+    /// <summary>当前裁剪区域的来源："niri"（IPC 窗口位置）、"画面比对"（平铺窗口兜底），未裁剪时为 null</summary>
+    public string? CropSource { get; private set; }
+
+    /// <summary>portal 选中的流（未启动时为 null）</summary>
+    public ScreenCastStream? Stream => _stream;
+
+    /// <summary>显示器来源时当前的裁剪区域（帧像素）；窗口来源或不裁剪时为 null</summary>
+    public PixelRect? CropRect => _crop;
+
+    /// <summary>是否把显示器来源裁剪到游戏窗口</summary>
+    public bool CropsToWindow => _stream is { SourceType: 1 } && _locate is not null && !_noCrop;
+
+    private bool _noCrop;
 
     public bool IsCapturing => _gst is { HasExited: false };
 
@@ -273,7 +314,7 @@ public sealed class PortalScreenCastCapture : IGameCapture
 
     /// <param name="settings">
     /// "portalSourceTypes"（uint，1 显示器 / 2 窗口 / 3 都可）、"portalForget"（true 时忽略已保存的 restore_token）、
-    /// "portalTimeoutSeconds"（等待用户选择的秒数）
+    /// "portalTimeoutSeconds"（等待用户选择的秒数）、"portalNoCrop"（true 时显示器来源不裁剪，诊断用）
     /// </param>
     public void Start(IPlatformWindow window, Dictionary<string, object>? settings = null)
     {
@@ -282,10 +323,29 @@ public sealed class PortalScreenCastCapture : IGameCapture
         var forget = settings?.TryGetValue("portalForget", out var f) == true && Convert.ToBoolean(f);
         var timeout = settings?.TryGetValue("portalTimeoutSeconds", out var s) == true ? TimeSpan.FromSeconds(Convert.ToDouble(s)) : TimeSpan.FromMinutes(2);
         _session = Task.Run(() => ScreenCastPortalSession.StartAsync(types, !forget, timeout)).GetAwaiter().GetResult();
+        _noCrop = settings?.TryGetValue("portalNoCrop", out var nc) == true && Convert.ToBoolean(nc);
         var stream = _session.Streams[0];
-        // portal 没给大小时，退回窗口大小
-        _width = stream.Width > 0 ? stream.Width : Math.Max(1, window.Viewport.Width);
-        _height = stream.Height > 0 ? stream.Height : Math.Max(1, window.Viewport.Height);
+        _stream = stream;
+        _window = window;
+        _crop = null;
+        _cropAt = 0;
+        if (stream.SourceType == 1)
+        {
+            // 显示器来源：流大小是该输出的逻辑大小，按输出缩放取物理分辨率（不丢清晰度），之后每帧裁剪到游戏窗口
+            _streamOutput = FindStreamOutput(stream);
+            _streamScale = _streamOutput?.Scale is > 0 and var sc ? sc : 1;
+            _width = stream.Width > 0 ? (int)Math.Round(stream.Width * _streamScale) : _streamOutput is { } o ? (int)Math.Round(o.Width * _streamScale) : Math.Max(1, window.Viewport.Width);
+            _height = stream.Height > 0 ? (int)Math.Round(stream.Height * _streamScale) : _streamOutput is { } o2 ? (int)Math.Round(o2.Height * _streamScale) : Math.Max(1, window.Viewport.Height);
+        }
+        else
+        {
+            // 窗口来源（或后端没说）：portal 没给大小时，退回窗口大小
+            _streamOutput = null;
+            _streamScale = 1;
+            _width = stream.Width > 0 ? stream.Width : Math.Max(1, window.Viewport.Width);
+            _height = stream.Height > 0 ? stream.Height : Math.Max(1, window.Viewport.Height);
+        }
+
         StartPipeline(stream.NodeId);
     }
 
@@ -350,13 +410,158 @@ public sealed class PortalScreenCastCapture : IGameCapture
 
     public GameCaptureFrame? Capture()
     {
+        PixelRect? crop = null;
+        if (CropsToWindow)
+        {
+            crop = CurrentCrop();
+            if (crop is null) return null; // 游戏不在共享的显示器上，或位置未知（平铺窗口）
+        }
+
         lock (_gate)
         {
             if (_latest is null) return null;
             var mat = new Mat(_height, _width, MatType.CV_8UC4);
             System.Runtime.InteropServices.Marshal.Copy(_latest, 0, mat.Data, _latest.Length);
-            return new GameCaptureFrame(mat);
+            if (crop is not { } c) return new GameCaptureFrame(mat);
+            using (mat)
+            {
+                using var roi = new Mat(mat, new Rect(c.X, c.Y, c.Width, c.Height));
+                return new GameCaptureFrame(roi.Clone());
+            }
         }
+    }
+
+    /// <summary>显示器来源对应的 niri 输出：位置与流位置相同的输出；portal 没给位置时取唯一的输出</summary>
+    private NiriOutputInfo? FindStreamOutput(ScreenCastStream stream)
+    {
+        try
+        {
+            var outputs = _niri?.Outputs() ?? [];
+            if (stream.HasPosition)
+            {
+                return outputs.FirstOrDefault(o => o.X == stream.X && o.Y == stream.Y && (stream.Width <= 0 || o.Width == stream.Width))
+                       ?? outputs.FirstOrDefault(o => o.X == stream.X && o.Y == stream.Y);
+            }
+
+            return outputs.Count == 1 ? outputs[0] : null;
+        }
+        catch (Exception e) when (e is IOException or System.Net.Sockets.SocketException or InvalidOperationException or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>每 500 ms 按 niri 报告的窗口位置更新一次裁剪区域</summary>
+    private PixelRect? CurrentCrop()
+    {
+        var now = Environment.TickCount64;
+        if (_cropAt != 0 && now - _cropAt < 500) return _crop;
+        _cropAt = now;
+        var p = _window is null ? null : _locate!(_window);
+        var crop = p is null ? null : ComputeCrop(_stream!, _streamOutput, p, _width, _height);
+        CropSource = crop is null ? null : "niri";
+        if (p is null && MatchWindow() is { } matched)
+        {
+            // niri 不报告平铺窗口的位置：用游戏窗口本身的画面在整屏画面里比对定位
+            crop = matched;
+            CropSource = "画面比对";
+        }
+        else if (crop is null && p is not null)
+        {
+            LastError = $"游戏窗口在输出 {p.Output}，不在共享的显示器（{_streamOutput?.Name ?? "未知"}）上；请在门户对话框里选择游戏所在的显示器或直接选择游戏窗口";
+        }
+        else if (p is null)
+        {
+            LastError = "拿不到游戏窗口在屏幕上的位置（niri 只报告浮动和全屏窗口的位置），与整屏画面比对也没有找到游戏，无法从整个显示器的画面里裁出游戏；" +
+                        "请把游戏设为浮动或全屏，或在门户对话框里直接选择游戏窗口";
+        }
+
+        _crop = crop;
+        return crop;
+    }
+
+    /// <summary>平铺窗口兜底：每 2 秒用游戏窗口画面在最新整屏帧里比对一次位置</summary>
+    private PixelRect? MatchWindow()
+    {
+        if (_grabWindow is null || _window is null) return null;
+        var now = Environment.TickCount64;
+        if (_matchedAt != 0 && now - _matchedAt < 2000) return _matched;
+        _matchedAt = now;
+        using var win = _grabWindow(_window);
+        if (win is null || win.Empty()) return _matched = null;
+        Mat screen;
+        lock (_gate)
+        {
+            if (_latest is null) return _matched = null;
+            screen = new Mat(_height, _width, MatType.CV_8UC4);
+            System.Runtime.InteropServices.Marshal.Copy(_latest, 0, screen.Data, _latest.Length);
+        }
+
+        using (screen)
+        {
+            return _matched = LocateByTemplate(screen, win, out _);
+        }
+    }
+
+    /// <summary>
+    /// 在整屏画面里找游戏窗口画面的位置：先缩小 4 倍粗定位（归一化相关系数 ≥ 0.8），再在原分辨率 ±8 像素内精定位（≥ 0.9）；找不到为 null
+    /// </summary>
+    public static PixelRect? LocateByTemplate(Mat screen, Mat window, out double score)
+    {
+        score = 0;
+        if (window.Width < 32 || window.Height < 32 || window.Width > screen.Width || window.Height > screen.Height) return null;
+        const int k = 4;
+        using var sg = Gray(screen);
+        using var wg = Gray(window);
+        using var s4 = sg.Resize(new Size(sg.Width / k, sg.Height / k), 0, 0, InterpolationFlags.Area);
+        using var w4 = wg.Resize(new Size(wg.Width / k, wg.Height / k), 0, 0, InterpolationFlags.Area);
+        using var r4 = new Mat();
+        Cv2.MatchTemplate(s4, w4, r4, TemplateMatchModes.CCoeffNormed);
+        Cv2.MinMaxLoc(r4, out _, out var coarse, out _, out var loc);
+        if (coarse < 0.8) return null;
+        const int pad = 8;
+        var x0 = Math.Max(0, loc.X * k - pad);
+        var y0 = Math.Max(0, loc.Y * k - pad);
+        var x1 = Math.Min(sg.Width, loc.X * k + wg.Width + pad);
+        var y1 = Math.Min(sg.Height, loc.Y * k + wg.Height + pad);
+        if (x1 - x0 < wg.Width || y1 - y0 < wg.Height) return null;
+        using var region = new Mat(sg, new Rect(x0, y0, x1 - x0, y1 - y0));
+        using var r = new Mat();
+        Cv2.MatchTemplate(region, wg, r, TemplateMatchModes.CCoeffNormed);
+        Cv2.MinMaxLoc(r, out _, out score, out _, out var fine);
+        return score < 0.9 ? null : new PixelRect(x0 + fine.X, y0 + fine.Y, wg.Width, wg.Height);
+
+        static Mat Gray(Mat m)
+        {
+            var g = new Mat();
+            Cv2.CvtColor(m, g, m.Channels() == 4 ? ColorConversionCodes.BGRA2GRAY : ColorConversionCodes.BGR2GRAY);
+            return g;
+        }
+    }
+
+    /// <summary>
+    /// 显示器来源的裁剪区域（帧像素）：窗口相对输出的逻辑位置 → 相对流的位置 × 帧/流比例，与帧求交；
+    /// 窗口不在该输出上（或输出未知而窗口不在流的范围内）时为 null
+    /// </summary>
+    public static PixelRect? ComputeCrop(ScreenCastStream stream, NiriOutputInfo? streamOutput, WaylandOverlayPlacement window, int frameWidth, int frameHeight)
+    {
+        if (streamOutput is not null && window.Output is not null && window.Output != streamOutput.Name) return null;
+        // 逻辑坐标：窗口相对输出 → 全局 → 相对流
+        double ox = streamOutput?.X ?? 0, oy = streamOutput?.Y ?? 0;
+        double sx = stream.HasPosition ? stream.X : ox, sy = stream.HasPosition ? stream.Y : oy;
+        var lw = stream.Width > 0 ? stream.Width : streamOutput?.Width ?? frameWidth;
+        var lh = stream.Height > 0 ? stream.Height : streamOutput?.Height ?? frameHeight;
+        var kx = frameWidth / (double)lw;
+        var ky = frameHeight / (double)lh;
+        var x = (int)Math.Round((ox + window.X - sx) * kx);
+        var y = (int)Math.Round((oy + window.Y - sy) * ky);
+        var w = (int)Math.Round(window.Width * kx);
+        var h = (int)Math.Round(window.Height * ky);
+        var x0 = Math.Max(0, x);
+        var y0 = Math.Max(0, y);
+        var x1 = Math.Min(frameWidth, x + w);
+        var y1 = Math.Min(frameHeight, y + h);
+        return x1 - x0 < 8 || y1 - y0 < 8 ? null : new PixelRect(x0, y0, x1 - x0, y1 - y0);
     }
 
     public void Stop()

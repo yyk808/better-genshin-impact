@@ -39,6 +39,7 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 case "html-settings": await HtmlSettingsAsync(); break;
                 case "html-mask": await HtmlMaskAsync(); break;
                 case "wayland-mask": await WaylandMaskAsync(); break;
+                case "wayland-capture": await WaylandCaptureAsync(); break;
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
@@ -562,6 +563,72 @@ internal sealed class UiTests(MainWindow window, MainWindowViewModel vm, ILogger
                 if (mask.OverlayPixel(x, y) is { } c && pred(c)) n++;
             return n;
         }
+    }
+
+    /// <summary>
+    /// Wayland 截图方式（--ui-test wayland-capture）：启动页的截图模式下拉在 Wayland 会话下列出 XGetImage 窗口 / Composite / Portal，
+    /// 配置文件里的默认值 ShmRoot 显示为 XGetImage 窗口（不改写文件）；选 Portal 后写入 linux-host.json，启动截图器实际使用 Portal
+    /// （盒子上为模拟 portal 后端），临时抓帧仍用 GetImageWindow；再选回 XGetImage 窗口。linux-host.json 由外部脚本备份恢复
+    /// </summary>
+    private async Task WaylandCaptureAsync()
+    {
+        var host = vm.Host;
+        if (host is null) return;
+        Check("Wayland 平台", host.Platform is BetterGenshinImpact.Platform.Linux.Wayland.WaylandPlatformServices, host.Platform.Name);
+        if (vm.Home.CanStop) await vm.Home.StopAsync();
+        await Until(() => vm.Home.CanStart, 10000);
+        vm.Navigate("启动");
+        await Settle(800);
+        var combo = await WaitFor(() => All<ComboBox>().FirstOrDefault(c => ReferenceEquals(c.ItemsSource, vm.Home.CaptureMethods) && c.IsEffectivelyVisible));
+        Check("启动页有截图模式下拉", combo is not null);
+        if (combo is null) return;
+        var items = vm.Home.CaptureMethods;
+        Check("Wayland 下的截图方式列表", string.Join(",", items.Select(m => m.Id)) == "GetImageWindow,CompositeWindow,Portal", string.Join(",", items.Select(m => m.Id)));
+        var file = host.LinuxConfigFilePath!;
+        var fileMode = ReadJson(file)["captureMode"]?.ToString();
+        Check("配置默认值 ShmRoot 显示为 XGetImage 窗口", (combo.SelectedItem as BetterGenshinImpact.Host.Common.CaptureMethodInfo)?.Id == "GetImageWindow",
+            $"{(combo.SelectedItem as BetterGenshinImpact.Host.Common.CaptureMethodInfo)?.Id} 文件 {fileMode}");
+        Check("实际截图方式 GetImageWindow", BetterGenshinImpact.Host.Common.GameHost.EffectiveCaptureMode(host.LinuxConfig, host.Platform) == "GetImageWindow");
+
+        combo.SelectedItem = items.First(m => m.Id == "Portal");
+        await Settle(1500);
+        Check("选 Portal 后写入 linux-host.json", await Until(() => ReadJson(file)["captureMode"]?.ToString() == "Portal", 5000), ReadJson(file)["captureMode"]?.ToString());
+        Check("实际截图方式 Portal", BetterGenshinImpact.Host.Common.GameHost.EffectiveCaptureMode(host.LinuxConfig, host.Platform) == "Portal");
+        var frames0 = host.FramesProcessed;
+        await vm.Home.StartAsync();
+        var started = await Until(() => host.RuntimeService.Current is not null && host.FramesProcessed > frames0 + 3, 20000);
+        var method = host.RuntimeService.Current?.Capture.Capabilities.Method;
+        Check("Portal 截图器取到帧", started && method is not null && method.Contains("Portal", StringComparison.OrdinalIgnoreCase), $"{method} 帧 {host.FramesProcessed}");
+        if (host.RuntimeService.Current is { } rt)
+        {
+            var vr = rt.Window.Viewport.ScreenRect;
+            using (var fr = rt.Capture.Capture())
+            {
+                Check("Portal 帧 = 游戏客户区大小（整个显示器时已裁剪）", fr is not null && fr.Frame.Width == vr.Width && fr.Frame.Height == vr.Height,
+                    $"{fr?.Frame.Width}x{fr?.Frame.Height} 客户区 {vr.Width}x{vr.Height}");
+            }
+
+            Check("临时抓帧仍用 GetImageWindow（X 窗口）", BetterGenshinImpact.Host.Common.GameHost.TemporaryGrabMode(host.Platform, rt.Window.Handle, "Portal") == "GetImageWindow");
+        }
+
+        Check("运行中下拉不可用", !combo.IsEffectivelyEnabled);
+        Shot("wayland-capture-portal.png");
+        await vm.Home.StopAsync();
+        await Until(() => vm.Home.CanStart && combo.IsEffectivelyEnabled, 10000);
+
+        combo.SelectedItem = items.First(m => m.Id == "CompositeWindow");
+        await Settle(500);
+        frames0 = host.FramesProcessed;
+        await vm.Home.StartAsync();
+        started = await Until(() => host.RuntimeService.Current is not null && host.FramesProcessed > frames0 + 3, 20000);
+        method = host.RuntimeService.Current?.Capture.Capabilities.Method;
+        Check("CompositeWindow 截图器取到帧", started, $"{method} 帧 {host.FramesProcessed}");
+        await vm.Home.StopAsync();
+        await Until(() => vm.Home.CanStart && combo.IsEffectivelyEnabled, 10000);
+
+        combo.SelectedItem = items.First(m => m.Id == "GetImageWindow");
+        await Settle(1500);
+        Check("选回 XGetImage 窗口", await Until(() => ReadJson(file)["captureMode"]?.ToString() == "GetImageWindow", 5000), ReadJson(file)["captureMode"]?.ToString());
     }
 
     private async Task HtmlMaskAsync()

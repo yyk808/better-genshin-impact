@@ -178,10 +178,27 @@ public sealed class WaylandPlatformServices : IPlatformServices
     {
         if (string.Equals(method, PortalScreenCastCapture.MethodName, StringComparison.OrdinalIgnoreCase) || _x11 is null)
         {
-            return new PortalScreenCastCapture(Niri);
+            return new PortalScreenCastCapture(Niri, LocateOverlay, GrabXWindow);
         }
 
         return new XWaylandCapture(_x11, MapCaptureMode(method));
+    }
+
+    /// <summary>直接截一帧 X 窗口（Wine 游戏）本身的画面；不是 X 窗口时为 null（Portal 平铺窗口定位兜底用）</summary>
+    private OpenCvSharp.Mat? GrabXWindow(IPlatformWindow window)
+    {
+        if (_x11 is null || Unwrap(window) is not XWaylandWindow xw) return null;
+        try
+        {
+            using var cap = _x11.CreateCapture(nameof(X11CaptureMode.GetImageWindow));
+            cap.Start(xw.Inner);
+            using var f = cap.Capture();
+            return f?.Frame.Clone();
+        }
+        catch (Exception e) when (e is InvalidOperationException or IOException)
+        {
+            return null;
+        }
     }
 
     /// <summary>X11 截图方式在 Wayland 会话下的实际方式</summary>

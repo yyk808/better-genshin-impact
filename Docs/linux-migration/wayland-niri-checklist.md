@@ -31,9 +31,14 @@
 
 - [ ] 默认截图方式（日志显示 `GetImageWindow`；设置里选 ShmRoot / GetImageRoot 也会自动改成它）：实时触发能识别画面（例如自动拾取、F 对话）
 - [ ] 截图里没有遮挡物 / 其它窗口；游戏被别的窗口盖住时是否仍正确（XWayland 下通常仍正确，请记录）
-- [ ] 截图方式改为 `Portal`（设置页的下拉列表里没有这一项，避免 X11 下误选；请在 `User/linux-host.json` 中把 `CaptureMode` 改为 `"Portal"`，或用 `bgi-headless --capture Portal`）：第一次弹出 GNOME 的选择对话框，选游戏窗口 → 能截到图
+- [ ] 启动页“截图模式”下拉：Wayland 下只有“XGetImage 窗口（推荐）/ Composite 窗口图像 / ScreenCast 门户（PipeWire）”三项，默认选中 XGetImage 窗口（`linux-host.json` 不用改）
+- [ ] “Composite 窗口图像”：能截到图（Xwayland 不支持时会自动回退，日志里有截图方式名）
+- [ ] 截图方式选“ScreenCast 门户”：第一次弹出 GNOME 的选择对话框，选游戏窗口 → 能截到图
 - [ ] 重启后再次用 `Portal`：不再弹对话框（`~/.config/bettergi/screencast-restore-token` 存在）；删掉该文件后会重新弹
-- [ ] Portal 选“整个显示器”时坐标是否对得上（目前按窗口来源设计，显示器来源需裁剪，请记录现象）
+- [ ] Portal 选“整个显示器”（删掉 restore-token 重新选）：截图只有游戏客户区（不含 satellite 标题栏和其它窗口），识别坐标正确；移动浮动窗口后 0.5 秒内跟上
+- [ ] 多显示器：选了游戏不在的那个显示器时没有画面，日志 / 环境页提示重新选择；缩放 ≠ 1 的显示器上截图清晰度与游戏一致
+- [ ] 遮罩 + Portal：niri 配置加 `layer-rule { match namespace="^bettergi-mask$"; block-out-from "screencast"; }` 后截图里没有遮罩内容
+- [ ] 游戏平铺 + Portal 整个显示器：靠画面比对仍能裁出游戏（每 2 秒定位一次，记录是否稳定）
 - [ ] 帧率 / CPU：Portal 方式下 `top` 中 `gst-launch-1.0` 的 CPU 占用（1080p）
 
 ## 4. 输入

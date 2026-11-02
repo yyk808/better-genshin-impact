@@ -39,7 +39,7 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
         else
         {
-            _selectedCaptureMethod = GameHost.CaptureMethods.FirstOrDefault(m => m.Id == host.LinuxConfig.CaptureMode) ?? GameHost.CaptureMethods[0];
+            _selectedCaptureMethod = GameHost.SelectedCaptureMethodFor(host.Platform, host.LinuxConfig);
         }
     }
 
@@ -150,7 +150,8 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
     }
 
-    public IReadOnlyList<CaptureMethodInfo> CaptureMethods => GameHost.CaptureMethods;
+    /// <summary>当前平台下可选的截图方式（Wayland 会话下为 XGetImage 窗口 / Composite / Portal）</summary>
+    public IReadOnlyList<CaptureMethodInfo> CaptureMethods => _host?.AvailableCaptureMethods ?? GameHost.CaptureMethods;
 
     public IReadOnlyList<LaunchPreset> LaunchPresets => LinuxHostConfig.Presets;
 
