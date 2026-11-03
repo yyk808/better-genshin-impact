@@ -49,7 +49,7 @@
                                     <MenuItem Header="重命名" Command="{Binding RenameScriptGroupCommand}" />
                                     <MenuItem Header="复制组" Command="{Binding CopyScriptGroupCommand}" />
                                     <MenuItem Header="根据文件夹更新" Command="{Binding UpdateByFolderCommand}" />
-                                    <MenuItem Header="日志分析（Linux 版尚未迁移）" IsEnabled="False" />
+                                    <MenuItem Header="日志分析" Command="{Binding OpenLogParseCommand}" />
                                     <MenuItem x:Name="OpenScriptRepoMenu" Header="打开脚本仓库" Command="{Binding OpenScriptRepoCommand}" />
                                 </MenuFlyout>
                             </Button.Flyout>

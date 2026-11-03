@@ -344,7 +344,7 @@ namespace BetterGenshinImpact.GameTask.LogParse
                     if (DateTime.TryParseExact(dateString, "yyyyMMdd", null, DateTimeStyles.None,
                             out DateTime parsedDate))
                     {
-                        result.Add((folderPath + "\\" + fileName, parsedDate.ToString("yyyy-MM-dd")));
+                        result.Add((Path.Combine(folderPath, fileName), parsedDate.ToString("yyyy-MM-dd")));
                     }
                 }
             }
