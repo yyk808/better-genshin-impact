@@ -2324,7 +2324,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var outDir = Environment.GetEnvironmentVariable("FAKE_SERVER_OUT") ?? "/tmp/m45-fake";
         // 防护：其它渠道必须都未启用，避免向外部地址发送
         var others = typeof(BetterGenshinImpact.Service.Notification.NotificationConfig).GetProperties()
-            .Where(p => p.PropertyType == typeof(bool) && p.Name.EndsWith("NotificationEnabled") && p.Name is not ("EmailNotificationEnabled" or "WorkweixinNotificationEnabled" or "JsNotificationEnabled"))
+            .Where(p => p.PropertyType == typeof(bool) && p.Name.EndsWith("NotificationEnabled") && p.Name is not ("EmailNotificationEnabled" or "WorkweixinNotificationEnabled" or "FeishuNotificationEnabled" or "JsNotificationEnabled"))
             .Where(p => (bool)p.GetValue(n)!).Select(p => p.Name).ToList();
         others.AddRange(n.WebhookEnabled ? ["WebhookEnabled"] : []);
         Check("其它通知渠道均未启用", others.Count == 0, string.Join(",", others));
@@ -2354,6 +2354,27 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         var hook = File.Exists(Path.Combine(outDir, "webhook.jsonl")) ? File.ReadAllLines(Path.Combine(outDir, "webhook.jsonl")) : [];
         Check("假 Webhook 收到截图与文本", hook.Any(l => l.Contains("\"msgtype\": \"image\"") && l.Contains("key=m45-selftest"))
             && hook.Any(l => l.Contains("\"msgtype\": \"text\"") && l.Contains("这是一条测试通知信息")), $"{hook.Length} 条");
+
+        // 飞书：界面填写地址并启用；不填 AppId / AppSecret（填写后会向 open.feishu.cn 取令牌上传图片，自测不联网）
+        Named<TextBox>("FeishuUrlBox")!.Text = "http://127.0.0.1:18045/open-apis/bot/v2/hook/m64-feishu";
+        Named<TextBox>("FeishuAppIdBox")!.Text = "";
+        Named<TextBox>("FeishuAppSecretBox")!.Text = "";
+        Check("飞书卡片：地址、AppId、AppSecret、测试（同 WPF）", Named<Button>("FeishuTestButton") is { Content: "发送" });
+        settings.FeishuStatus = "";
+        await Click(Named<Button>("FeishuTestButton"), "测试飞书（未启用）");
+        await WaitFor(() => string.IsNullOrEmpty(settings.FeishuStatus) ? null : "ok");
+        Check("飞书未启用时提示", settings.FeishuStatus.Contains("未启用"), settings.FeishuStatus);
+        Named<ToggleSwitch>("FeishuSwitch")!.IsChecked = true;
+        await Settle(300);
+        Check("飞书设置写入配置", n.FeishuNotificationEnabled && n.FeishuWebhookUrl.Contains("m64-feishu") && n.FeishuAppId == "", n.FeishuWebhookUrl);
+        settings.FeishuStatus = "";
+        await Click(Named<Button>("FeishuTestButton"), "测试飞书");
+        await WaitFor(() => string.IsNullOrEmpty(settings.FeishuStatus) ? null : "ok");
+        Check("飞书测试发送成功", settings.FeishuStatus.Contains("成功"), settings.FeishuStatus);
+        hook = File.Exists(Path.Combine(outDir, "webhook.jsonl")) ? File.ReadAllLines(Path.Combine(outDir, "webhook.jsonl")) : [];
+        Check("假 Webhook 收到飞书文本消息", hook.Any(l => l.Contains("m64-feishu") && l.Contains("\"msg_type\": \"text\"")), $"{hook.Length} 条");
+        Named<ToggleSwitch>("FeishuSwitch")!.IsChecked = false;
+        await Settle(300);
 
         // 邮件：界面填写 SMTP 设置并启用
         Named<TextBox>("SmtpServerBox")!.Text = "127.0.0.1";

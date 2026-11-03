@@ -703,6 +703,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     /// <summary>企业微信渠道测试结果</summary>
     [ObservableProperty] private string _workweixinStatus = string.Empty;
 
+    /// <summary>飞书渠道测试结果</summary>
+    [ObservableProperty] private string _feishuStatus = string.Empty;
+
+    /// <summary>测试飞书通知（对照 WPF OnTestFeishuNotification）</summary>
+    [RelayCommand]
+    public async Task TestFeishuNotificationAsync() => FeishuStatus = await TestNotifierAsync<BetterGenshinImpact.Service.Notifier.FeishuNotifier>("飞书");
+
     /// <summary>WebSocket 渠道测试结果</summary>
     [ObservableProperty] private string _webSocketStatus = string.Empty;
 
