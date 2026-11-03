@@ -54,6 +54,8 @@ public sealed class GuideWindow : Window, IGuideWindowView
         this.Bind(TopmostProperty, new Binding("State.IsTopmost") { Mode = BindingMode.OneWay });
         this.Bind(OpacityProperty, new Binding("State.Opacity") { Mode = BindingMode.OneWay });
 
+        // 一次性迁移：早期版本的网页数据在 WebKitGTK 默认目录，新目录不存在时先复制过来（失败只记日志）
+        BetterGenshinImpact.Host.Common.Storage.LinuxWebDataMigration.MigrateGuide(BetterGenshinImpact.CoreServices.GetLogger<GuideWindow>());
         _webView = new NativeWebView();
         _webView.EnvironmentRequested += (_, e) =>
         {

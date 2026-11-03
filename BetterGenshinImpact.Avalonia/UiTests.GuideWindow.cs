@@ -64,6 +64,8 @@ internal sealed partial class UiTests
             // 2. 页面脚本上报状态
             Check("页面脚本上报状态：标题", await Until(() => guide.State.Title == "BGI 小窗测试页", 15000), guide.State.Title);
             Check("页面脚本上报状态：有视频", window.Bridge.State?.HasVideo == true, window.Bridge.State?.Href);
+            Check("Cookie 持久保存到 Data/WebKit/Guide/data/cookies.sqlite（保留 B 站等网站的登录，同 Windows 版）",
+                await Until(() => File.Exists(BetterGenshinImpact.View.Controls.Guide.GuidePlayerBridge.CookieFile), 5000), BetterGenshinImpact.View.Controls.Guide.GuidePlayerBridge.CookieFile);
             Check("当前网址", window.Bridge.CurrentUrl?.StartsWith(url.TrimEnd('/')) == true, window.Bridge.CurrentUrl);
             Check("设置页状态“正在显示”", await Until(() => vm.Guide.WindowStatus == "正在显示", 3000), vm.Guide.WindowStatus);
 

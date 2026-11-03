@@ -118,6 +118,10 @@ public sealed partial class GuidePlayerBridge : IGuidePlayer, IDisposable
             var zoom = _zoom;
             var manager = RunOnGtk(() =>
             {
+                // Cookie 持久保存到 Data/WebKit/Guide/data/cookies.sqlite（WebKitGTK 默认只放在内存里，退出即丢失登录；
+                // 同 Windows 版 Guide 环境保留 B 站等网站的登录），须在首次导航之前设置
+                var cookies = webkit_website_data_manager_get_cookie_manager(webkit_web_view_get_website_data_manager(view));
+                webkit_cookie_manager_set_persistent_storage(cookies, CookieFile, 1 /* SQLITE */);
                 var ucm = webkit_web_view_get_user_content_manager(view);
                 webkit_user_content_manager_register_script_message_handler(ucm, MessageHandler);
                 g_signal_connect_data(ucm, "script-message-received::" + MessageHandler, (nint)(delegate* unmanaged<nint, nint, nint, void>)&OnScriptMessage, 0, 0, 0);
@@ -341,6 +345,13 @@ public sealed partial class GuidePlayerBridge : IGuidePlayer, IDisposable
     private const string GObject = "libgobject-2.0.so.0";
 
     [LibraryImport(WebKit)] private static partial nint webkit_web_view_get_user_content_manager(nint view);
+    [LibraryImport(WebKit)] private static partial nint webkit_web_view_get_website_data_manager(nint view);
+    [LibraryImport(WebKit)] private static partial nint webkit_website_data_manager_get_cookie_manager(nint manager);
+    [LibraryImport(WebKit, StringMarshalling = StringMarshalling.Utf8)] private static partial void webkit_cookie_manager_set_persistent_storage(nint manager, string filename, int storage);
+
+    /// <summary>悬浮小窗的 Cookie 文件</summary>
+    public static string CookieFile => System.IO.Path.Combine(
+        BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Data(BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Guide), "cookies.sqlite");
     [LibraryImport(WebKit, StringMarshalling = StringMarshalling.Utf8)] [return: MarshalAs(UnmanagedType.Bool)] private static partial bool webkit_user_content_manager_register_script_message_handler(nint manager, string name);
     [LibraryImport(WebKit, StringMarshalling = StringMarshalling.Utf8)] private static partial nint webkit_user_script_new(string source, int frames, int time, nint allow, nint block);
     [LibraryImport(WebKit)] private static partial void webkit_user_content_manager_add_script(nint manager, nint script);
