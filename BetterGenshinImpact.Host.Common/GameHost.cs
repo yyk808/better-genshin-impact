@@ -394,6 +394,11 @@ public sealed class GameHost : IAsyncDisposable
             });
             services.AddSingleton(sp => ActivatorUtilities.CreateInstance<GameRuntimeService>(sp, sp.GetRequiredService<IGameRuntimeProvider>()));
             services.AddSingleton<IGameRuntimeHost>(sp => sp.GetRequiredService<GameRuntimeService>());
+            // 自动剧情语音检测（听完语音再选 / Silero VAD 诊断）：按进程捕获音频为 PulseAudio / PipeWire 的单流录音（Windows 为 WASAPI 进程环回）
+            BetterGenshinImpact.GameTask.AutoSkip.Audio.ProcessAudioCapture.Factory =
+                static pid => new BetterGenshinImpact.Platform.Linux.Audio.PulseProcessAudioCapture(pid);
+            services.AddSingleton<BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticState>();
+            services.AddSingleton<BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticService>();
             // OCR / ONNX 推理（CPU 或 ROCm；选运行库必须在任何 ONNX 原生调用之前）
             services.AddSingleton(inferenceStartupStatus);
             services.AddSingleton<IOnnxRuntimeSelection>(LinuxOnnxRuntimeSelection.Select(config.HardwareAccelerationConfig, AppContext.BaseDirectory, log));
@@ -537,6 +542,8 @@ public sealed class GameHost : IAsyncDisposable
             var gameHost = new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
             gameHost.StartInstanceServices();
             provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+            // Silero VAD 实时诊断（与 WPF 的托管服务相同：未开启时只轮询配置）
+            provider.GetRequiredService<BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
             return gameHost;
         }
         catch
@@ -772,6 +779,15 @@ public sealed class GameHost : IAsyncDisposable
             {
                 _log.Warning(e, "停止多实例服务失败");
             }
+        }
+
+        try
+        {
+            await _provider.GetRequiredService<BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticService>().StopAsync(CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "停止语音检测诊断失败");
         }
 
         // 删除本进程的临时目录（与 WPF 托管服务停止时相同）

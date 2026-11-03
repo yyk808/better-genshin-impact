@@ -77,6 +77,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "settings-more": await SettingsMoreAsync(); break;
                 case "settings-general": await SettingsGeneralAsync(); break;
                 case "trigger-more": await TriggerMoreAsync(); break;
+                case "voice-detect": await VoiceDetectAsync(); break;
                 case "solo-params": await SoloParamsAsync(); break;
                 case "solo-boss": await SoloBossAsync(); break;
                 case "plan-paste-inherit": await PlanPasteInheritAsync(); break;
@@ -3893,8 +3894,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle();
         Check("拾取引擎/吃药间隔/自定义优先选项写入配置", cfg.AutoPickConfig.OcrEngine == "Yap" && cfg.AutoEatConfig.CheckInterval == 300
             && cfg.AutoSkipConfig.CustomPriorityOptions == "m55选项A;m55选项B");
-        Check("画中画 / 语音等待显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text == "Windows 版小窗功能，Linux 版不可用")
-            && All<TextBlock>().Any(t => t.Text?.Contains("WASAPI") == true));
+        Check("画中画显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text == "Windows 版小窗功能，Linux 版不可用"));
         // 后台模式（#9）：Wine 游戏有后台通道后，两个开关可用并写入配置
         var savedBg = (cfg.AutoSkipConfig.RunBackgroundEnabled, cfg.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled);
         var bgSwitch = Named<ToggleSwitch>("RunBackgroundSwitch");

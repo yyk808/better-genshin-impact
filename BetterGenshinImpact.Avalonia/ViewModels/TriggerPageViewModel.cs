@@ -21,6 +21,9 @@ public sealed partial class TriggerPageViewModel : PageViewModel
     {
         Config = config ?? new AllConfig();
         QuestVoice = config is not null && questVoice is not null ? new QuestVoiceCardViewModel(config, questVoice, services) : null;
+        VoiceDiagnosticState = services?.GetService(typeof(BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticState))
+            as BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticState
+            ?? new BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticState();
         IsAvailable = config is not null;
         PickButtonNames = TriggerSettingsChoices.PickButtonNames(Config.AutoPickConfig);
         try
@@ -46,6 +49,12 @@ public sealed partial class TriggerPageViewModel : PageViewModel
     public bool IsAvailable { get; }
 
     public List<string> PickButtonNames { get; }
+
+    /// <summary>Silero VAD 实时诊断的显示状态（由宿主的诊断服务更新，与 WPF 共用 Core 的状态对象）</summary>
+    public BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticState VoiceDiagnosticState { get; }
+
+    [RelayCommand]
+    private void ToggleVoiceDiagnosticRecording() => VoiceDiagnosticState.ToggleRecording();
 
     public string[] ClickChatOptionNames { get; } = TriggerSettingsChoices.ClickChatOptionNames;
 

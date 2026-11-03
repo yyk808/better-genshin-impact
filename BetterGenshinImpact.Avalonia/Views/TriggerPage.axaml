@@ -149,17 +149,47 @@
                                 <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动剧情的情况下，依旧能够看清楚选项" />
                             </StackPanel>
                         </DockPanel>
-                        <DockPanel Opacity="0.6">
+                        <DockPanel>
+                            <ToggleSwitch x:Name="WaitVoiceSwitch" IsChecked="{Binding Config.AutoSkipConfig.AutoWaitDialogueOptionVoiceEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="听完语音后再选择对话选项 / Silero VAD 实时诊断" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="依赖 Windows 进程音频捕获（WASAPI 进程环回），Linux 版不可用，使用上方固定延迟" />
+                                <TextBlock Text="听完语音后再选择对话选项" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="通过游戏进程音频的人声检测判断台词结束；等待数秒仍未检测到语音时继续，无法读取游戏声音时使用上方固定延迟。Linux：经 PulseAudio / PipeWire 只录游戏的播放流（需要 pactl、parecord）" />
                             </StackPanel>
                         </DockPanel>
+                        <DockPanel>
+                            <ToggleSwitch x:Name="VadDiagnosticSwitch" IsChecked="{Binding Config.AutoSkipConfig.DialogueOptionVoiceVadDiagnosticEnabled}" />
+                            <StackPanel>
+                                <TextBlock Text="Silero VAD 实时诊断" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="开启后持续读取游戏进程音频并调用模型，不依赖对话选项或画面识别" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Border x:Name="VadDiagnosticPanel" IsVisible="{Binding Config.AutoSkipConfig.DialogueOptionVoiceVadDiagnosticEnabled}"
+                                Padding="12" CornerRadius="6" Background="#14FFFFFF">
+                            <StackPanel Spacing="6">
+                                <DockPanel>
+                                    <TextBlock x:Name="VadProbabilityText" DockPanel.Dock="Right" Text="{Binding VoiceDiagnosticState.ProbabilityText}" />
+                                    <TextBlock x:Name="VadVerdictText" FontSize="16" FontWeight="SemiBold" Text="{Binding VoiceDiagnosticState.VerdictText}" />
+                                </DockPanel>
+                                <ProgressBar x:Name="VadProbabilityBar" Minimum="0" Maximum="1" Height="6" Value="{Binding VoiceDiagnosticState.Probability}" />
+                                <StackPanel Orientation="Horizontal" Spacing="24">
+                                    <TextBlock Classes="desc" Text="{Binding VoiceDiagnosticState.ProbabilityText, StringFormat='模型概率 {0}'}" />
+                                    <TextBlock Classes="desc" Text="{Binding VoiceDiagnosticState.RmsText, StringFormat='RMS {0}'}" />
+                                    <TextBlock Classes="desc" Text="{Binding VoiceDiagnosticState.PeakText, StringFormat='峰值 {0}'}" />
+                                </StackPanel>
+                                <TextBlock x:Name="VadDecisionText" Classes="desc" TextWrapping="Wrap" Text="{Binding VoiceDiagnosticState.DecisionText}" />
+                                <TextBlock x:Name="VadStatusText" Classes="desc" TextWrapping="Wrap" Text="{Binding VoiceDiagnosticState.StatusText}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding VoiceDiagnosticState.ThresholdText}" />
+                                <DockPanel>
+                                    <Button x:Name="VadRecordButton" DockPanel.Dock="Right" Command="{Binding ToggleVoiceDiagnosticRecordingCommand}" Content="{Binding VoiceDiagnosticState.RecordingButtonText}" />
+                                    <TextBlock x:Name="VadRecordingText" Classes="desc" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding VoiceDiagnosticState.RecordingStatusText}" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding Config.AutoSkipConfig.DialogueOptionVoiceMaxWaitSeconds}" />
                             <StackPanel>
                                 <TextBlock Text="语音结束检测最大等待（秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="超过该时间仍未检测到语音结束时会继续选择（Windows 版语音检测使用）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="超过该时间仍未检测到语音结束时会继续选择，避免卡住剧情" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
