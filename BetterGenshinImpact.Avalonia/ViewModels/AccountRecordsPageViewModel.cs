@@ -91,7 +91,7 @@ public partial class AccountRecordsPageViewModel : PageViewModel
             if (version != _loadVersion) return;
             _all = rows.OrderByDescending(r => r.Prior).ThenBy(r => r.ItemNameSortKey, _catalog.TextComparer).ToArray();
             ApplyFilter();
-            StatusText = $"UID {uid}：{_all.Length} 项";
+            StatusText = workspace.WarningRuleError != null ? $"提醒规则无效：{workspace.WarningRuleError}" : $"UID {uid}：{_all.Length} 项";
         }
         catch (Exception ex)
         {

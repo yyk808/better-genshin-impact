@@ -47,6 +47,9 @@
                             </MenuItem>
                             <Separator />
                             <MenuItem Header="高级">
+                                <MenuItem Header="追踪来源提醒（未建设）" ToggleType="CheckBox" IsChecked="False" IsEnabled="False" ToolTip.Tip="功能尚未建设。" />
+                                <MenuItem Header="自定义提醒规则…" Command="{Binding EditWarningRulesCommand}"
+                                          ToolTip.Tip="InventoryRules 可配置多条独立规则，每条使用自己的 Id、条件和 Message；保存后刷新或等待一分钟，示例默认禁用。用系统默认程序打开 warning-rules.json" />
                                 <MenuItem Header="查看物品字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="items" />
                                 <MenuItem Header="查看补充字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="user" />
                                 <MenuItem Header="查看来源字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="sources" />

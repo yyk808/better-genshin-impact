@@ -20,6 +20,8 @@ public partial class AccountRecordsPage : UserControl
     private GridLength _expirationWidth;
     private AccountRecordsPageViewModel? _vm;
     private bool _syncing;
+    /// <summary>每分钟刷新临期展示与提醒规则</summary>
+    private readonly global::Avalonia.Threading.DispatcherTimer _timeRefresh = new() { Interval = TimeSpan.FromMinutes(1) };
 
     public AccountRecordsPage()
     {
@@ -34,6 +36,13 @@ public partial class AccountRecordsPage : UserControl
         _expirationWidth = _defaults[ExpirationColumn];
         foreach (var column in InventoryHeader.ColumnDefinitions)
             column.PropertyChanged += (_, e) => { if (e.Property == ColumnDefinition.WidthProperty) SyncRows(); };
+        // 同 WPF AccountRecordsTimeRefreshBehavior：页面在可视树上时每分钟刷新临期展示与提醒规则，离开后停止
+        _timeRefresh.Tick += (_, _) =>
+        {
+            if (IsEffectivelyVisible && _vm?.RefreshTimeWarningsCommand is { IsRunning: false } command) command.Execute(null);
+        };
+        AttachedToVisualTree += (_, _) => _timeRefresh.Start();
+        DetachedFromVisualTree += (_, _) => _timeRefresh.Stop();
         DataContextChanged += (_, _) =>
         {
             if (_vm != null) _vm.PropertyChanged -= OnViewModelChanged;
