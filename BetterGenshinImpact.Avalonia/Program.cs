@@ -202,11 +202,15 @@ internal static class AvaloniaHostProgram
         }
 
         desktop.MainWindow = window;
+        // 程序图标与托盘图标（同 WPF 的 logo.ico、NotifyIcon 与“退出时最小化到系统托盘”）
+        window.Icon = TrayIconController.LoadIcon();
+        var tray = new TrayIconController(global::Avalonia.Application.Current!, window, host, viewModel, desktop, log);
         desktop.Exit += (_, _) =>
         {
             mask?.Dispose();
             htmlMask?.Dispose();
             pip?.Dispose();
+            tray.Dispose();
             // 注销快捷键（X11 XGrabKey），再释放平台连接
             // 按键宏：停止正在运行的宏、注销快捷键并写入未保存的修改
             viewModel?.KeyMacro.Dispose();
@@ -241,8 +245,12 @@ internal static class AvaloniaHostProgram
             BetterGenshinImpact.Service.Instance.InstanceService.ShutdownHandler = () => Dispatcher.UIThread.Post(() => desktop.Shutdown());
         }
 
+        var windowOpened = false;
         window.Opened += async (_, _) =>
         {
+            // 隐藏到托盘后再显示时 Avalonia 会再次触发 Opened；启动流程只走一次
+            if (windowOpened) return;
+            windowOpened = true;
             host?.MarkInstanceApplicationReady();
             // 悬浮小窗按显示器工作区定位
             GuideViews.AttachScreens(window);

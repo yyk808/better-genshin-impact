@@ -37,6 +37,8 @@
 		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Fonts\MiSans-Regular.ttf" Link="Assets\Fonts\MiSans-Regular.ttf" />
 		<!-- 首页横幅默认图：直接使用 WPF 的资源 -->
 		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Images\banner.jpg" Link="Assets\Images\banner.jpg" />
+		<!-- 程序与托盘图标（同 WPF ApplicationIcon） -->
+		<AvaloniaResource Include="..\BetterGenshinImpact\Resources\Images\logo.ico" Link="Assets\logo.ico" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- 账户页：与 WPF 共用账户草稿、当前账户选项与运行账户文字（只依赖 Core 模型与 CommunityToolkit） -->

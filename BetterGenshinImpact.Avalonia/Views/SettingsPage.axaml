@@ -21,7 +21,6 @@
                         <ui:FASettingsExpanderItem Content="网络与代理" Description="使用 Windows 系统代理设置；Linux 版按系统环境变量 HTTP(S)_PROXY 联网" />
                         <ui:FASettingsExpanderItem Content="存储空间" Description="缓存与网页数据管理依赖 WebView2；Linux 版数据都在程序目录的 User/ 与 Cache/ 下，可手动清理" />
                         <ui:FASettingsExpanderItem Content="主窗口自定义背景" Description="Windows 版 Mica 背景特性，Linux 版不支持" />
-                        <ui:FASettingsExpanderItem Content="退出时最小化到系统托盘" Description="Linux 版没有托盘图标" />
                         <ui:FASettingsExpanderItem Content="独立任务期间屏蔽 Windows 通知" Description="依赖 Windows 专注助手" />
                         <ui:FASettingsExpanderItem Content="WGC 截图参数" Description="Windows Graphics Capture 专用；Linux 截图方式见“启动”页" />
                     </ui:FASettingsExpander>
@@ -265,6 +264,11 @@
                                 <ToggleSwitch IsChecked="{Binding Config.DetailedErrorLogs}" OnContent="" OffContent="" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="ExitToTrayCard" Header="退出时最小化到系统托盘" Description="启用后点击右上角退出按钮会最小化到系统托盘继续运行，右键托盘图标退出；Linux 需要桌面提供系统托盘（如 KDE、waybar 的 tray 模块），没有时关闭窗口照常退出" IconSource="{svc:FluentIconSource ArrowMinimize24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="ExitToTrayToggle" IsChecked="{Binding Config.CommonConfig.ExitToTray}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander x:Name="ExternalAccessCard" Header="本机外部访问服务" Description="仅监听 loopback；功能开关和端口将在重启 BetterGI 后生效" IconSource="{svc:FluentIconSource Globe24}">
                         <ui:FASettingsExpanderItem Content="HTTP API" Description="提供 /api/v1/health 与 /api/v1/version">
