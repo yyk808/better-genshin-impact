@@ -118,6 +118,10 @@ public sealed class NiriIpc : IDisposable
     /// <summary>把窗口改为浮动（niri 只报告浮动窗口的屏幕位置）</summary>
     public void MoveWindowToFloating(ulong id) => Action($"{{\"MoveWindowToFloating\":{{\"id\":{id}}}}}");
 
+    /// <summary>把浮动窗口移到工作区视图中的逻辑坐标（与窗口列表里的 tile_pos_in_workspace_view 相同的坐标系）</summary>
+    public void MoveFloatingWindow(ulong id, double x, double y) => Action(FormattableString.Invariant(
+        $"{{\"MoveFloatingWindow\":{{\"id\":{id},\"x\":{{\"SetFixed\":{x}}},\"y\":{{\"SetFixed\":{y}}}}}}}"));
+
     public void CloseWindow(ulong id) => Action($"{{\"CloseWindow\":{{\"id\":{id}}}}}");
 
     public IReadOnlyList<NiriOutputInfo> Outputs() => Cached(ref _outputsCache, LoadOutputs);

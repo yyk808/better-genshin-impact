@@ -58,6 +58,9 @@ public sealed partial class TriggerPageViewModel : PageViewModel
 
     public string[] ClickChatOptionNames { get; } = TriggerSettingsChoices.ClickChatOptionNames;
 
+    /// <summary>画中画画面来源（值 → 显示名，同 WPF PictureInPictureSourceTypeDict）</summary>
+    public Dictionary<string, string> PictureInPictureSourceTypes { get; } = TriggerSettingsChoices.PictureInPictureSourceTypes;
+
     public string[] SelectChatOptionTypeNames { get; } = TriggerSettingsChoices.SelectChatOptionTypeNames;
 
     public string[] PickOcrEngineNames { get; } = TriggerSettingsChoices.PickOcrEngineNames;

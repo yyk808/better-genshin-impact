@@ -109,10 +109,14 @@
                                 <TextBlock Classes="desc" TextWrapping="Wrap" Text="仅在后台模式生效，识别到对话结束后会自动激活原神窗口" />
                             </StackPanel>
                         </DockPanel>
-                        <DockPanel Opacity="0.6">
+                        <DockPanel>
+                            <ToggleSwitch x:Name="PipSwitch" IsChecked="{Binding Config.AutoSkipConfig.PictureInPictureEnabled}" />
+                            <ComboBox x:Name="PipSourceBox" DockPanel.Dock="Right" Width="140" Margin="0,0,12,0" ItemsSource="{Binding PictureInPictureSourceTypes}"
+                                      SelectedValueBinding="{ReflectionBinding Key}" DisplayMemberBinding="{ReflectionBinding Value}"
+                                      SelectedValue="{Binding Config.AutoSkipConfig.PictureInPictureSourceType}" />
                             <StackPanel>
-                                <TextBlock Text="画中画窗口" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Windows 版小窗功能，Linux 版不可用" />
+                                <TextBlock Text="画中画窗口（建议和后台模式同时开启）" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="游戏失焦时展示小窗，滚轮缩放，左键返回游戏，右键关闭" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>

@@ -160,6 +160,14 @@ internal static class AvaloniaHostProgram
             BetterGenshinImpact.Core.Script.Dependence.HtmlMaskWindowHost.Current = htmlMask;
         }
 
+        // 画中画（游戏失焦时的置顶小窗，与 WPF PictureInPictureService 相同的规则），由截图调度驱动
+        AvaloniaPictureInPictureHost? pip = null;
+        if (host is not null)
+        {
+            pip = new AvaloniaPictureInPictureHost();
+            BetterGenshinImpact.Service.PictureInPictureHost.Current = pip;
+        }
+
         if (host is not null)
         {
             // 悬浮小窗 / 字幕浮窗：Avalonia 窗口 + WebKitGTK 网页（与 WPF 相同的 GuideWindowService 与 ViewModel）；
@@ -198,6 +206,7 @@ internal static class AvaloniaHostProgram
         {
             mask?.Dispose();
             htmlMask?.Dispose();
+            pip?.Dispose();
             // 注销快捷键（X11 XGrabKey），再释放平台连接
             // 按键宏：停止正在运行的宏、注销快捷键并写入未保存的修改
             viewModel?.KeyMacro.Dispose();

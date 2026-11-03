@@ -44,6 +44,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "quest-voice": await QuestVoiceAsync(); break;
                 case "log-file": await LogFileAsync(); break;
                 case "wine-background": await WineBackgroundAsync(); break;
+                case "picture-in-picture": await PictureInPictureAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
@@ -3894,7 +3895,8 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle();
         Check("拾取引擎/吃药间隔/自定义优先选项写入配置", cfg.AutoPickConfig.OcrEngine == "Yap" && cfg.AutoEatConfig.CheckInterval == 300
             && cfg.AutoSkipConfig.CustomPriorityOptions == "m55选项A;m55选项B");
-        Check("画中画显示 Linux 不可用说明", All<TextBlock>().Any(t => t.Text == "Windows 版小窗功能，Linux 版不可用"));
+        Check("画中画开关与画面来源可用（#10）", Named<ToggleSwitch>("PipSwitch") is { IsEnabled: true } && Named<ComboBox>("PipSourceBox") is { IsEnabled: true, ItemCount: 2 }
+            && All<TextBlock>().Any(t => t.Text == "游戏失焦时展示小窗，滚轮缩放，左键返回游戏，右键关闭"));
         // 后台模式（#9）：Wine 游戏有后台通道后，两个开关可用并写入配置
         var savedBg = (cfg.AutoSkipConfig.RunBackgroundEnabled, cfg.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled);
         var bgSwitch = Named<ToggleSwitch>("RunBackgroundSwitch");
