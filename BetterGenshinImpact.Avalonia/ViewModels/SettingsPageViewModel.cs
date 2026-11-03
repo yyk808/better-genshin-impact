@@ -179,6 +179,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         // 快速传送“按住时生效”：Windows 由键鼠钩子提供按住状态，这里由长按快捷键提供
         HotkeyHoldState.Query ??= hotkey => _holdRunners.TryGetValue(hotkey, out var r) && r.IsPressed;
         Config = host?.Config ?? new AllConfig();
+        // 令牌由服务启动时生成或重新生成后，脱敏显示随之更新（同 WPF）
+        Config.ExternalAccessConfig.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(BetterGenshinImpact.Core.Config.ExternalAccessConfig.AccessToken)) OnPropertyChanged(nameof(MaskedExternalAccessToken));
+        };
         IsAvailable = host is not null;
         Inference = host is null ? null : new InferenceSettingsViewModel(host);
         foreach (var (group, name, property) in HotkeyTable)
@@ -316,6 +321,49 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     /// <summary>Linux 宿主设置（日志文件等）；平台初始化失败时为空</summary>
     public BetterGenshinImpact.Host.Common.Config.LinuxHostConfig? LinuxConfig => _host?.LinuxConfig;
+
+    // —— 本机外部访问服务（同 WPF 常规设置页）——
+
+    /// <summary>外部访问运行状态（多实例未启用时没有外部访问服务，为 null）</summary>
+    public BetterGenshinImpact.Service.ExternalAccess.ExternalAccessState? ExternalAccessState =>
+        _host?.Services.GetService(typeof(BetterGenshinImpact.Service.ExternalAccess.ExternalAccessState)) as BetterGenshinImpact.Service.ExternalAccess.ExternalAccessState;
+
+    /// <summary>设置页展示的脱敏访问令牌（同 WPF）</summary>
+    public string MaskedExternalAccessToken
+    {
+        get
+        {
+            var token = Config.ExternalAccessConfig.AccessToken;
+            if (string.IsNullOrEmpty(token)) return "尚未生成";
+            return token.Length <= 8 ? "********" : $"{token[..4]}…{token[^4..]}";
+        }
+    }
+
+    /// <summary>把完整访问令牌复制到剪贴板（同 WPF）</summary>
+    [RelayCommand]
+    private void CopyExternalAccessToken()
+    {
+        var token = Config.ExternalAccessConfig.AccessToken;
+        if (string.IsNullOrEmpty(token))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "访问令牌尚未生成。请先启用 HTTP API 或 MCP 后重启，或者点击“重新生成”。");
+            return;
+        }
+
+        UiHost.Clipboard.SetText(token);
+        UiHost.Dialogs.Toast(DialogKind.Information, "访问令牌已复制到剪贴板。");
+    }
+
+    /// <summary>重新生成访问令牌，HTTP API 与 MCP 立即使用新令牌（同 WPF）</summary>
+    [RelayCommand]
+    private void RegenerateExternalAccessToken()
+    {
+        if (_host?.Services.GetService(typeof(BetterGenshinImpact.Service.ExternalAccess.ExternalAccessTokenService)) is not BetterGenshinImpact.Service.ExternalAccess.ExternalAccessTokenService tokens)
+            return;
+        tokens.RegenerateToken();
+        OnPropertyChanged(nameof(MaskedExternalAccessToken));
+        UiHost.Dialogs.Toast(DialogKind.Information, "访问令牌已重新生成，旧令牌立即失效。");
+    }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void OpenLogFile() => TryOpen(Services.LogFiles.OpenLatest);

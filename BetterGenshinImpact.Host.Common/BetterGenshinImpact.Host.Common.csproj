@@ -69,7 +69,6 @@
 	<!-- 地图点位：点位服务与米游社 / HoYoLab / 空荧酒馆接口、文件缓存直接编译 WPF 项目的源文件（不依赖 WPF） -->
 	<ItemGroup>
 		<PackageReference Include="LazyCache" Version="2.4.0" />
-		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.12" />
 		<Compile Include="..\BetterGenshinImpact\Service\MaskMapPointService.cs" Link="MapPoints\Shared\MaskMapPointService.cs" />
 		<Compile Include="..\BetterGenshinImpact\Service\MihoyoMapApiService.cs" Link="MapPoints\Shared\MihoyoMapApiService.cs" />
 		<Compile Include="..\BetterGenshinImpact\Service\HoYoLabMapApiService.cs" Link="MapPoints\Shared\HoYoLabMapApiService.cs" />
@@ -107,9 +106,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
-		<PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.12" />
+		<!-- 外部访问（HTTP API / WebSocket 日志 / MCP）：WPF 项目里与平台无关的源文件直接编译，与 WPF 相同的 Kestrel 子 WebApplication -->
+		<!-- 外部访问服务（Kestrel / MCP）；Microsoft.Extensions.* 由该共享框架提供，不再单独引用包 -->
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+		<Compile Include="..\BetterGenshinImpact\Service\ExternalAccess\ExternalAccessHost.cs" Link="ExternalAccess\Shared\ExternalAccessHost.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\ExternalAccess\ExternalLogWebSocketHandler.cs" Link="ExternalAccess\Shared\ExternalLogWebSocketHandler.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\ExternalAccess\BgiExternalCapabilityService.cs" Link="ExternalAccess\Shared\BgiExternalCapabilityService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\ExternalAccess\Mcp\BgiMcpTools.cs" Link="ExternalAccess\Shared\BgiMcpTools.cs" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />

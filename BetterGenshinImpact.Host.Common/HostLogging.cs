@@ -17,13 +17,49 @@ public static class HostLogging
     /// <summary>软件日志文件（log 目录，按天滚动）</summary>
     public static DeferredFileLogSink FileLog { get; } = new();
 
+    /// <summary>
+    /// 外部访问的实时日志分发器（WebSocket /ws/v1/logs）：与 WPF 相同先于 Serilog 创建，启动阶段的日志也进入回放缓冲
+    /// </summary>
+    public static BetterGenshinImpact.Service.ExternalAccess.Logging.ExternalLogHub ExternalLog { get; } = new();
+
+    /// <summary>外部日志里的实例标识（同 WPF：类型:S会话:P进程:T启动毫秒），多实例上下文确定后由宿主设置</summary>
+    public static string ExternalLogInstance
+    {
+        get => _externalSink.Identity;
+        set => _externalSink.Identity = value;
+    }
+
+    private static readonly ExternalLogForwarder _externalSink = new();
+
+    /// <summary>转交给 <see cref="BetterGenshinImpact.Service.ExternalAccess.Logging.ExternalLogSink"/>，实例标识可在启动后更新</summary>
+    private sealed class ExternalLogForwarder : ILogEventSink
+    {
+        private BetterGenshinImpact.Service.ExternalAccess.Logging.ExternalLogSink _sink = new(ExternalLog, Default);
+        private string _identity = Default;
+
+        private static string Default => $"Primary:S0:P{Environment.ProcessId}:T{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
+        public string Identity
+        {
+            get => _identity;
+            set
+            {
+                _identity = value;
+                _sink = new(ExternalLog, value);
+            }
+        }
+
+        public void Emit(LogEvent logEvent) => _sink.Emit(logEvent);
+    }
+
     public static void Configure(string? logFile, Action<LoggerConfiguration>? extra = null)
     {
         var configuration = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .WriteTo.Console(outputTemplate: OutputTemplate)
-            .WriteTo.Sink(FileLog);
+            .WriteTo.Sink(FileLog)
+            .WriteTo.Sink(_externalSink, LogEventLevel.Debug);
         if (!string.IsNullOrEmpty(logFile))
         {
             configuration.WriteTo.File(logFile, outputTemplate: OutputTemplate);

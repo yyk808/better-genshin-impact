@@ -471,12 +471,20 @@ public sealed class GameHost : IAsyncDisposable
             // 实例键取自实例上下文（根实例 = 主实例，另一 Unix 会话里的实例 = 子实例），注册实例 IPC、在线标记与 Pulonia 一步下发；
             // 没有调用时（无界面宿主、自测）只有主实例，不注册远程派发
             var instanceBootstrap = BetterGenshinImpact.Service.Instance.InstanceBootstrap.Current;
+            // 外部访问的状态、令牌与日志分发器总是注册（设置页可查看状态、重新生成令牌）；服务本身随多实例上下文注册（只在根实例监听）
+            services.AddSingleton(HostLogging.ExternalLog);
+            services.AddSingleton<BetterGenshinImpact.Service.ExternalAccess.ExternalAccessState>();
+            services.AddSingleton<BetterGenshinImpact.Service.ExternalAccess.ExternalAccessTokenService>();
             if (instanceBootstrap is not null)
             {
                 services.AddSingleton(instanceBootstrap);
                 services.AddSingleton<IPuloniaInstanceKeyProvider>(_ => PuloniaInstanceKeyProvider.FromContext(instanceBootstrap.Context));
                 services.AddSingleton<BetterGenshinImpact.Service.Instance.InstanceService>();
                 services.AddSingleton<PuloniaInstancePresence>();
+                // 外部访问（同 WPF）：只有根实例（主实例）监听 127.0.0.1，HTTP / WebSocket / MCP 复用同一能力服务
+                services.AddSingleton<BetterGenshinImpact.Service.ExternalAccess.IBgiExternalCapabilityService, BetterGenshinImpact.Service.ExternalAccess.BgiExternalCapabilityService>();
+                services.AddSingleton<BetterGenshinImpact.Service.ExternalAccess.ExternalLogWebSocketHandler>();
+                services.AddSingleton<BetterGenshinImpact.Service.ExternalAccess.ExternalAccessHost>();
                 services.AddSingleton(sp => new BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatcher(
                     () => sp.GetRequiredService<BetterGenshinImpact.Service.Instance.InstanceService>(),
                     sp.GetRequiredService<TimeProvider>(),
@@ -565,6 +573,10 @@ public sealed class GameHost : IAsyncDisposable
         ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<PuloniaInstancePresence>()).StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         ((Microsoft.Extensions.Hosting.IHostedService)_provider.GetRequiredService<BetterGenshinImpact.Pulonia.Remote.PuloniaRunDispatchHost>()).StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         var context = instances.Context;
+        var typeLabel = context.InstanceName is { } instanceName ? $"{context.InstanceType}({instanceName})" : context.InstanceType.ToString();
+        HostLogging.ExternalLogInstance = $"{typeLabel}:S{context.WindowsSessionId}:P{context.ProcessId}:T{context.StartedAt.ToUnixTimeMilliseconds()}";
+        // 外部访问在实例服务之后启动（同 WPF 托管服务顺序）；启动失败只更新状态，不影响宿主
+        _provider.GetRequiredService<BetterGenshinImpact.Service.ExternalAccess.ExternalAccessHost>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         _log.Information("多实例：{Type}，进程 {Pid}，Unix 会话 {Session}，实例键 {Key}", context.InstanceType, context.ProcessId,
             context.WindowsSessionId, _provider.GetRequiredService<IPuloniaInstanceKeyProvider>().CurrentInstanceKey);
     }
@@ -763,6 +775,19 @@ public sealed class GameHost : IAsyncDisposable
             catch (Exception e)
             {
                 _log.Warning(e, "停止悬浮小窗服务失败");
+            }
+        }
+
+        // 外部访问：后启动的先停止
+        if (_provider.GetService<BetterGenshinImpact.Service.ExternalAccess.ExternalAccessHost>() is { } externalAccess)
+        {
+            try
+            {
+                await externalAccess.StopAsync(CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                _log.Warning(e, "停止外部访问服务失败");
             }
         }
 

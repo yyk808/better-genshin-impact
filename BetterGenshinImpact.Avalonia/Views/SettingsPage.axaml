@@ -23,7 +23,6 @@
                         <ui:FASettingsExpanderItem Content="主窗口自定义背景" Description="Windows 版 Mica 背景特性，Linux 版不支持" />
                         <ui:FASettingsExpanderItem Content="退出时最小化到系统托盘" Description="Linux 版没有托盘图标" />
                         <ui:FASettingsExpanderItem Content="独立任务期间屏蔽 Windows 通知" Description="依赖 Windows 专注助手" />
-                        <ui:FASettingsExpanderItem Content="外部访问（HTTP API / WebSocket / MCP）" Description="Linux 版尚未实现" />
                         <ui:FASettingsExpanderItem Content="WGC 截图参数" Description="Windows Graphics Capture 专用；Linux 截图方式见“启动”页" />
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
@@ -264,6 +263,47 @@
                         <ui:FASettingsExpanderItem Content="详细错误日志" Description="任务出错时在日志中输出完整堆栈">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Config.DetailedErrorLogs}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="ExternalAccessCard" Header="本机外部访问服务" Description="仅监听 loopback；功能开关和端口将在重启 BetterGI 后生效" IconSource="{svc:FluentIconSource Globe24}">
+                        <ui:FASettingsExpanderItem Content="HTTP API" Description="提供 /api/v1/health 与 /api/v1/version">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="ExternalHttpToggle" IsChecked="{Binding Config.ExternalAccessConfig.HttpApiEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="WebSocket 实时日志" Description="不鉴权并允许任意 Origin，启用后本机网页可读取日志，请注意敏感信息风险">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="ExternalWebSocketToggle" IsChecked="{Binding Config.ExternalAccessConfig.WebSocketEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="MCP Streamable HTTP" Description="在 /mcp 暴露与 HTTP API 相同的共享能力">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch x:Name="ExternalMcpToggle" IsChecked="{Binding Config.ExternalAccessConfig.McpEnabled}" OnContent="" OffContent="" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="监听端口" Description="有效范围 1024～65535，HTTP、WebSocket 和 MCP 共用">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <NumericUpDown x:Name="ExternalPortBox" Width="160" Minimum="1024" Maximum="65535" Increment="1" FormatString="0" Value="{Binding Config.ExternalAccessConfig.Port}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="访问令牌" Description="HTTP API 与 MCP 共用；令牌变更立即生效">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock x:Name="ExternalTokenText" VerticalAlignment="Center" Text="{Binding MaskedExternalAccessToken}" />
+                                    <Button Content="复制" Command="{Binding CopyExternalAccessTokenCommand}" />
+                                    <Button x:Name="ExternalRegenerateButton" Content="重新生成" Command="{Binding RegenerateExternalAccessTokenCommand}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="状态" Description="{Binding ExternalAccessState.Message, FallbackValue=未启动}">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBlock x:Name="ExternalStatusText" Text="{Binding ExternalAccessState.StatusText, FallbackValue=未启动}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="访问地址">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <SelectableTextBlock x:Name="ExternalAddressText" Text="{Binding ExternalAccessState.Address, FallbackValue=未启动}" />
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>

@@ -51,7 +51,9 @@ public sealed class ExternalLogEvent
 
     /// <summary>
     /// 用于服务端过滤的 Serilog 日志级别，不写入外部 JSON。
+    /// 不能标 required：System.Text.Json 对 [JsonIgnore] 的 required 属性会在序列化时抛
+    /// “marked required but does not specify a setter”，WebSocket 日志推送因此断开。
     /// </summary>
     [JsonIgnore]
-    public required LogEventLevel LevelValue { get; init; }
+    public LogEventLevel LevelValue { get; init; }
 }
