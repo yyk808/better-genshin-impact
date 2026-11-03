@@ -31,6 +31,7 @@ public partial class AccountRecordsPageViewModel
             var settings = await _store.GetSettingsAsync();
             SnapshotsEnabled = settings.SnapshotsEnabled;
             UseImageCache = settings.UseImageCache;
+            ApplyDisplaySettings(settings);
         }
         catch (Exception ex)
         {

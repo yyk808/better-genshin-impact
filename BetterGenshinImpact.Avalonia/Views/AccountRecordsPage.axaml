@@ -3,6 +3,7 @@
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:ar="using:BetterGenshinImpact.Service.AccountRecords"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+             xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              x:Class="BetterGenshinImpact.Avalonia.Views.AccountRecordsPage"
              x:DataType="vm:AccountRecordsPageViewModel">
     <!-- 对应 WPF AccountRecordsPage 的库存记录分页：标题栏 UID 选择/新增、搜索、只读库存表 -->
@@ -35,6 +36,9 @@
                             <MenuItem Header="事件记录…" Command="{Binding OpenEventsCommand}" />
                             <MenuItem Header="新增库存记录…" Command="{Binding AddInventoryCommand}" />
                             <Separator />
+                            <MenuItem Header="优先显示来源名称" ToggleType="CheckBox" IsChecked="{Binding PreferReadableSource, Mode=OneWay}" Command="{Binding ToggleSourceNamesCommand}" />
+                            <MenuItem Header="恢复所有分页默认栏宽" Command="{Binding ResetColumnWidthsCommand}" />
+                            <Separator />
                             <MenuItem Header="快照设置">
                                 <MenuItem Header="查看快照（未建设）" IsEnabled="False" />
                                 <Separator />
@@ -52,6 +56,8 @@
                                 <Separator />
                                 <MenuItem Header="使用图像缓存" ToggleType="CheckBox" IsChecked="{Binding UseImageCache, Mode=OneWay}" Command="{Binding ToggleImageCacheCommand}"
                                           ToolTip.Tip="所有子表共用；关闭仅停用图片缓存，不删除文件。Linux 版库存列表暂不显示物品图像" />
+                                <MenuItem Header="无图像时显示行号" ToggleType="CheckBox" IsChecked="{Binding ShowMissingIconRowNumbers, Mode=OneWay}" Command="{Binding ToggleMissingIconRowNumbersCommand}"
+                                          ToolTip.Tip="Linux 版库存列表暂不显示物品图像，开启后每行显示行号（置顶行单独编号）" />
                                 <MenuItem Header="清理所有图像缓存（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
                             </MenuItem>
                         </MenuFlyout>
@@ -71,13 +77,20 @@
         <TextBlock DockPanel.Dock="Bottom" x:Name="AccountStatusText" Classes="desc" Margin="0,8,0,0" Text="{Binding StatusText}" />
         <Border CornerRadius="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
             <DockPanel>
-                <Grid DockPanel.Dock="Top" ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,8">
-                    <TextBlock Text="名称" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="1" Text="分类" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="2" Text="数量" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="3" Text="到期" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="4" Text="记录时间" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="5" Text="来源" FontWeight="SemiBold" />
+                <!-- 表头栏宽可拖动（同 WPF 表格），“恢复所有分页默认栏宽”恢复为这里的声明值；行按表头栏宽布局（代码隐藏同步） -->
+                <Grid DockPanel.Dock="Top" x:Name="InventoryHeader" ColumnDefinitions="40,180,6,100,6,90,6,150,6,160,6,*" Margin="12,8">
+                    <TextBlock x:Name="RowNumberHeaderText" Text="#" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="名称" FontWeight="SemiBold" />
+                    <GridSplitter Grid.Column="2" ResizeDirection="Columns" Background="Transparent" />
+                    <TextBlock Grid.Column="3" Text="分类" FontWeight="SemiBold" />
+                    <GridSplitter Grid.Column="4" ResizeDirection="Columns" Background="Transparent" />
+                    <TextBlock Grid.Column="5" Text="数量" FontWeight="SemiBold" />
+                    <GridSplitter Grid.Column="6" x:Name="ExpirationSplitter" ResizeDirection="Columns" Background="Transparent" />
+                    <TextBlock Grid.Column="7" x:Name="ExpirationHeaderText" Text="过期时间" FontWeight="SemiBold" />
+                    <GridSplitter Grid.Column="8" ResizeDirection="Columns" Background="Transparent" />
+                    <TextBlock Grid.Column="9" Text="记录时间" FontWeight="SemiBold" />
+                    <GridSplitter Grid.Column="10" ResizeDirection="Columns" Background="Transparent" />
+                    <TextBlock Grid.Column="11" Text="来源" FontWeight="SemiBold" />
                 </Grid>
                 <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
                 <Panel>
@@ -87,22 +100,47 @@
                         <ItemsControl x:Name="InventoryList" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="ar:InventoryRowSnapshot">
-                                    <Grid ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,4" Background="Transparent" ToolTip.Tip="{Binding StatusText}">
-                                        <!-- 同 WPF 库存行右键“查看物品详情…”（双击物品行也可查看）与“修改数量 / 修订字典” -->
+                                    <Grid Classes="inventoryRow" ColumnDefinitions="40,180,6,100,6,90,6,150,6,160,6,*" Margin="12,4" Background="Transparent"
+                                          ToolTip.Tip="{Binding StatusText}" Loaded="OnInventoryRowLoaded">
+                                        <!-- 同 WPF 库存行右键菜单（双击物品行也可查看物品详情）；Linux 版不显示物品图像，图像相关两项不提供 -->
                                         <Grid.ContextMenu>
                                             <ContextMenu>
+                                                <MenuItem Header="{Binding Prior, Converter={x:Static views:AccountRecordsConverters.PriorAction}}"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).TogglePriorCommand}" CommandParameter="{Binding}" />
                                                 <MenuItem Header="查看物品详情…" ToolTip.Tip="双击物品行也可查看最近来源记录"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowDetailsCommand}" CommandParameter="{Binding}" />
                                                 <MenuItem Header="修改数量 / 修订字典"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).EditInventoryCommand}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="归档同类未受阻的完成事件" IsEnabled="{Binding CanBatchArchive}"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ArchiveRowCompletedEventsCommand}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="查看异常" IsEnabled="{Binding StateRank, Converter={x:Static views:AccountRecordsConverters.HasStatus}}"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowStatusCommand}" CommandParameter="{Binding}" />
+                                                <Separator />
+                                                <MenuItem Header="显示过期时间" ToggleType="CheckBox"
+                                                          IsChecked="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowExpirationColumn, Mode=OneWay}"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ToggleExpirationColumnCommand}" />
+                                                <Separator />
+                                                <MenuItem Header="删除图像缓存（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
+                                                <MenuItem Header="上传图标…（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
+                                                <Separator />
+                                                <MenuItem Header="删除此物品记录"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).DeleteItemCommand}" CommandParameter="{Binding}" />
                                             </ContextMenu>
                                         </Grid.ContextMenu>
-                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Category}" />
-                                        <TextBlock Grid.Column="2" Text="{Binding QuantityText}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding ExpirationText}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="4" Text="{Binding TimeText}" />
-                                        <TextBlock Grid.Column="5" Text="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="rowNumber" Opacity="0.7">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{x:Static views:AccountRecordsConverters.RowNumber}">
+                                                    <Binding />
+                                                    <Binding Path="$parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).Rows" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Category}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="5" Text="{Binding QuantityText}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="7" Text="{Binding ExpirationText}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="9" Text="{Binding TimeText}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="11" Text="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
