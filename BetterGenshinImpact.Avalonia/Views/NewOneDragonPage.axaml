@@ -33,8 +33,8 @@
                                 <MenuItem Header="配置共享设置…" Command="{Binding ShowPlanSettingsCommand}" ToolTip.Tip="修改会传给这份配置中的全部任务，任务自身的修改优先" />
                                 <MenuItem Header="设置方案…" Command="{Binding ShowProfilesCommand}" ToolTip.Tip="管理可复用的共享设置方案" />
                                 <MenuItem Header="账号管理" Command="{Binding ManageAccountsCommand}" />
-                                <MenuItem Header="导入旧配置（Linux 版尚未迁移）" IsEnabled="False" />
-                                <MenuItem Header="查看导入报告（随导入旧配置迁移，Linux 版暂不可用）" IsEnabled="False" />
+                                <MenuItem Header="导入旧配置" Command="{Binding Plans.ImportLegacyCommand}" />
+                                <MenuItem Header="查看导入报告" Command="{Binding Plans.ShowImportReportCommand}" />
                                 <Separator />
                                 <MenuItem Header="重新加载" Command="{Binding Plans.ReloadCommand}" />
                             </MenuFlyout>

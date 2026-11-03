@@ -30,6 +30,27 @@ public static class AvaloniaPickers
         }
     }
 
+    /// <summary>选择多个指定类型的文件（另有“所有文件”），从 <paramref name="initialDirectory"/> 开始；取消时为空</summary>
+    public static async Task<IReadOnlyList<string>> PickFilesAsync(string title, string typeName, string? initialDirectory, params string[] patterns)
+    {
+        if (MainWindow?.StorageProvider is not { CanOpen: true } storage)
+        {
+            return [];
+        }
+
+        var start = initialDirectory is not null && System.IO.Directory.Exists(initialDirectory)
+            ? await storage.TryGetFolderFromPathAsync(initialDirectory)
+            : null;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = true,
+            SuggestedStartLocation = start,
+            FileTypeFilter = [new FilePickerFileType(typeName) { Patterns = patterns }, FilePickerFileTypes.All],
+        });
+        return files.Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
+    }
+
     /// <summary>选择一个指定类型的文件（另有“所有文件”）</summary>
     public static async Task<string?> PickFileAsync(string title, string typeName, params string[] patterns)
     {

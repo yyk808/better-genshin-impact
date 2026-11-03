@@ -52,6 +52,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "account-display": await AccountDisplayAsync(); break;
                 case "account-rules": await AccountRulesAsync(); break;
                 case "storage": await StorageAsync(); break;
+                case "newonedragon-import": await NewOneDragonImportAsync(); break;
                 case "webdata-migrate": await WebDataMigrateAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
@@ -3260,7 +3261,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         // 菜单项的命令绑定在弹出后才生效
         more?.Flyout?.ShowAt(more);
         await Settle(400);
-        Check("导入旧配置置灰并说明、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => !i.IsEnabled) == true
+        Check("导入旧配置可用、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => i.IsEnabled) == true
             && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => i.Header as string == "账号管理" && i.Command is not null && i.IsEnabled) == true);
         Shot("avalonia-newonedragon-more.png");
         more?.Flyout?.Hide();
