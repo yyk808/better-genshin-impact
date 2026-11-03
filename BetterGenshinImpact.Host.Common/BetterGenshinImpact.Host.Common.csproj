@@ -44,6 +44,11 @@
 		<Message Importance="high" Condition="'$(UseLocalOpenCvSharpExtern)' != 'true'" Text="OpenCvSharpExtern：未找到 $(OpenCvSharpExternPath)，使用 Sdcb 精简构建（无 features2d 等模块），完整构建见 Build/Linux/build-opencvsharp.sh" />
 	</Target>
 
+	<!-- 狛荷屋库存编辑：到期批次输入行直接编译 WPF 项目的源文件（只依赖 CommunityToolkit），编辑模型在 AccountRecords/ -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Controls\AccountRecordsExpirationEditRow.cs" Link="AccountRecords\Shared\AccountRecordsExpirationEditRow.cs" />
+	</ItemGroup>
+
 	<!-- 多实例（实例 IPC、Pulonia 远程派发）：与平台无关的部分直接编译 WPF 项目的源文件，平台部分在 Instance/*.Linux.cs -->
 	<ItemGroup>
 		<Compile Include="..\BetterGenshinImpact\Service\Instance\InstanceService.cs" Link="Instance\Shared\InstanceService.cs" />
