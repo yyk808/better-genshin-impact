@@ -3,9 +3,17 @@
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:music="using:BetterGenshinImpact.GameTask.Music.Model"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="BetterGenshinImpact.Avalonia.Views.MusicPage"
              x:DataType="vm:MusicPageViewModel">
     <!-- 与 WPF MusicPage 相同的布局：上方曲库卡片（目录、筛选、曲目列表），下方播放条（进度、当前曲目、控制按钮、播放模式、输入方式） -->
+    <UserControl.Styles>
+        <!-- 同 WPF ui:Button Appearance="Transparent"：平时无底色与边框，悬停 / 按下沿用主题 -->
+        <Style Selector="Button.transparent">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
     <Grid RowDefinitions="*,Auto" Margin="16,12,16,0">
         <Border Grid.Row="0" Padding="8" CornerRadius="12" BorderThickness="1"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
@@ -49,14 +57,21 @@
                                   ToolTip.Tip="选择自动演奏或引导式跟弹" />
                     </StackPanel>
                 </Grid>
-                <Grid Grid.Row="1" ColumnDefinitions="150,10,*,112,112,52" Margin="6,0,6,8">
+                <Grid Grid.Row="1" ColumnDefinitions="150,10,*,112,112,Auto" Margin="6,0,6,8">
                     <ComboBox x:Name="FolderHistoryBox" HorizontalAlignment="Stretch" ItemsSource="{Binding MusicFolderHistory}" SelectedItem="{Binding SelectedMusicFolder}"
                               ToolTip.Tip="历史目录：切换曲谱目录" />
                     <TextBox Grid.Column="2" x:Name="SearchBox" Margin="0,0,8,0" Watermark="搜索曲名、作者或路径" Text="{Binding SearchText}" />
                     <ComboBox Grid.Column="3" x:Name="FormatFilterBox" Margin="0,0,8,0" HorizontalAlignment="Stretch" ItemsSource="{Binding FormatFilters}" SelectedItem="{Binding SelectedFormatFilter}" ToolTip.Tip="按格式筛选" />
                     <ComboBox Grid.Column="4" x:Name="InstrumentFilterBox" HorizontalAlignment="Stretch" ItemsSource="{Binding InstrumentFilters}" SelectedItem="{Binding SelectedInstrumentFilter}" ToolTip.Tip="按乐器筛选" />
-                    <Button Grid.Column="5" x:Name="RefreshButton" Margin="8,0,0,0" Height="34" HorizontalAlignment="Stretch" Command="{Binding RefreshCommand}"
-                            ToolTip.Tip="刷新曲库" Content="{svc:FluentIcon ArrowClockwise24, Size=14}" />
+                    <!-- 同 WPF：44×34，扫描期间不可用并以进度环代替图标 -->
+                    <Button Grid.Column="5" x:Name="RefreshButton" Margin="8,0,0,0" Width="44" Height="34" Padding="0" Command="{Binding RefreshCommand}"
+                            IsEnabled="{Binding !IsRefreshing}" ToolTip.Tip="重新扫描曲谱目录">
+                        <Panel Width="18" Height="18">
+                            <ContentControl x:Name="RefreshIcon" Content="{svc:FluentIcon ArrowClockwise24, Size=14}" IsVisible="{Binding !IsRefreshing}"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ui:FAProgressRing x:Name="RefreshProgress" Width="18" Height="18" IsIndeterminate="True" IsVisible="{Binding IsRefreshing}" />
+                        </Panel>
+                    </Button>
                 </Grid>
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,200,Auto,120,Auto,*" Margin="6,0,6,8" IsVisible="{Binding SelectedMusicItem, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="输出乐器" />
@@ -117,16 +132,17 @@
                         <TextBlock FontSize="12" Opacity="0.6"><Run Text="{Binding CurrentMusicItem.FormatName, FallbackValue=''}" /><Run Text=" · " /><Run Text="{Binding CurrentMusicItem.Instrument, FallbackValue='--'}" /></TextBlock>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button x:Name="PreviousButton" Width="42" Height="42" Command="{Binding PreviousCommand}" ToolTip.Tip="上一首" Content="{svc:FluentIcon Previous24, Size=16}" />
-                    <Button x:Name="PlayPauseButton" Width="50" Height="50" Classes="accent" Command="{Binding PlayPauseCommand}" ToolTip.Tip="播放 / 暂停">
+                <!-- 同 WPF：上一首 / 下一首 44×44（Secondary），播放 / 暂停 52×52（Primary），停止 44×44（Transparent） -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="PreviousButton" Width="44" Height="44" Margin="3,0" Command="{Binding PreviousCommand}" ToolTip.Tip="上一首" Content="{svc:FluentIcon Previous24, Size=16}" />
+                    <Button x:Name="PlayPauseButton" Width="52" Height="52" Margin="4,0" Classes="accent" Command="{Binding PlayPauseCommand}" ToolTip.Tip="播放/暂停">
                         <TextBlock FontFamily="{x:Static svc:FluentSymbols.Font}" FontSize="22" Text="{Binding PlayPauseGlyph}" />
                     </Button>
-                    <Button x:Name="NextButton" Width="42" Height="42" Command="{Binding NextCommand}" ToolTip.Tip="下一首" Content="{svc:FluentIcon Next24, Size=16}" />
-                    <Button x:Name="StopButton" Width="42" Height="42" Command="{Binding StopCommand}" ToolTip.Tip="停止" Content="{svc:FluentIcon Stop24, Size=16}" />
+                    <Button x:Name="NextButton" Width="44" Height="44" Margin="3,0" Command="{Binding NextCommand}" ToolTip.Tip="下一首" Content="{svc:FluentIcon Next24, Size=16}" />
+                    <Button x:Name="StopButton" Width="44" Height="44" Margin="3,0" Classes="transparent" Command="{Binding StopCommand}" ToolTip.Tip="停止" Content="{svc:FluentIcon Stop24, Size=16}" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="PlaybackModeButton" Width="42" Height="42" Command="{Binding CyclePlaybackModeCommand}" ToolTip.Tip="{Binding PlaybackModeToolTip}">
+                    <Button x:Name="PlaybackModeButton" Width="48" Height="40" Classes="transparent" Command="{Binding CyclePlaybackModeCommand}" ToolTip.Tip="{Binding PlaybackModeToolTip}">
                         <TextBlock FontFamily="{x:Static svc:FluentSymbols.Font}" FontSize="20" Text="{Binding PlaybackModeGlyph}" />
                     </Button>
                     <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.75" Text="输入方式" />

@@ -4480,6 +4480,23 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Check("目录写入配置与历史", music.MusicFolder == folder && page.MusicFolderHistory.FirstOrDefault()?.FullPath == folder && page.MusicFolderDisplayText == "music-lib");
         Check("列表显示", Named<ListBox>("MusicList")?.IsEffectivelyVisible == true && Named<ListBox>("MusicList")!.ItemCount == 3);
         Check("无效曲谱显示错误", page.AllMusicItems.Any(x => !x.IsValid && !string.IsNullOrEmpty(x.Error)));
+        // 按钮样式同 WPF：尺寸、提示、停止与播放模式为透明按钮；扫描期间刷新按钮不可用并显示进度环
+        Button? B(string name) => Named<Button>(name);
+        Check("播放条按钮尺寸同 WPF（上一首 / 下一首 / 停止 44，播放 52，播放模式 48×40）",
+            B("PreviousButton") is { Width: 44, Height: 44 } && B("NextButton") is { Width: 44, Height: 44 } && B("PlayPauseButton") is { Width: 52, Height: 52 } &&
+            B("StopButton") is { Width: 44, Height: 44 } && B("PlaybackModeButton") is { Width: 48, Height: 40 } &&
+            B("StopButton")!.Classes.Contains("transparent") && B("PlaybackModeButton")!.Classes.Contains("transparent") && B("PlayPauseButton")!.Classes.Contains("accent")
+            && ToolTip.GetTip(B("PlayPauseButton")!) as string == "播放/暂停");
+        Check("重新扫描按钮同 WPF（44×34，提示“重新扫描曲谱目录”）", B("RefreshButton") is { Width: 44, Height: 34 } && ToolTip.GetTip(B("RefreshButton")!) as string == "重新扫描曲谱目录");
+        page.IsRefreshing = true;
+        await Settle(200);
+        Check("扫描期间刷新按钮不可用并显示进度环", B("RefreshButton")?.IsEnabled == false && All<Control>().FirstOrDefault(c => c.Name == "RefreshProgress")?.IsVisible == true
+            && All<Control>().FirstOrDefault(c => c.Name == "RefreshIcon")?.IsVisible == false
+            && All<FluentAvalonia.UI.Controls.FAProgressRing>().FirstOrDefault() is { IsActive: true, IsIndeterminate: true, Bounds.Width: 18 });
+        Shot("avalonia-music-refreshing.png");
+        page.IsRefreshing = false;
+        await Settle(200);
+        Check("扫描结束恢复图标", B("RefreshButton")?.IsEnabled == true && All<Control>().FirstOrDefault(c => c.Name == "RefreshIcon")?.IsVisible == true);
         Named<TextBox>("SearchBox")!.Text = "测试乙";
         await Settle();
         Check("搜索作者", page.MusicItems.Count == 1 && page.MusicItems[0].Name == "长曲二");
