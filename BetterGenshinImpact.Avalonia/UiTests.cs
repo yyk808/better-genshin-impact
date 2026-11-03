@@ -47,6 +47,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "picture-in-picture": await PictureInPictureAsync(); break;
                 case "external-access": await ExternalAccessAsync(); break;
                 case "tray": await TrayAsync(); break;
+                case "account-events": await AccountEventsAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;

@@ -32,6 +32,7 @@
                     <DropDownButton.Flyout>
                         <MenuFlyout>
                             <MenuItem Header="刷新库存" Command="{Binding RefreshInventoryCommand}" />
+                            <MenuItem Header="事件记录…" Command="{Binding OpenEventsCommand}" />
                             <Separator />
                             <MenuItem Header="快照设置">
                                 <MenuItem Header="查看快照（未建设）" IsEnabled="False" />
@@ -85,7 +86,14 @@
                         <ItemsControl x:Name="InventoryList" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="ar:InventoryRowSnapshot">
-                                    <Grid ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,4" ToolTip.Tip="{Binding StatusText}">
+                                    <Grid ColumnDefinitions="2*,*,*,1.4*,1.4*,1.6*" Margin="12,4" Background="Transparent" ToolTip.Tip="{Binding StatusText}">
+                                        <!-- 同 WPF 库存行右键“查看物品详情…”（双击物品行也可查看） -->
+                                        <Grid.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="查看物品详情…" ToolTip.Tip="双击物品行也可查看最近来源记录"
+                                                          Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowDetailsCommand}" CommandParameter="{Binding}" />
+                                            </ContextMenu>
+                                        </Grid.ContextMenu>
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Grid.Column="1" Text="{Binding Category}" />
                                         <TextBlock Grid.Column="2" Text="{Binding QuantityText}" />
