@@ -16,7 +16,7 @@ namespace BetterGenshinImpact.Host.Common.Notification;
 /// <summary>
 /// Linux 宿主的通知服务（对应 Windows 主程序的 NotificationService）：
 /// 网络通知器由 Core 的 <see cref="NetworkNotifierFactory"/> 按配置创建；“Windows 通知”开关在 Linux 上对应系统通知（<see cref="FreedesktopNotifier"/>）。
-/// 事件订阅过滤、补充截图、并发发送与 Windows 版相同。邮件与微信 Clawbot 尚未接入
+/// 事件订阅过滤、补充截图、并发发送与 Windows 版相同；邮件与微信 Clawbot 由本服务创建（同 Windows 版）
 /// </summary>
 public sealed class LinuxNotificationService : INotificationHub, IDisposable
 {
@@ -44,8 +44,35 @@ public sealed class LinuxNotificationService : INotificationHub, IDisposable
     /// <summary>当前注册的通知器名称</summary>
     public IReadOnlyList<string> NotifierNames { get; private set; } = [];
 
+    private bool _suppressRefresh;
+
+    /// <summary>
+    /// 批量更新通知配置（如微信 Clawbot 绑定凭证）时抑制逐字段刷新，退出作用域时统一刷新一次
+    /// （同 Windows 版 NotificationService.SuppressRefreshNotifiers）
+    /// </summary>
+    public IDisposable SuppressRefreshNotifiers()
+    {
+        _suppressRefresh = true;
+        return new RefreshSuppression(this);
+    }
+
+    private sealed class RefreshSuppression(LinuxNotificationService service) : IDisposable
+    {
+        public void Dispose()
+        {
+            service._suppressRefresh = false;
+            // 绑定是用户主动操作，即使凭证未变化也刷新，使会话从独立存储加载最新的 context_token / get_updates_buf
+            service.RefreshNotifiers();
+        }
+    }
+
     public void RefreshNotifiers()
     {
+        if (_suppressRefresh)
+        {
+            return;
+        }
+
         lock (_lock)
         {
             _manager.RemoveAllNotifiers();
@@ -69,11 +96,30 @@ public sealed class LinuxNotificationService : INotificationHub, IDisposable
                 _manager.RegisterNotifier(notifier);
             }
 
-            NotifierNames = notifiers.Select(n => n.Name).ToList();
+            // 微信 Clawbot 与 Windows 版 InitializeWechatClawbotNotifier 相同：会话状态跨进程共享 User/WechatClawbot，
+            // 仅主实例启动长轮询会话，子实例只保留发送能力
             if (config.WechatClawbotNotificationEnabled)
             {
-                _logger.LogInformation("通知：微信 Clawbot（扫码绑定的个人微信）在 Linux 宿主中尚未接入，企业微信机器人可用");
+                var clawbot = new WechatClawbotNotifier(_sharedClient, config, IsPrimaryInstance());
+                notifiers.Add(clawbot);
+                _manager.RegisterNotifier(clawbot);
             }
+
+            NotifierNames = notifiers.Select(n => n.Name).ToList();
+        }
+    }
+
+    /// <summary>是否为主实例（同 Windows 版 NotificationService.IsPrimaryInstance）；无法判断时按主实例处理</summary>
+    private static bool IsPrimaryInstance()
+    {
+        try
+        {
+            var bootstrap = BetterGenshinImpact.Service.Instance.InstanceBootstrap.Current;
+            return bootstrap == null || bootstrap.Context.IsRoot;
+        }
+        catch (Exception)
+        {
+            return true;
         }
     }
 

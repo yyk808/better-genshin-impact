@@ -49,6 +49,13 @@
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Controls\AccountRecordsExpirationEditRow.cs" Link="AccountRecords\Shared\AccountRecordsExpirationEditRow.cs" />
 	</ItemGroup>
 
+	<!-- 微信 Clawbot 通知（iLink 协议，与平台无关）：直接编译 WPF 项目的源文件 -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\Service\Notifier\WechatClawbotHelper.cs" Link="Notification\Shared\WechatClawbotHelper.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Notifier\WechatClawbotNotifier.cs" Link="Notification\Shared\WechatClawbotNotifier.cs" />
+		<Compile Include="..\BetterGenshinImpact\Service\Notifier\WechatClawbotSession.cs" Link="Notification\Shared\WechatClawbotSession.cs" />
+	</ItemGroup>
+
 	<!-- 多实例（实例 IPC、Pulonia 远程派发）：与平台无关的部分直接编译 WPF 项目的源文件，平台部分在 Instance/*.Linux.cs -->
 	<ItemGroup>
 		<Compile Include="..\BetterGenshinImpact\Service\Instance\InstanceService.cs" Link="Instance\Shared\InstanceService.cs" />

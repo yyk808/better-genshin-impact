@@ -514,6 +514,35 @@
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
                     </ui:FASettingsExpander>
+                    <!-- 对照 WPF NotificationSettingsPage 的微信 Clawbot 卡片（iLink 协议，扫码登录 + 一次性验证码绑定） -->
+                    <ui:FASettingsExpander x:Name="WechatClawbotCard" Header="启用微信 Clawbot 通知" Description="微信 Clawbot 推送，支持文字和截图（内置实现，无需安装 OpenClaw）" IconSource="{svc:FluentIconSource Chat24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch Name="WechatClawbotSwitch" IsChecked="{Binding Config.NotificationConfig.WechatClawbotNotificationEnabled}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                        <ui:FASettingsExpanderItem Content="BotToken" Description="扫码登录后自动获取，无需手动填写">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox Name="WechatClawbotTokenBox" Width="360" Text="{Binding Config.NotificationConfig.WechatClawbotBotToken}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="目标用户 ID" Description="给 Clawbot 发消息后自动获取，无需手动填写">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <TextBox Name="WechatClawbotUserBox" Width="360" Text="{Binding Config.NotificationConfig.WechatClawbotToUserId}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="登录并绑定" Description="点击后扫码登录，再给 Clawbot 发送显示的验证码完成绑定；过程中可点击取消">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Name="WechatClawbotStatus" Text="{Binding WechatClawbotStatus}" VerticalAlignment="Center" MaxWidth="300" TextWrapping="Wrap" />
+                                    <Button Name="WechatClawbotBindButton" Content="{Binding WechatClawbotBindButtonText}" Command="{Binding ToggleBindWechatClawbotCommand}" />
+                                </StackPanel>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="测试微信 Clawbot 通知" Description="发送测试通知">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <Button Name="WechatClawbotTestButton" Content="发送" Command="{Binding TestWechatClawbotNotificationCommand}" />
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="启用邮箱通知" Description="通过 SMTP 发送；465 端口用 SSL，587 用 STARTTLS，25 不加密，其余自动协商" IconSource="{svc:FluentIconSource ChatMail20}">
                         <ui:FASettingsExpander.Footer>
                             <StackPanel Orientation="Horizontal" Spacing="8">

@@ -54,6 +54,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "storage": await StorageAsync(); break;
                 case "newonedragon-import": await NewOneDragonImportAsync(); break;
                 case "log-parse": await LogParseAsync(); break;
+                case "notify-clawbot": await NotifyClawbotAsync(); break;
                 case "webdata-migrate": await WebDataMigrateAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
