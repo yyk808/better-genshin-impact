@@ -2633,15 +2633,36 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             var uidBox = (preview?.Content as Control)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == "ImportUidBox");
             Check("导入预览对话框（文件 UID 与摘要）", uidBox?.Text == uidA && DialogText(preview).Contains("库存 2 项"), DialogText(preview));
             if (uidBox is not null) uidBox.Text = uidB;
+            Check("导入预览：记录时间说明、补充字典条目（同 WPF）", DialogText(preview).Contains("导入时不会更新为当前时间") &&
+                (preview?.Content as Control)?.GetLogicalDescendants().OfType<ItemsControl>().FirstOrDefault(i => i.Name == "ImportDefinitionsList")?.ItemCount > 0, DialogText(preview));
             Answer(preview, true);
-            var summary = await NextDialog();
-            Check("导入完成摘要", DialogText(summary).Contains("接受 2 项"), DialogText(summary));
-            Answer(summary, true);
             await import;
             await Settle(300);
+            Check("无异常时不弹窗，底部提示完成摘要（同 WPF）", page.StatusText.Contains("接受 2 项") && Services.FluentMessageBox.Current is null, page.StatusText);
             Check("导入后切换到目标 UID 并显示库存", page.SelectedUid == uidB && page.UidOptions.Contains(uidB) && page.Rows.Count == 2
                 && page.Rows.Any(r => r.Name == "摩拉" && r.QuantityText == "4321"), $"{page.SelectedUid} {page.Rows.Count}");
             Shot("avalonia-accounts-import.png");
+
+            // 旧记录导入：有异常时留在“导入库存”对话框显示计数（同 WPF）
+            var oldDoc = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(file!));
+            var oldMora = (Newtonsoft.Json.Linq.JArray)((Newtonsoft.Json.Linq.JObject)oldDoc["accounts"]!).Properties().Single().Value["inventory"]!["摩拉"]!;
+            oldMora[0]!["recordedAt"] = "2020-01-01T00:00:00.0000000Z";
+            oldMora[0]!["quantity"] = 1;
+            var oldFile = Path.Combine(exportDir, "old-record.json");
+            File.WriteAllText(oldFile, oldDoc.ToString());
+            page.PickImportPath = () => Task.FromResult<string?>(oldFile);
+            import = page.OpenImportCommand.ExecuteAsync(null);
+            preview = await NextDialog();
+            var oldUidBox = (preview?.Content as Control)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault(t => t.Name == "ImportUidBox");
+            if (oldUidBox is not null) oldUidBox.Text = uidB;
+            Answer(preview, true);
+            var resultDialog = await NextDialog();
+            Check("有异常时显示接受 / 重复 / 新增异常计数", resultDialog is { Title: "导入库存" } && page.ImportMessage.Contains("新增异常 1 项") && page.ImportMessage.Contains("红灯异常需要手动处理")
+                && (resultDialog.Content as Control)?.GetLogicalDescendants().OfType<TextBlock>().Any(b => b.Name == "ImportResultText") == true, page.ImportMessage);
+            Shot("avalonia-accounts-import-errors.png");
+            Answer(resultDialog, true);
+            await import;
+            await Settle(300);
 
             // 删除 UID
             var delete = page.ClearAccountCommand.ExecuteAsync("uid");

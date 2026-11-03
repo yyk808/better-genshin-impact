@@ -9,6 +9,7 @@ using BetterGenshinImpact.Platform;
 using FluentAvalonia.UI.Controls;
 using System.Threading.Tasks;
 using BetterGenshinImpact.Service.AccountRecords;
+using BetterGenshinImpact.Service.AccountRecords.Model;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -223,35 +224,92 @@ public partial class AccountRecordsPageViewModel : PageViewModel
 
         var owner = AvaloniaPickers.MainWindow;
         if (owner is null) return;
-        var uidBox = new TextBox { Name = "ImportUidBox", Text = preview.FileUid, Width = 200 };
-        var definitions = new CheckBox { Name = "ImportDefinitionsBox", Content = $"用文件中的分类补充本地字典空缺（{preview.Definitions.Count} 项）", IsEnabled = preview.Definitions.Count > 0 };
-        var content = new StackPanel { Spacing = 8, MaxWidth = 460 };
-        content.Children.Add(new TextBlock { Text = preview.Summary, TextWrapping = global::Avalonia.Media.TextWrapping.Wrap });
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        row.Children.Add(new TextBlock { Text = "导入到 UID", VerticalAlignment = VerticalAlignment.Center });
-        row.Children.Add(uidBox);
-        content.Children.Add(row);
+        // 同 WPF AccountRecordsImportDialog：摘要、目标 UID、记录时间说明、补充字典勾选与条目列表
+        var wrap = global::Avalonia.Media.TextWrapping.Wrap;
+        var uidBox = new TextBox { Name = "ImportUidBox", Text = preview.FileUid, Width = 200, MaxLength = 20, HorizontalAlignment = HorizontalAlignment.Left };
+        var definitions = new CheckBox { Name = "ImportDefinitionsBox", Content = "使用下列分类补充本地字典空缺（不覆盖已有分类）", IsEnabled = preview.Definitions.Count > 0 };
+        var content = new StackPanel { Spacing = 8, MaxWidth = 480 };
+        content.Children.Add(new TextBlock { Text = preview.Summary, TextWrapping = wrap });
+        // Linux 版狛荷屋的 UID 列表来自数据目录，导入到新 UID 后直接出现在列表中（WPF 为 Pulonia 账户目录，不在目录中时先建账户）
+        content.Children.Add(new TextBlock { Text = "导入到 UID（可修改；导入到新 UID 后出现在 UID 列表中）", TextWrapping = wrap });
+        content.Children.Add(uidBox);
+        content.Children.Add(new TextBlock { Name = "ImportNoteText", Text = ImportTimeNote, TextWrapping = wrap, Opacity = 0.7 });
         content.Children.Add(definitions);
+        content.Children.Add(new ScrollViewer
+        {
+            MaxHeight = 160,
+            Content = new ItemsControl { Name = "ImportDefinitionsList", ItemsSource = preview.Definitions },
+        });
         var dialog = new FAContentDialog
         {
-            Title = "导入库存", Content = content, PrimaryButtonText = "导入", CloseButtonText = "取消", DefaultButton = FAContentDialogButton.Primary
+            Title = "导入库存", Content = content, PrimaryButtonText = "导入当前库存", CloseButtonText = "取消", DefaultButton = FAContentDialogButton.Primary
         };
         if (await FluentMessageBox.ShowCustomAsync(dialog, owner) != FAContentDialogResult.Primary) return;
 
         if (preview.HasDeltas && !await ConfirmAsync(AccountRecordsImport.DeltaConfirmText, AccountRecordsImport.DeltaConfirmTitle)) return;
         var uid = (uidBox.Text ?? "").Trim();
         string? importedUid = null;
+        InventoryReportResult? result = null;
+        string? message = null;
         try
         {
             if (!InventoryStore.IsValidUid(uid)) throw new ArgumentException(AccountRecordsImport.InvalidTargetUid);
             importedUid = uid;
-            var result = await AccountRecordsInteractionGate.Instance.ExecuteManualAsync(() =>
+            result = await AccountRecordsInteractionGate.Instance.ExecuteManualAsync(() =>
                 _store.ImportInventoryAsync(preview.Package, uid, definitions.IsChecked == true, preview.HasDeltas));
-            ImportMessage = AccountRecordsImport.WarningMessage(result) ?? AccountRecordsImport.CompletionSummary(result);
+            message = AccountRecordsImport.WarningMessage(result);
         }
-        catch (Exception ex) { ImportMessage = AccountRecordsImport.FailureMessage(ex); }
+        catch (Exception ex) { message = AccountRecordsImport.FailureMessage(ex); }
+        var hasErrors = result != null && AccountRecordsImport.HasErrors(result);
+        ImportMessage = string.Join("\n", new[] { hasErrors ? ImportErrorCounts(result!) : null, message }.Where(text => text != null));
         await RefreshAfterImportAsync(importedUid);
-        await InfoAsync(ImportMessage, "导入库存");
+        // 同 WPF：无异常、无提醒时直接关闭并在底部提示行短暂显示完成摘要；否则在“导入库存”对话框中显示计数与说明
+        if (result != null && !hasErrors && message == null)
+        {
+            var summary = AccountRecordsImport.CompletionSummary(result);
+            ImportMessage = summary;
+            _ = ShowImportSummaryAsync(summary);
+            return;
+        }
+        await ShowImportResultAsync(hasErrors ? result : null, message);
+    }
+
+    /// <summary>导入说明（同 WPF）</summary>
+    public const string ImportTimeNote = "记录时间应为库存实际采集或确认的时间，导入时不会更新为当前时间。仅合并提供的物品，旧记录、非法数量等会进入库存异常。";
+
+    /// <summary>有异常时的计数文字（同 WPF 导入窗口）</summary>
+    private static string ImportErrorCounts(InventoryReportResult result) =>
+        $"导入完成：接受 {result.Accepted.Count} 项，忽略重复 {result.DuplicateCount} 项（已有异常 {result.DuplicateErrorCount} 项），新增异常 {result.Rejected.Count} 项。关闭窗口后可在目标 UID 的库存中查看，红灯异常需要手动处理。";
+
+    /// <summary>导入结果对话框：有异常时计数（异常数红色加粗），提醒或失败说明另起一段</summary>
+    private static async Task ShowImportResultAsync(InventoryReportResult? errors, string? message)
+    {
+        if (AvaloniaPickers.MainWindow is not { } owner) return;
+        var wrap = global::Avalonia.Media.TextWrapping.Wrap;
+        var panel = new StackPanel { Spacing = 12, MaxWidth = 480 };
+        if (errors != null)
+        {
+            var counts = new TextBlock { Name = "ImportResultText", TextWrapping = wrap };
+            global::Avalonia.Controls.Documents.Run Plain(string text) => new(text);
+            global::Avalonia.Controls.Documents.Run Red(int value) => new(value.ToString())
+            { Foreground = new global::Avalonia.Media.SolidColorBrush(global::Avalonia.Media.Color.Parse("#EA4335")), FontWeight = global::Avalonia.Media.FontWeight.SemiBold };
+            counts.Inlines!.AddRange([
+                Plain($"导入完成：接受 {errors.Accepted.Count} 项，忽略重复 {errors.DuplicateCount} 项（已有异常 "), Red(errors.DuplicateErrorCount),
+                Plain(" 项），新增异常 "), Red(errors.Rejected.Count), Plain(" 项。关闭窗口后可在目标 UID 的库存中查看，红灯异常需要手动处理。")]);
+            panel.Children.Add(counts);
+        }
+        if (message != null) panel.Children.Add(new TextBlock { Name = "ImportMessageText", Text = message, TextWrapping = wrap });
+        await FluentMessageBox.ShowCustomAsync(new FAContentDialog { Title = "导入库存", Content = panel, CloseButtonText = "关闭" }, owner);
+    }
+
+    /// <summary>底部提示行显示导入摘要 8 秒；期间切换账号或提示已变化则不恢复（同 WPF ShowImportSummaryAsync）</summary>
+    private async Task ShowImportSummaryAsync(string summary)
+    {
+        var previous = StatusText;
+        var version = _loadVersion;
+        StatusText = summary;
+        await Task.Delay(TimeSpan.FromSeconds(8));
+        if (version == _loadVersion && StatusText == summary) StatusText = previous;
     }
 
     /// <summary>导入可能部分成功；无论是否有异常，均完整读取目标账号（与 WPF 相同）</summary>
