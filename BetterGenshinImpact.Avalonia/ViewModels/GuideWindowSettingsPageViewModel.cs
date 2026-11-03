@@ -22,6 +22,7 @@ public sealed partial class GuideWindowSettingsPageViewModel : PageViewModel
     private readonly Func<string, bool> _navigate;
     private readonly GuideLibraryStore _library;
     private readonly GuideWindowService? _service;
+    private readonly GameHost? _host;
 
     [ObservableProperty] private string _librarySummary = "";
 
@@ -32,6 +33,7 @@ public sealed partial class GuideWindowSettingsPageViewModel : PageViewModel
     {
         _log = log;
         _navigate = navigate;
+        _host = host;
         Config = (host?.Config ?? new AllConfig()).GuideWindowConfig;
         _service = host?.Guide;
         // 与小窗共用同一个收藏与观看记录存储（宿主注册的单例）
@@ -105,6 +107,10 @@ public sealed partial class GuideWindowSettingsPageViewModel : PageViewModel
 
     [RelayCommand]
     private void CloseWindow() => _service?.Close();
+
+    /// <summary>打开存储空间窗口（同 WPF）</summary>
+    [RelayCommand]
+    private System.Threading.Tasks.Task OpenStorage() => SettingsPageViewModel.ShowStorageManagementAsync(_host);
 
     /// <summary>显示小窗，关闭鼠标穿透、退出沉浸与交互模式，不透明度恢复 100%，并移回屏幕内（与 WPF 相同）</summary>
     [RelayCommand]

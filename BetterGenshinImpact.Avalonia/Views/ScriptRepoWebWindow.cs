@@ -81,6 +81,9 @@ public sealed class ScriptRepoWebWindow : Window
             if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
             {
                 gtk.ApplicationNameForUserAgent = "BetterGI";
+                // 与 Windows 版 App 环境的 Default 配置对应：数据放在 Data/WebKit/App（存储空间中可清理其缓存）
+                gtk.BaseDataDirectory = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Data(BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.App);
+                gtk.BaseCacheDirectory = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Cache(BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.App);
             }
         };
         _webView.AdapterCreated += (_, _) =>

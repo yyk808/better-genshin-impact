@@ -93,6 +93,9 @@
 		<Compile Include="..\BetterGenshinImpact\Helpers\Http\ProxySpeedTester.cs" Link="ScriptRepo\Shared\ProxySpeedTester.cs" />
 		<Compile Include="..\BetterGenshinImpact\Infrastructure\Network\GitProxy.cs" Link="ScriptRepo\Shared\GitProxy.cs" />
 		<Compile Include="..\BetterGenshinImpact\Infrastructure\Temp\TempFileService.cs" Link="ScriptRepo\Shared\TempFileService.cs" />
+		<Compile Include="..\BetterGenshinImpact\Core\Script\ScriptUpdateBackupStorageAreaProvider.cs" Link="Storage\Shared\ScriptUpdateBackupStorageAreaProvider.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Windows\StorageAreaItemViewModel.cs" Link="Storage\Shared\StorageAreaItemViewModel.cs" />
+		<Compile Include="..\BetterGenshinImpact\ViewModel\Windows\StorageGroupViewModel.cs" Link="Storage\Shared\StorageGroupViewModel.cs" />
 		<Compile Include="..\BetterGenshinImpact\Pulonia\Services\PuloniaRepositoryManagementService.cs" Link="ScriptRepo\Shared\PuloniaRepositoryManagementService.cs" />
 	</ItemGroup>
 

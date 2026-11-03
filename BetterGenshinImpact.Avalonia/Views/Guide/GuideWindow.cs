@@ -59,8 +59,10 @@ public sealed class GuideWindow : Window, IGuideWindowView
         {
             if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
             {
-                // 与 Windows 版独立的 Guide 配置目录对应：保留登录状态，数据放在 User/WebView/Guide
+                // 与 Windows 版独立的 Guide 环境对应：保留登录状态，数据放在 Data/WebKit/Guide（存储空间中可清理其缓存）
                 gtk.EphemeralDataManager = false;
+                gtk.BaseDataDirectory = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Data(BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Guide);
+                gtk.BaseCacheDirectory = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Cache(BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.Guide);
                 gtk.ApplicationNameForUserAgent = "BetterGI";
             }
         };

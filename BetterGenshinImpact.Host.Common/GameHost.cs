@@ -508,6 +508,21 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Temp.TempFileService(tempDirectoryName,
                 sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Temp.TempFileService>>()));
             services.AddSingleton<BetterGenshinImpact.Infrastructure.Temp.ITempFileService>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>());
+            // 存储空间（设置页“存储空间”与悬浮小窗设置页）：与 WPF 相同的 StorageService、推迟清理记录与各区域来源；
+            // 网页数据为 WebKitGTK 的 Data/WebKit 目录（WPF 为 WebView2 配置）；Linux 不使用下载服务，没有“下载”分组
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.PendingCleanupStore>();
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageService, BetterGenshinImpact.Infrastructure.Storage.StorageService>();
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.FileCache>());
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>());
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider, BetterGenshinImpact.Host.Common.Storage.LinuxWebDataStorageAreaProvider>();
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider, BetterGenshinImpact.Core.Script.ScriptUpdateBackupStorageAreaProvider>();
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider, BetterGenshinImpact.Core.Recognition.ONNX.InferenceCacheStorageAreaProvider>();
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Storage.IStorageAreaProvider, BetterGenshinImpact.Service.AppStorageAreaProvider>();
+            // 文件缓存维护（超过上限时删除最早的缓存，每天一次）：与 WPF 相同只在根实例执行，由宿主随启动 / 退出启停
+            var isRootInstance = instanceBootstrap?.Context.IsRoot ?? true;
+            services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Cache.CacheMaintenanceService(
+                sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.FileCache>(), config.StorageConfig, isRootInstance,
+                sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Cache.CacheMaintenanceService>>()));
             services.AddSingleton<IPuloniaTaskService>(sp => new PuloniaTaskService(
                 sp.GetRequiredService<PuloniaTaskStore>(),
                 sp.GetRequiredService<PuloniaTaskBuilder>(),
@@ -547,9 +562,23 @@ public sealed class GameHost : IAsyncDisposable
             var inputLogger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Input");
             InputChannelBase.LoggerFactory = () => inputLogger;
 
+            // 推迟到本次启动的清理（网页数据、推理缓存等）必须在使用方加载之前执行；与 WPF 相同只在根实例执行，失败不影响启动
+            if (BetterGenshinImpact.Service.Instance.InstanceBootstrap.Current?.Context.IsRoot ?? true)
+            {
+                try
+                {
+                    provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Storage.PendingCleanupStore>().ExecutePending();
+                }
+                catch (Exception e)
+                {
+                    log.Warning(e, "执行推迟的存储清理失败，已跳过且不影响程序启动。");
+                }
+            }
+
             var gameHost = new GameHost(options, platform, probe, config, provider, log, fileConfig, linuxConfigStore, linuxConfig, manualWindow);
             gameHost.StartInstanceServices();
             provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Temp.TempFileService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+            provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.CacheMaintenanceService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
             // Silero VAD 实时诊断（与 WPF 的托管服务相同：未开启时只轮询配置）
             provider.GetRequiredService<BetterGenshinImpact.GameTask.AutoSkip.Audio.DialogueOptionVoiceDiagnosticService>().StartAsync(CancellationToken.None).GetAwaiter().GetResult();
             return gameHost;
@@ -813,6 +842,15 @@ public sealed class GameHost : IAsyncDisposable
         catch (Exception e)
         {
             _log.Warning(e, "停止语音检测诊断失败");
+        }
+
+        try
+        {
+            await _provider.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.CacheMaintenanceService>().StopAsync(CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            _log.Warning(e, "停止文件缓存维护失败");
         }
 
         // 删除本进程的临时目录（与 WPF 托管服务停止时相同）

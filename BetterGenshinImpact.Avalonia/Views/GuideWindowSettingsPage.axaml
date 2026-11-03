@@ -251,6 +251,13 @@
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>
             <ui:FASettingsExpander x:Name="WebDataCard" Header="网页数据与快捷打开" Description="小窗使用独立的网页环境，B 站登录只保存在小窗中" IconSource="{svc:FluentIconSource Link24}">
+                <ui:FASettingsExpanderItem Content="网页缓存" Description="在存储空间中清理“悬浮小窗 · 网页缓存”，下次启动时生效，不会退出登录">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Button x:Name="GuideOpenStorageButton" Command="{Binding OpenStorageCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Storage24, Size=14}" /><TextBlock Text="打开存储空间" /></StackPanel>
+                        </Button>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
                 <ui:FASettingsExpanderItem Content="地图点位视频默认用小窗打开" Description="在大地图遮罩的点位详情中点击视频攻略时，直接在小窗中播放">
                     <ui:FASettingsExpanderItem.Footer>
                         <ToggleSwitch x:Name="MapVideoToggle" IsChecked="{Binding Config.OpenMapVideoInWindow}" OnContent="" OffContent="" />

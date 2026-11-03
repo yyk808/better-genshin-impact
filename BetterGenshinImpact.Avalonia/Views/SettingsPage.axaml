@@ -19,7 +19,6 @@
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander x:Name="WindowsOnlyCard" Header="Windows 版专属设置" Description="以下设置依赖 Windows，在 Linux 版不可用（与 Windows 版共用配置，切回 Windows 版仍生效）" IconSource="{svc:FluentIconSource Info24}">
                         <ui:FASettingsExpanderItem Content="网络与代理" Description="使用 Windows 系统代理设置；Linux 版按系统环境变量 HTTP(S)_PROXY 联网" />
-                        <ui:FASettingsExpanderItem Content="存储空间" Description="缓存与网页数据管理依赖 WebView2；Linux 版数据都在程序目录的 User/ 与 Cache/ 下，可手动清理" />
                         <ui:FASettingsExpanderItem Content="主窗口自定义背景" Description="Windows 版 Mica 背景特性，Linux 版不支持" />
                         <ui:FASettingsExpanderItem Content="独立任务期间屏蔽 Windows 通知" Description="依赖 Windows 专注助手" />
                         <ui:FASettingsExpanderItem Content="WGC 截图参数" Description="Windows Graphics Capture 专用；Linux 截图方式见“启动”页" />
@@ -27,6 +26,14 @@
                     <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
                         <ui:FASettingsExpander.Footer>
                             <ComboBox Width="200" ItemsSource="{Binding GameLanguages}" SelectedItem="{Binding Config.OtherConfig.GameCultureInfoName}" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                    <!-- 存储空间：摘要在进入页面时后台统计，管理窗口集中展示和清理各类数据（同 WPF） -->
+                    <ui:FASettingsExpander x:Name="StorageCard" Header="存储空间" Description="{Binding StorageSummaryText}" IconSource="{svc:FluentIconSource Storage24}">
+                        <ui:FASettingsExpander.Footer>
+                            <Button x:Name="OpenStorageButton" MinWidth="88" Command="{Binding OpenStorageManagementCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Broom24, Size=14}" /><TextBlock Text="管理" /></StackPanel>
+                            </Button>
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander x:Name="KeyBindingsCard" Header="按键绑定设置" Description="如果你有游戏内改键需求，请在此配置对应的改键" IconSource="{svc:FluentIconSource Keyboard24}">

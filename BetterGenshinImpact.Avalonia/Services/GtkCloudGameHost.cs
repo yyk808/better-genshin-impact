@@ -224,7 +224,7 @@ internal sealed unsafe partial class GtkCloudGameHost : ICloudGamePageHost
 
     private static nint CreateContext()
     {
-        var data = Path.Combine(AppPaths.Root, "WebKit", "CloudGame");
+        var data = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.CloudGame;
         Directory.CreateDirectory(data);
         var manager = webkit_website_data_manager_new("base-data-directory", Path.Combine(data, "data"), "base-cache-directory", Path.Combine(data, "cache"), 0);
         // 登录状态（Cookie）持久保存

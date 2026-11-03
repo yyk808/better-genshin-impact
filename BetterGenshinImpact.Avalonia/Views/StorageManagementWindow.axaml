@@ -1,0 +1,152 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BetterGenshinImpact.Host.Common.Storage"
+        xmlns:wvm="using:BetterGenshinImpact.ViewModel.Windows"
+        xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:local="using:BetterGenshinImpact.Avalonia.Views"
+        x:Class="BetterGenshinImpact.Avalonia.Views.StorageManagementWindow"
+        x:DataType="vm:StorageManagementViewModel"
+        Width="760" Height="680" MinWidth="620" MinHeight="460" WindowStartupLocation="CenterOwner"
+        Title="存储空间">
+    <!-- 存储空间（对照 WPF View/Windows/StorageManagementWindow；VM 由 WPF 移植到 Host.Common） -->
+    <Window.Styles>
+        <Style Selector="Button.action">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="64" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.storageCard">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        </Style>
+        <Style Selector="TextBlock.secondary">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </Window.Styles>
+    <Panel>
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- 数据目录与全局操作 -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="18,14,18,12">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="secondary" Text="数据目录" />
+                <TextBlock x:Name="DataDirectoryText" Margin="0,2,0,0" Text="{Binding DataDirectory}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DataDirectory}" />
+            </StackPanel>
+            <Button Grid.Column="1" x:Name="OpenDataFolderButton" Classes="action" Command="{Binding OpenDataFolderCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon FolderOpen24, Size=14}" /><TextBlock Text="打开目录" /></StackPanel>
+            </Button>
+            <Button Grid.Column="2" x:Name="RecalculateButton" Classes="action" Command="{Binding RefreshCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon ArrowClockwise24, Size=14}" /><TextBlock Text="重新计算" /></StackPanel>
+            </Button>
+        </Grid>
+        <!-- 占用总览：比例条、图例与一键清理 -->
+        <Border Grid.Row="1" Classes="storageCard" Margin="18,0,18,12" Padding="16,14">
+            <StackPanel>
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock FontWeight="SemiBold" Text="占用总览" />
+                        <ui:FAProgressRing x:Name="MeasuringRing" Width="13" Height="13" Margin="8,0,0,0" IsIndeterminate="True" IsVisible="{Binding IsMeasuring}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" x:Name="TotalSizeText" FontSize="20" FontWeight="SemiBold" Text="{Binding TotalSizeText}" />
+                </Grid>
+                <!-- 比例条：各段宽度按占用字节数（代码中按 OverviewSegments 重建列） -->
+                <Border Height="8" Margin="0,10,0,8" CornerRadius="4" ClipToBounds="True" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                    <Grid x:Name="OverviewBar" />
+                </Border>
+                <ItemsControl x:Name="OverviewLegend" ItemsSource="{Binding OverviewSegments}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="wvm:StorageOverviewSegment">
+                            <StackPanel Margin="0,0,16,4" Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding Color, Converter={x:Static local:StorageColorConverter.Instance}}" />
+                                <TextBlock Margin="6,0,0,0" FontSize="12" Text="{Binding Label}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                    <TextBlock x:Name="QuickCleanupText" Classes="secondary" VerticalAlignment="Center" Text="{Binding QuickCleanupText}" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" x:Name="QuickCleanupButton" Classes="action accent" Margin="12,0,0,0" Command="{Binding QuickCleanupCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Broom24, Size=14}" /><TextBlock Text="一键清理" /></StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </Border>
+        <!-- 分组列表：每行说明这是什么、清理后会怎样，再给出操作；最后是自动清理设置 -->
+        <ScrollViewer Grid.Row="2" Padding="18,0,18,6" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <ItemsControl x:Name="StorageGroups" ItemsSource="{Binding Groups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="wvm:StorageGroupViewModel">
+                            <StackPanel Margin="0,0,0,14">
+                                <StackPanel Margin="2,0,0,6" Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{Binding Color, Converter={x:Static local:StorageColorConverter.Instance}}" />
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12" Text="{Binding Description}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                                <Border Classes="storageCard">
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="wvm:StorageAreaItemViewModel">
+                                                <StackPanel Classes="storageRow">
+                                                    <Border Height="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" IsVisible="{Binding !IsFirst}" />
+                                                    <Grid Margin="14,10">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" MinWidth="96" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}" />
+                                                            <TextBlock Classes="secondary" Margin="0,3,0,0" Text="{Binding DetailText}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                            <ui:FAProgressRing Width="12" Height="12" Margin="0,0,6,0" IsIndeterminate="True" IsVisible="{Binding IsWorking}" />
+                                                            <TextBlock Classes="sizeText" Text="{Binding SizeText}" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                                                            <Button Classes="action openFolder" Content="打开" IsVisible="{Binding CanOpenFolder}"
+                                                                    Command="{Binding $parent[Window].((vm:StorageManagementViewModel)DataContext).OpenFolderCommand}" CommandParameter="{Binding}" />
+                                                            <Button Classes="action clean" Content="{Binding CleanButtonText}" IsEnabled="{Binding CanClean}" IsVisible="{Binding IsCleanable}"
+                                                                    Command="{Binding $parent[Window].((vm:StorageManagementViewModel)DataContext).CleanupCommand}" CommandParameter="{Binding}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <!-- 自动清理：文件缓存上限，由后台维护每天检查一次 -->
+                <TextBlock Margin="2,0,0,6" FontWeight="SemiBold" Text="自动清理" />
+                <Border Classes="storageCard" Margin="0,0,0,14" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                            <TextBlock Text="文件缓存上限" />
+                            <TextBlock Classes="secondary" Margin="0,3,0,0" TextWrapping="Wrap" Text="超过后自动删除最早的缓存，每天检查一次。不包括识别模型编译缓存和下载。" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" x:Name="CacheLimitBox" Width="140" VerticalAlignment="Center" ItemsSource="{Binding CacheLimitOptions}"
+                                  SelectedValueBinding="{Binding Key}" DisplayMemberBinding="{Binding Value}" SelectedValue="{Binding StorageConfig.FileCacheLimitMb}" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="3" Padding="18,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="secondary" VerticalAlignment="Center" TextWrapping="Wrap" Text="清理时会跳过正在使用的文件。用户数据和日志只展示占用，不会被一键清理删除。" />
+                <Button Grid.Column="1" x:Name="CloseButton" MinWidth="72" Height="32" Margin="12,0,0,0" Padding="12,4" Content="关闭" IsCancel="True" HorizontalContentAlignment="Center"
+                        Command="{Binding CloseCommand}" />
+            </Grid>
+        </Border>
+    </Grid>
+        <!-- 轻提示（对应 WPF 的 Toast）：存储空间是模态窗口，提示显示在本窗口底部，几秒后消失 -->
+        <Border x:Name="NoticeBar" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,64" Padding="14,8" CornerRadius="6"
+                Background="{DynamicResource SolidBackgroundFillColorTertiaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <TextBlock x:Name="NoticeText" MaxWidth="560" TextWrapping="Wrap" />
+        </Border>
+    </Panel>
+</Window>

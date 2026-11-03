@@ -388,7 +388,7 @@ internal sealed unsafe partial class GtkHtmlMaskWindowHost : IHtmlMaskWindowHost
         }
 
         // 与 Windows 版的 HtmlMask 配置文件对应：遮罩页面共用一个持久数据目录，与其他网页隔离
-        var data = Path.Combine(AppPaths.Root, "WebKit", "HtmlMask");
+        var data = BetterGenshinImpact.Host.Common.Storage.LinuxWebDataPaths.HtmlMask;
         Directory.CreateDirectory(data);
         var manager = webkit_website_data_manager_new("base-data-directory", Path.Combine(data, "data"), "base-cache-directory", Path.Combine(data, "cache"), 0);
         _context = webkit_web_context_new_with_website_data_manager(manager);

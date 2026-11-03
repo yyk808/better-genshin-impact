@@ -51,6 +51,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "account-edit": await AccountEditAsync(); break;
                 case "account-display": await AccountDisplayAsync(); break;
                 case "account-rules": await AccountRulesAsync(); break;
+                case "storage": await StorageAsync(); break;
                 case "quest-voice-settings": await QuestVoiceSettingsAsync(); break;
                 case "domain-editor": await DomainEditorAsync(); break;
                 case "dedicated-editors": await DedicatedEditorsAsync(); break;
