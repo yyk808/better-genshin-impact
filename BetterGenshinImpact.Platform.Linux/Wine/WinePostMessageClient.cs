@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Platform.Linux.Wine;
 /// <para>
 /// 启动方式：读取游戏进程的环境（/proc/&lt;pid&gt;/environ，含 WINEPREFIX、esync / fsync 等，须与游戏的 wineserver 一致）与
 /// 可执行文件位置（/proc/&lt;pid&gt;/exe 所在目录的 wine64 / wine，或环境里的 WINELOADER），用同一个 wine 启动辅助程序。
-/// Steam Proton 的游戏在 pressure-vessel 容器里运行，容器外的 wine 连不上容器里的 wineserver，这种情况会启动失败（返回原因）
+/// Steam Proton 的游戏在 pressure-vessel 容器里运行，容器外的 wine 连不上容器里的 wineserver，这种情况在启动前按挂载命名空间 / 环境标记识别并返回原因（<see cref="DescribeContainer"/>）
 /// </para>
 /// </summary>
 public sealed class WinePostMessageClient : IWinePostSink
@@ -64,6 +64,12 @@ public sealed class WinePostMessageClient : IWinePostSink
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             error = $"读取游戏进程 {pid} 的环境失败：{e.Message}";
+            return null;
+        }
+
+        if (DescribeContainer(procRoot, pid, env) is { } container)
+        {
+            error = container;
             return null;
         }
 
@@ -218,6 +224,44 @@ public sealed class WinePostMessageClient : IWinePostSink
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 游戏在容器里（与本进程的挂载命名空间不同，或环境里有 pressure-vessel / Flatpak 标记）时返回不能使用的原因，否则 null。
+    /// 容器里的 wineserver 套接字与 wine 路径在容器外不可见，从外面启动的辅助程序连不上游戏的 wineserver
+    /// </summary>
+    public static string? DescribeContainer(string procRoot, int pid, IReadOnlyDictionary<string, string> env)
+    {
+        string? kind = null;
+        if (env.Keys.Any(k => k.StartsWith("PRESSURE_VESSEL_", StringComparison.Ordinal))
+            || env.GetValueOrDefault("container") == "pressure-vessel")
+            kind = "Steam Proton 的 pressure-vessel 容器（Steam Linux Runtime）";
+        else if (env.ContainsKey("FLATPAK_ID") || env.GetValueOrDefault("container") == "flatpak")
+            kind = "Flatpak 沙盒";
+        else
+        {
+            var theirs = ReadLink(Path.Combine(procRoot, pid.ToString(), "ns", "mnt"));
+            var ours = ReadLink(Path.Combine(procRoot, "self", "ns", "mnt"));
+            if (theirs is not null && ours is not null && theirs != ours)
+                kind = env.ContainsKey("STEAM_COMPAT_DATA_PATH") ? "Steam Proton 的容器（Steam Linux Runtime）" : "独立的挂载命名空间（容器）";
+        }
+
+        return kind is null
+            ? null
+            : $"游戏进程 {pid} 运行在{kind}里，容器外启动的 wine 连不上容器内的 wineserver，Wine 后台输入不可用"
+              + "（Steam 可在游戏属性里关闭 Steam Linux Runtime，或改用 Lutris / 系统 Wine 启动）";
+    }
+
+    private static string? ReadLink(string path)
+    {
+        try
+        {
+            return new FileInfo(path).LinkTarget;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     public static Dictionary<string, string> ReadEnviron(string path)

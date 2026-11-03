@@ -206,6 +206,59 @@ public class WinePostMessageChannelTests
     }
 
     [Fact]
+    public void TryStart_PressureVessel_ReturnsContainerReason_BeforeLookingForWine()
+    {
+        var root = Directory.CreateTempSubdirectory("bgi-wine-pv-");
+        try
+        {
+            var pidDir = Directory.CreateDirectory(Path.Combine(root.FullName, "4243"));
+            File.WriteAllText(Path.Combine(pidDir.FullName, "environ"), "WINEPREFIX=/tmp/none\0PRESSURE_VESSEL_RUNTIME=scout\0");
+
+            var client = WinePostMessageClient.TryStart(4243, "原神", null, out var error, helperDir: root.FullName, procRoot: root.FullName);
+
+            Assert.Null(client);
+            Assert.Contains("pressure-vessel", error);
+            Assert.Contains("连不上容器内的 wineserver", error);
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Fact]
+    public void DescribeContainer_ComparesMountNamespace()
+    {
+        var root = Directory.CreateTempSubdirectory("bgi-wine-ns-");
+        try
+        {
+            void Ns(string who, string target)
+            {
+                var d = Directory.CreateDirectory(Path.Combine(root.FullName, who, "ns"));
+                File.CreateSymbolicLink(Path.Combine(d.FullName, "mnt"), target);
+            }
+
+            Ns("self", "mnt:[4026531841]");
+            Ns("100", "mnt:[4026531841]");
+            Ns("200", "mnt:[4026532999]");
+            var none = new Dictionary<string, string>();
+
+            Assert.Null(WinePostMessageClient.DescribeContainer(root.FullName, 100, none));
+            Assert.Contains("独立的挂载命名空间", WinePostMessageClient.DescribeContainer(root.FullName, 200, none));
+            Assert.Contains("Steam Proton", WinePostMessageClient.DescribeContainer(root.FullName, 200,
+                new Dictionary<string, string> { ["STEAM_COMPAT_DATA_PATH"] = "/x" }));
+            Assert.Contains("Flatpak", WinePostMessageClient.DescribeContainer(root.FullName, 100,
+                new Dictionary<string, string> { ["FLATPAK_ID"] = "com.valvesoftware.Steam" }));
+            // 读不到命名空间（其他用户的进程、测试目录）时不当作容器
+            Assert.Null(WinePostMessageClient.DescribeContainer(root.FullName, 300, none));
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Fact]
     public void FindLoader_PrefersWineLoader_ThenExeDir()
     {
         var root = Directory.CreateTempSubdirectory("bgi-wine-loader-");
