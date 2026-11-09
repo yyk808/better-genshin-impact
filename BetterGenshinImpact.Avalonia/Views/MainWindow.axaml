@@ -1,12 +1,13 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
         xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
         xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
         xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
         xmlns:ui="using:FluentAvalonia.UI.Controls"
         x:Class="BetterGenshinImpact.Avalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="BetterGI · 更好的原神"
+        Title="{i18n:T 'BetterGI · 更好的原神'}"
         Width="1050" Height="700" MinWidth="800" MinHeight="520"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
 
@@ -65,7 +66,7 @@
         <DataTemplate DataType="vm:PlaceholderPageViewModel">
             <StackPanel Classes="page">
                 <TextBlock Classes="pagetitle" Text="{Binding Title}" />
-                <ui:FAInfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="尚未迁移" Message="{Binding Description}" />
+                <ui:FAInfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="{i18n:T '尚未迁移'}" Message="{Binding Description}" />
             </StackPanel>
         </DataTemplate>
     </Window.DataTemplates>
@@ -93,13 +94,13 @@
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="12,4">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-                            <CheckBox Content="调试日志" IsChecked="{Binding ShowDebugLog}" FontSize="12" />
-                            <Button Content="复制" FontSize="12" Padding="10,2" Command="{Binding CopyLogCommand}" />
-                            <Button Content="清空" FontSize="12" Padding="10,2" Command="{Binding ClearLogCommand}" />
+                            <CheckBox Content="{i18n:T '调试日志'}" IsChecked="{Binding ShowDebugLog}" FontSize="12" />
+                            <Button Content="{i18n:T '复制'}" FontSize="12" Padding="10,2" Command="{Binding CopyLogCommand}" />
+                            <Button Content="{i18n:T '清空'}" FontSize="12" Padding="10,2" Command="{Binding ClearLogCommand}" />
                             <Button Content="{Binding IsLogExpanded, Converter={x:Static svc:Converters.ExpandGlyph}}" FontSize="12" Padding="10,2"
                                     Command="{Binding ToggleLogCommand}" />
                         </StackPanel>
-                        <TextBlock Text="日志" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{i18n:T '日志'}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
                     <ListBox x:Name="LogList" Classes="log" Height="190" IsVisible="{Binding IsLogExpanded}"
                              Background="Transparent" ItemsSource="{Binding LogLines}">

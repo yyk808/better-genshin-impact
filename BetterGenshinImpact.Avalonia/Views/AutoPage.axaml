@@ -1,14 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              x:Class="BetterGenshinImpact.Avalonia.Views.AutoPage"
              x:DataType="vm:AutoPageViewModel">
     <TabControl Classes="nostrip" SelectedIndex="{Binding SelectedTab}" Padding="0">
-        <TabItem Header="调度器">
+        <TabItem Header="{i18n:T '调度器'}">
             <views:ScriptControlPage DataContext="{Binding Scheduler}" />
         </TabItem>
-            <TabItem Header="JS 脚本">
+            <TabItem Header="{i18n:T 'JS 脚本'}">
                 <DockPanel Margin="20,8,20,12">
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
                         <TextBlock x:Name="JsTitle" Text="{Binding JsTitle}" FontWeight="SemiBold" FontSize="15" />
@@ -17,9 +18,9 @@
                             <HyperlinkButton x:Name="JsTutorialLink" Padding="0" Content="{Binding JsTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="js" />
                         </WrapPanel>
                         <WrapPanel>
-                            <Button x:Name="JsOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="js" Margin="0,0,6,4" />
-                            <Button x:Name="JsRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
-                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                            <Button x:Name="JsOpenFolderButton" Content="{i18n:T '打开脚本目录'}" Command="{Binding OpenFolderCommand}" CommandParameter="js" Margin="0,0,6,4" />
+                            <Button x:Name="JsRepoButton" Content="{i18n:T '脚本仓库'}" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
+                            <Button Content="{i18n:T '刷新'}" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
                         </WrapPanel>
                     </StackPanel>
                     <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
@@ -31,10 +32,10 @@
                                     <Border Classes="row">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Button Content="执行脚本" Padding="10,2"
+                                                <Button Content="{i18n:T '执行脚本'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).RunJsCommand}"
                                                         CommandParameter="{Binding}" />
-                                                <Button Content="添加" Padding="10,2"
+                                                <Button Content="{i18n:T '添加'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).AddJsCommand}"
                                                         CommandParameter="{Binding}" />
                                             </StackPanel>
@@ -51,7 +52,7 @@
                     </ScrollViewer>
                 </DockPanel>
             </TabItem>
-            <TabItem Header="地图追踪">
+            <TabItem Header="{i18n:T '地图追踪'}">
                 <DockPanel Margin="20,8,20,12">
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
                         <TextBlock x:Name="PathingTitle" Text="{Binding PathingTitle}" FontWeight="SemiBold" FontSize="15" />
@@ -60,9 +61,9 @@
                             <HyperlinkButton x:Name="PathingTutorialLink" Padding="0" Content="{Binding PathingTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="pathing" />
                         </WrapPanel>
                         <WrapPanel>
-                            <Button x:Name="PathingOpenFolderButton" Content="打开任务目录" Command="{Binding OpenFolderCommand}" CommandParameter="pathing" Margin="0,0,6,4" />
-                            <Button x:Name="PathingRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
-                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                            <Button x:Name="PathingOpenFolderButton" Content="{i18n:T '打开任务目录'}" Command="{Binding OpenFolderCommand}" CommandParameter="pathing" Margin="0,0,6,4" />
+                            <Button x:Name="PathingRepoButton" Content="{i18n:T '脚本仓库'}" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
+                            <Button Content="{i18n:T '刷新'}" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
                         </WrapPanel>
                     </StackPanel>
                     <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
@@ -74,10 +75,10 @@
                                     <Border Classes="row">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Button Content="执行" Padding="10,2"
+                                                <Button Content="{i18n:T '执行'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).RunPathingCommand}"
                                                         CommandParameter="{Binding}" />
-                                                <Button Content="添加" Padding="10,2"
+                                                <Button Content="{i18n:T '添加'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).AddPathingCommand}"
                                                         CommandParameter="{Binding}" />
                                             </StackPanel>
@@ -94,7 +95,7 @@
                     </ScrollViewer>
                 </DockPanel>
             </TabItem>
-            <TabItem Header="录制回放">
+            <TabItem Header="{i18n:T '录制回放'}">
                 <DockPanel Margin="20,8,20,12">
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
                         <TextBlock x:Name="KmTitle" Text="{Binding KmTitle}" FontWeight="SemiBold" FontSize="15" />
@@ -103,11 +104,11 @@
                             <HyperlinkButton x:Name="KmTutorialLink" Padding="0" Content="{Binding KmTutorialText}" Command="{Binding OpenTutorialCommand}" CommandParameter="km" />
                         </WrapPanel>
                         <WrapPanel>
-                            <Button x:Name="KmOpenFolderButton" Content="打开脚本目录" Command="{Binding OpenFolderCommand}" CommandParameter="km" Margin="0,0,6,4" />
-                            <Button x:Name="KmRepoButton" Content="脚本仓库" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
-                            <Button Content="开始录制" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" Margin="0,0,6,4" />
-                            <Button Content="停止录制" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" Margin="0,0,6,4" />
-                            <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+                            <Button x:Name="KmOpenFolderButton" Content="{i18n:T '打开脚本目录'}" Command="{Binding OpenFolderCommand}" CommandParameter="km" Margin="0,0,6,4" />
+                            <Button x:Name="KmRepoButton" Content="{i18n:T '脚本仓库'}" Command="{Binding OpenLocalScriptRepoCommand}" Margin="0,0,6,4" />
+                            <Button Content="{i18n:T '开始录制'}" Command="{Binding StartRecordCommand}" IsEnabled="{Binding !IsRecording}" Margin="0,0,6,4" />
+                            <Button Content="{i18n:T '停止录制'}" Command="{Binding StopRecordCommand}" IsEnabled="{Binding IsRecording}" Margin="0,0,6,4" />
+                            <Button Content="{i18n:T '刷新'}" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
                         </WrapPanel>
                     </StackPanel>
                     <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,6"
@@ -119,10 +120,10 @@
                                     <Border Classes="row">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Button Content="回放 / 停止" Padding="10,2"
+                                                <Button Content="{i18n:T '回放 / 停止'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).PlayKmCommand}"
                                                         CommandParameter="{Binding}" />
-                                                <Button Content="添加" Padding="10,2"
+                                                <Button Content="{i18n:T '添加'}" Padding="10,2"
                                                         Command="{Binding $parent[ItemsControl].((vm:AutoPageViewModel)DataContext).AddKmCommand}"
                                                         CommandParameter="{Binding}" />
                                             </StackPanel>

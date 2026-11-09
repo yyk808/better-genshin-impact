@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              x:Class="BetterGenshinImpact.Avalonia.Views.PluginsPage"
@@ -8,20 +9,20 @@
     <ScrollViewer>
         <StackPanel Classes="page">
             <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Classes="pagetitle" Text="插件" />
+                <TextBlock Classes="pagetitle" Text="{i18n:T '插件'}" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button x:Name="OpenPluginsDirButton" Content="打开插件目录" Command="{Binding OpenPluginsDirectoryCommand}" />
-                    <Button x:Name="RefreshPluginsButton" Content="刷新" Command="{Binding RefreshCommand}" />
+                    <Button x:Name="OpenPluginsDirButton" Content="{i18n:T '打开插件目录'}" Command="{Binding OpenPluginsDirectoryCommand}" />
+                    <Button x:Name="RefreshPluginsButton" Content="{i18n:T '刷新'}" Command="{Binding RefreshCommand}" />
                 </StackPanel>
             </Grid>
-            <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.85" Text="插件可以替换 BetterGI 的部分功能，例如 OCR 模型。启用、停用和切换都不需要重启。" />
+            <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.85" Text="{i18n:T '插件可以替换 BetterGI 的部分功能，例如 OCR 模型。启用、停用和切换都不需要重启。'}" />
             <Border x:Name="PluginPermissionWarning" Padding="12,8" Margin="0,0,0,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}">
-                <TextBlock TextWrapping="Wrap" Text="插件拥有与 BetterGI 相同的系统权限，请只安装可信来源的插件。" />
+                <TextBlock TextWrapping="Wrap" Text="{i18n:T '插件拥有与 BetterGI 相同的系统权限，请只安装可信来源的插件。'}" />
             </Border>
             <Border x:Name="LinuxPluginNotice" Padding="12,8" CornerRadius="6" Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
-                <TextBlock TextWrapping="Wrap" Text="Linux 版暂不加载外部插件（插件为 Windows 程序集），下面的已安装插件只读显示；功能选择中的内置实现可以直接切换。" />
+                <TextBlock TextWrapping="Wrap" Text="{i18n:T 'Linux 版暂不加载外部插件（插件为 Windows 程序集），下面的已安装插件只读显示；功能选择中的内置实现可以直接切换。'}" />
             </Border>
-            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="功能选择" />
+            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="{i18n:T '功能选择'}" />
             <ItemsControl x:Name="PluggableList" ItemsSource="{Binding Pluggables}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:PluggableItem">
@@ -39,9 +40,9 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="已安装插件" />
+            <TextBlock Margin="0,12,0,4" FontSize="16" FontWeight="SemiBold" Text="{i18n:T '已安装插件'}" />
             <TextBlock x:Name="NoPluginsText" Opacity="0.7" TextWrapping="Wrap" IsVisible="{Binding HasNoPlugins}"
-                       Text="尚未安装插件。可以在 Windows 版中从文件安装，或把插件文件夹放到插件目录后点击刷新。" />
+                       Text="{i18n:T '尚未安装插件。可以在 Windows 版中从文件安装，或把插件文件夹放到插件目录后点击刷新。'}" />
             <ItemsControl x:Name="InstalledList" ItemsSource="{Binding Plugins}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:InstalledPluginInfo">
@@ -53,12 +54,12 @@
                                     <TextBlock Foreground="#E0A040" Text="{Binding StatusText}" />
                                 </StackPanel>
                                 <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap" Text="{Binding Description}" />
-                                <TextBlock FontSize="12" Opacity="0.6"><Run Text="标识：" /><Run Text="{Binding Id}" /><Run Text="    目录：" /><Run Text="{Binding Directory}" /></TextBlock>
-                                <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap"><Run Text="提供的功能：" /><Run Text="启用后显示（Linux 版不加载外部插件，无法列出）" /></TextBlock>
+                                <TextBlock FontSize="12" Opacity="0.6"><Run Text="{i18n:T '标识：'}" /><Run Text="{Binding Id}" /><Run Text="{i18n:T '    目录：'}" /><Run Text="{Binding Directory}" /></TextBlock>
+                                <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap"><Run Text="{i18n:T '提供的功能：'}" /><Run Text="{i18n:T '启用后显示（Linux 版不加载外部插件，无法列出）'}" /></TextBlock>
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                    <Button Content="卸载" IsEnabled="False" ToolTip.Tip="Linux 版只读显示插件；请在 Windows 版卸载，或直接删除插件目录" />
+                                    <Button Content="{i18n:T '卸载'}" IsEnabled="False" ToolTip.Tip="{i18n:T 'Linux 版只读显示插件；请在 Windows 版卸载，或直接删除插件目录'}" />
                                     <TextBlock FontSize="12" Opacity="0.7" VerticalAlignment="Center" TextWrapping="Wrap"
-                                               Text="卸载需在 Windows 版操作（或直接删除插件目录后点“刷新”）" />
+                                               Text="{i18n:T '卸载需在 Windows 版操作（或直接删除插件目录后点“刷新”）'}" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>

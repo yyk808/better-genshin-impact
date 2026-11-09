@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:hc="using:BetterGenshinImpact.Host.Common"
@@ -13,10 +14,10 @@
             <Grid x:Name="HomeBanner" Height="200" Margin="0,0,0,16" Background="Transparent">
                 <Grid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem x:Name="ChangeBannerMenu" Header="更换背景图片" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeBannerImageCommand}" />
-                        <MenuItem x:Name="ChangeWebBannerMenu" Header="使用网络图片" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeWebBannerImageCommand}" />
-                        <MenuItem x:Name="RefreshWebBannerMenu" Header="刷新网络图片" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding RefreshWebBannerImageCommand}" IsVisible="{Binding IsCustomNetworkBanner}" />
-                        <MenuItem x:Name="ResetBannerMenu" Header="恢复默认图片" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding ResetBannerImageCommand}" />
+                        <MenuItem x:Name="ChangeBannerMenu" Header="{i18n:T '更换背景图片'}" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeBannerImageCommand}" />
+                        <MenuItem x:Name="ChangeWebBannerMenu" Header="{i18n:T '使用网络图片'}" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeWebBannerImageCommand}" />
+                        <MenuItem x:Name="RefreshWebBannerMenu" Header="{i18n:T '刷新网络图片'}" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding RefreshWebBannerImageCommand}" IsVisible="{Binding IsCustomNetworkBanner}" />
+                        <MenuItem x:Name="ResetBannerMenu" Header="{i18n:T '恢复默认图片'}" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding ResetBannerImageCommand}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <Border x:Name="HomeBannerImage" CornerRadius="8" ClipToBounds="True">
@@ -32,25 +33,25 @@
                 </Border>
                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="52,0,0,26">
                     <TextBlock Text="BetterGI" FontSize="28" FontWeight="SemiBold" />
-                    <TextBlock Text="更好的原神，免费且开源" FontSize="20" Opacity="0.8" />
-                    <TextBlock Text="Linux 原生宿主（Avalonia）预览版" FontSize="14" FontWeight="SemiBold" Opacity="0.5" />
+                    <TextBlock Text="{i18n:T '更好的原神，免费且开源'}" FontSize="20" Opacity="0.8" />
+                    <TextBlock Text="{i18n:T 'Linux 原生宿主（Avalonia）预览版'}" FontSize="14" FontWeight="SemiBold" Opacity="0.5" />
                 </StackPanel>
             </Grid>
 
             <!-- 截图器：标题行启动 / 停止，展开后为启动相关配置（对应原版首页第一张 CardExpander，图标 Play24） -->
-            <ui:FASettingsExpander Header="BetterGI 截图器，启动！" Description="{Binding StatusText}" IconSource="{svc:FluentIconSource Play24}">
+            <ui:FASettingsExpander Header="{i18n:T 'BetterGI 截图器，启动！'}" Description="{Binding StatusText}" IconSource="{svc:FluentIconSource Play24}">
                 <ui:FASettingsExpander.Footer>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <!-- 运行状态点 -->
                         <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,4,0"
                                  Fill="{Binding IsRunning, Converter={x:Static svc:Converters.RunningBrush}}" />
-                        <Button Classes="accent" Content="启动" MinWidth="88" HorizontalContentAlignment="Center"
+                        <Button Classes="accent" Content="{i18n:T '启动'}" MinWidth="88" HorizontalContentAlignment="Center"
                                 Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
-                        <Button Content="停止" MinWidth="88" HorizontalContentAlignment="Center"
+                        <Button Content="{i18n:T '停止'}" MinWidth="88" HorizontalContentAlignment="Center"
                                 Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
                     </StackPanel>
                 </ui:FASettingsExpander.Footer>
-                <ui:FASettingsExpanderItem Content="截图模式" Description="{Binding SelectedCaptureMethod.Description, FallbackValue=''}"
+                <ui:FASettingsExpanderItem Content="{i18n:T '截图模式'}" Description="{Binding SelectedCaptureMethod.Description, FallbackValue=''}"
                                            IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ui:FASettingsExpanderItem.Footer>
                         <ComboBox Width="240" ItemsSource="{Binding CaptureMethods}"
@@ -63,31 +64,31 @@
                         </ComboBox>
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="触发器间隔（毫秒）" Description="默认50ms，普通用户不建议调整这个值"
+                <ui:FASettingsExpanderItem Content="{i18n:T '触发器间隔（毫秒）'}" Description="{i18n:T '默认50ms，普通用户不建议调整这个值'}"
                                            IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ui:FASettingsExpanderItem.Footer>
                         <NumericUpDown Width="140" Minimum="1" Maximum="1000" Increment="10" FormatString="0"
                                        Value="{Binding Config.TriggerInterval}" IsEnabled="{Binding !IsRunning}" />
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="手动选择窗口（无法找到原神窗口时使用）" Description="{Binding ManualWindowText}"
+                <ui:FASettingsExpanderItem Content="{i18n:T '手动选择窗口（无法找到原神窗口时使用）'}" Description="{Binding ManualWindowText}"
                                            IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ui:FASettingsExpanderItem.Footer>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="选择捕获窗口" Command="{Binding SelectWindowCommand}" IsEnabled="{Binding !IsRunning}" />
-                            <Button Content="清除" Command="{Binding ClearManualWindowCommand}" IsEnabled="{Binding !IsRunning}" />
+                            <Button Content="{i18n:T '选择捕获窗口'}" Command="{Binding SelectWindowCommand}" IsEnabled="{Binding !IsRunning}" />
+                            <Button Content="{i18n:T '清除'}" Command="{Binding ClearManualWindowCommand}" IsEnabled="{Binding !IsRunning}" />
                         </StackPanel>
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="遮罩窗口（预览）"
-                                           Description="透明、置顶、点击穿透，跟随游戏画面，显示识别框、日志框和状态；需要合成器。启用后截图默认改用 Composite 窗口图像，不会截到遮罩"
+                <ui:FASettingsExpanderItem Content="{i18n:T '遮罩窗口（预览）'}"
+                                           Description="{i18n:T '透明、置顶、点击穿透，跟随游戏画面，显示识别框、日志框和状态；需要合成器。启用后截图默认改用 Composite 窗口图像，不会截到遮罩'}"
                                            IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ui:FASettingsExpanderItem.Footer>
                         <ToggleSwitch IsChecked="{Binding LinuxConfig.MaskWindowEnabled}" OnContent="" OffContent="" />
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="遮罩上显示全部识别结果（调试）"
-                                           Description="所有有名称的识别对象匹配成功时都画框（如拾取的 F 键），而不只是任务要求绘制的那些"
+                <ui:FASettingsExpanderItem Content="{i18n:T '遮罩上显示全部识别结果（调试）'}"
+                                           Description="{i18n:T '所有有名称的识别对象匹配成功时都画框（如拾取的 F 键），而不只是任务要求绘制的那些'}"
                                            IsVisible="{Binding LinuxConfig.MaskWindowEnabled, FallbackValue=False}">
                     <ui:FASettingsExpanderItem.Footer>
                         <ToggleSwitch IsChecked="{Binding LinuxConfig.MaskDrawAllRecognition}" OnContent="" OffContent="" />
@@ -98,16 +99,16 @@
             </ui:FASettingsExpander>
 
             <!-- 同时启动原神（Linux：Wine / Proton 等命令；原版图标 LinkSquare24） -->
-            <ui:FASettingsExpander Header="同时启动原神" IconSource="{svc:FluentIconSource LinkSquare24}"
-                                   Description="启动截图器时，如果原神未启动，则按下方命令启动（Wine / Proton / Steam 等）"
+            <ui:FASettingsExpander Header="{i18n:T '同时启动原神'}" IconSource="{svc:FluentIconSource LinkSquare24}"
+                                   Description="{i18n:T '启动截图器时，如果原神未启动，则按下方命令启动（Wine / Proton / Steam 等）'}"
                                    IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <ui:FASettingsExpander.Footer>
                     <ToggleSwitch OnContent="" OffContent="" MinWidth="0" IsChecked="{Binding LinuxConfig.LaunchGameEnabled}" />
                 </ui:FASettingsExpander.Footer>
-                <ui:FASettingsExpanderItem Content="启动命令" Description="经 /bin/sh -c 执行，{game} 替换为加引号的游戏路径">
+                <ui:FASettingsExpanderItem Content="{i18n:T '启动命令'}" Description="{i18n:T '经 /bin/sh -c 执行，{game} 替换为加引号的游戏路径'}">
                     <ui:FASettingsExpanderItem.Footer>
                         <ComboBox Width="240" ItemsSource="{Binding LaunchPresets}" SelectedItem="{Binding SelectedPreset}"
-                                  PlaceholderText="选择预置命令">
+                                  PlaceholderText="{i18n:T '选择预置命令'}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="hcc:LaunchPreset">
                                     <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
@@ -120,58 +121,58 @@
                     <StackPanel Spacing="10">
                         <TextBox Text="{Binding LinuxConfig.LaunchCommand}" FontFamily="monospace" PlaceholderText="wine {game}" />
                         <Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-                            <TextBlock Grid.Row="0" Text="游戏路径" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Text="{i18n:T '游戏路径'}" VerticalAlignment="Center" />
                             <DockPanel Grid.Row="0" Grid.Column="1">
-                                <Button DockPanel.Dock="Right" Content="浏览" Margin="8,0,0,0" Command="{Binding BrowseGamePathCommand}" />
-                                <TextBox Text="{Binding LinuxConfig.GamePath}" PlaceholderText="原神安装位置，如 ~/Games/Genshin Impact/YuanShen.exe" />
+                                <Button DockPanel.Dock="Right" Content="{i18n:T '浏览'}" Margin="8,0,0,0" Command="{Binding BrowseGamePathCommand}" />
+                                <TextBox Text="{Binding LinuxConfig.GamePath}" PlaceholderText="{i18n:T '原神安装位置，如 ~/Games/Genshin Impact/YuanShen.exe'}" />
                             </DockPanel>
-                            <TextBlock Grid.Row="1" Text="工作目录" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LinuxConfig.WorkingDirectory}" PlaceholderText="为空时用游戏所在目录" />
-                            <TextBlock Grid.Row="2" Text="环境变量" Margin="0,6,0,0" />
+                            <TextBlock Grid.Row="1" Text="{i18n:T '工作目录'}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LinuxConfig.WorkingDirectory}" PlaceholderText="{i18n:T '为空时用游戏所在目录'}" />
+                            <TextBlock Grid.Row="2" Text="{i18n:T '环境变量'}" Margin="0,6,0,0" />
                             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LinuxConfig.Environment}" AcceptsReturn="True" Height="70" FontFamily="monospace"
-                                     PlaceholderText="每行一个 KEY=VALUE，如 WINEPREFIX=~/.wine-genshin" />
+                                     PlaceholderText="{i18n:T '每行一个 KEY=VALUE，如 WINEPREFIX=~/.wine-genshin'}" />
                         </Grid>
                     </StackPanel>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Content="等待游戏窗口出现（秒）">
+                <ui:FASettingsExpanderItem Content="{i18n:T '等待游戏窗口出现（秒）'}">
                     <ui:FASettingsExpanderItem.Footer>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <NumericUpDown Width="140" Minimum="5" Maximum="600" Increment="10" FormatString="0"
                                            Value="{Binding LinuxConfig.LaunchTimeoutSeconds}" />
-                            <Button Content="立即启动游戏" Command="{Binding LaunchGameNowCommand}" />
+                            <Button Content="{i18n:T '立即启动游戏'}" Command="{Binding LaunchGameNowCommand}" />
                         </StackPanel>
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>
 
             <!-- 云原神（网页版）：WebKitGTK 窗口作为游戏画面，键鼠经页面 SDK 发往云端（原版图标 Cloud24） -->
-            <ui:FASettingsExpander Header="云原神（网页版）" IconSource="{svc:FluentIconSource Cloud24}"
-                                   Description="启用后启动截图器时打开云原神窗口，以网页画面作为游戏画面；键鼠经页面接口发往云端，不需要窗口在前台"
+            <ui:FASettingsExpander Header="{i18n:T '云原神（网页版）'}" IconSource="{svc:FluentIconSource Cloud24}"
+                                   Description="{i18n:T '启用后启动截图器时打开云原神窗口，以网页画面作为游戏画面；键鼠经页面接口发往云端，不需要窗口在前台'}"
                                    IsVisible="{Binding LinuxConfig, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <ui:FASettingsExpander.Footer>
                     <ToggleSwitch OnContent="" OffContent="" MinWidth="0" IsChecked="{Binding LinuxConfig.CloudGameEnabled}" />
                 </ui:FASettingsExpander.Footer>
-                <ui:FASettingsExpanderItem Content="页面地址">
+                <ui:FASettingsExpanderItem Content="{i18n:T '页面地址'}">
                     <ui:FASettingsExpanderItem.Footer>
                         <TextBox Width="420" Text="{Binding LinuxConfig.CloudGameUrl}" FontFamily="monospace" PlaceholderText="https://ys.mihoyo.com/cloud/?autobegin=1" />
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
-                <ui:FASettingsExpanderItem Description="首次使用先打开窗口登录（登录状态保存在 WebKit/CloudGame 目录）；进入游戏后再启动截图器。截图方式建议用 Composite 窗口图像">
+                <ui:FASettingsExpanderItem Description="{i18n:T '首次使用先打开窗口登录（登录状态保存在 WebKit/CloudGame 目录）；进入游戏后再启动截图器。截图方式建议用 Composite 窗口图像'}">
                     <ui:FASettingsExpanderItem.Footer>
-                        <Button Content="打开云原神窗口" Command="{Binding OpenCloudGameWindowCommand}" />
+                        <Button Content="{i18n:T '打开云原神窗口'}" Command="{Binding OpenCloudGameWindowCommand}" />
                     </ui:FASettingsExpanderItem.Footer>
                 </ui:FASettingsExpanderItem>
             </ui:FASettingsExpander>
 
-            <ui:FASettingsExpander Header="游戏窗口" IconSource="{svc:FluentIconSource Window24}"
-                                   Description="经平台服务（X11）按进程名查找，截图与输入（XTest）都作用于该窗口">
+            <ui:FASettingsExpander Header="{i18n:T '游戏窗口'}" IconSource="{svc:FluentIconSource Window24}"
+                                   Description="{i18n:T '经平台服务（X11）按进程名查找，截图与输入（XTest）都作用于该窗口'}">
                 <ui:FASettingsExpander.Footer>
                     <TextBlock Text="{Binding WindowText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </ui:FASettingsExpander.Footer>
             </ui:FASettingsExpander>
 
-            <ui:FASettingsExpander Header="已处理帧数" IconSource="{svc:FluentIconSource DataBarVertical24}"
-                                   Description="触发器调度器每帧截图并运行已启用的实时触发器">
+            <ui:FASettingsExpander Header="{i18n:T '已处理帧数'}" IconSource="{svc:FluentIconSource DataBarVertical24}"
+                                   Description="{i18n:T '触发器调度器每帧截图并运行已启用的实时触发器'}">
                 <ui:FASettingsExpander.Footer>
                     <TextBlock Text="{Binding FramesText}" FontSize="16" FontWeight="SemiBold" />
                 </ui:FASettingsExpander.Footer>
