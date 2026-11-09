@@ -17,12 +17,17 @@
         <TextBlock DockPanel.Dock="Top" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,8" Text="{x:Static model:KeyBindingsTree.Description}" />
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
             <TextBlock Text="配置来源" VerticalAlignment="Center" />
-            <ComboBox Width="110" IsEnabled="False" SelectedIndex="0">
-                <ComboBoxItem Content="自动判断" />
+            <ComboBox x:Name="RegistrySourceBox" Width="110" ItemsSource="{Binding RegistrySourceOptions}" SelectedItem="{Binding SelectedRegistrySource}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button x:Name="FetchFromRegistryButton" Content="从注册表读取" IsEnabled="False" />
-            <TextBlock Classes="desc" VerticalAlignment="Center" Text="Linux 版无法读取 Windows 注册表，请手动设置" />
+            <Button x:Name="FetchFromRegistryButton" Content="从注册表读取" Command="{Binding FetchFromRegistryCommand}" />
+            <TextBlock Classes="desc" VerticalAlignment="Center" Text="Linux 读 Wine 前缀 user.reg（同 Windows 读 HKCU）" />
         </StackPanel>
+        <TextBlock DockPanel.Dock="Top" Classes="desc" Text="{Binding StatusMessage}" Margin="0,0,0,8" />
         <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
             <DockPanel Margin="4">
                 <Grid DockPanel.Dock="Top" ColumnDefinitions="*,180" Margin="28,4,8,4">

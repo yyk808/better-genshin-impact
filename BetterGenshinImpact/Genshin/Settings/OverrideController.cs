@@ -1,12 +1,11 @@
-using Fischless.WindowsInput;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using System.Xml.Linq;
-using static Vanara.PInvoke.User32;
+
+using BetterGenshinImpact.Platform;
 
 namespace BetterGenshinImpact.Genshin.Settings;
 
@@ -135,7 +134,7 @@ public sealed class ActionElementMap
     public int? AxisRange => axisRange;
     public int? Invert => invert;
     public int? AxisContribution => axisContribution;
-    public Keys? KeyboardKeyCode => (Keys?)keyboardKeyCode;
+    public int? KeyboardKeyCode => keyboardKeyCode;
     public bool? Enabled => enabled;
 
     public bool IsCtrl { get; set; }
@@ -428,7 +427,7 @@ public static class ElementIdentifierIdConverter
             ElementIdentifierId.NumpadAsterisk => GameKey.VK_MULTIPLY,
             ElementIdentifierId.NumpadMinus => GameKey.VK_SUBTRACT,
             ElementIdentifierId.NumpadPlus => GameKey.VK_ADD,
-            ElementIdentifierId.NumpadEnter => (GameKey)VK2.VK_NUMPAD_ENTER,
+            ElementIdentifierId.NumpadEnter => (GameKey)0x0E, // 同 Fischless VK2.VK_NUMPAD_ENTER； VK2.VK_NUMPAD_ENTER；Core GameKey 无独立小键盘回车
             ElementIdentifierId.ArrowUp => GameKey.VK_UP,
             ElementIdentifierId.ArrowDown => GameKey.VK_DOWN,
             ElementIdentifierId.ArrowRight => GameKey.VK_RIGHT,

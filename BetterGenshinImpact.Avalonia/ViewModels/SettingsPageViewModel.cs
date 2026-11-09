@@ -314,7 +314,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     private void OpenKeyBindingsWindow()
     {
         var owner = Services.AvaloniaPickers.MainWindow;
-        var window = new Views.KeyBindingsWindow { DataContext = new KeyBindingsWindowViewModel(Config.KeyBindingsConfig) };
+        var window = new Views.KeyBindingsWindow { DataContext = new KeyBindingsWindowViewModel(Config.KeyBindingsConfig, Config.GenshinStartConfig.InstallPath) };
         if (owner is not null) window.Show(owner);
         else window.Show();
     }

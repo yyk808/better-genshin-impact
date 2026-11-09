@@ -4126,9 +4126,29 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         if (combos.Count > 0) combos[0].SelectedValue = target;
         await Settle();
         Check("改键写回 KeyBindingsConfig", cfg.MoveForward == target, cfg.MoveForward.ToString());
-        Check("注册表读取在 Linux 上禁用并说明", win.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "FetchFromRegistryButton")?.IsEnabled == false);
+        Check("“从注册表读取”可用（Linux 读 Wine user.reg，同 WPF）", win.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "FetchFromRegistryButton") is { IsEnabled: true, Command: not null });
+        Check("配置来源可选自动/国服/国际服", win.GetVisualDescendants().OfType<ComboBox>().FirstOrDefault(c => c.Name == "RegistrySourceBox") is { ItemCount: 3 });
+        var load0 = KeyBindingsWindowViewModel.LoadActionMaps;
+        KeyBindingsWindowViewModel.LoadActionMaps = (_, _) =>
+        [
+            new BetterGenshinImpact.Genshin.Settings.ActionElementMap(
+                """<ActionElementMap><actionCategoryId>0</actionCategoryId><actionId>23</actionId><elementType>1</elementType><elementIdentifierId>23</elementIdentifierId><axisRange>0</axisRange><invert>0</invert><axisContribution>0</axisContribution><keyboardKeyCode>0</keyboardKeyCode><modifierKey1>0</modifierKey1><modifierKey2>0</modifierKey2><modifierKey3>0</modifierKey3><enabled>true</enabled></ActionElementMap>"""), // MoveForwardShow + W
+        ];
+        try
+        {
+            model.FetchFromRegistryCommand.Execute(null);
+            await Settle(300);
+            Check("从注册表读取后前进键为 W（假数据）", cfg.MoveForward == BetterGenshinImpact.Core.Config.KeyId.W, cfg.MoveForward.ToString());
+            Check("状态提示成功", model.StatusMessage.Contains("已从注册表更新"), model.StatusMessage);
+        }
+        finally
+        {
+            KeyBindingsWindowViewModel.LoadActionMaps = load0;
+        }
         Shot(win, "avalonia-key-bindings.png");
         if (combos.Count > 0) combos[0].SelectedValue = old;
+        await Settle();
+        cfg.MoveForward = old;
         await Settle();
         Check("恢复原按键", cfg.MoveForward == old);
         win.Close();

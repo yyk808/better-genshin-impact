@@ -37,6 +37,11 @@ public class ResolutionSettings
             }
         }
 
+        if (height_name is null || width_name is null || fullscreen_name is null)
+        {
+            return;
+        }
+
         Height = Convert.ToInt32(hk.GetValue(height_name));
         Width = Convert.ToInt32(hk.GetValue(width_name));
         FullScreen = Convert.ToInt32(hk.GetValue(fullscreen_name)) == 1;

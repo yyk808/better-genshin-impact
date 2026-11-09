@@ -115,6 +115,18 @@
 		<Compile Include="..\BetterGenshinImpact\ViewModel\Windows\GuideSubtitleWindowViewModel.cs" Link="Guide\Shared\GuideSubtitleWindowViewModel.cs" />
 	</ItemGroup>
 
+	<!-- 原神注册表设置（键位从注册表读取）：与平台无关，经 GenshinSettingsStore / Wine user.reg -->
+	<ItemGroup>
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\GenshinRegistry.cs" Link="Genshin\Shared\GenshinRegistry.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\InputDataSettings.cs" Link="Genshin\Shared\InputDataSettings.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\InputKeyMapSettings.cs" Link="Genshin\Shared\InputKeyMapSettings.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\LanguageSettings.cs" Link="Genshin\Shared\LanguageSettings.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\MainJson.cs" Link="Genshin\Shared\MainJson.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\OverrideController.cs" Link="Genshin\Shared\OverrideController.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\ResolutionSettings.cs" Link="Genshin\Shared\ResolutionSettings.cs" />
+		<Compile Include="..\BetterGenshinImpact\Genshin\Settings\SettingsContainer.cs" Link="Genshin\Shared\SettingsContainer.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\BetterGenshinImpact.Core\BetterGenshinImpact.Core.csproj" />
 		<ProjectReference Include="..\BetterGenshinImpact.Platform.Linux\BetterGenshinImpact.Platform.Linux.csproj" />
