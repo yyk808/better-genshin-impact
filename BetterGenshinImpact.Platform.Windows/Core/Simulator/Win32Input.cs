@@ -17,7 +17,7 @@ public static class Win32Input
     public static bool IsKeyDown(GameKey key) => (User32.GetAsyncKeyState((int)key) & 0x8000) != 0;
 
     /// <summary>
-    /// 抬起系统中所有处于按下状态的键，再抬起鼠标左/中/右键（与原 Simulation.ReleaseAllKey 相同）
+    /// 抬起系统中所有处于按下状态的键，再按需抬起鼠标左/中/右键（仅在按下时；与上游 #3894 一致）
     /// </summary>
     public static void ReleaseAllKeys(ILogger? logger)
     {
@@ -35,8 +35,25 @@ public static class Win32Input
             }
         }
 
-        SendInput.Mouse.LeftButtonUp();
-        SendInput.Mouse.RightButtonUp();
-        SendInput.Mouse.MiddleButtonUp();
+        // 鼠标键同样只在确实处于按下状态时才抬起（上游 a9e08fc0 / #3894）。
+        // 无条件发送抬起会产生一条没有对应按下的 WM_*BUTTONUP，DefWindowProc 会把它转成 WM_CONTEXTMENU，
+        // 在游戏/程序未处于前台时表现为在光标处“右键一下”弹出菜单。
+        ReleaseMouseButtonIfPressed(GameKey.VK_LBUTTON, () => SendInput.Mouse.LeftButtonUp(), logger);
+        ReleaseMouseButtonIfPressed(GameKey.VK_RBUTTON, () => SendInput.Mouse.RightButtonUp(), logger);
+        ReleaseMouseButtonIfPressed(GameKey.VK_MBUTTON, () => SendInput.Mouse.MiddleButtonUp(), logger);
+    }
+
+    /// <summary>
+    /// 鼠标键处于按下状态时才发送抬起，避免产生脱离按下事件的孤立抬起消息。
+    /// </summary>
+    private static void ReleaseMouseButtonIfPressed(GameKey mouseButton, Action release, ILogger? logger)
+    {
+        if (!IsKeyDown(mouseButton))
+        {
+            return;
+        }
+
+        logger?.LogDebug($"解除{mouseButton}的按下状态.");
+        release();
     }
 }

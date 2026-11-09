@@ -1,4 +1,4 @@
-﻿using Fischless.WindowsInput;
+using Fischless.WindowsInput;
 using System;
 using BetterGenshinImpact.GameTask.Common;
 
