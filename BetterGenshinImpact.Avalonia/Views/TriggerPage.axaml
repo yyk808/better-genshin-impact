@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:pick="using:BetterGenshinImpact.GameTask.AutoPick"
              x:Class="BetterGenshinImpact.Avalonia.Views.TriggerPage"
@@ -15,7 +16,7 @@
     </UserControl.Styles>
     <ScrollViewer>
         <StackPanel Margin="28,20,28,20">
-            <TextBlock Classes="pageTitle" Text="实时触发的自动化任务设置" FontSize="20" />
+            <TextBlock Classes="pageTitle" Text="{i18n:T '实时触发的自动化任务设置'}" FontSize="20" />
 
             <!-- 自动拾取 -->
             <Expander Classes="card">
@@ -24,8 +25,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.AutoPickConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="M7,11 V5 A2,2 0 0 1 11,5 V10 M11,10 V3 A2,2 0 0 1 15,3 V10 M15,10 V5 A2,2 0 0 1 19,5 V14 A7,7 0 0 1 12,21 H11 A7,7 0 0 1 4,14 V11 A2,2 0 0 1 7,11 Z" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="自动拾取" />
-                            <TextBlock Classes="desc" Text="根据选择的名单模式，自动按下 F 拾取/交互" />
+                            <TextBlock Classes="title" Text="{i18n:T '自动拾取'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '根据选择的名单模式，自动按下 F 拾取/交互'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -33,50 +34,50 @@
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoPickConfig.FastModeEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="极速拾取模式" />
-                                <TextBlock Classes="desc" Text="打开时，将不再识别具体拾取内容，黑、白名单会失效" />
+                                <TextBlock Text="{i18n:T '极速拾取模式'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '打开时，将不再识别具体拾取内容，黑、白名单会失效'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-                                <RadioButton GroupName="pickMode" Content="黑名单模式" IsChecked="{Binding IsBlacklistAutoPickMode, Mode=OneWay}"
+                                <RadioButton GroupName="pickMode" Content="{i18n:T '黑名单模式'}" IsChecked="{Binding IsBlacklistAutoPickMode, Mode=OneWay}"
                                              Command="{Binding SetAutoPickModeCommand}" CommandParameter="{x:Static pick:AutoPickMode.Blacklist}" />
-                                <RadioButton GroupName="pickMode" Content="白名单模式" IsChecked="{Binding IsWhitelistAutoPickMode, Mode=OneWay}"
+                                <RadioButton GroupName="pickMode" Content="{i18n:T '白名单模式'}" IsChecked="{Binding IsWhitelistAutoPickMode, Mode=OneWay}"
                                              Command="{Binding SetAutoPickModeCommand}" CommandParameter="{x:Static pick:AutoPickMode.Whitelist}" />
                             </StackPanel>
                             <StackPanel>
-                                <TextBlock Text="黑白名单模式" />
-                                <TextBlock Classes="desc" Text="选择自动拾取的基础行为；两种模式互斥，切换后立即生效" />
+                                <TextBlock Text="{i18n:T '黑白名单模式'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '选择自动拾取的基础行为；两种模式互斥，切换后立即生效'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel IsVisible="{Binding IsBlacklistAutoPickMode}">
-                            <Button x:Name="BlacklistRulesButton" DockPanel.Dock="Right" Content="配置规则" Command="{Binding OpenBlacklistModeConfigCommand}" />
+                            <Button x:Name="BlacklistRulesButton" DockPanel.Dock="Right" Content="{i18n:T '配置规则'}" Command="{Binding OpenBlacklistModeConfigCommand}" />
                             <StackPanel>
-                                <TextBlock Text="黑名单模式规则" />
-                                <TextBlock Classes="desc" Text="在独立窗口中配置拾取、不拾取及模糊匹配规则" />
+                                <TextBlock Text="{i18n:T '黑名单模式规则'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '在独立窗口中配置拾取、不拾取及模糊匹配规则'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel IsVisible="{Binding IsWhitelistAutoPickMode}">
-                            <Button x:Name="WhitelistRulesButton" DockPanel.Dock="Right" Content="配置规则" Command="{Binding OpenWhitelistModeConfigCommand}" />
+                            <Button x:Name="WhitelistRulesButton" DockPanel.Dock="Right" Content="{i18n:T '配置规则'}" Command="{Binding OpenWhitelistModeConfigCommand}" />
                             <StackPanel>
-                                <TextBlock Text="白名单模式规则" />
-                                <TextBlock Classes="desc" Text="在独立窗口中配置拾取列表和精确不拾取规则" />
+                                <TextBlock Text="{i18n:T '白名单模式规则'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '在独立窗口中配置拾取列表和精确不拾取规则'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ComboBox x:Name="PickOcrEngineBox" DockPanel.Dock="Right" Width="120" ItemsSource="{Binding PickOcrEngineNames}"
                                       SelectedItem="{Binding Config.AutoPickConfig.OcrEngine}" />
                             <StackPanel>
-                                <TextBlock Text="选择自动拾取文字识别引擎" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="Paddle可识别所有文字，速度慢，消耗少；Yap可识别部分文字，快且准，消耗大" />
+                                <TextBlock Text="{i18n:T '选择自动拾取文字识别引擎'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T 'Paddle可识别所有文字，速度慢，消耗少；Yap可识别部分文字，快且准，消耗大'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ComboBox DockPanel.Dock="Right" Width="120" ItemsSource="{Binding PickButtonNames}"
                                       SelectedItem="{Binding Config.AutoPickConfig.PickKey}" />
                             <StackPanel>
-                                <TextBlock Text="自定义拾取按键" />
-                                <TextBlock Classes="desc" Text="默认为 F，自带了 E 和 G 按键" />
+                                <TextBlock Text="{i18n:T '自定义拾取按键'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '默认为 F，自带了 E 和 G 按键'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
@@ -89,8 +90,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="M4,4 H20 V16 H9 L4,20 Z" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="自动剧情" />
-                            <TextBlock Classes="desc" Text="快速跳过剧情文本、自动选择选项、自动提交物品等" />
+                            <TextBlock Classes="title" Text="{i18n:T '自动剧情'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '快速跳过剧情文本、自动选择选项、自动提交物品等'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -98,15 +99,15 @@
                         <DockPanel>
                             <ToggleSwitch x:Name="RunBackgroundSwitch" IsChecked="{Binding Config.AutoSkipConfig.RunBackgroundEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="启用后台模式（会只用交互键进行剧情）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="游戏请不要最小化，不在对话中的时候鼠标会自动吸附回游戏中。Linux：Wine / Proton 游戏经后台输入辅助程序发键（Steam 容器内的游戏不支持，此时只在游戏位于前台时生效）；是否先激活游戏窗口见“设置”页" />
+                                <TextBlock Text="{i18n:T '启用后台模式（会只用交互键进行剧情）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '游戏请不要最小化，不在对话中的时候鼠标会自动吸附回游戏中。Linux：Wine / Proton 游戏经后台输入辅助程序发键（Steam 容器内的游戏不支持，此时只在游戏位于前台时生效）；是否先激活游戏窗口见“设置”页'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch x:Name="BringToFrontSwitch" IsChecked="{Binding Config.AutoSkipConfig.BringGameToFrontAfterBackgroundDialogEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="后台剧情结束后自动切回游戏前台" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="仅在后台模式生效，识别到对话结束后会自动激活原神窗口" />
+                                <TextBlock Text="{i18n:T '后台剧情结束后自动切回游戏前台'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '仅在后台模式生效，识别到对话结束后会自动激活原神窗口'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
@@ -115,56 +116,56 @@
                                       SelectedValueBinding="{ReflectionBinding Key}" DisplayMemberBinding="{ReflectionBinding Value}"
                                       SelectedValue="{Binding Config.AutoSkipConfig.PictureInPictureSourceType}" />
                             <StackPanel>
-                                <TextBlock Text="画中画窗口（建议和后台模式同时开启）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="游戏失焦时展示小窗，滚轮缩放，左键返回游戏，右键关闭" />
+                                <TextBlock Text="{i18n:T '画中画窗口（建议和后台模式同时开启）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '游戏失焦时展示小窗，滚轮缩放，左键返回游戏，右键关闭'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.QuicklySkipConversationsEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="快速跳过对话文本" />
-                                <TextBlock Classes="desc" Text="如果你要听完整的主线语音的话，可以关闭此功能" />
+                                <TextBlock Text="{i18n:T '快速跳过对话文本'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '如果你要听完整的主线语音的话，可以关闭此功能'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch x:Name="CustomPriorityOptionsSwitch" IsChecked="{Binding Config.AutoSkipConfig.CustomPriorityOptionsEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="自定义优先对话选项" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="优先级高于下边的 选择选项优先级" />
+                                <TextBlock Text="{i18n:T '自定义优先对话选项'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '优先级高于下边的 选择选项优先级'}" />
                             </StackPanel>
                         </DockPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="自定义优先选项文本" />
-                            <TextBlock Classes="desc" Text="多个选项用分号(中英文)分隔，或者换行" />
+                            <TextBlock Text="{i18n:T '自定义优先选项文本'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '多个选项用分号(中英文)分隔，或者换行'}" />
                             <TextBox x:Name="CustomPriorityOptionsBox" AcceptsReturn="True" MinHeight="60" Text="{Binding Config.AutoSkipConfig.CustomPriorityOptions}" />
                         </StackPanel>
                         <DockPanel>
                             <ComboBox DockPanel.Dock="Right" Width="200" ItemsSource="{Binding ClickChatOptionNames}"
                                       SelectedItem="{Binding Config.AutoSkipConfig.ClickChatOption}" />
                             <StackPanel>
-                                <TextBlock Text="选择选项优先级" />
-                                <TextBlock Classes="desc" Text="进入对话后，对话选项的选择方式" />
+                                <TextBlock Text="{i18n:T '选择选项优先级'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '进入对话后，对话选项的选择方式'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown x:Name="ChooseOptionDelayBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.AfterChooseOptionSleepDelay}" />
                             <StackPanel>
-                                <TextBlock Text="选择对话选项前的延迟（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动剧情的情况下，依旧能够看清楚选项" />
+                                <TextBlock Text="{i18n:T '选择对话选项前的延迟（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '方便在自动剧情的情况下，依旧能够看清楚选项'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch x:Name="WaitVoiceSwitch" IsChecked="{Binding Config.AutoSkipConfig.AutoWaitDialogueOptionVoiceEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="听完语音后再选择对话选项" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="通过游戏进程音频的人声检测判断台词结束；等待数秒仍未检测到语音时继续，无法读取游戏声音时使用上方固定延迟。Linux：经 PulseAudio / PipeWire 只录游戏的播放流（需要 pactl、parecord）" />
+                                <TextBlock Text="{i18n:T '听完语音后再选择对话选项'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '通过游戏进程音频的人声检测判断台词结束；等待数秒仍未检测到语音时继续，无法读取游戏声音时使用上方固定延迟。Linux：经 PulseAudio / PipeWire 只录游戏的播放流（需要 pactl、parecord）'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch x:Name="VadDiagnosticSwitch" IsChecked="{Binding Config.AutoSkipConfig.DialogueOptionVoiceVadDiagnosticEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="Silero VAD 实时诊断" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="开启后持续读取游戏进程音频并调用模型，不依赖对话选项或画面识别" />
+                                <TextBlock Text="{i18n:T 'Silero VAD 实时诊断'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '开启后持续读取游戏进程音频并调用模型，不依赖对话选项或画面识别'}" />
                             </StackPanel>
                         </DockPanel>
                         <Border x:Name="VadDiagnosticPanel" IsVisible="{Binding Config.AutoSkipConfig.DialogueOptionVoiceVadDiagnosticEnabled}"
@@ -192,43 +193,43 @@
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding Config.AutoSkipConfig.DialogueOptionVoiceMaxWaitSeconds}" />
                             <StackPanel>
-                                <TextBlock Text="语音结束检测最大等待（秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="超过该时间仍未检测到语音结束时会继续选择，避免卡住剧情" />
+                                <TextBlock Text="{i18n:T '语音结束检测最大等待（秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '超过该时间仍未检测到语音结束时会继续选择，避免卡住剧情'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.BeforeClickConfirmDelay}" />
                             <StackPanel>
-                                <TextBlock Text="点击对话框确认按钮之前的延迟（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动剧情的情况下，依旧能够看完全部对话框文字" />
+                                <TextBlock Text="{i18n:T '点击对话框确认按钮之前的延迟（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '方便在自动剧情的情况下，依旧能够看完全部对话框文字'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.SubmitGoodsEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="自动提交物品" />
-                                <TextBlock Classes="desc" Text="对话过程中出现提交物品界面，会自动提交，支持多个物品" />
+                                <TextBlock Text="{i18n:T '自动提交物品'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '对话过程中出现提交物品界面，会自动提交，支持多个物品'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.ClosePopupPagedEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="自动关闭弹出页" />
-                                <TextBlock Classes="desc" Text="关闭对话过程中出现的弹出页面，可能会误关地图、相机" />
+                                <TextBlock Text="{i18n:T '自动关闭弹出页'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '关闭对话过程中出现的弹出页面，可能会误关地图、相机'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoGetDailyRewardsEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="凯瑟琳 - 自动领取『每日委托』奖励" />
-                                <TextBlock Classes="desc" Text="在与凯瑟琳对话时，会自动“领取『每日委托』奖励”" />
+                                <TextBlock Text="{i18n:T '凯瑟琳 - 自动领取『每日委托』奖励'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '在与凯瑟琳对话时，会自动“领取『每日委托』奖励”'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoReExploreEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="凯瑟琳 - 自动重新派遣" />
-                                <TextBlock Classes="desc" Text="自动领取已完成探索的奖励，并重新派遣" />
+                                <TextBlock Text="{i18n:T '凯瑟琳 - 自动重新派遣'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '自动领取已完成探索的奖励，并重新派遣'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
@@ -241,15 +242,15 @@
                         <ToggleSwitch IsChecked="{Binding QuestVoice.Config.Enabled, FallbackValue=False}" />
                         <PathIcon Classes="cardIcon" Data="M3,9 H7 L12,4 V20 L7,15 H3 Z M15,8 A5,5 0 0 1 15,16 M17.5,5 A9,9 0 0 1 17.5,19" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="自动配音（实验性）" />
-                            <TextBlock Classes="desc" Text="识别剧情对白的人物和台词，用语音朗读；截图器启动后自动开始，独立任务运行时暂停" />
+                            <TextBlock Classes="title" Text="{i18n:T '自动配音（实验性）'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '识别剧情对白的人物和台词，用语音朗读；截图器启动后自动开始，独立任务运行时暂停'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
                 <StackPanel Spacing="12" DataContext="{Binding QuestVoice}" x:DataType="vm:QuestVoiceCardViewModel">
                     <!-- 状态 -->
                     <Grid ColumnDefinitions="88,*,Auto">
-                        <TextBlock Classes="desc" Text="状态" />
+                        <TextBlock Classes="desc" Text="{i18n:T '状态'}" />
                         <StackPanel Grid.Column="1" Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{Binding Status.OverallStatusState, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
@@ -262,7 +263,7 @@
                             <TextBlock Foreground="#C42B1C" TextWrapping="Wrap" Text="{Binding CommandError}" IsVisible="{Binding HasCommandError}" />
                             <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding Status.Validation}" />
                         </StackPanel>
-                        <Button Grid.Column="2" VerticalAlignment="Top" Content="确认后端已重启" Command="{Binding ConfirmBackendRestartedCommand}" IsVisible="{Binding Status.BackendUnknown}" />
+                        <Button Grid.Column="2" VerticalAlignment="Top" Content="{i18n:T '确认后端已重启'}" Command="{Binding ConfirmBackendRestartedCommand}" IsVisible="{Binding Status.BackendUnknown}" />
                     </Grid>
                     <Separator />
                     <!-- 进度：对话界面 → OCR → 角色 → 声线 → 合成 → 播放 -->
@@ -296,30 +297,30 @@
                             <Border Height="2" VerticalAlignment="Center" Background="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
                             <Ellipse Grid.ColumnSpan="2" Width="16" Height="16" HorizontalAlignment="Center" StrokeThickness="2.5" Stroke="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" Fill="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageFill}}" />
                         </Grid>
-                        <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="0,6,0,0" Text="对话界面" Foreground="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="0,6,0,0" Text="{i18n:T '对话界面'}" Foreground="{Binding Status.SceneStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
                         <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Margin="0,6,0,0" Text="OCR" Foreground="{Binding Status.OcrStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" Margin="0,6,0,0" Text="角色" Foreground="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
-                        <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" Margin="0,6,0,0" Text="声线" Foreground="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
-                        <TextBlock Grid.Row="1" Grid.Column="4" HorizontalAlignment="Center" Margin="0,6,0,0" Text="合成" Foreground="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
-                        <TextBlock Grid.Row="1" Grid.Column="5" HorizontalAlignment="Center" Margin="0,6,0,0" Text="播放" Foreground="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" Margin="0,6,0,0" Text="{i18n:T '角色'}" Foreground="{Binding Status.SpeakerStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" Margin="0,6,0,0" Text="{i18n:T '声线'}" Foreground="{Binding Status.RoutingStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="4" HorizontalAlignment="Center" Margin="0,6,0,0" Text="{i18n:T '合成'}" Foreground="{Binding Status.TtsStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="5" HorizontalAlignment="Center" Margin="0,6,0,0" Text="{i18n:T '播放'}" Foreground="{Binding Status.PlaybackStage, Converter={x:Static vm:QuestVoiceCardViewModel.StageBrush}}" />
                     </Grid>
                     <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding Status.StageSummary}" />
                     <Separator />
                     <!-- 当前处理内容 -->
                     <Grid ColumnDefinitions="88,*">
-                        <TextBlock Classes="desc" Text="当前" />
+                        <TextBlock Classes="desc" Text="{i18n:T '当前'}" />
                         <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock TextWrapping="Wrap"><Run Text="{Binding Status.Character}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding Status.Voice}" /></TextBlock>
                             <TextBlock TextWrapping="Wrap" Text="{Binding Status.Dialogue}" />
                             <TextBlock Classes="desc" TextWrapping="Wrap">
-                                <Run Text="{Binding Status.DialogueState}" /><Run Text=" · 合成：" /><Run Text="{Binding Status.Tts}" /><Run Text=" · 播放：" /><Run Text="{Binding Status.Playback}" />
+                                <Run Text="{Binding Status.DialogueState}" /><Run Text="{i18n:T ' · 合成：'}" /><Run Text="{Binding Status.Tts}" /><Run Text="{i18n:T ' · 播放：'}" /><Run Text="{Binding Status.Playback}" />
                             </TextBlock>
                         </StackPanel>
                     </Grid>
                     <Separator />
                     <!-- 最近事件 -->
                     <Grid ColumnDefinitions="88,*">
-                        <TextBlock Classes="desc" Text="最近事件" />
+                        <TextBlock Classes="desc" Text="{i18n:T '最近事件'}" />
                         <StackPanel Grid.Column="1">
                             <ItemsControl ItemsSource="{Binding Status.RecentEvents}" IsVisible="{Binding Status.HasRecentEvents}">
                                 <ItemsControl.ItemTemplate>
@@ -328,17 +329,17 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Classes="desc" Text="暂无最近运行事件（最多保留 8 条）。" IsVisible="{Binding !Status.HasRecentEvents}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '暂无最近运行事件（最多保留 8 条）。'}" IsVisible="{Binding !Status.HasRecentEvents}" />
                         </StackPanel>
                     </Grid>
                     <Separator />
                     <!-- 操作 -->
                     <WrapPanel>
-                        <Button Margin="0,0,8,4" x:Name="QuestVoiceSettingsButton" Classes="accent" Content="设置…" Command="{Binding OpenSettingsCommand}" IsVisible="{Binding CanOpenSettings}" />
-                        <Button Margin="0,0,8,4" Content="校验配置" Command="{Binding ValidateCommand}" />
-                        <Button Margin="0,0,8,4" Content="打开日志" Command="{Binding OpenLogFileCommand}" />
-                        <Button Margin="0,0,8,4" Content="打开日志目录" Command="{Binding OpenLogFolderCommand}" />
-                        <TextBlock Classes="desc" VerticalAlignment="Center" x:Name="QuestVoiceSettingsHint" IsVisible="{Binding !CanOpenSettings}" Text="主程序服务未就绪，暂不能打开引擎与角色目录设置窗口" />
+                        <Button Margin="0,0,8,4" x:Name="QuestVoiceSettingsButton" Classes="accent" Content="{i18n:T '设置…'}" Command="{Binding OpenSettingsCommand}" IsVisible="{Binding CanOpenSettings}" />
+                        <Button Margin="0,0,8,4" Content="{i18n:T '校验配置'}" Command="{Binding ValidateCommand}" />
+                        <Button Margin="0,0,8,4" Content="{i18n:T '打开日志'}" Command="{Binding OpenLogFileCommand}" />
+                        <Button Margin="0,0,8,4" Content="{i18n:T '打开日志目录'}" Command="{Binding OpenLogFolderCommand}" />
+                        <TextBlock Classes="desc" VerticalAlignment="Center" x:Name="QuestVoiceSettingsHint" IsVisible="{Binding !CanOpenSettings}" Text="{i18n:T '主程序服务未就绪，暂不能打开引擎与角色目录设置窗口'}" />
                     </WrapPanel>
                 </StackPanel>
             </Expander>
@@ -350,8 +351,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutEventEnabled}" />
                         <PathIcon Classes="cardIcon" Data="M12,21 L4,13 A5,5 0 0 1 12,6 A5,5 0 0 1 20,13 Z" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="自动邀约" />
-                            <TextBlock Classes="desc" Text="自动剧情开启的情况下此功能才会生效，自动选择邀约选项" />
+                            <TextBlock Classes="title" Text="{i18n:T '自动邀约'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '自动剧情开启的情况下此功能才会生效，自动选择邀约选项'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -359,23 +360,23 @@
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.AutoSkipConfig.AutoHangoutPressSkipEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="存在跳过按钮时自动点击" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="邀约过程中左上角存在跳过按钮时候，自动点击跳过" />
+                                <TextBlock Text="{i18n:T '存在跳过按钮时自动点击'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '邀约过程中左上角存在跳过按钮时候，自动点击跳过'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ComboBox x:Name="HangoutBranchBox" DockPanel.Dock="Right" Width="200" ItemsSource="{Binding HangoutBranches}"
                                       SelectedItem="{Binding Config.AutoSkipConfig.AutoHangoutEndChoose}" />
                             <StackPanel>
-                                <TextBlock Text="选择邀约分支（不支持气泡联想选择）" />
-                                <TextBlock Classes="desc" Text="会按照选择分支的关键词进行选项选择" />
+                                <TextBlock Text="{i18n:T '选择邀约分支（不支持气泡联想选择）'}" />
+                                <TextBlock Classes="desc" Text="{i18n:T '会按照选择分支的关键词进行选项选择'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoSkipConfig.AutoHangoutChooseOptionSleepDelay}" />
                             <StackPanel>
-                                <TextBlock Text="选择邀约选项前的延迟（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="方便在自动邀约的情况下，依旧能够看清楚选项" />
+                                <TextBlock Text="{i18n:T '选择邀约选项前的延迟（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '方便在自动邀约的情况下，依旧能够看清楚选项'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
@@ -387,20 +388,20 @@
                     <ToggleSwitch IsChecked="{Binding Config.GenshinStartConfig.AutoEnterGameEnabled}" />
                     <PathIcon Classes="cardIcon" Data="F0 M5,2 H19 V22 H5 Z M7,4 H17 V20 H7 Z M13,11 H15 V13 H13 Z" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="自动开门" />
-                        <TextBlock Classes="desc" Text="在游戏启动画面自动点击进入游戏（需要 OCR）" />
+                        <TextBlock Classes="title" Text="{i18n:T '自动开门'}" />
+                        <TextBlock Classes="desc" Text="{i18n:T '在游戏启动画面自动点击进入游戏（需要 OCR）'}" />
                     </StackPanel>
                 </DockPanel>
             </Border>
 
-            <TextBlock Classes="section" Text="其它实时触发（Linux 上尚未验证）" />
+            <TextBlock Classes="section" Text="{i18n:T '其它实时触发（Linux 上尚未验证）'}" />
             <Border Classes="card">
                 <DockPanel>
                     <ToggleSwitch IsChecked="{Binding Config.AutoFishingConfig.Enabled}" />
                     <PathIcon Classes="cardIcon" Data="M3,12 C7,6 15,6 19,12 C15,18 7,18 3,12 Z M19,12 L22,9 V15 Z" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Classes="title" Text="半自动钓鱼" />
-                        <TextBlock Classes="desc" Text="半自动钓鱼需要手动抛竿（全自动钓鱼已迁移至独立任务下）" />
+                        <TextBlock Classes="title" Text="{i18n:T '半自动钓鱼'}" />
+                        <TextBlock Classes="desc" Text="{i18n:T '半自动钓鱼需要手动抛竿（全自动钓鱼已迁移至独立任务下）'}" />
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -410,8 +411,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.AutoEatConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="F0 M8,2 H16 V6 L19,11 V22 H5 V11 L8,6 Z M11,12 H13 V14 H15 V16 H13 V18 H11 V16 H9 V14 H11 Z" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="自动吃药" />
-                            <TextBlock Classes="desc" Text="检测角色红血状态，自动使用便携营养袋回复生命值" />
+                            <TextBlock Classes="title" Text="{i18n:T '自动吃药'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '检测角色红血状态，自动使用便携营养袋回复生命值'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -419,15 +420,15 @@
                         <DockPanel>
                             <NumericUpDown x:Name="EatCheckIntervalBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="50" FormatString="0" Value="{Binding Config.AutoEatConfig.CheckInterval}" />
                             <StackPanel>
-                                <TextBlock Text="触发时间间隔（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="多少时间检查一次是否红血或需要复活" />
+                                <TextBlock Text="{i18n:T '触发时间间隔（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '多少时间检查一次是否红血或需要复活'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Config.AutoEatConfig.EatInterval}" />
                             <StackPanel>
-                                <TextBlock Text="吃药时间间隔（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="防止频繁吃药" />
+                                <TextBlock Text="{i18n:T '吃药时间间隔（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '防止频繁吃药'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
@@ -438,8 +439,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="M12,2 A7,7 0 0 1 19,9 C19,14 12,22 12,22 C12,22 5,14 5,9 A7,7 0 0 1 12,2 Z M12,6 A3,3 0 1 0 12.01,6 Z" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="快速传送" />
-                            <TextBlock Classes="desc" Text="在大地图上点击传送点（或列表中有传送点）时，自动点击传送" />
+                            <TextBlock Classes="title" Text="{i18n:T '快速传送'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '在大地图上点击传送点（或列表中有传送点）时，自动点击传送'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -447,27 +448,27 @@
                         <DockPanel>
                             <NumericUpDown x:Name="TeleportListClickDelayBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding Config.QuickTeleportConfig.TeleportListClickDelay}" />
                             <StackPanel>
-                                <TextBlock Text="点击候选列表传送点的间隔时间（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="普通用户请不要修改此配置，需要根据文字识别耗时配置，太低会导致点击失败" />
+                                <TextBlock Text="{i18n:T '点击候选列表传送点的间隔时间（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '普通用户请不要修改此配置，需要根据文字识别耗时配置，太低会导致点击失败'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding Config.QuickTeleportConfig.WaitTeleportPanelDelay}" />
                             <StackPanel>
-                                <TextBlock Text="等待右侧传送弹出界面的时间（毫秒）" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="普通用户请不要修改此配置，不建议低于80ms，太低会导致传送按钮识别不到" />
+                                <TextBlock Text="{i18n:T '等待右侧传送弹出界面的时间（毫秒）'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '普通用户请不要修改此配置，不建议低于80ms，太低会导致传送按钮识别不到'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.QuickTeleportConfig.HotkeyTpEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="启用快捷键传送" />
+                                <TextBlock Text="{i18n:T '启用快捷键传送'}" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="按下" />
+                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="{i18n:T '按下'}" />
                                     <Button x:Name="GoToHotkeysButton" Classes="link" Padding="0" Background="Transparent" BorderThickness="0" Command="{Binding GoToHotkeysCommand}">
-                                        <TextBlock Classes="desc" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Text="[手动触发快速传送触发快捷键]" />
+                                        <TextBlock Classes="desc" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Text="{i18n:T '[手动触发快速传送触发快捷键]'}" />
                                     </Button>
-                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="后才进行快速传送" />
+                                    <TextBlock Classes="desc" VerticalAlignment="Center" Text="{i18n:T '后才进行快速传送'}" />
                                 </StackPanel>
                             </StackPanel>
                         </DockPanel>
@@ -479,8 +480,8 @@
                         <ToggleSwitch IsChecked="{Binding Config.MapMaskConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="M3,6 L9,3 L15,6 L21,3 V18 L15,21 L9,18 L3,21 Z M9,3 V18 M15,6 V21" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="地图遮罩" />
-                            <TextBlock Classes="desc" Text="在遮罩窗口中显示大地图位置与标点信息" />
+                            <TextBlock Classes="title" Text="{i18n:T '地图遮罩'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '在遮罩窗口中显示大地图位置与标点信息'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
@@ -488,14 +489,14 @@
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.MapMaskConfig.MiniMapMaskEnabled}" />
                             <StackPanel>
-                                <TextBlock Text="启用小地图遮罩" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="在小地图上显示点位" />
+                                <TextBlock Text="{i18n:T '启用小地图遮罩'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '在小地图上显示点位'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel Opacity="0.6">
                             <StackPanel>
-                                <TextBlock Text="Linux 版说明" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="点位数据来自米游社地图接口，点位层（MaskMapPointService / MiniMapPointsCanvas）只在 Windows 版遮罩窗口绘制；Linux 版遮罩暂不显示点位，开关与 Windows 版共用" />
+                                <TextBlock Text="{i18n:T 'Linux 版说明'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '点位数据来自米游社地图接口，点位层（MaskMapPointService / MiniMapPointsCanvas）只在 Windows 版遮罩窗口绘制；Linux 版遮罩暂不显示点位，开关与 Windows 版共用'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
@@ -506,88 +507,88 @@
                         <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.Enabled}" />
                         <PathIcon Classes="cardIcon" Data="M12,3 A9,9 0 1 0 12.01,3 Z M12,7 V12 L15,14" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Classes="title" Text="冷却提示" />
-                            <TextBlock Classes="desc" Text="在头像旁显示角色元素战技剩余冷却时间" />
+                            <TextBlock Classes="title" Text="{i18n:T '冷却提示'}" />
+                            <TextBlock Classes="desc" Text="{i18n:T '在头像旁显示角色元素战技剩余冷却时间'}" />
                         </StackPanel>
                     </DockPanel>
                 </Expander.Header>
                     <StackPanel Spacing="10">
                         <DockPanel>
-                            <Button x:Name="EditSkillCdButton" DockPanel.Dock="Right" Content="前往配置" Command="{Binding EditSkillCdConfigCommand}" />
+                            <Button x:Name="EditSkillCdButton" DockPanel.Dock="Right" Content="{i18n:T '前往配置'}" Command="{Binding EditSkillCdConfigCommand}" />
                             <StackPanel>
-                                <TextBlock Text="角色 CD 配置" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="填写此项，为指定的角色配置未识别到 CD 数字时的默认值。如玛薇卡开 E 会显示摩托车，识别不到CD。" />
+                                <TextBlock Text="{i18n:T '角色 CD 配置'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '填写此项，为指定的角色配置未识别到 CD 数字时的默认值。如玛薇卡开 E 会显示摩托车，识别不到CD。'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.TriggerOnSkillUse}" />
                             <StackPanel>
-                                <TextBlock Text="使用战技时触发" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="使用战技时也进行一次识别，否则仅在切人时触发" />
+                                <TextBlock Text="{i18n:T '使用战技时触发'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '使用战技时也进行一次识别，否则仅在切人时触发'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <ToggleSwitch IsChecked="{Binding Config.SkillCdConfig.HideWhenZero}" />
                             <StackPanel>
-                                <TextBlock Text="冷却为0时隐藏" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="开启后倒计时为0时会隐藏计时器" />
+                                <TextBlock Text="{i18n:T '冷却为0时隐藏'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '开启后倒计时为0时会隐藏计时器'}" />
                             </StackPanel>
                         </DockPanel>
-                        <TextBlock Text="计时器样式调节" FontWeight="SemiBold" Margin="0,6,0,0" />
+                        <TextBlock Text="{i18n:T '计时器样式调节'}" FontWeight="SemiBold" Margin="0,6,0,0" />
                         <DockPanel>
                             <NumericUpDown x:Name="SkillCdPxBox" DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="1920" Increment="1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.PX}" />
                             <StackPanel>
-                                <TextBlock Text="横坐标" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器在界面上的横坐标，范围：0-1920，默认值1520。" />
+                                <TextBlock Text="{i18n:T '横坐标'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '调整计时器在界面上的横坐标，范围：0-1920，默认值1520。'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="1080" Increment="1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.PY}" />
                             <StackPanel>
-                                <TextBlock Text="纵坐标" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器在界面上的纵坐标，范围：0-1080，默认值245。" />
+                                <TextBlock Text="{i18n:T '纵坐标'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '调整计时器在界面上的纵坐标，范围：0-1080，默认值245。'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="200" Increment="0.1" FormatString="0.#" Value="{Binding Config.SkillCdConfig.Gap}" />
                             <StackPanel>
-                                <TextBlock Text="计时器间隔" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器之间的间隔，范围：0-200，默认值91.2。" />
+                                <TextBlock Text="{i18n:T '计时器间隔'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '调整计时器之间的间隔，范围：0-200，默认值91.2。'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <NumericUpDown DockPanel.Dock="Right" Width="140" Minimum="0" Maximum="10" Increment="0.1" FormatString="0.##" Value="{Binding Config.SkillCdConfig.Scale}" />
                             <StackPanel>
-                                <TextBlock Text="计时器大小" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="调整计时器大小，范围：0-10，默认值1。" />
+                                <TextBlock Text="{i18n:T '计时器大小'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '调整计时器大小，范围：0-10，默认值1。'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <TextBox x:Name="SkillCdTextNormalColorBox" DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.TextNormalColor}" />
                             <StackPanel>
-                                <TextBlock Text="CD ≥ 0.8s 时数字颜色" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                                <TextBlock Text="{i18n:T 'CD ≥ 0.8s 时数字颜色'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '支持6位或8位 Hex 格式颜色'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.BackgroundNormalColor}" />
                             <StackPanel>
-                                <TextBlock Text="CD ≥ 0.8s 时背景颜色" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                                <TextBlock Text="{i18n:T 'CD ≥ 0.8s 时背景颜色'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '支持6位或8位 Hex 格式颜色'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.TextReadyColor}" />
                             <StackPanel>
-                                <TextBlock Text="CD &lt; 0.8s 时数字颜色" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                                <TextBlock Text="{i18n:T 'CD &lt; 0.8s 时数字颜色'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '支持6位或8位 Hex 格式颜色'}" />
                             </StackPanel>
                         </DockPanel>
                         <DockPanel>
                             <TextBox DockPanel.Dock="Right" Width="140" Text="{Binding Config.SkillCdConfig.BackgroundReadyColor}" />
                             <StackPanel>
-                                <TextBlock Text="CD &lt; 0.8s 时背景颜色" />
-                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="支持6位或8位 Hex 格式颜色" />
+                                <TextBlock Text="{i18n:T 'CD &lt; 0.8s 时背景颜色'}" />
+                                <TextBlock Classes="desc" TextWrapping="Wrap" Text="{i18n:T '支持6位或8位 Hex 格式颜色'}" />
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
