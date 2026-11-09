@@ -98,7 +98,7 @@ internal sealed partial class UiTests
 
             // 截图：清除前确认；取消不删，确定删除
             var shotButton = win.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("clean") && b.DataContext == shotRow);
-            Check("截图行按钮为“清除…”", UiText(shotButton?.Content) == "清除…" && shotButton.IsEffectivelyEnabled);
+            Check("截图行按钮为“清除…”", shotButton is not null && UiText(shotButton.Content) == "清除…" && shotButton.IsEffectivelyEnabled);
             var clean = svm.CleanupCommand.ExecuteAsync(shotRow);
             dialog = await WaitFor(() => Services.FluentMessageBox.Current);
             Check("清除确认（同 WPF）", dialog?.Title as string == "清除确认");
