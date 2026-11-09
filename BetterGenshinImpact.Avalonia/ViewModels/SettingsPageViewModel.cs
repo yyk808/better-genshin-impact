@@ -19,6 +19,7 @@ using BetterGenshinImpact.Host.Common.Notification;
 using BetterGenshinImpact.Model;
 using BetterGenshinImpact.Platform;
 using BetterGenshinImpact.Service;
+using BetterGenshinImpact.Service.I18n;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -179,6 +180,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         // 快速传送“按住时生效”：Windows 由键鼠钩子提供按住状态，这里由长按快捷键提供
         HotkeyHoldState.Query ??= hotkey => _holdRunners.TryGetValue(hotkey, out var r) && r.IsPressed;
         Config = host?.Config ?? new AllConfig();
+        // UI 语言：与 WPF 相同，变更时调用 I18nService（启动时 Program.ApplyUiLanguage 已设一次）
+        Config.OtherConfig.PropertyChanged += OnOtherConfigPropertyChanged;
+        ApplyUiLanguageFromConfig();
         // 令牌由服务启动时生成或重新生成后，脱敏显示随之更新（同 WPF）
         Config.ExternalAccessConfig.PropertyChanged += (_, e) =>
         {
@@ -282,6 +286,32 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
         StatueAreas.Clear();
         SelectedStatueArea = string.Empty;
         foreach (var a in BetterGenshinImpact.ViewModel.Pages.CommonSettings.CommonSettingsChoices.StatueAreas(country)) StatueAreas.Add(a);
+    }
+
+
+    private void OnOtherConfigPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(OtherConfig.UiCultureInfoName))
+        {
+            ApplyUiLanguageFromConfig();
+        }
+    }
+
+    /// <summary>把 <see cref="OtherConfig.UiCultureInfoName"/> 交给 I18nService（含 zh-CN→zh-Hans 等归一化）。</summary>
+    private void ApplyUiLanguageFromConfig()
+    {
+        var name = Config.OtherConfig.UiCultureInfoName switch
+        {
+            "zh-CN" => "zh-Hans",
+            "en-US" => "en",
+            "ja-JP" => "ja",
+            _ => Config.OtherConfig.UiCultureInfoName,
+        };
+        if (name != Config.OtherConfig.UiCultureInfoName)
+        {
+            Config.OtherConfig.UiCultureInfoName = name;
+        }
+        I18nService.Instance.ChangeLanguage(name);
     }
 
     private void InitCommonSettingsExtras()
@@ -995,6 +1025,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public void Dispose()
     {
+        Config.OtherConfig.PropertyChanged -= OnOtherConfigPropertyChanged;
         foreach (var r in _registrations)
         {
             r.Dispose();

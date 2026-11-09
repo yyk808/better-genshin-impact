@@ -12,7 +12,7 @@
             <ScrollViewer>
                 <StackPanel Classes="page">
                     <TextBlock Classes="pagetitle" Text="软件设置" />
-                    <ui:FASettingsExpander x:Name="UiLanguageCard" Header="软件UI语言" Description="Linux 版界面暂只有中文；此项与 Windows 版共用，在 Windows 版生效" IconSource="{svc:FluentIconSource LocalLanguage24}">
+                    <ui:FASettingsExpander x:Name="UiLanguageCard" Header="软件UI语言" Description="与 Windows 版共用配置与翻译资源；切换后立即应用到 I18nService（繁体经 OpenCC；英文等读 User/I18n）" IconSource="{svc:FluentIconSource LocalLanguage24}">
                         <ui:FASettingsExpander.Footer>
                             <ComboBox x:Name="UiLanguageBox" Width="200" ItemsSource="{Binding UiCultureNames}" SelectedItem="{Binding Config.OtherConfig.UiCultureInfoName}" />
                         </ui:FASettingsExpander.Footer>

@@ -62,6 +62,30 @@ internal static class AvaloniaHostProgram
             .With(new FontManagerOptions { FontFallbacks = FontInfo.Fallbacks })
             .LogToTrace();
 
+
+    /// <summary>把配置里的 UI 语言名归一化后交给 <see cref="BetterGenshinImpact.Service.I18n.I18nService"/>（与 WPF App 启动相同；归一化时落盘）。</summary>
+    private static void ApplyUiLanguage(GameHost host)
+    {
+        var config = host.Config;
+        var uiLanguage = config.OtherConfig.UiCultureInfoName switch
+        {
+            "zh-CN" => "zh-Hans",
+            "en-US" => "en",
+            "ja-JP" => "ja",
+            _ => config.OtherConfig.UiCultureInfoName,
+        };
+        if (uiLanguage != config.OtherConfig.UiCultureInfoName)
+        {
+            config.OtherConfig.UiCultureInfoName = uiLanguage;
+            if (host.Services.GetService(typeof(BetterGenshinImpact.Service.Interface.IConfigService))
+                is BetterGenshinImpact.Service.Interface.IConfigService configService)
+            {
+                configService.Save();
+            }
+        }
+        BetterGenshinImpact.Service.I18n.I18nService.Instance.ChangeLanguage(uiLanguage);
+    }
+
     /// <summary>主窗口打开后自动检查更新（与 WPF 相同；失败只记调试日志）</summary>
     private static async Task CheckUpdateOnStartupAsync(GameHost host, Serilog.ILogger log)
     {
@@ -154,6 +178,12 @@ internal static class AvaloniaHostProgram
         {
             hostError = e.Message;
             log.Error(e, "平台服务初始化失败（是否设置了 DISPLAY / 能否连接 X 服务器？）");
+        }
+
+        // 软件 UI 语言（与 WPF 相同：走 I18nService；简繁/英文等资源键与 WPF 共用）
+        if (host is not null)
+        {
+            ApplyUiLanguage(host);
         }
 
         // 软件日志文件（log 目录）：按 Linux 宿主设置启用；平台初始化失败时不写
