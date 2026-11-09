@@ -30,7 +30,7 @@ internal sealed partial class UiTests
         await Settle(600);
         await Click(Named<Button>("GoToKeyMacroButton"), "辅助操控页的按键宏入口");
         await Settle(600);
-        Check("从辅助操控页进入按键宏页", vm.SelectedNav?.Title == "按键宏" && Named<ListBox>("MacroList") is not null, vm.SelectedNav?.Title);
+        Check("从辅助操控页进入按键宏页", vm.SelectedNav?.TitleKey == "按键宏" && Named<ListBox>("MacroList") is not null, vm.SelectedNav?.Title);
         Check("空目录显示提示", Named<TextBlock>("EmptyMacrosText") is not null && page.Macros.Count == 0);
 
         // —— 新建（模板）——

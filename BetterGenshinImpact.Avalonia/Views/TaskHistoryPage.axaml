@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:p="using:BetterGenshinImpact.Pulonia.Presentation"
@@ -32,24 +33,24 @@
     <!-- 与 WPF 版 PuloniaTaskHistoryPage 相同：标题与说明、“运行记录 / 路线 CD”两个选项卡；运行记录左侧列表、右侧详情 -->
     <Grid RowDefinitions="Auto,*" Margin="16,12,16,16">
         <StackPanel Margin="0,0,0,14">
-            <TextBlock FontSize="26" FontWeight="SemiBold" Text="执行记录" />
+            <TextBlock FontSize="26" FontWeight="SemiBold" Text="{i18n:T '执行记录'}" />
             <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Text="查看任务计划和一条龙每次执行的结果，以及各条路线的 CD。记录只保存在本机，重启后仍可查看。" />
+                       Text="{i18n:T '查看任务计划和一条龙每次执行的结果，以及各条路线的 CD。记录只保存在本机，重启后仍可查看。'}" />
             <TextBlock Classes="desc" Margin="0,4,0,0" Text="{Binding StatusMessage}" IsVisible="{Binding HasStatusMessage}" TextWrapping="Wrap" />
         </StackPanel>
         <TabControl Grid.Row="1" Padding="0">
-            <TabItem Header="运行记录">
+            <TabItem Header="{i18n:T '运行记录'}">
                 <Grid ColumnDefinitions="300,*" Margin="0,12,0,0">
                     <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6,0,0,6">
                         <DockPanel>
                             <DockPanel DockPanel.Dock="Top" Margin="8,6">
-                                <Button x:Name="RefreshRunsButton" DockPanel.Dock="Right" Classes="icon" Padding="6" ToolTip.Tip="刷新"
+                                <Button x:Name="RefreshRunsButton" DockPanel.Dock="Right" Classes="icon" Padding="6" ToolTip.Tip="{i18n:T '刷新'}"
                                         Command="{Binding RefreshRunsCommand}" Content="{svc:FluentIcon ArrowClockwise24, Size=14}" />
                                 <TextBlock Text="{Binding CountText}" VerticalAlignment="Center" />
                             </DockPanel>
                             <Panel>
                                 <TextBlock IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="12"
-                                           Text="暂无执行记录&#x0a;执行任务计划或一条龙后，结果会显示在这里。" />
+                                           Text="{i18n:T '暂无执行记录&#x0a;执行任务计划或一条龙后，结果会显示在这里。'}" />
                                 <ListBox x:Name="RunList" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}" IsVisible="{Binding !IsEmpty}" Background="Transparent">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:HistoryRunRow">
@@ -78,14 +79,14 @@
                         <Panel>
                             <StackPanel IsVisible="{Binding !HasSelectedRun}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
                                 <ContentControl Content="{svc:FluentIcon History24, Size=32}" HorizontalAlignment="Center" Opacity="0.8" />
-                                <TextBlock Text="选择左侧的一条记录，查看每个任务的执行结果。" />
+                                <TextBlock Text="{i18n:T '选择左侧的一条记录，查看每个任务的执行结果。'}" />
                             </StackPanel>
                             <Grid RowDefinitions="Auto,Auto,*" IsVisible="{Binding HasSelectedRun}">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
-                                        <Button Content="停止" Command="{Binding CancelRunCommand}" IsVisible="{Binding CanCancelRun}" />
-                                        <Button Content="继续剩余" Command="{Binding ResumeRunCommand}" IsVisible="{Binding CanResumeRun}" />
-                                        <Button Content="从选中任务开始" Command="{Binding ResumeFromNodeCommand}" IsVisible="{Binding SelectedRun.Item.IsHistorical, FallbackValue=False}" />
+                                        <Button Content="{i18n:T '停止'}" Command="{Binding CancelRunCommand}" IsVisible="{Binding CanCancelRun}" />
+                                        <Button Content="{i18n:T '继续剩余'}" Command="{Binding ResumeRunCommand}" IsVisible="{Binding CanResumeRun}" />
+                                        <Button Content="{i18n:T '从选中任务开始'}" Command="{Binding ResumeFromNodeCommand}" IsVisible="{Binding SelectedRun.Item.IsHistorical, FallbackValue=False}" />
                                     </StackPanel>
                                     <StackPanel Spacing="2">
                                         <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding SelectedRun.Item.PlanName, FallbackValue=''}" />
@@ -132,7 +133,7 @@
                                             <TextBlock Classes="desc" Text="{Binding SelectedNode.Item.TimingText, FallbackValue=''}" />
                                             <TextBlock Classes="desc" TextWrapping="Wrap" Text="{Binding SelectedNode.Item.VerificationNote, FallbackValue=''}" />
                                             <SelectableTextBlock Classes="field" Text="{Binding SelectedNode.Item.Message, FallbackValue=''}" />
-                                            <TextBlock Text="结果" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                            <TextBlock Text="{i18n:T '结果'}" FontWeight="SemiBold" Margin="0,6,0,0" />
                                             <ItemsControl ItemsSource="{Binding SelectedNode.Item.ResultFields, FallbackValue={x:Null}}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
@@ -143,7 +144,7 @@
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
-                                            <Expander Header="当次使用的设置" HorizontalAlignment="Stretch">
+                                            <Expander Header="{i18n:T '当次使用的设置'}" HorizontalAlignment="Stretch">
                                                 <ItemsControl ItemsSource="{Binding SelectedNode.Item.SettingsFields, FallbackValue={x:Null}}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
@@ -155,7 +156,7 @@
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
                                             </Expander>
-                                            <Expander Header="技术详情" HorizontalAlignment="Stretch">
+                                            <Expander Header="{i18n:T '技术详情'}" HorizontalAlignment="Stretch">
                                                 <ItemsControl ItemsSource="{Binding SelectedNode.Item.TechnicalFields, FallbackValue={x:Null}}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="p:PuloniaTaskHistoryField">
@@ -175,20 +176,20 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="路线 CD">
+            <TabItem Header="{i18n:T '路线 CD'}">
                 <DockPanel Margin="0,12,0,0" DataContext="{Binding TaskPlan}" x:DataType="vm:TaskPlanPageViewModel">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Left" Content="刷新" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
+                        <Button DockPanel.Dock="Left" Content="{i18n:T '刷新'}" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
                         <TextBlock VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap"
-                                   Text="地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。" />
+                                   Text="{i18n:T '地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。'}" />
                     </DockPanel>
                     <Panel>
-                        <TextBlock Text="暂无路线 CD 记录。" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
+                        <TextBlock Text="{i18n:T '暂无路线 CD 记录。'}" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
                         <ListBox ItemsSource="{Binding Cooldowns}" IsVisible="{Binding !HasNoCooldowns}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:TaskPlanCooldownRow">
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="清除" VerticalAlignment="Center"
+                                        <Button DockPanel.Dock="Right" Content="{i18n:T '清除'}" VerticalAlignment="Center"
                                                 Command="{Binding $parent[DockPanel].((vm:TaskPlanPageViewModel)DataContext).ClearCooldownCommand}"
                                                 CommandParameter="{Binding}" />
                                         <StackPanel>

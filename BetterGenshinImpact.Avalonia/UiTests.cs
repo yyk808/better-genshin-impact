@@ -2574,7 +2574,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         od.ShowHistoryCommand.Execute(null);
         await Settle(800);
         await vm.History.RefreshAsync();
-        Check("执行记录入口", vm.SelectedNav?.Title == "执行记录" && vm.History.Runs.Any(r => r.Item.RunId == runId), vm.SelectedNav?.Title);
+        Check("执行记录入口", vm.SelectedNav?.TitleKey == "执行记录" && vm.History.Runs.Any(r => r.Item.RunId == runId), vm.SelectedNav?.Title);
 
         // 删除测试配置
         vm.Navigate("新一条龙");
@@ -4557,7 +4557,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         lib.UpdateProgress("BV1m51shot", "M51 截图用记录", "https://www.bilibili.com/video/BV1m51shot", 42, 300, 1.0);
         await Settle(500);
         await Click(Named<Button>("OpenHotKeyButton")!, "前往快捷键页");
-        Check("前往快捷键页", vm.SelectedNav?.Title == "快捷键", vm.SelectedNav?.Title);
+        Check("前往快捷键页", vm.SelectedNav?.TitleKey == "快捷键", vm.SelectedNav?.Title);
         vm.Navigate("悬浮小窗");
         await Settle(600);
         Shot("avalonia-guide.png");
@@ -4731,7 +4731,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 绑定快捷键：转到快捷键页
         await Click(All<Button>().First(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键"), "绑定快捷键");
-        Check("绑定快捷键转到快捷键页", vm.SelectedNav?.Title == "快捷键" && vm.Settings.SelectedTab == 1, vm.SelectedNav?.Title);
+        Check("绑定快捷键转到快捷键页", vm.SelectedNav?.TitleKey == "快捷键" && vm.Settings.SelectedTab == 1, vm.SelectedNav?.Title);
 
         // —— 假游戏上的功能 ——
         var runtime = await WaitFor(() => vm.Host?.RuntimeService.Current);

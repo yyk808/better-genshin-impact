@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:tpl="using:BetterGenshinImpact.ViewModel.Pages.KeyMacro"
@@ -12,13 +13,13 @@
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="2,0,0,8">
-                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="按键宏" />
-                    <ToggleSwitch Grid.Column="1" x:Name="KeyMacroEnabledToggle" OnContent="已启用" OffContent="已关闭" IsChecked="{Binding Enabled}"
-                                  ToolTip.Tip="按键宏总开关：关闭后全部宏的快捷键都不注册" />
+                    <TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{i18n:T '按键宏'}" />
+                    <ToggleSwitch Grid.Column="1" x:Name="KeyMacroEnabledToggle" OnContent="{i18n:T '已启用'}" OffContent="{i18n:T '已关闭'}" IsChecked="{Binding Enabled}"
+                                  ToolTip.Tip="{i18n:T '按键宏总开关：关闭后全部宏的快捷键都不注册'}" />
                 </Grid>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
                     <Button x:Name="NewMacroButton" Classes="accent">
-                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Add24, Size=14}" /><TextBlock Text="新建" /></StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6"><ContentControl Content="{svc:FluentIcon Add24, Size=14}" /><TextBlock Text="{i18n:T '新建'}" /></StackPanel>
                         <Button.Flyout>
                             <MenuFlyout ItemsSource="{Binding Templates}">
                                 <MenuFlyout.ItemContainerTheme>
@@ -31,10 +32,10 @@
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
-                    <Button x:Name="ImportMacroButton" Content="导入" Command="{Binding ImportCommand}" ToolTip.Tip="导入 txt 宏文件（快捷键会清空）" />
+                    <Button x:Name="ImportMacroButton" Content="{i18n:T '导入'}" Command="{Binding ImportCommand}" ToolTip.Tip="{i18n:T '导入 txt 宏文件（快捷键会清空）'}" />
                     <Button x:Name="OpenMacroFolderButton" Content="{svc:FluentIcon Open24, Size=14}" Command="{Binding OpenFolderCommand}"
                             ToolTip.Tip="{Binding DirectoryPath, StringFormat='打开宏目录：{0}'}" />
-                    <Button x:Name="StopAllMacrosButton" Content="{svc:FluentIcon Stop24, Size=14}" Command="{Binding StopAllCommand}" ToolTip.Tip="停止全部正在运行的宏" />
+                    <Button x:Name="StopAllMacrosButton" Content="{svc:FluentIcon Stop24, Size=14}" Command="{Binding StopAllCommand}" ToolTip.Tip="{i18n:T '停止全部正在运行的宏'}" />
                 </StackPanel>
                 <TextBlock DockPanel.Dock="Bottom" Classes="desc" TextWrapping="Wrap" Margin="2,8,0,0" Text="{Binding Message}"
                            IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -50,15 +51,15 @@
                                         </TextBlock>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="12" Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                                               Text="运行中" IsVisible="{Binding IsRunning}" />
+                                               Text="{i18n:T '运行中'}" IsVisible="{Binding IsRunning}" />
                                     <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="12" Opacity="0.55"
-                                               Text="已停用" IsVisible="{Binding !Enabled}" />
+                                               Text="{i18n:T '已停用'}" IsVisible="{Binding !Enabled}" />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <TextBlock x:Name="EmptyMacrosText" Classes="desc" TextWrapping="Wrap" Margin="4,8" IsVisible="{Binding !HasMacros}"
-                               Text="还没有按键宏。点击“新建”从模板开始；每个宏保存为宏目录下的一个 txt 文件。" />
+                               Text="{i18n:T '还没有按键宏。点击“新建”从模板开始；每个宏保存为宏目录下的一个 txt 文件。'}" />
                 </Grid>
             </DockPanel>
         </Border>
@@ -66,47 +67,47 @@
         <Border Grid.Column="2" Padding="14" CornerRadius="12" BorderThickness="1"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
             <Grid>
-                <TextBlock Classes="desc" Text="选择或新建一个宏" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <TextBlock Classes="desc" Text="{i18n:T '选择或新建一个宏'}" HorizontalAlignment="Center" VerticalAlignment="Center"
                            IsVisible="{Binding SelectedMacro, Converter={x:Static ObjectConverters.IsNull}}" />
                 <ContentControl Content="{Binding SelectedMacro}" IsVisible="{Binding SelectedMacro, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ContentControl.ContentTemplate>
                         <DataTemplate x:DataType="vm:KeyMacroItemViewModel">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
                                 <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,0,0,10">
-                                    <TextBox x:Name="MacroNameBox" Text="{Binding EditingName}" FontSize="16" Watermark="宏名称（即文件名）">
+                                    <TextBox x:Name="MacroNameBox" Text="{Binding EditingName}" FontSize="16" Watermark="{i18n:T '宏名称（即文件名）'}">
                                         <TextBox.KeyBindings>
                                             <KeyBinding Gesture="Enter" Command="{Binding RenameCommand}" />
                                         </TextBox.KeyBindings>
                                     </TextBox>
-                                    <Button Grid.Column="1" x:Name="RenameMacroButton" Margin="6,0,0,0" Content="重命名" Command="{Binding RenameCommand}" />
-                                    <Button Grid.Column="2" x:Name="DuplicateMacroButton" Margin="6,0,0,0" Content="复制"
+                                    <Button Grid.Column="1" x:Name="RenameMacroButton" Margin="6,0,0,0" Content="{i18n:T '重命名'}" Command="{Binding RenameCommand}" />
+                                    <Button Grid.Column="2" x:Name="DuplicateMacroButton" Margin="6,0,0,0" Content="{i18n:T '复制'}"
                                             Command="{Binding $parent[UserControl].((vm:KeyMacroPageViewModel)DataContext).DuplicateCommand}" />
-                                    <Button Grid.Column="3" x:Name="DeleteMacroButton" Margin="6,0,0,0" Content="删除"
+                                    <Button Grid.Column="3" x:Name="DeleteMacroButton" Margin="6,0,0,0" Content="{i18n:T '删除'}"
                                             Command="{Binding $parent[UserControl].((vm:KeyMacroPageViewModel)DataContext).DeleteCommand}"
-                                            ToolTip.Tip="文件移到回收站" />
-                                    <ToggleSwitch Grid.Column="4" x:Name="MacroEnabledToggle" Margin="12,0,0,0" OnContent="启用" OffContent="停用" IsChecked="{Binding Enabled}" />
+                                            ToolTip.Tip="{i18n:T '文件移到回收站'}" />
+                                    <ToggleSwitch Grid.Column="4" x:Name="MacroEnabledToggle" Margin="12,0,0,0" OnContent="{i18n:T '启用'}" OffContent="{i18n:T '停用'}" IsChecked="{Binding Enabled}" />
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,150,16,Auto,130" Margin="0,0,0,6">
-                                    <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Text="触发方式" />
+                                    <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Text="{i18n:T '触发方式'}" />
                                     <ComboBox Grid.Column="1" x:Name="MacroModeBox" HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:KeyMacroItemViewModel.ModeNames}"
                                               SelectedIndex="{Binding ModeIndex}" />
-                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="0,0,8,0" Text="快捷键类型" />
+                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="0,0,8,0" Text="{i18n:T '快捷键类型'}" />
                                     <ComboBox Grid.Column="4" x:Name="MacroHotkeyTypeBox" HorizontalAlignment="Stretch" ItemsSource="{x:Static vm:KeyMacroItemViewModel.HotkeyTypeNames}"
                                               SelectedIndex="{Binding HotkeyTypeIndex}" IsEnabled="{Binding CanSwitchHotKeyType}"
-                                              ToolTip.Tip="全局热键（XGrabKey，游戏收不到该键，可用组合键）/ 键鼠监听（不拦截，可用鼠标侧键）。切换后需要重新设置快捷键" />
+                                              ToolTip.Tip="{i18n:T '全局热键（XGrabKey，游戏收不到该键，可用组合键）/ 键鼠监听（不拦截，可用鼠标侧键）。切换后需要重新设置快捷键'}" />
                                 </Grid>
                                 <TextBlock Grid.Row="2" Classes="desc" TextWrapping="Wrap" Margin="0,0,0,8" Text="{Binding ModeDescription}" />
                                 <StackPanel Grid.Row="3" Spacing="4" Margin="0,0,0,10">
                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
-                                        <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Text="快捷键" />
-                                        <TextBox Grid.Column="1" x:Name="MacroHotkeyBox" Text="{Binding Hotkey, Mode=OneWay}" IsReadOnly="True" Watermark="未设置" />
+                                        <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Text="{i18n:T '快捷键'}" />
+                                        <TextBox Grid.Column="1" x:Name="MacroHotkeyBox" Text="{Binding Hotkey, Mode=OneWay}" IsReadOnly="True" Watermark="{i18n:T '未设置'}" />
                                         <Button Grid.Column="2" x:Name="RecordMacroHotkeyButton" Margin="6,0,0,0" Content="{Binding RecordButtonText}"
                                                 Classes.accent="{Binding IsRecording}" Command="{Binding ToggleRecordCommand}" />
-                                        <Button Grid.Column="3" Margin="6,0,0,0" Content="侧键 1" Command="{Binding UseSideButtonCommand}" CommandParameter="XButton1"
-                                                ToolTip.Tip="鼠标侧键 1（XButton1，仅键鼠监听）" />
-                                        <Button Grid.Column="4" Margin="6,0,0,0" Content="侧键 2" Command="{Binding UseSideButtonCommand}" CommandParameter="XButton2"
-                                                ToolTip.Tip="鼠标侧键 2（XButton2，仅键鼠监听）" />
-                                        <Button Grid.Column="5" x:Name="ClearMacroHotkeyButton" Margin="6,0,0,0" Content="清除" Command="{Binding ClearHotkeyCommand}" />
+                                        <Button Grid.Column="3" Margin="6,0,0,0" Content="{i18n:T '侧键 1'}" Command="{Binding UseSideButtonCommand}" CommandParameter="XButton1"
+                                                ToolTip.Tip="{i18n:T '鼠标侧键 1（XButton1，仅键鼠监听）'}" />
+                                        <Button Grid.Column="4" Margin="6,0,0,0" Content="{i18n:T '侧键 2'}" Command="{Binding UseSideButtonCommand}" CommandParameter="XButton2"
+                                                ToolTip.Tip="{i18n:T '鼠标侧键 2（XButton2，仅键鼠监听）'}" />
+                                        <Button Grid.Column="5" x:Name="ClearMacroHotkeyButton" Margin="6,0,0,0" Content="{i18n:T '清除'}" Command="{Binding ClearHotkeyCommand}" />
                                     </Grid>
                                     <TextBlock x:Name="MacroHotkeyStatus" Classes="desc" TextWrapping="Wrap" Text="{Binding HotkeyStatus}"
                                                Foreground="{DynamicResource SystemFillColorCriticalBrush}" IsVisible="{Binding HotkeyStatusIsError}" />
@@ -115,7 +116,7 @@
                                 <TextBox Grid.Row="4" x:Name="MacroScriptBox" Text="{Binding Script}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="NoWrap"
                                          FontFamily="DejaVu Sans Mono, Noto Sans Mono CJK SC, monospace" VerticalContentAlignment="Top" MinHeight="160"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                         Watermark="每行一条指令，例如：keypress(e)、wait(0.5)、click(left)；// 之后为注释" />
+                                         Watermark="{i18n:T '每行一条指令，例如：keypress(e)、wait(0.5)、click(left)；// 之后为注释'}" />
                                 <Grid Grid.Row="5" ColumnDefinitions="*,Auto" Margin="0,6,0,0">
                                     <TextBlock x:Name="MacroScriptStatus" Classes="desc" Text="{Binding StatusText}" />
                                     <TextBlock Grid.Column="1" Classes="desc" Text="{Binding SummaryText}" />
@@ -128,7 +129,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Expander x:Name="MacroCommandReference" Header="指令参考" HorizontalAlignment="Stretch">
+                                    <Expander x:Name="MacroCommandReference" Header="{i18n:T '指令参考'}" HorizontalAlignment="Stretch">
                                         <ItemsControl ItemsSource="{Binding $parent[UserControl].((vm:KeyMacroPageViewModel)DataContext).Commands}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="script:KeyMacroCommandInfo">

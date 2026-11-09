@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
@@ -32,15 +33,15 @@
     <ScrollViewer>
         <StackPanel Classes="page">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="停止当前任务" Command="{Binding StopCommand}"
+                <Button DockPanel.Dock="Right" Content="{i18n:T '停止当前任务'}" Command="{Binding StopCommand}"
                         IsEnabled="{Binding IsTaskActive}" VerticalAlignment="Center" />
                 <StackPanel>
-                    <TextBlock Classes="pagetitle" Text="独立任务设置" Margin="0" />
+                    <TextBlock Classes="pagetitle" Text="{i18n:T '独立任务设置'}" Margin="0" />
                     <TextBlock Classes="desc" Text="{Binding StatusText, StringFormat='状态：{0}'}" Margin="0,2,0,8" />
                 </StackPanel>
             </DockPanel>
             <TextBlock Classes="desc" IsVisible="{Binding !IsAvailable}"
-                       Text="平台服务未初始化（请检查 DISPLAY / X 服务器），独立任务不可用" />
+                       Text="{i18n:T '平台服务未初始化（请检查 DISPLAY / X 服务器），独立任务不可用'}" />
 
             <ItemsControl ItemsSource="{Binding Groups}">
                 <ItemsControl.ItemTemplate>
@@ -57,32 +58,32 @@
                                                         Content="{Binding ButtonText}" Command="{Binding ToggleCommand}"
                                                         IsEnabled="{Binding CanInteract}" />
                                             </ui:FASettingsExpander.Footer>
-                                            <ui:FASettingsExpanderItem Content="循环次数" Description="0 表示无限循环，直到达到每日上限" IsVisible="{Binding IsWood}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '循环次数'}" Description="{i18n:T '0 表示无限循环，直到达到每日上限'}" IsVisible="{Binding IsWood}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <TextBox Classes="param" Text="{Binding Page.AutoWoodRoundNum}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="使用进出千星奇域刷新树木CD" Description="需要确保已解锁并进入过千星奇域" IsVisible="{Binding IsWood}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '使用进出千星奇域刷新树木CD'}" Description="{i18n:T '需要确保已解锁并进入过千星奇域'}" IsVisible="{Binding IsWood}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch x:Name="WoodWonderlandSwitch" IsChecked="{Binding Page.Config.AutoWoodConfig.UseWonderlandRefresh}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="伐木数量上限（原神每日每种木材最多2000）" IsVisible="{Binding IsWood}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '伐木数量上限（原神每日每种木材最多2000）'}" IsVisible="{Binding IsWood}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <TextBox Classes="param" Text="{Binding Page.AutoWoodDailyMaxCount}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="启用OCR伐木数量限制（需1080P以上分辨率）" Description="伐木后OCR识别并累计木材数，达到上限后自动停止伐木" IsVisible="{Binding IsWood}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '启用OCR伐木数量限制（需1080P以上分辨率）'}" Description="{i18n:T '伐木后OCR识别并累计木材数，达到上限后自动停止伐木'}" IsVisible="{Binding IsWood}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoWoodConfig.WoodCountOcrEnabled}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="使用小道具后的额外延迟（毫秒）" Description="如果希望看到使用小道具后获得木材的提示，可以调整这个值" IsVisible="{Binding IsWood}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '使用小道具后的额外延迟（毫秒）'}" Description="{i18n:T '如果希望看到使用小道具后获得木材的提示，可以调整这个值'}" IsVisible="{Binding IsWood}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown x:Name="WoodAfterZDelayBox" Width="160" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Page.Config.AutoWoodConfig.AfterZSleepDelay}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsFight}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '战斗策略'}" IsVisible="{Binding IsFight}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
@@ -91,12 +92,12 @@
                                             <ui:FASettingsExpanderItem IsVisible="{Binding IsFight}" HorizontalContentAlignment="Stretch">
                                                 <views:SoloFightCard x:Name="SoloFightCard" DataContext="{Binding Page.Config.AutoFightConfig}" />
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="战斗策略（与自动战斗共用）" IsVisible="{Binding IsDomain}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '战斗策略（与自动战斗共用）'}" IsVisible="{Binding IsDomain}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoFightConfig.StrategyName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="刷取次数" Description="0 表示直到体力耗尽" IsVisible="{Binding IsDomain}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '刷取次数'}" Description="{i18n:T '0 表示直到体力耗尽'}" IsVisible="{Binding IsDomain}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <TextBox Classes="param" Text="{Binding Page.AutoDomainRoundNum}" />
                                                 </ui:FASettingsExpanderItem.Footer>
@@ -105,49 +106,49 @@
                                             <ui:FASettingsExpanderItem IsVisible="{Binding IsDomain}" HorizontalContentAlignment="Stretch">
                                                 <views:SoloDomainCard x:Name="SoloDomainCard" DataContext="{Binding Page.Domain}" />
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '战斗策略'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoBossConfig.StrategyName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="切换队伍" Description="留空则不更换队伍" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '切换队伍'}" Description="{i18n:T '留空则不更换队伍'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
-                                                    <TextBox Classes="param" x:Name="BossTeamNameBox" PlaceholderText="例如：首领队" Text="{Binding Page.Config.AutoBossConfig.TeamName}" />
+                                                    <TextBox Classes="param" x:Name="BossTeamNameBox" PlaceholderText="{i18n:T '例如：首领队'}" Text="{Binding Page.Config.AutoBossConfig.TeamName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="选择首领" Description="部分首领因机制问题未添加" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '选择首领'}" Description="{i18n:T '部分首领因机制问题未添加'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
-                                                    <ComboBox Classes="param" x:Name="BossNameBox" ItemsSource="{Binding Page.Boss.BossNames}" SelectedItem="{Binding Page.Boss.BossNameChoice}" PlaceholderText="请选择首领" />
+                                                    <ComboBox Classes="param" x:Name="BossNameBox" ItemsSource="{Binding Page.Boss.BossNames}" SelectedItem="{Binding Page.Boss.BossNameChoice}" PlaceholderText="{i18n:T '请选择首领'}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
                                             <!-- 树脂使用（对照 WPF BossResin：摘要 + “设置”打开树脂使用对话框） -->
-                                            <ui:FASettingsExpanderItem x:Name="BossResinItem" Content="树脂使用" Description="{Binding Page.Boss.BossResin.Summary}" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem x:Name="BossResinItem" Content="{i18n:T '树脂使用'}" Description="{Binding Page.Boss.BossResin.Summary}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <TextBlock Foreground="#E0A000" Text="{Binding Page.Boss.BossResin.Problem}" IsVisible="{Binding Page.Boss.BossResin.HasProblem}" VerticalAlignment="Center" MaxWidth="320" TextWrapping="Wrap" />
-                                                        <Button x:Name="BossResinButton" Content="设置" MinWidth="88" Command="{Binding Page.Boss.BossResin.EditCommand}" ToolTip.Tip="{Binding Page.Boss.BossResin.Summary}" />
+                                                        <Button x:Name="BossResinButton" Content="{i18n:T '设置'}" MinWidth="88" Command="{Binding Page.Boss.BossResin.EditCommand}" ToolTip.Tip="{Binding Page.Boss.BossResin.Summary}" />
                                                     </StackPanel>
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="每轮讨伐后返回七天神像" Description="开启后每次领奖后先回血，再重新前往首领" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '每轮讨伐后返回七天神像'}" Description="{i18n:T '开启后每次领奖后先回血，再重新前往首领'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoBossConfig.ReturnToStatueAfterEachRound}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="启用奖励识别" Description="每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '启用奖励识别'}" Description="{i18n:T '每轮领取后识别奖励名称与数量，测试功能，如有问题请提交截图反馈'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch x:Name="BossRewardSwitch" IsChecked="{Binding Page.Config.AutoBossConfig.RewardRecognitionEnabled}" IsEnabled="{Binding Page.Boss.IsRewardRecognitionEditable}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
                                             <!-- 按材料数量提前结束（对照 WPF TargetItemListEditorView；候选物品随首领变化，清单在 Core） -->
-                                            <ui:FASettingsExpanderItem Content="按材料数量提前结束" Description="达到全部目标后停止任务" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '按材料数量提前结束'}" Description="{i18n:T '达到全部目标后停止任务'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch x:Name="BossTargetMode" IsChecked="{Binding Page.Boss.TargetItems.IsTargetModeEnabled}" IsEnabled="{Binding Page.Boss.TargetItems.HasChoices}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem IsVisible="{Binding IsBoss}" HorizontalContentAlignment="Stretch">
                                                 <StackPanel Spacing="6" DataContext="{Binding Page.Boss}" x:DataType="vm:SoloBossSettingsViewModel">
-                                                    <TextBlock Text="当前首领没有可用的奖励材料，请先选择首领" Opacity="0.7" IsVisible="{Binding TargetItems.IsUnavailable}" />
+                                                    <TextBlock Text="{i18n:T '当前首领没有可用的奖励材料，请先选择首领'}" Opacity="0.7" IsVisible="{Binding TargetItems.IsUnavailable}" />
                                                     <Border x:Name="BossTargetItems" IsVisible="{Binding TargetItems.IsTargetModeEnabled}" BorderBrush="#30808080" BorderThickness="1" CornerRadius="8" Padding="12">
                                                         <StackPanel Spacing="8">
                                                             <ItemsControl ItemsSource="{Binding TargetItems.Items}">
@@ -159,108 +160,108 @@
                                                                                       SelectedValueBinding="{Binding Name, x:DataType=reward:TargetItemOption}"
                                                                                       SelectedValue="{Binding ItemName, Converter={x:Static services:Converters.IgnoreEmptyWriteBack}}" />
                                                                             <NumericUpDown Width="130" Minimum="1" Increment="1" FormatString="0" Value="{Binding TargetCount}" />
-                                                                            <Button Content="删除" Command="{Binding $parent[ItemsControl].((vm:SoloBossSettingsViewModel)DataContext).TargetItems.RemoveCommand}" CommandParameter="{Binding}" />
+                                                                            <Button Content="{i18n:T '删除'}" Command="{Binding $parent[ItemsControl].((vm:SoloBossSettingsViewModel)DataContext).TargetItems.RemoveCommand}" CommandParameter="{Binding}" />
                                                                         </StackPanel>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
-                                                            <TextBlock Text="同一材料只能添加一次" Foreground="#FF6B6B" IsVisible="{Binding TargetItems.HasDuplicateAttempt}" />
-                                                            <Button x:Name="BossTargetAdd" Content="添加材料" Command="{Binding TargetItems.AddCommand}" HorizontalAlignment="Left" />
+                                                            <TextBlock Text="{i18n:T '同一材料只能添加一次'}" Foreground="#FF6B6B" IsVisible="{Binding TargetItems.HasDuplicateAttempt}" />
+                                                            <Button x:Name="BossTargetAdd" Content="{i18n:T '添加材料'}" Command="{Binding TargetItems.AddCommand}" HorizontalAlignment="Left" />
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="角色死亡后重试次数" Description="战斗中存在角色死亡时，复活后重新讨伐当前首领" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '角色死亡后重试次数'}" Description="{i18n:T '战斗中存在角色死亡时，复活后重新讨伐当前首领'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown Width="160" Minimum="0" Maximum="100" Increment="1" FormatString="0" Value="{Binding Page.Config.AutoBossConfig.ReviveRetryCount}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="自动战斗超时(秒)" Description="到达指定时间后，自动停止战斗" IsVisible="{Binding IsBoss}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '自动战斗超时(秒)'}" Description="{i18n:T '到达指定时间后，自动停止战斗'}" IsVisible="{Binding IsBoss}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown Width="160" Minimum="0" Maximum="100000" Increment="10" FormatString="0" Value="{Binding Page.Config.AutoBossConfig.Timeout}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="战斗策略" IsVisible="{Binding IsStygian}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '战斗策略'}" IsVisible="{Binding IsStygian}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{Binding Page.FightStrategies}" SelectedItem="{Binding Page.Config.AutoStygianOnslaughtConfig.StrategyName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="指定刷取的战场" Description="从上到下战场一、二、三" IsVisible="{Binding IsStygian}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '指定刷取的战场'}" Description="{i18n:T '从上到下战场一、二、三'}" IsVisible="{Binding IsStygian}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" x:Name="StygianBossNumBox" ItemsSource="{x:Static solo:SoloTaskSettingsChoices.BossNumList}" SelectedItem="{Binding Page.Config.AutoStygianOnslaughtConfig.BossNum}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="指定战斗队伍" Description="输入预设队伍的名称，留空则不更换队伍" IsVisible="{Binding IsStygian}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '指定战斗队伍'}" Description="{i18n:T '输入预设队伍的名称，留空则不更换队伍'}" IsVisible="{Binding IsStygian}">
                                                 <ui:FASettingsExpanderItem.Footer>
-                                                    <TextBox Classes="param" x:Name="StygianTeamBox" PlaceholderText="例如：队伍1" Text="{Binding Page.Config.AutoStygianOnslaughtConfig.FightTeamName}" />
+                                                    <TextBox Classes="param" x:Name="StygianTeamBox" PlaceholderText="{i18n:T '例如：队伍1'}" Text="{Binding Page.Config.AutoStygianOnslaughtConfig.FightTeamName}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="结束后自动分解圣遗物" IsVisible="{Binding IsStygian}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '结束后自动分解圣遗物'}" IsVisible="{Binding IsStygian}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoStygianOnslaughtConfig.AutoArtifactSalvage}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="需要快速分解圣遗物的最高星级" IsVisible="{Binding IsStygian}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '需要快速分解圣遗物的最高星级'}" IsVisible="{Binding IsStygian}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{x:Static solo:SoloTaskSettingsChoices.ArtifactSalvageStarList}" SelectedItem="{Binding Page.Config.AutoArtifactSalvageConfig.MaxArtifactStar}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="七圣召唤策略" IsVisible="{Binding IsTcg}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '七圣召唤策略'}" IsVisible="{Binding IsTcg}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <Button x:Name="TcgRepoButton" Content="脚本仓库" Command="{Binding Page.OpenLocalScriptRepoCommand}" />
+                                                        <Button x:Name="TcgRepoButton" Content="{i18n:T '脚本仓库'}" Command="{Binding Page.OpenLocalScriptRepoCommand}" />
                                                         <ComboBox Classes="param" ItemsSource="{Binding Page.TcgStrategies}" SelectedItem="{Binding Page.Config.AutoGeniusInvokationConfig.StrategyName}" />
                                                     </StackPanel>
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="设置延时（毫秒）" Description="如果频繁出现操作速度过快，操作动画未播放完毕的情况可以添加延时" IsVisible="{Binding IsTcg}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '设置延时（毫秒）'}" Description="{i18n:T '如果频繁出现操作速度过快，操作动画未播放完毕的情况可以添加延时'}" IsVisible="{Binding IsTcg}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown x:Name="TcgSleepDelayBox" Width="160" Minimum="0" Maximum="100000" Increment="100" FormatString="0" Value="{Binding Page.Config.AutoGeniusInvokationConfig.SleepDelay}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="上钩等待超时时间" Description="超过这个时间将自动提竿，并重新识别并选择鱼饵进行抛竿" IsVisible="{Binding IsFishing}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '上钩等待超时时间'}" Description="{i18n:T '超过这个时间将自动提竿，并重新识别并选择鱼饵进行抛竿'}" IsVisible="{Binding IsFishing}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown x:Name="FishThrowTimeoutBox" Width="160" Minimum="1" Maximum="600" Increment="1" FormatString="0" Value="{Binding Page.Config.AutoFishingConfig.AutoThrowRodTimeOut}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="整个任务超时时间" Description="超过这个时间将强制结束任务" IsVisible="{Binding IsFishing}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '整个任务超时时间'}" Description="{i18n:T '超过这个时间将强制结束任务'}" IsVisible="{Binding IsFishing}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <NumericUpDown Width="160" Minimum="1" Maximum="100000" Increment="10" FormatString="0" Value="{Binding Page.Config.AutoFishingConfig.WholeProcessTimeoutSeconds}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="昼夜策略" Description="钓全天的鱼、还是只钓白天或夜晚的鱼、亦或不调整时间" IsVisible="{Binding IsFishing}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '昼夜策略'}" Description="{i18n:T '钓全天的鱼、还是只钓白天或夜晚的鱼、亦或不调整时间'}" IsVisible="{Binding IsFishing}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" x:Name="FishTimePolicyBox" ItemsSource="{x:Static solo:SoloTaskSettingsChoices.FishingTimePolicies}" SelectedValueBinding="{Binding Value, DataType=solo:SoloTaskChoice}" DisplayMemberBinding="{Binding Name, DataType=solo:SoloTaskChoice}" SelectedValue="{Binding Page.Config.AutoFishingConfig.FishingTimePolicy}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="关键帧保存截图（调试用）" IsVisible="{Binding IsFishing}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '关键帧保存截图（调试用）'}" IsVisible="{Binding IsFishing}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.SaveScreenshotOnKeyTick}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="使用截图管线取色" Description="关闭时按键位直接读取窗口像素（Linux 为 X11 XGetImage）" IsVisible="{Binding IsMusic}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '使用截图管线取色'}" Description="{i18n:T '关闭时按键位直接读取窗口像素（Linux 为 X11 XGetImage）'}" IsVisible="{Binding IsMusic}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ToggleSwitch IsChecked="{Binding Page.Config.AutoMusicGameConfig.UseCapturePipeline}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem IsVisible="{Binding IsRedeem}" HorizontalContentAlignment="Stretch">
                                                 <StackPanel Spacing="4">
-                                                    <TextBlock Text="兑换码（每行一条）" />
+                                                    <TextBlock Text="{i18n:T '兑换码（每行一条）'}" />
                                                     <TextBox Text="{Binding Page.RedeemCodesText}" AcceptsReturn="True" TextWrapping="Wrap"
-                                                             MinHeight="80" PlaceholderText="请在此输入兑换码，每行一条记录" />
+                                                             MinHeight="80" PlaceholderText="{i18n:T '请在此输入兑换码，每行一条记录'}" />
                                                 </StackPanel>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="对比的背包分类" IsVisible="{Binding IsInventory}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '对比的背包分类'}" IsVisible="{Binding IsInventory}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <ComboBox Classes="param" ItemsSource="{Binding Page.InventoryTargets}" SelectedItem="{Binding Page.InventoryCountComparisonTarget}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Content="分解的最高星级" IsVisible="{Binding IsSalvage}">
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '分解的最高星级'}" IsVisible="{Binding IsSalvage}">
                                                 <ui:FASettingsExpanderItem.Footer>
                                                     <TextBox Classes="param" Text="{Binding Page.Config.AutoArtifactSalvageConfig.MaxArtifactStar}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
-                                            <ui:FASettingsExpanderItem Description="其余参数使用配置文件中的值（与 Windows 版共用 User/config.json）" IsVisible="{Binding !HasFullSettings}" />
+                                            <ui:FASettingsExpanderItem Description="{i18n:T '其余参数使用配置文件中的值（与 Windows 版共用 User/config.json）'}" IsVisible="{Binding !HasFullSettings}" />
                                         </ui:FASettingsExpander>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

@@ -1,8 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
         xmlns:v="using:BetterGenshinImpact.Avalonia.Views"
         x:Class="BetterGenshinImpact.Avalonia.Views.MaskWindow"
-        Title="BetterGI 遮罩" SystemDecorations="None" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        Title="{i18n:T 'BetterGI 遮罩'}" SystemDecorations="None" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         CanResize="False" Background="Transparent" TransparencyLevelHint="Transparent"
         WindowStartupLocation="Manual">
     <Panel x:Name="ContentRoot">
@@ -45,9 +46,9 @@
             <StackPanel.Effect>
                 <DropShadowEffect Opacity="0.8" BlurRadius="10" OffsetX="0" OffsetY="0" />
             </StackPanel.Effect>
-            <TextBlock Text="当前处于编辑模式" FontSize="72" FontWeight="DemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
-            <TextBlock Text="可以调整日志框、状态栏控件的位置和大小" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
-            <TextBlock Text="右键相关控件可退出编辑状态" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+            <TextBlock Text="{i18n:T '当前处于编辑模式'}" FontSize="72" FontWeight="DemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+            <TextBlock Text="{i18n:T '可以调整日志框、状态栏控件的位置和大小'}" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
+            <TextBlock Text="{i18n:T '右键相关控件可退出编辑状态'}" Margin="0,8,0,0" FontSize="22" FontWeight="SemiBold" Foreground="#CCFFFFFF" HorizontalAlignment="Center" />
         </StackPanel>
     </Panel>
 </Window>

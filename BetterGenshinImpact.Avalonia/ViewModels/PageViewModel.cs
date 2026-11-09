@@ -29,7 +29,11 @@ public sealed class PlaceholderPageViewModel(string title, string description) :
 /// <param name="isAvailable">已在 Avalonia 宿主中实现（未实现的显示为灰色，点开为说明页）</param>
 public sealed class NavItem(string title, string icon, PageViewModel page, Action? onSelected = null, bool isAvailable = true)
 {
-    public string Title => title;
+    /// <summary>中文资源键（Navigate / 测试用，不随语言变）。</summary>
+    public string TitleKey => title;
+
+    /// <summary>显示标题：经 I18nService（与 axaml i18n:T 同键）。</summary>
+    public string Title => BetterGenshinImpact.Service.I18n.I18nService.Instance.Translate(title);
 
     public string Icon => icon;
 

@@ -166,7 +166,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>按标题切换页面（命令行 --page 与截图用）</summary>
     public bool Navigate(string title)
     {
-        var item = AllNavItems().FirstOrDefault(n => n.Title == title);
+        var item = AllNavItems().FirstOrDefault(n => n.TitleKey == title);
         if (item is null)
         {
             return false;

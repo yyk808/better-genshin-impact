@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
              xmlns:views="using:BetterGenshinImpact.Avalonia.Views"
@@ -14,44 +15,44 @@
             <Border Grid.Column="0" Classes="card" Margin="0,0,10,0" Padding="10">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="4,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="{svc:FluentIcon ArrowClockwise24, Size=16}" Padding="8,4" Command="{Binding ReloadCommand}" ToolTip.Tip="重新加载" Margin="4,0,0,0" />
+                        <Button DockPanel.Dock="Right" Content="{svc:FluentIcon ArrowClockwise24, Size=16}" Padding="8,4" Command="{Binding ReloadCommand}" ToolTip.Tip="{i18n:T '重新加载'}" Margin="4,0,0,0" />
                         <!-- 与 WPF 计划列表标题栏相同：三项资源操作收进带文字的菜单 -->
                         <DropDownButton x:Name="ResourceSyncButton" DockPanel.Dock="Right" Content="{svc:FluentIcon ArrowSync24, Size=16}" Padding="8,4"
-                                        ToolTip.Tip="任务资源同步与更新">
+                                        ToolTip.Tip="{i18n:T '任务资源同步与更新'}">
                             <DropDownButton.Flyout>
                                 <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                    <MenuItem Header="一键同步并更新" Command="{Binding SyncAndUpdateResourcesCommand}" ToolTip.Tip="同步全部计划引用的仓库，并更新所有可用任务资源" />
-                                    <MenuItem Header="使用本机仓库更新所有计划" Command="{Binding UpdateAllResourcesCommand}" ToolTip.Tip="使用本机仓库内容更新所有任务计划" />
-                                    <MenuItem Header="检查任务资源更新" Command="{Binding CheckResourceUpdatesCommand}" ToolTip.Tip="只检查本机仓库与任务使用版本，不访问远端" />
+                                    <MenuItem Header="{i18n:T '一键同步并更新'}" Command="{Binding SyncAndUpdateResourcesCommand}" ToolTip.Tip="{i18n:T '同步全部计划引用的仓库，并更新所有可用任务资源'}" />
+                                    <MenuItem Header="{i18n:T '使用本机仓库更新所有计划'}" Command="{Binding UpdateAllResourcesCommand}" ToolTip.Tip="{i18n:T '使用本机仓库内容更新所有任务计划'}" />
+                                    <MenuItem Header="{i18n:T '检查任务资源更新'}" Command="{Binding CheckResourceUpdatesCommand}" ToolTip.Tip="{i18n:T '只检查本机仓库与任务使用版本，不访问远端'}" />
                                 </MenuFlyout>
                             </DropDownButton.Flyout>
                         </DropDownButton>
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <TextBlock Text="计划" FontWeight="SemiBold" FontSize="16" />
+                            <TextBlock Text="{i18n:T '计划'}" FontWeight="SemiBold" FontSize="16" />
                             <TextBlock Classes="desc" Text="{Binding PlanCountText}" VerticalAlignment="Center" />
                         </StackPanel>
                     </DockPanel>
                     <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Add24, Size=16}" Margin="6,0,0,0" Command="{Binding NewPlanCommand}" ToolTip.Tip="新建计划" />
-                            <TextBox Watermark="新计划名称" Text="{Binding NewPlanName}" />
+                            <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Add24, Size=16}" Margin="6,0,0,0" Command="{Binding NewPlanCommand}" ToolTip.Tip="{i18n:T '新建计划'}" />
+                            <TextBox Watermark="{i18n:T '新计划名称'}" Text="{Binding NewPlanName}" />
                         </DockPanel>
-                        <Button Content="删除计划" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        <Button Content="{i18n:T '删除计划'}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                 Command="{Binding DeletePlanCommand}" IsEnabled="{Binding HasSelectedPlan}" />
-                        <TextBlock Classes="desc" Text="计划保存在 User/Pulonia，与 Windows 版共用" TextWrapping="Wrap" />
+                        <TextBlock Classes="desc" Text="{i18n:T '计划保存在 User/Pulonia，与 Windows 版共用'}" TextWrapping="Wrap" />
                     </StackPanel>
                     <ListBox ItemsSource="{Binding Plans}" SelectedItem="{Binding SelectedPlan}" Background="Transparent">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:TaskPlanItem">
                                 <DockPanel Margin="2,4">
-                                    <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Play24, Size=16}" Padding="8,4" VerticalAlignment="Center" ToolTip.Tip="运行"
+                                    <Button DockPanel.Dock="Right" Content="{svc:FluentIcon Play24, Size=16}" Padding="8,4" VerticalAlignment="Center" ToolTip.Tip="{i18n:T '运行'}"
                                             Command="{Binding $parent[ListBox].((vm:TaskPlanPageViewModel)DataContext).RunPlanCommand}"
                                             CommandParameter="{Binding}" />
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Classes="desc" Text="{Binding Summary}" />
-                                            <TextBlock Classes="desc" Text="· 运行中" Foreground="#4CC2FF" IsVisible="{Binding IsRunning}" />
+                                            <TextBlock Classes="desc" Text="{i18n:T '· 运行中'}" Foreground="#4CC2FF" IsVisible="{Binding IsRunning}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </DockPanel>
@@ -64,7 +65,7 @@
             <!-- 右侧：当前计划 -->
             <Border Grid.Column="1" Classes="card" Padding="14,10">
                 <Panel>
-                    <TextBlock Classes="desc" Text="还没有任务计划，在左侧输入名称后点“＋”新建。" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <TextBlock Classes="desc" Text="{i18n:T '还没有任务计划，在左侧输入名称后点“＋”新建。'}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                IsVisible="{Binding !HasSelectedPlan}" />
                     <DockPanel IsVisible="{Binding HasSelectedPlan}">
                         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
@@ -72,12 +73,12 @@
                                 <!-- 执行实例：有在线子实例（另一 Unix 会话里的 BetterGI）时显示，选子实例时整次下发 -->
                                 <ComboBox Name="RunTargetBox" MinWidth="150" ItemsSource="{Binding RunTargets}" SelectedItem="{Binding SelectedRunTarget}"
                                           DisplayMemberBinding="{Binding Label}" IsVisible="{Binding ShowRunTargets}"
-                                          ToolTip.Tip="执行实例：本实例，或把已保存的计划整次下发到子实例，由子实例执行并回报状态" />
-                                <Button Name="PreviewRunButton" Content="预览" MinWidth="64" HorizontalContentAlignment="Center"
-                                        Command="{Binding PreviewRunCommand}" ToolTip.Tip="预览本次执行：逐项预测执行或因路线 CD 跳过" />
-                                <Button Classes="accent" Content="运行" MinWidth="72" HorizontalContentAlignment="Center"
+                                          ToolTip.Tip="{i18n:T '执行实例：本实例，或把已保存的计划整次下发到子实例，由子实例执行并回报状态'}" />
+                                <Button Name="PreviewRunButton" Content="{i18n:T '预览'}" MinWidth="64" HorizontalContentAlignment="Center"
+                                        Command="{Binding PreviewRunCommand}" ToolTip.Tip="{i18n:T '预览本次执行：逐项预测执行或因路线 CD 跳过'}" />
+                                <Button Classes="accent" Content="{i18n:T '运行'}" MinWidth="72" HorizontalContentAlignment="Center"
                                         Command="{Binding RunPlanCommand}" CommandParameter="{x:Null}" IsVisible="{Binding !IsSelectedPlanRunning}" />
-                                <Button Classes="danger" Content="停止" MinWidth="72" HorizontalContentAlignment="Center"
+                                <Button Classes="danger" Content="{i18n:T '停止'}" MinWidth="72" HorizontalContentAlignment="Center"
                                         Command="{Binding StopPlanCommand}" IsVisible="{Binding IsSelectedPlanRunning}" />
                             </StackPanel>
                             <TextBlock Classes="pageTitle" FontSize="20" Text="{Binding SelectedPlan.Name, FallbackValue=''}" />
@@ -85,48 +86,48 @@
                         <!-- 运行账户：跟随当前账户或指定填写了 UID 的账户；账户目录只有一个账户且计划跟随当前账户时不显示（与 WPF 相同） -->
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6" IsVisible="{Binding ShowRunAccountEntry}">
                             <ContentControl Content="{svc:FluentIcon PeopleSwap24, Size=14}" VerticalAlignment="Center" Opacity="0.7" />
-                            <TextBlock Classes="desc" Text="运行账户" VerticalAlignment="Center" />
+                            <TextBlock Classes="desc" Text="{i18n:T '运行账户'}" VerticalAlignment="Center" />
                             <ComboBox Name="RunAccountBox" MinWidth="200" MaxWidth="320" ItemsSource="{Binding RunAccountOptions}" SelectedItem="{Binding SelectedRunAccount}"
                                       DisplayMemberBinding="{Binding Value}"
-                                      ToolTip.Tip="跟随当前账户：不切换，为本实例当前账户执行。指定账户：运行前切换到该账户并核验 UID，只能选择填写了 UID 的账户。" />
+                                      ToolTip.Tip="{i18n:T '跟随当前账户：不切换，为本实例当前账户执行。指定账户：运行前切换到该账户并核验 UID，只能选择填写了 UID 的账户。'}" />
                             <TextBlock Name="RunAccountProblemText" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"
                                        Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="{Binding RunAccountProblem}" IsVisible="{Binding HasRunAccountProblem}" />
                         </StackPanel>
                         <TabControl SelectedIndex="{Binding SelectedTab}">
-                            <TabItem Header="任务">
+                            <TabItem Header="{i18n:T '任务'}">
                                 <DockPanel Margin="0,6,0,0">
                                     <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                                         <ComboBox ItemsSource="{Binding AddOptions}" SelectedItem="{Binding SelectedAddOption}" MinWidth="170"
-                                                  PlaceholderText="任务类型" Margin="0,0,6,4" />
+                                                  PlaceholderText="{i18n:T '任务类型'}" Margin="0,0,6,4" />
                                         <ComboBox ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" MinWidth="220" MaxWidth="360"
                                                   IsVisible="{Binding HasResources}" Margin="0,0,6,4" />
-                                        <Button Content="＋ 添加" Command="{Binding AddTaskCommand}" Margin="0,0,6,4" />
-                                        <Button Content="分组" Command="{Binding AddGroupCommand}" Margin="0,0,6,4" />
+                                        <Button Content="{i18n:T '＋ 添加'}" Command="{Binding AddTaskCommand}" Margin="0,0,6,4" />
+                                        <Button Content="{i18n:T '分组'}" Command="{Binding AddGroupCommand}" Margin="0,0,6,4" />
                                         <ComboBox Name="ReferencePlanBox" ItemsSource="{Binding ReferencePlans}" SelectedItem="{Binding ReferenceTarget}"
-                                                  PlaceholderText="引用计划" MinWidth="140" Margin="0,0,6,4" DisplayMemberBinding="{Binding Name}" />
-                                        <Button Name="AddPlanReferenceButton" Content="引用" Command="{Binding AddPlanReferenceCommand}" Margin="0,0,14,4"
-                                                ToolTip.Tip="引用已有任务计划：不复制内容，之后修改该计划会同步影响这里" />
-                                        <Button Content="↑" Command="{Binding MoveTaskCommand}" CommandParameter="up" Margin="0,0,4,4" ToolTip.Tip="上移" />
-                                        <Button Content="↓" Command="{Binding MoveTaskCommand}" CommandParameter="down" Margin="0,0,4,4" ToolTip.Tip="下移" />
-                                        <Button Content="删除" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
-                                        <Button Name="CopyTaskButton" Content="复制" Command="{Binding CopyTaskCommand}" Margin="10,0,4,4" ToolTip.Tip="复制选中任务（含子项），可粘贴到任意计划" />
-                                        <Button Name="PasteTaskButton" Content="粘贴" Command="{Binding PasteTaskCommand}" Margin="0,0,4,4" ToolTip.Tip="粘贴为独立副本：选中分组时粘贴到分组内，否则粘贴到末尾" />
-                                        <Button Name="EnableAllButton" Content="启用全部" Command="{Binding EnableAllCommand}" Margin="0,0,4,4" ToolTip.Tip="选中分组时启用其全部子项，否则启用整个计划" />
-                                        <Button Name="UndoButton" Content="撤销" Command="{Binding UndoCommand}" Margin="0,0,4,4" ToolTip.Tip="撤销当前计划最近一次修改（最多 30 步）" />
-                                        <Button Name="NodeSettingsButton" Content="共享设置" Command="{Binding EditNodeSettingsCommand}" Margin="0,0,4,4"
-                                                ToolTip.Tip="编辑选中分组或任务自身的共享设置（优先于计划级设置与方案）" />
-                                        <Button Name="UpdateResourceButton" Content="更新资源…" Command="{Binding UpdateSelectedResourceCommand}" Margin="0,0,4,4"
+                                                  PlaceholderText="{i18n:T '引用计划'}" MinWidth="140" Margin="0,0,6,4" DisplayMemberBinding="{Binding Name}" />
+                                        <Button Name="AddPlanReferenceButton" Content="{i18n:T '引用'}" Command="{Binding AddPlanReferenceCommand}" Margin="0,0,14,4"
+                                                ToolTip.Tip="{i18n:T '引用已有任务计划：不复制内容，之后修改该计划会同步影响这里'}" />
+                                        <Button Content="↑" Command="{Binding MoveTaskCommand}" CommandParameter="up" Margin="0,0,4,4" ToolTip.Tip="{i18n:T '上移'}" />
+                                        <Button Content="↓" Command="{Binding MoveTaskCommand}" CommandParameter="down" Margin="0,0,4,4" ToolTip.Tip="{i18n:T '下移'}" />
+                                        <Button Content="{i18n:T '删除'}" Command="{Binding RemoveTaskCommand}" Margin="0,0,4,4" />
+                                        <Button Name="CopyTaskButton" Content="{i18n:T '复制'}" Command="{Binding CopyTaskCommand}" Margin="10,0,4,4" ToolTip.Tip="{i18n:T '复制选中任务（含子项），可粘贴到任意计划'}" />
+                                        <Button Name="PasteTaskButton" Content="{i18n:T '粘贴'}" Command="{Binding PasteTaskCommand}" Margin="0,0,4,4" ToolTip.Tip="{i18n:T '粘贴为独立副本：选中分组时粘贴到分组内，否则粘贴到末尾'}" />
+                                        <Button Name="EnableAllButton" Content="{i18n:T '启用全部'}" Command="{Binding EnableAllCommand}" Margin="0,0,4,4" ToolTip.Tip="{i18n:T '选中分组时启用其全部子项，否则启用整个计划'}" />
+                                        <Button Name="UndoButton" Content="{i18n:T '撤销'}" Command="{Binding UndoCommand}" Margin="0,0,4,4" ToolTip.Tip="{i18n:T '撤销当前计划最近一次修改（最多 30 步）'}" />
+                                        <Button Name="NodeSettingsButton" Content="{i18n:T '共享设置'}" Command="{Binding EditNodeSettingsCommand}" Margin="0,0,4,4"
+                                                ToolTip.Tip="{i18n:T '编辑选中分组或任务自身的共享设置（优先于计划级设置与方案）'}" />
+                                        <Button Name="UpdateResourceButton" Content="{i18n:T '更新资源…'}" Command="{Binding UpdateSelectedResourceCommand}" Margin="0,0,4,4"
                                                 IsEnabled="{Binding CanUpdateSelectedResource}"
-                                                ToolTip.Tip="更新此任务资源：重新读取本机仓库，确认后更新任务使用版本（WPF 任务树右键“更新此任务资源…”）" />
+                                                ToolTip.Tip="{i18n:T '更新此任务资源：重新读取本机仓库，确认后更新任务使用版本（WPF 任务树右键“更新此任务资源…”）'}" />
                                     </WrapPanel>
                                     <TextBlock Name="PlanCooldownSummaryText" DockPanel.Dock="Top" Classes="desc" Margin="2,0,0,6" Text="{Binding PlanCooldownSummary}"
                                                ToolTip.Tip="{Binding PlanCooldownSummaryTip}"
                                                IsVisible="{Binding PlanCooldownSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                     <Border DockPanel.Dock="Top" Background="#14FFFFFF" CornerRadius="4" Padding="12,6">
                                         <Grid ColumnDefinitions="*,90,44">
-                                            <TextBlock Classes="desc" Text="名称" />
-                                            <TextBlock Grid.Column="1" Classes="desc" Text="类型" />
-                                            <TextBlock Grid.Column="2" Classes="desc" Text="启用" />
+                                            <TextBlock Classes="desc" Text="{i18n:T '名称'}" />
+                                            <TextBlock Grid.Column="1" Classes="desc" Text="{i18n:T '类型'}" />
+                                            <TextBlock Grid.Column="2" Classes="desc" Text="{i18n:T '启用'}" />
                                         </Grid>
                                     </Border>
                                     <Border DockPanel.Dock="Right" Width="290" Margin="10,0,0,0" Padding="10,8" Background="#0FFFFFFF" CornerRadius="4"
@@ -135,8 +136,8 @@
                                     </Border>
                                     <Panel>
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" IsVisible="{Binding HasNoNodes}">
-                                            <TextBlock Text="这个计划还没有任务" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                            <TextBlock Classes="desc" Text="在上方选择任务类型（独立任务、录制回放、地图追踪、JS 脚本、Shell）后点“添加”" />
+                                            <TextBlock Text="{i18n:T '这个计划还没有任务'}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                            <TextBlock Classes="desc" Text="{i18n:T '在上方选择任务类型（独立任务、录制回放、地图追踪、JS 脚本、Shell）后点“添加”'}" />
                                         </StackPanel>
                                         <ListBox ItemsSource="{Binding Nodes}" SelectedItem="{Binding SelectedNode}" Background="Transparent">
                                             <ListBox.ItemTemplate>
@@ -155,7 +156,7 @@
                                                                         IsVisible="{Binding ResourceBadge, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                                                     <TextBlock Text="{Binding ResourceBadge}" FontSize="12" Foreground="#7FBFFF" />
                                                                 </Border>
-                                                                <TextBlock Text="⚙ 共享设置" FontSize="12" Opacity="0.7" VerticalAlignment="Center" IsVisible="{Binding HasOwnSettings}" />
+                                                                <TextBlock Text="{i18n:T '⚙ 共享设置'}" FontSize="12" Opacity="0.7" VerticalAlignment="Center" IsVisible="{Binding HasOwnSettings}" />
                                                             </StackPanel>
                                                             <TextBlock Classes="desc" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                                         </StackPanel>
@@ -168,9 +169,9 @@
                                     </Panel>
                                 </DockPanel>
                             </TabItem>
-                            <TabItem Header="执行记录">
+                            <TabItem Header="{i18n:T '执行记录'}">
                                 <DockPanel Margin="0,6,0,0">
-                                    <Button DockPanel.Dock="Top" HorizontalAlignment="Right" Content="刷新" Command="{Binding RefreshRunsCommand}" Margin="0,0,0,6" />
+                                    <Button DockPanel.Dock="Top" HorizontalAlignment="Right" Content="{i18n:T '刷新'}" Command="{Binding RefreshRunsCommand}" Margin="0,0,0,6" />
                                     <ScrollViewer>
                                         <ItemsControl ItemsSource="{Binding Runs}">
                                             <ItemsControl.ItemTemplate>
@@ -191,28 +192,28 @@
                                     </ScrollViewer>
                                 </DockPanel>
                             </TabItem>
-                            <TabItem Header="触发方式">
+                            <TabItem Header="{i18n:T '触发方式'}">
                                 <views:TaskTriggerPanel />
                             </TabItem>
-                            <TabItem Header="设置方案">
+                            <TabItem Header="{i18n:T '设置方案'}">
                                 <!-- 设置方案与计划级共享设置（与新一条龙“共享设置”页共用） -->
                                 <views:TaskPlanProfilesPanel />
                             </TabItem>
-                            <TabItem Header="路线 CD">
+                            <TabItem Header="{i18n:T '路线 CD'}">
                                 <DockPanel>
                                     <DockPanel DockPanel.Dock="Top" Margin="0,4,0,8">
-                                        <Button Name="RefreshCooldownsButton" DockPanel.Dock="Left" Content="刷新" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
-                                        <CheckBox Name="CooldownPlanOnlyBox" DockPanel.Dock="Left" Content="仅本计划" IsChecked="{Binding CooldownsForPlanOnly}" Margin="0,0,10,0" />
+                                        <Button Name="RefreshCooldownsButton" DockPanel.Dock="Left" Content="{i18n:T '刷新'}" Command="{Binding RefreshCooldownsCommand}" Margin="0,0,10,0" />
+                                        <CheckBox Name="CooldownPlanOnlyBox" DockPanel.Dock="Left" Content="{i18n:T '仅本计划'}" IsChecked="{Binding CooldownsForPlanOnly}" Margin="0,0,10,0" />
                                         <TextBlock VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap"
-                                                   Text="地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。" />
+                                                   Text="{i18n:T '地图追踪路线的完成记录（与 Windows 版共用账本）；清除后下次运行不再按 CD 跳过该路线。'}" />
                                     </DockPanel>
                                     <Panel>
-                                        <TextBlock Text="暂无路线 CD 记录。" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
+                                        <TextBlock Text="{i18n:T '暂无路线 CD 记录。'}" Opacity="0.6" IsVisible="{Binding HasNoCooldowns}" Margin="4" />
                                         <ListBox Name="CooldownList" ItemsSource="{Binding Cooldowns}" IsVisible="{Binding !HasNoCooldowns}">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:TaskPlanCooldownRow">
                                                     <DockPanel>
-                                                        <Button DockPanel.Dock="Right" Content="清除" VerticalAlignment="Center"
+                                                        <Button DockPanel.Dock="Right" Content="{i18n:T '清除'}" VerticalAlignment="Center"
                                                                 Command="{Binding $parent[UserControl].((vm:TaskPlanPageViewModel)DataContext).ClearCooldownCommand}"
                                                                 CommandParameter="{Binding}" />
                                                         <StackPanel>

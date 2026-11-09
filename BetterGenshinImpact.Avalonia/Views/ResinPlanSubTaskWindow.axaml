@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
         xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
         xmlns:tasksVm="using:BetterGenshinImpact.ViewModel.SoloTaskSettings"
         xmlns:pulonia="using:BetterGenshinImpact.ViewModel.Pages.Pulonia"
@@ -28,13 +29,13 @@
                                       SelectedItem="{Binding TextValue, Converter={x:Static services:Converters.CombatStrategyValue}}"
                                       IsVisible="{Binding IsCombatStrategy}" Width="200" />
                             <StackPanel IsVisible="{Binding IsSourcedDomain}" Orientation="Horizontal" Spacing="12">
-                                <RadioButton Content="跟随培养计划" GroupName="{Binding Name}" IsChecked="{Binding IsFollowTrainingPlan}" />
-                                <RadioButton Content="指定秘境" GroupName="{Binding Name}" IsChecked="{Binding IsManualDomain}" />
+                                <RadioButton Content="{i18n:T '跟随培养计划'}" GroupName="{Binding Name}" IsChecked="{Binding IsFollowTrainingPlan}" />
+                                <RadioButton Content="{i18n:T '指定秘境'}" GroupName="{Binding Name}" IsChecked="{Binding IsManualDomain}" />
                             </StackPanel>
                             <ComboBox ItemsSource="{Binding DomainItems}" SelectedItem="{Binding SelectedDomainItem}" Width="200" IsVisible="{Binding IsPlainDomain}" />
                             <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsNumber}" Width="140" />
                             <TextBox Text="{Binding TextValue}" IsVisible="{Binding IsText}" Width="200" />
-                            <Button Content="设置" Command="{Binding Resin.EditCommand, FallbackValue={x:Null}}" IsVisible="{Binding IsResinUsage}" MinWidth="88" />
+                            <Button Content="{i18n:T '设置'}" Command="{Binding Resin.EditCommand, FallbackValue={x:Null}}" IsVisible="{Binding IsResinUsage}" MinWidth="88" />
                         </Panel>
                     </Grid>
                     <TextBlock Classes="desc" Text="{Binding Resin.Summary, FallbackValue=''}" IsVisible="{Binding IsResinUsage}" />
@@ -51,8 +52,8 @@
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock x:Name="SubTaskValidationText" Text="{Binding ValidationMessage}" TextWrapping="Wrap" Foreground="#E0A000" VerticalAlignment="Center" Margin="0,0,12,0" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Button x:Name="SubTaskConfirmButton" Content="确定" Classes="accent" MinWidth="72" IsDefault="True" Click="Confirm_Click" />
-                    <Button x:Name="SubTaskCancelButton" Content="取消" MinWidth="72" IsCancel="True" Click="Cancel_Click" />
+                    <Button x:Name="SubTaskConfirmButton" Content="{i18n:T '确定'}" Classes="accent" MinWidth="72" IsDefault="True" Click="Confirm_Click" />
+                    <Button x:Name="SubTaskCancelButton" Content="{i18n:T '取消'}" MinWidth="72" IsCancel="True" Click="Cancel_Click" />
                 </StackPanel>
             </Grid>
         </Border>

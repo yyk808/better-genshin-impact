@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="using:BetterGenshinImpact.Avalonia.I18n"
              xmlns:vm="using:BetterGenshinImpact.Avalonia.ViewModels"
              xmlns:ar="using:BetterGenshinImpact.Service.AccountRecords"
              xmlns:svc="using:BetterGenshinImpact.Avalonia.Services"
@@ -9,59 +10,59 @@
     <!-- 对应 WPF AccountRecordsPage 的库存记录分页：标题栏 UID 选择/新增、搜索、只读库存表 -->
     <DockPanel Margin="20,16,20,16">
         <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-            <TextBlock Classes="pagetitle" Text="狛荷屋(test)" />
+            <TextBlock Classes="pagetitle" Text="{i18n:T '狛荷屋(test)'}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <TextBlock Text="UID" VerticalAlignment="Center" />
-                <ComboBox x:Name="UidBox" Width="160" ItemsSource="{Binding UidOptions}" SelectedItem="{Binding SelectedUid}" PlaceholderText="尚无 UID" />
-                <Button x:Name="AddUidButton" Content="新增 UID" Command="{Binding BeginAddUidCommand}" />
-                <DropDownButton x:Name="AccountMenuButton" Content="账号操作">
+                <ComboBox x:Name="UidBox" Width="160" ItemsSource="{Binding UidOptions}" SelectedItem="{Binding SelectedUid}" PlaceholderText="{i18n:T '尚无 UID'}" />
+                <Button x:Name="AddUidButton" Content="{i18n:T '新增 UID'}" Command="{Binding BeginAddUidCommand}" />
+                <DropDownButton x:Name="AccountMenuButton" Content="{i18n:T '账号操作'}">
                     <DropDownButton.Flyout>
                         <MenuFlyout>
-                            <MenuItem Header="导入库存…" Command="{Binding OpenImportCommand}" />
-                            <MenuItem Header="导出当前库存…" Command="{Binding ExportInventoryCommand}" />
+                            <MenuItem Header="{i18n:T '导入库存…'}" Command="{Binding OpenImportCommand}" />
+                            <MenuItem Header="{i18n:T '导出当前库存…'}" Command="{Binding ExportInventoryCommand}" />
                             <Separator />
-                            <MenuItem Header="清空该 UID 的库存" Command="{Binding ClearAccountCommand}" CommandParameter="inventory" />
-                            <MenuItem Header="删除该 UID 及全部记录" Command="{Binding ClearAccountCommand}" CommandParameter="uid" />
+                            <MenuItem Header="{i18n:T '清空该 UID 的库存'}" Command="{Binding ClearAccountCommand}" CommandParameter="inventory" />
+                            <MenuItem Header="{i18n:T '删除该 UID 及全部记录'}" Command="{Binding ClearAccountCommand}" CommandParameter="uid" />
                             <Separator />
-                            <MenuItem Header="重置为预设值…" Command="{Binding ResetToDefaultsCommand}" />
+                            <MenuItem Header="{i18n:T '重置为预设值…'}" Command="{Binding ResetToDefaultsCommand}" />
                         </MenuFlyout>
                     </DropDownButton.Flyout>
                 </DropDownButton>
-                <TextBox x:Name="SearchBox" Width="200" Watermark="搜索库存记录" Text="{Binding SearchText}" />
+                <TextBox x:Name="SearchBox" Width="200" Watermark="{i18n:T '搜索库存记录'}" Text="{Binding SearchText}" />
                 <!-- 与 WPF 库存页签“更多操作”相同的刷新、快照、字典与图像缓存项（Linux 版暂不显示物品图像） -->
-                <DropDownButton x:Name="AccountMoreButton" Content="{svc:FluentIcon MoreHorizontal24, Size=14}" ToolTip.Tip="当前页签的更多操作">
+                <DropDownButton x:Name="AccountMoreButton" Content="{svc:FluentIcon MoreHorizontal24, Size=14}" ToolTip.Tip="{i18n:T '当前页签的更多操作'}">
                     <DropDownButton.Flyout>
                         <MenuFlyout>
-                            <MenuItem Header="刷新库存" Command="{Binding RefreshInventoryCommand}" />
-                            <MenuItem Header="事件记录…" Command="{Binding OpenEventsCommand}" />
-                            <MenuItem Header="新增库存记录…" Command="{Binding AddInventoryCommand}" />
+                            <MenuItem Header="{i18n:T '刷新库存'}" Command="{Binding RefreshInventoryCommand}" />
+                            <MenuItem Header="{i18n:T '事件记录…'}" Command="{Binding OpenEventsCommand}" />
+                            <MenuItem Header="{i18n:T '新增库存记录…'}" Command="{Binding AddInventoryCommand}" />
                             <Separator />
-                            <MenuItem Header="优先显示来源名称" ToggleType="CheckBox" IsChecked="{Binding PreferReadableSource, Mode=OneWay}" Command="{Binding ToggleSourceNamesCommand}" />
-                            <MenuItem Header="恢复所有分页默认栏宽" Command="{Binding ResetColumnWidthsCommand}" />
+                            <MenuItem Header="{i18n:T '优先显示来源名称'}" ToggleType="CheckBox" IsChecked="{Binding PreferReadableSource, Mode=OneWay}" Command="{Binding ToggleSourceNamesCommand}" />
+                            <MenuItem Header="{i18n:T '恢复所有分页默认栏宽'}" Command="{Binding ResetColumnWidthsCommand}" />
                             <Separator />
-                            <MenuItem Header="快照设置">
-                                <MenuItem Header="查看快照（未建设）" IsEnabled="False" />
+                            <MenuItem Header="{i18n:T '快照设置'}">
+                                <MenuItem Header="{i18n:T '查看快照（未建设）'}" IsEnabled="False" />
                                 <Separator />
-                                <MenuItem Header="自动日期快照" ToggleType="CheckBox" IsChecked="{Binding SnapshotsEnabled, Mode=OneWay}" Command="{Binding ToggleSnapshotsCommand}" />
-                                <MenuItem Header="快照保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="snapshots" />
+                                <MenuItem Header="{i18n:T '自动日期快照'}" ToggleType="CheckBox" IsChecked="{Binding SnapshotsEnabled, Mode=OneWay}" Command="{Binding ToggleSnapshotsCommand}" />
+                                <MenuItem Header="{i18n:T '快照保留数量…'}" Command="{Binding SetRetentionCommand}" CommandParameter="snapshots" />
                             </MenuItem>
                             <Separator />
-                            <MenuItem Header="高级">
-                                <MenuItem Header="追踪来源提醒（未建设）" ToggleType="CheckBox" IsChecked="False" IsEnabled="False" ToolTip.Tip="功能尚未建设。" />
-                                <MenuItem Header="自定义提醒规则…" Command="{Binding EditWarningRulesCommand}"
-                                          ToolTip.Tip="InventoryRules 可配置多条独立规则，每条使用自己的 Id、条件和 Message；保存后刷新或等待一分钟，示例默认禁用。用系统默认程序打开 warning-rules.json" />
-                                <MenuItem Header="查看物品字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="items" />
-                                <MenuItem Header="查看补充字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="user" />
-                                <MenuItem Header="查看来源字典…" Command="{Binding ViewDictionaryCommand}" CommandParameter="sources" />
+                            <MenuItem Header="{i18n:T '高级'}">
+                                <MenuItem Header="{i18n:T '追踪来源提醒（未建设）'}" ToggleType="CheckBox" IsChecked="False" IsEnabled="False" ToolTip.Tip="{i18n:T '功能尚未建设。'}" />
+                                <MenuItem Header="{i18n:T '自定义提醒规则…'}" Command="{Binding EditWarningRulesCommand}"
+                                          ToolTip.Tip="{i18n:T 'InventoryRules 可配置多条独立规则，每条使用自己的 Id、条件和 Message；保存后刷新或等待一分钟，示例默认禁用。用系统默认程序打开 warning-rules.json'}" />
+                                <MenuItem Header="{i18n:T '查看物品字典…'}" Command="{Binding ViewDictionaryCommand}" CommandParameter="items" />
+                                <MenuItem Header="{i18n:T '查看补充字典…'}" Command="{Binding ViewDictionaryCommand}" CommandParameter="user" />
+                                <MenuItem Header="{i18n:T '查看来源字典…'}" Command="{Binding ViewDictionaryCommand}" CommandParameter="sources" />
                                 <Separator />
-                                <MenuItem Header="来源记录保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="recent" />
-                                <MenuItem Header="事件保留数量…" Command="{Binding SetRetentionCommand}" CommandParameter="events" />
+                                <MenuItem Header="{i18n:T '来源记录保留数量…'}" Command="{Binding SetRetentionCommand}" CommandParameter="recent" />
+                                <MenuItem Header="{i18n:T '事件保留数量…'}" Command="{Binding SetRetentionCommand}" CommandParameter="events" />
                                 <Separator />
-                                <MenuItem Header="使用图像缓存" ToggleType="CheckBox" IsChecked="{Binding UseImageCache, Mode=OneWay}" Command="{Binding ToggleImageCacheCommand}"
-                                          ToolTip.Tip="所有子表共用；关闭仅停用图片缓存，不删除文件。Linux 版库存列表暂不显示物品图像" />
-                                <MenuItem Header="无图像时显示行号" ToggleType="CheckBox" IsChecked="{Binding ShowMissingIconRowNumbers, Mode=OneWay}" Command="{Binding ToggleMissingIconRowNumbersCommand}"
-                                          ToolTip.Tip="Linux 版库存列表暂不显示物品图像，开启后每行显示行号（置顶行单独编号）" />
-                                <MenuItem Header="清理所有图像缓存（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
+                                <MenuItem Header="{i18n:T '使用图像缓存'}" ToggleType="CheckBox" IsChecked="{Binding UseImageCache, Mode=OneWay}" Command="{Binding ToggleImageCacheCommand}"
+                                          ToolTip.Tip="{i18n:T '所有子表共用；关闭仅停用图片缓存，不删除文件。Linux 版库存列表暂不显示物品图像'}" />
+                                <MenuItem Header="{i18n:T '无图像时显示行号'}" ToggleType="CheckBox" IsChecked="{Binding ShowMissingIconRowNumbers, Mode=OneWay}" Command="{Binding ToggleMissingIconRowNumbersCommand}"
+                                          ToolTip.Tip="{i18n:T 'Linux 版库存列表暂不显示物品图像，开启后每行显示行号（置顶行单独编号）'}" />
+                                <MenuItem Header="{i18n:T '清理所有图像缓存（Linux 版暂不显示物品图像，未提供）'}" IsEnabled="False" />
                             </MenuItem>
                         </MenuFlyout>
                     </DropDownButton.Flyout>
@@ -71,9 +72,9 @@
         <Border DockPanel.Dock="Top" x:Name="AddUidPanel" IsVisible="{Binding IsAddingUid}" Margin="0,0,0,8" Padding="12,8" CornerRadius="6"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBox x:Name="PendingUidBox" Width="180" Watermark="9～10 位数字" Text="{Binding PendingUid}" />
-                <Button x:Name="ConfirmAddUidButton" Classes="accent" Content="添加" Command="{Binding AddUidCommand}" />
-                <Button Content="取消" Command="{Binding CancelAddUidCommand}" />
+                <TextBox x:Name="PendingUidBox" Width="180" Watermark="{i18n:T '9～10 位数字'}" Text="{Binding PendingUid}" />
+                <Button x:Name="ConfirmAddUidButton" Classes="accent" Content="{i18n:T '添加'}" Command="{Binding AddUidCommand}" />
+                <Button Content="{i18n:T '取消'}" Command="{Binding CancelAddUidCommand}" />
                 <TextBlock x:Name="UidValidationText" VerticalAlignment="Center" Foreground="#E05050" Text="{Binding UidValidationMessage}" />
             </StackPanel>
         </Border>
@@ -83,22 +84,22 @@
                 <!-- 表头栏宽可拖动（同 WPF 表格），“恢复所有分页默认栏宽”恢复为这里的声明值；行按表头栏宽布局（代码隐藏同步） -->
                 <Grid DockPanel.Dock="Top" x:Name="InventoryHeader" ColumnDefinitions="40,180,6,100,6,90,6,150,6,160,6,*" Margin="12,8">
                     <TextBlock x:Name="RowNumberHeaderText" Text="#" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="1" Text="名称" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{i18n:T '名称'}" FontWeight="SemiBold" />
                     <GridSplitter Grid.Column="2" ResizeDirection="Columns" Background="Transparent" />
-                    <TextBlock Grid.Column="3" Text="分类" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="{i18n:T '分类'}" FontWeight="SemiBold" />
                     <GridSplitter Grid.Column="4" ResizeDirection="Columns" Background="Transparent" />
-                    <TextBlock Grid.Column="5" Text="数量" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="{i18n:T '数量'}" FontWeight="SemiBold" />
                     <GridSplitter Grid.Column="6" x:Name="ExpirationSplitter" ResizeDirection="Columns" Background="Transparent" />
-                    <TextBlock Grid.Column="7" x:Name="ExpirationHeaderText" Text="过期时间" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="7" x:Name="ExpirationHeaderText" Text="{i18n:T '过期时间'}" FontWeight="SemiBold" />
                     <GridSplitter Grid.Column="8" ResizeDirection="Columns" Background="Transparent" />
-                    <TextBlock Grid.Column="9" Text="记录时间" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="9" Text="{i18n:T '记录时间'}" FontWeight="SemiBold" />
                     <GridSplitter Grid.Column="10" ResizeDirection="Columns" Background="Transparent" />
-                    <TextBlock Grid.Column="11" Text="来源" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="11" Text="{i18n:T '来源'}" FontWeight="SemiBold" />
                 </Grid>
                 <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
                 <Panel>
                     <TextBlock x:Name="EmptyInventoryText" IsVisible="{Binding !HasRows}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7"
-                               Text="暂无库存记录。库存由脚本或任务上报，也可从“账号操作”导入。" />
+                               Text="{i18n:T '暂无库存记录。库存由脚本或任务上报，也可从“账号操作”导入。'}" />
                     <ScrollViewer>
                         <ItemsControl x:Name="InventoryList" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
@@ -110,23 +111,23 @@
                                             <ContextMenu>
                                                 <MenuItem Header="{Binding Prior, Converter={x:Static views:AccountRecordsConverters.PriorAction}}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).TogglePriorCommand}" CommandParameter="{Binding}" />
-                                                <MenuItem Header="查看物品详情…" ToolTip.Tip="双击物品行也可查看最近来源记录"
+                                                <MenuItem Header="{i18n:T '查看物品详情…'}" ToolTip.Tip="{i18n:T '双击物品行也可查看最近来源记录'}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowDetailsCommand}" CommandParameter="{Binding}" />
-                                                <MenuItem Header="修改数量 / 修订字典"
+                                                <MenuItem Header="{i18n:T '修改数量 / 修订字典'}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).EditInventoryCommand}" CommandParameter="{Binding}" />
-                                                <MenuItem Header="归档同类未受阻的完成事件" IsEnabled="{Binding CanBatchArchive}"
+                                                <MenuItem Header="{i18n:T '归档同类未受阻的完成事件'}" IsEnabled="{Binding CanBatchArchive}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ArchiveRowCompletedEventsCommand}" CommandParameter="{Binding}" />
-                                                <MenuItem Header="查看异常" IsEnabled="{Binding StateRank, Converter={x:Static views:AccountRecordsConverters.HasStatus}}"
+                                                <MenuItem Header="{i18n:T '查看异常'}" IsEnabled="{Binding StateRank, Converter={x:Static views:AccountRecordsConverters.HasStatus}}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowStatusCommand}" CommandParameter="{Binding}" />
                                                 <Separator />
-                                                <MenuItem Header="显示过期时间" ToggleType="CheckBox"
+                                                <MenuItem Header="{i18n:T '显示过期时间'}" ToggleType="CheckBox"
                                                           IsChecked="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ShowExpirationColumn, Mode=OneWay}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).ToggleExpirationColumnCommand}" />
                                                 <Separator />
-                                                <MenuItem Header="删除图像缓存（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
-                                                <MenuItem Header="上传图标…（Linux 版暂不显示物品图像，未提供）" IsEnabled="False" />
+                                                <MenuItem Header="{i18n:T '删除图像缓存（Linux 版暂不显示物品图像，未提供）'}" IsEnabled="False" />
+                                                <MenuItem Header="{i18n:T '上传图标…（Linux 版暂不显示物品图像，未提供）'}" IsEnabled="False" />
                                                 <Separator />
-                                                <MenuItem Header="删除此物品记录"
+                                                <MenuItem Header="{i18n:T '删除此物品记录'}"
                                                           Command="{Binding $parent[UserControl].((vm:AccountRecordsPageViewModel)DataContext).DeleteItemCommand}" CommandParameter="{Binding}" />
                                             </ContextMenu>
                                         </Grid.ContextMenu>
