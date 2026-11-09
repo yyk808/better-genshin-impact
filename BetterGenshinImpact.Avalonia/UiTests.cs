@@ -4172,7 +4172,10 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 更换背景图片（本地文件；文件选择框由 ChangeBannerImageCommand 打开，这里直接应用测试图片）与恢复默认
         var menu = Named<Grid>("HomeBanner")?.ContextMenu;
-        Check("横幅右键菜单（更换背景图片 / 恢复默认图片）", menu?.Items.OfType<MenuItem>().Select(m => m.Header as string).SequenceEqual(new[] { "更换背景图片", "恢复默认图片" }) == true);
+        var headers = menu?.Items.OfType<MenuItem>().Select(m => m.Header as string).ToList() ?? [];
+        Check("横幅右键菜单含更换/网络/恢复", headers.SequenceEqual(new[] { "更换背景图片", "使用网络图片", "刷新网络图片", "恢复默认图片" }), string.Join("|", headers));
+        Check("未用网络图时 IsCustomNetworkBanner 为 false", !vm.Home.IsCustomNetworkBanner);
+
         var test = Path.Combine(Path.GetTempPath(), "m54-banner.png");
         using (var rt = new global::Avalonia.Media.Imaging.RenderTargetBitmap(new global::Avalonia.PixelSize(64, 32))) rt.Save(test);
         vm.Home.ApplyCustomBanner(test);
@@ -4187,6 +4190,63 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Check("恢复默认：删除自定义图片并显示默认图", !vm.Home.IsCustomBanner && !File.Exists(BetterGenshinImpact.Core.Config.HomeBannerImage.CustomPath)
             && bitmap?.PixelSize == new global::Avalonia.PixelSize(2538, 1157), bitmap?.PixelSize.ToString());
         File.Delete(test);
+
+        // 网络图片（假下载，不联网）
+        var svc = vm.Host?.Services.GetService(typeof(BetterGenshinImpact.Service.Interface.IBannerImageService))
+            as BetterGenshinImpact.Service.Interface.IBannerImageService;
+        Check("已注册 IBannerImageService", svc is not null);
+        var netPng = Path.Combine(Path.GetTempPath(), "m64-net-banner.png");
+        using (var rt = new global::Avalonia.Media.Imaging.RenderTargetBitmap(new global::Avalonia.PixelSize(80, 40))) rt.Save(netPng);
+        var dl0 = ViewModels.HomePageViewModel.DownloadNetworkBannerAsync;
+        ViewModels.HomePageViewModel.DownloadNetworkBannerAsync = async (bannerSvc, url, ct) =>
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(bannerSvc.NetworkImagePath)!);
+            File.Copy(netPng, bannerSvc.NetworkImagePath, true);
+            await Task.CompletedTask;
+            return url.StartsWith("https://example.test/");
+        };
+        try
+        {
+            // 直接调命令更稳
+            var dlgTask = vm.Home.ChangeWebBannerImageCommand.ExecuteAsync(null);
+            var dlg = await WaitFor(() => ViewModels.HomePageViewModel.CurrentWebBannerDialog);
+            Check("网络图片地址对话框", dlg is not null && (dlg.Title as string ?? "").Contains("网络图片"), dlg?.Title);
+            TextBox? box = null;
+            if (dlg?.Content is Panel panel)
+            {
+                box = panel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(b => b.Name == "WebBannerUrlBox")
+                    ?? panel.Children.OfType<TextBox>().FirstOrDefault()
+                    ?? panel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+            }
+            Check("地址输入框", box is not null);
+            if (box is not null) box.Text = "https://example.test/banner.png";
+            Shot("avalonia-home-banner-web-dialog.png");
+            dlg?.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.Primary);
+            await dlgTask;
+            await Settle(400);
+            bitmap = (Named<Border>("HomeBannerImage")?.Background as global::Avalonia.Media.ImageBrush)?.Source as global::Avalonia.Media.Imaging.Bitmap;
+            Check("网络图已应用", vm.Home.IsCustomNetworkBanner && !vm.Home.IsCustomBanner && bitmap?.PixelSize == new global::Avalonia.PixelSize(80, 40)
+                && File.Exists(svc!.NetworkImagePath) && svc.ReadConfiguredUrl() == "https://example.test/banner.png", bitmap?.PixelSize.ToString());
+            Check("刷新后属性 IsCustomNetworkBanner", vm.Home.IsCustomNetworkBanner);
+            Shot("avalonia-home-banner-network.png");
+
+            // 刷新
+            await vm.Home.RefreshWebBannerImageCommand.ExecuteAsync(null);
+            await Settle(400);
+            Check("刷新后仍为网络图", vm.Home.IsCustomNetworkBanner && File.Exists(svc!.NetworkImagePath));
+
+            vm.Home.ResetBannerImageCommand.Execute(null);
+            await Settle();
+            Check("恢复默认清除网络配置与文件", !vm.Home.IsCustomNetworkBanner && !File.Exists(svc!.NetworkImagePath)
+                && string.IsNullOrEmpty(svc.ReadConfiguredUrl()));
+        }
+        finally
+        {
+            ViewModels.HomePageViewModel.DownloadNetworkBannerAsync = dl0;
+            if (Services.FluentMessageBox.Current is { } left) left.Hide(FluentAvalonia.UI.Controls.FAContentDialogResult.None);
+            try { File.Delete(netPng); } catch { }
+            try { svc?.ResetNetworkImage(); } catch { }
+        }
     }
 
     /// <summary>

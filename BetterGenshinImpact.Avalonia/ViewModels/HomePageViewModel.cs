@@ -1,3 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
+using FluentAvalonia.UI.Controls;
+using BetterGenshinImpact.Service.Interface;
+using Avalonia.Media;
+using Avalonia.Controls;
+using System.Threading.Tasks;
+using System.Threading;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
 using BetterGenshinImpact.Core.Config;
@@ -40,6 +47,8 @@ public sealed partial class HomePageViewModel : PageViewModel
         else
         {
             _selectedCaptureMethod = GameHost.SelectedCaptureMethodFor(host.Platform, host.LinuxConfig);
+            _bannerImageService = host.Services.GetService<IBannerImageService>();
+            _ = TryLoadConfiguredNetworkBannerAsync(showErrorToast: false);
         }
     }
 
@@ -49,17 +58,29 @@ public sealed partial class HomePageViewModel : PageViewModel
     public const string DefaultBannerUri = "avares://bgi-avalonia/Assets/Images/banner.jpg";
 
     private global::Avalonia.Media.Imaging.Bitmap? _bannerImage;
+    private IBannerImageService? _bannerImageService;
+    private CancellationTokenSource? _bannerDownloadCts;
 
-    /// <summary>首页横幅图片：与 WPF 相同，有 User/Images/custom_banner.jpg 时用它，否则用默认图</summary>
+    /// <summary>
+    /// 界面自测替换：下载网络背景图。参数为 (service, url, ct)；返回是否应用成功。
+    /// 默认走 <see cref="IBannerImageService.DownloadAndSaveAsync"/>。
+    /// </summary>
+    public static Func<IBannerImageService, string, CancellationToken, Task<bool>>? DownloadNetworkBannerAsync { get; set; }
+
+    /// <summary>当前打开的“网络图片地址”对话框（界面自测用）</summary>
+    public static FAContentDialog? CurrentWebBannerDialog { get; private set; }
+
+    /// <summary>首页横幅图片：本地自定义 / 网络图 / 默认图（优先级同 WPF：有配置的网络图则用网络文件，否则本地自定义，否则默认）</summary>
     public global::Avalonia.Media.Imaging.Bitmap? BannerImage => _bannerImage ??= LoadBannerImage();
 
     private void ReloadBanner()
     {
-        var old = _bannerImage;
+        var oldBmp = _bannerImage;
         _bannerImage = LoadBannerImage();
         OnPropertyChanged(nameof(BannerImage));
         OnPropertyChanged(nameof(IsCustomBanner));
-        old?.Dispose();
+        OnPropertyChanged(nameof(IsCustomNetworkBanner));
+        oldBmp?.Dispose();
     }
 
     /// <summary>更换背景图片：选择本地图片（与 WPF 相同复制为 User/Images/custom_banner.jpg）</summary>
@@ -73,7 +94,12 @@ public sealed partial class HomePageViewModel : PageViewModel
             AllowMultiple = false,
             FileTypeFilter = [new global::Avalonia.Platform.Storage.FilePickerFileType("图片文件") { Patterns = HomeBannerImage.ImagePatterns }, global::Avalonia.Platform.Storage.FilePickerFileTypes.All],
         });
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path) ApplyCustomBanner(path);
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        {
+            CancelBannerDownload();
+            _bannerImageService?.ResetNetworkImage();
+            ApplyCustomBanner(path);
+        }
     }
 
     /// <summary>把图片设为自定义横幅</summary>
@@ -81,11 +107,11 @@ public sealed partial class HomePageViewModel : PageViewModel
     {
         try
         {
-            // 先释放当前位图再覆盖文件
-            var old = _bannerImage;
+            var oldBmp = _bannerImage;
             _bannerImage = null;
-            old?.Dispose();
+            oldBmp?.Dispose();
             HomeBannerImage.CopyToCustom(path);
+            IsCustomNetworkBanner = false;
             ReloadBanner();
             UiHost.Dialogs.Toast(DialogKind.Success, HomeBannerImage.ChangedText);
         }
@@ -97,16 +123,106 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
     }
 
-    /// <summary>恢复默认图片（删除自定义图片；网络图片未迁移）</summary>
+    /// <summary>使用网络图片（对照 WPF ChangeWebBannerImage / WebImageInput）</summary>
+    [RelayCommand]
+    private async Task ChangeWebBannerImage()
+    {
+        if (_bannerImageService is null)
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "网络背景服务不可用。");
+            return;
+        }
+
+        if (AvaloniaPickers.MainWindow is not { } owner) return;
+        CancelBannerDownload();
+        var initial = "";
+        try { initial = _bannerImageService.ReadConfiguredUrl() ?? ""; }
+        catch (Exception e) { _log.Warning(e, "读取网络背景图片地址失败"); }
+
+        var box = new TextBox { Name = "WebBannerUrlBox", Text = initial, MinWidth = 360, PlaceholderText = "https://..." };
+        var label = new TextBlock
+        {
+            Text = "图片直链地址：",
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center,
+            Margin = new global::Avalonia.Thickness(0, 0, 8, 0),
+        };
+        DockPanel.SetDock(label, Dock.Left);
+        var row = new DockPanel();
+        row.Children.Add(label);
+        row.Children.Add(box);
+        var content = new StackPanel
+        {
+            Spacing = 8,
+            Children =
+            {
+                new TextBlock { Text = "请在下方输入网络图片地址", FontSize = 16 },
+                row,
+            },
+        };
+
+        var dialog = new FAContentDialog
+        {
+            Title = "请输入网络图片地址",
+            Content = content,
+            PrimaryButtonText = "确定",
+            CloseButtonText = "取消",
+            DefaultButton = FAContentDialogButton.Primary,
+        };
+        CurrentWebBannerDialog = dialog;
+        FAContentDialogResult result;
+        try { result = await FluentMessageBox.ShowCustomAsync(dialog, owner); }
+        finally { CurrentWebBannerDialog = null; }
+        if (result != FAContentDialogResult.Primary) return;
+
+        var url = box.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(url))
+        {
+            UiHost.Dialogs.Toast(DialogKind.Warning, "请输入网络图片地址。");
+            return;
+        }
+
+        await DownloadAndApplyNetworkBannerAsync(url, showErrorToast: true, saveUrl: true);
+    }
+
+    /// <summary>刷新已配置的网络图片</summary>
+    [RelayCommand]
+    private async Task RefreshWebBannerImage()
+    {
+        if (_bannerImageService is null) return;
+        try
+        {
+            var url = _bannerImageService.ReadConfiguredUrl();
+            if (!string.IsNullOrEmpty(url))
+            {
+                await DownloadAndApplyNetworkBannerAsync(url, showErrorToast: true, saveUrl: false);
+            }
+            else
+            {
+                CancelBannerDownload();
+                IsCustomNetworkBanner = false;
+                ReloadBanner();
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "刷新背景图片失败");
+            UiHost.Dialogs.Toast(DialogKind.Error, $"刷新背景图片失败：{e.Message}");
+        }
+    }
+
+    /// <summary>恢复默认图片（删除本地自定义与网络背景配置，同 WPF）</summary>
     [RelayCommand]
     private void ResetBannerImage()
     {
-        var old = _bannerImage;
+        CancelBannerDownload();
+        var oldBmp = _bannerImage;
         _bannerImage = null;
-        old?.Dispose();
+        oldBmp?.Dispose();
         try
         {
             HomeBannerImage.DeleteCustom();
+            _bannerImageService?.ResetNetworkImage();
+            IsCustomNetworkBanner = false;
             ReloadBanner();
             UiHost.Dialogs.Toast(DialogKind.Success, HomeBannerImage.ResetText);
         }
@@ -118,16 +234,101 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
     }
 
-    /// <summary>当前横幅是否为自定义图片</summary>
+    /// <summary>当前横幅是否为本地自定义图片（非网络）</summary>
     public bool IsCustomBanner { get; private set; }
+
+    /// <summary>当前横幅是否为网络图片（同 WPF IsCustomNetworkBanner；控制“刷新网络图片”菜单可见）</summary>
+    [ObservableProperty] private bool _isCustomNetworkBanner;
+
+    private async Task TryLoadConfiguredNetworkBannerAsync(bool showErrorToast)
+    {
+        if (_bannerImageService is null) return;
+        try
+        {
+            var url = _bannerImageService.ReadConfiguredUrl();
+            if (!string.IsNullOrEmpty(url))
+            {
+                await DownloadAndApplyNetworkBannerAsync(url, showErrorToast, saveUrl: false);
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "初始化背景图片失败，使用现有背景图片");
+        }
+    }
+
+    private async Task DownloadAndApplyNetworkBannerAsync(string url, bool showErrorToast, bool saveUrl)
+    {
+        if (_bannerImageService is null) return;
+        CancelBannerDownload();
+        var cts = new CancellationTokenSource();
+        _bannerDownloadCts = cts;
+        try
+        {
+            var download = DownloadNetworkBannerAsync ?? ((svc, u, ct) => svc.DownloadAndSaveAsync(u, ct));
+            if (!await download(_bannerImageService, url, cts.Token))
+            {
+                return;
+            }
+
+            cts.Token.ThrowIfCancellationRequested();
+            if (saveUrl) _bannerImageService.SaveConfiguredUrl(url);
+            // 网络图优先：清掉本地自定义文件锁冲突前先卸位图
+            var oldBmp = _bannerImage;
+            _bannerImage = null;
+            oldBmp?.Dispose();
+            HomeBannerImage.DeleteCustom();
+            IsCustomNetworkBanner = true;
+            ReloadBanner();
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            // 新操作替代或恢复默认时无需提示
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "下载自定义背景图片 url 失败，使用现有背景图片");
+            if (showErrorToast)
+            {
+                UiHost.Dialogs.Toast(DialogKind.Error, $"下载自定义背景图片url失败：{e.Message}");
+            }
+
+            IsCustomNetworkBanner = false;
+            ReloadBanner();
+        }
+        finally
+        {
+            if (ReferenceEquals(_bannerDownloadCts, cts)) _bannerDownloadCts = null;
+            cts.Dispose();
+        }
+    }
+
+    private void CancelBannerDownload()
+    {
+        var cts = _bannerDownloadCts;
+        _bannerDownloadCts = null;
+        cts?.Cancel();
+        _bannerImageService?.InvalidatePendingDownloads();
+    }
 
     private global::Avalonia.Media.Imaging.Bitmap? LoadBannerImage()
     {
         try
         {
+            // 网络图优先（与 WPF RefreshBannerImage / LoadFallback 一致）
+            if (_bannerImageService is not null && File.Exists(_bannerImageService.NetworkImagePath)
+                && !string.IsNullOrEmpty(_bannerImageService.ReadConfiguredUrl()))
+            {
+                IsCustomBanner = false;
+                IsCustomNetworkBanner = true;
+                _log.Information("已加载自定义背景图片url");
+                return new global::Avalonia.Media.Imaging.Bitmap(_bannerImageService.NetworkImagePath);
+            }
+
             if (HomeBannerImage.ResolveCustomFile() is { } custom)
             {
                 IsCustomBanner = true;
+                IsCustomNetworkBanner = false;
                 _log.Information("已加载自定义背景图片");
                 return new global::Avalonia.Media.Imaging.Bitmap(custom);
             }
@@ -138,6 +339,7 @@ public sealed partial class HomePageViewModel : PageViewModel
         }
 
         IsCustomBanner = false;
+        IsCustomNetworkBanner = false;
         try
         {
             using var stream = global::Avalonia.Platform.AssetLoader.Open(new Uri(DefaultBannerUri));

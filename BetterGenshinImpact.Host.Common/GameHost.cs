@@ -1,3 +1,4 @@
+using System.Threading;
 ﻿using BetterGenshinImpact.GameTask.QuestVoice;
 using BetterGenshinImpact.Helpers;
 using BetterGenshinImpact.Core.Monitor;
@@ -431,6 +432,19 @@ public sealed class GameHost : IAsyncDisposable
                 c.Timeout = TimeSpan.FromSeconds(30);
                 c.DefaultRequestHeaders.UserAgent.ParseAdd($"BetterGI/{BetterGenshinImpact.Core.Config.Global.Version}");
             });
+            // 下载服务（网络背景图等大文件）：不限总时长、关闭自动解压缩（与 WPF AddBgiHttpClients 相同）
+            services.AddHttpClient(HttpClientNames.Download, c => c.Timeout = Timeout.InfiniteTimeSpan)
+                .ConfigurePrimaryHttpMessageHandler(() => new System.Net.Http.HttpClientHandler
+                {
+                    AutomaticDecompression = System.Net.DecompressionMethods.None,
+                });
+            services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Network.Download.DownloadService(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(HttpClientNames.Download),
+                BetterGenshinImpact.Infrastructure.Storage.AppPaths.Downloads,
+                sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Network.Download.DownloadService>>()));
+            services.AddSingleton<BetterGenshinImpact.Infrastructure.Network.Download.IDownloadService>(sp =>
+                sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Network.Download.DownloadService>());
+            services.AddSingleton<BetterGenshinImpact.Service.Interface.IBannerImageService, BetterGenshinImpact.Service.BannerImageService>();
             services.AddHttpClient(HttpClientNames.Notification, c => c.Timeout = TimeSpan.FromSeconds(30));
             services.AddSingleton<NotifierManager>();
             services.AddSingleton<LinuxNotificationService>();

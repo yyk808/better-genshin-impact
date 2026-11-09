@@ -14,6 +14,8 @@
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem x:Name="ChangeBannerMenu" Header="更换背景图片" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeBannerImageCommand}" />
+                        <MenuItem x:Name="ChangeWebBannerMenu" Header="使用网络图片" Icon="{svc:FluentIcon Image24, Size=14}" Command="{Binding ChangeWebBannerImageCommand}" />
+                        <MenuItem x:Name="RefreshWebBannerMenu" Header="刷新网络图片" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding RefreshWebBannerImageCommand}" IsVisible="{Binding IsCustomNetworkBanner}" />
                         <MenuItem x:Name="ResetBannerMenu" Header="恢复默认图片" Icon="{svc:FluentIcon ArrowCounterclockwise24, Size=14}" Command="{Binding ResetBannerImageCommand}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
