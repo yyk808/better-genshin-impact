@@ -3,7 +3,7 @@ using System;
 namespace BetterGenshinImpact.GameTask;
 
 /// <summary>
-/// 独立任务运行期间屏蔽系统通知。Windows 实现为 WindowsNotificationSuppressionService
+/// 独立任务运行期间屏蔽系统通知。Windows：WindowsNotificationSuppressionService；Linux：LinuxNotificationSuppressionService
 /// </summary>
 public interface ISoloTaskNotificationSuppressor
 {

@@ -373,7 +373,9 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<SoloTaskExecutionService>();
             // 配置组执行（一条龙中的配置组任务、脚本）
             services.AddSingleton<IScriptService, ScriptService>();
-            services.AddSingleton<ISoloTaskNotificationSuppressor>(NoopSoloTaskNotificationSuppressor.Instance);
+            services.AddSingleton<BetterGenshinImpact.Platform.Linux.Desktop.LinuxNotificationSuppressionService>();
+            services.AddSingleton<ISoloTaskNotificationSuppressor>(sp =>
+                sp.GetRequiredService<BetterGenshinImpact.Platform.Linux.Desktop.LinuxNotificationSuppressionService>());
             services.AddSingleton<TaskTriggerDispatcher>();
             services.AddSingleton<ITriggerDispatcher>(sp => sp.GetRequiredService<TaskTriggerDispatcher>());
             services.AddSingleton(linuxConfig);

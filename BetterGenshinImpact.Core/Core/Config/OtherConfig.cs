@@ -15,7 +15,7 @@ public partial class OtherConfig : ObservableObject
     private bool _restoreFocusOnLostEnabled = false;
 
     /// <summary>
-    /// 独立任务运行期间是否临时开启 Windows 勿扰，任务结束后恢复原通知设置。
+    /// 独立任务运行期间是否临时开启系统勿扰（Windows 专注助手 / Linux 桌面通知横幅），任务结束后恢复原设置。
     /// </summary>
     [ObservableProperty]
     private bool _suppressWindowsNotificationsDuringSoloTask;

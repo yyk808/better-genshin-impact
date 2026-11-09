@@ -3,7 +3,8 @@ using BetterGenshinImpact.GameTask;
 namespace BetterGenshinImpact.Host.Common;
 
 /// <summary>
-/// Linux 宿主不屏蔽桌面通知（Windows 为 WindowsNotificationSuppressionService 的专注助手开关）
+/// 不屏蔽桌面通知的占位实现。Linux 宿主默认改用
+/// <see cref="BetterGenshinImpact.Platform.Linux.Desktop.LinuxNotificationSuppressionService"/>。
 /// </summary>
 public sealed class NoopSoloTaskNotificationSuppressor : ISoloTaskNotificationSuppressor
 {

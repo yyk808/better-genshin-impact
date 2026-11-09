@@ -17,10 +17,14 @@
                             <ComboBox x:Name="UiLanguageBox" Width="200" ItemsSource="{Binding UiCultureNames}" SelectedItem="{Binding Config.OtherConfig.UiCultureInfoName}" />
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
+                    <ui:FASettingsExpander x:Name="SoloTaskQuietHoursCard" Header="独立任务期间开启勿扰" Description="运行独立任务时临时关闭桌面通知横幅，结束后恢复。GNOME 用 gsettings；若有 swaync / mako 也会尝试。与 Windows 版共用配置项。" IconSource="{svc:FluentIconSource Alert24}">
+                        <ui:FASettingsExpander.Footer>
+                            <ToggleSwitch x:Name="SoloTaskQuietHoursSwitch" IsChecked="{Binding Config.OtherConfig.SuppressWindowsNotificationsDuringSoloTask}" OnContent="" OffContent="" />
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
                     <ui:FASettingsExpander x:Name="WindowsOnlyCard" Header="Windows 版专属设置" Description="以下设置依赖 Windows，在 Linux 版不可用（与 Windows 版共用配置，切回 Windows 版仍生效）" IconSource="{svc:FluentIconSource Info24}">
                         <ui:FASettingsExpanderItem Content="网络与代理" Description="使用 Windows 系统代理设置；Linux 版按系统环境变量 HTTP(S)_PROXY 联网" />
                         <ui:FASettingsExpanderItem Content="主窗口自定义背景" Description="Windows 版 Mica 背景特性，Linux 版不支持" />
-                        <ui:FASettingsExpanderItem Content="独立任务期间屏蔽 Windows 通知" Description="依赖 Windows 专注助手" />
                         <ui:FASettingsExpanderItem Content="WGC 截图参数" Description="Windows Graphics Capture 专用；Linux 截图方式见“启动”页" />
                     </ui:FASettingsExpander>
                     <ui:FASettingsExpander Header="原神游戏语言" Description="Game Language，影响 OCR 识别时使用的文字" IconSource="{svc:FluentIconSource LocalLanguage24}">
