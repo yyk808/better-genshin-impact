@@ -57,7 +57,7 @@ internal sealed partial class UiTests
 
             var more = Named<DropDownButton>("AccountMoreButton");
             var items = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-            var all = items.Concat(items.SelectMany(i => i.Items.OfType<MenuItem>())).Select(i => i.Header as string ?? "").ToList();
+            var all = items.Concat(items.SelectMany(i => i.Items.OfType<MenuItem>())).Select(i => UiText(i.Header) ?? "").ToList();
             Check("“更多”菜单：优先显示来源名称、恢复所有分页默认栏宽、高级里的无图像时显示行号",
                 new[] { "优先显示来源名称", "恢复所有分页默认栏宽", "无图像时显示行号" }.All(all.Contains), string.Join(",", all));
 
@@ -68,7 +68,7 @@ internal sealed partial class UiTests
                 if (grid?.ContextMenu is not { } cm) return [];
                 cm.Open(grid);
                 await Settle(300);
-                var headers = cm.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList();
+                var headers = cm.Items.OfType<MenuItem>().Select(i => UiText(i.Header) ?? "").ToList();
                 cm.Close();
                 await Settle(150);
                 return headers;

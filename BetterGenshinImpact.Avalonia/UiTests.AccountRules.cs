@@ -35,10 +35,10 @@ internal sealed partial class UiTests
             await Until(() => page.Rows.Count == 1, 3000);
 
             var more = Named<DropDownButton>("AccountMoreButton");
-            var advanced = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "高级");
+            var advanced = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().FirstOrDefault(i => UiText(i.Header) == "高级");
             var sub = advanced?.Items.OfType<MenuItem>().ToList() ?? [];
             Check("“高级”首两项：追踪来源提醒（未建设）、自定义提醒规则…（同 WPF）", sub.Count > 2 && sub[0] is { Header: "追踪来源提醒（未建设）", IsEnabled: false } &&
-                sub[1].Header as string == "自定义提醒规则…" && ToolTip.GetTip(sub[1]) is string tip && tip.StartsWith("InventoryRules"), string.Join(",", sub.Select(i => i.Header)));
+                UiText(sub[1].Header) == "自定义提醒规则…" && TipText(sub[1]) is string tip && tip.StartsWith("InventoryRules"), string.Join(",", sub.Select(i => UiText(i.Header))));
 
             string? opened = null;
             page.OpenRulesFile = path => opened = path;

@@ -140,7 +140,22 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
     private T? Named<T>(string name) where T : Control => All<T>().FirstOrDefault(c => c.Name == name && c.IsEffectivelyVisible);
 
-    private Button? ButtonByText(string text) => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == text);
+
+    /// <summary>读控件文案：字面量，或 i18n:T 留下的 Binding（ConverterParameter=中文键）。</summary>
+    private static string? UiText(object? content) => content switch
+    {
+        null => null,
+        string s => s,
+        global::Avalonia.Controls.TextBlock tb => tb.Text,
+        global::Avalonia.Data.Binding { ConverterParameter: string key } =>
+            BetterGenshinImpact.Service.I18n.I18nService.Instance.Translate(key),
+        _ => content.ToString(),
+    };
+
+    private static string? TipText(global::Avalonia.Controls.Control? c) =>
+        c is null ? null : UiText(global::Avalonia.Controls.ToolTip.GetTip(c));
+
+    private Button? ButtonByText(string text) => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == text);
 
     private static readonly MethodInfo OnClickMethod = typeof(Button).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
@@ -472,7 +487,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Shot("questvoice-stopped.png");
         Check("初始状态已停止", !qv.Status.IsRunning, qv.Status.OverallStatus);
 
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "校验配置"), "校验配置");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "校验配置"), "校验配置");
         await Task.Delay(3000);
         log.Information("校验结果：{Validation}", qv.Status.Validation);
         Check("校验配置有结果", qv.Status.Validation != "尚未校验", qv.Status.Validation);
@@ -842,9 +857,9 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         page.SelectedJsScript = "m36html";
         await Settle();
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "添加"), "添加 JS 脚本");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "添加"), "添加 JS 脚本");
         Check("配置组内项目", group.Projects.Count == 1 && group.Projects[0].Type == "Javascript", group.Projects.Count);
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "JS设置"), "JS设置");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "JS设置"), "JS设置");
         var htmlWindow = await WaitFor(() => window.OwnedWindows.OfType<HtmlSettingsWindow>().FirstOrDefault());
         Check("HTML 设置窗口打开", htmlWindow is not null, htmlWindow?.Title);
 
@@ -899,7 +914,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         page.SelectedJsScript = "m35demo";
         await Settle();
-        var addButtons = All<Button>().Where(b => b.IsEffectivelyVisible && b.Content as string == "添加").ToList();
+        var addButtons = All<Button>().Where(b => b.IsEffectivelyVisible && UiText(b.Content) == "添加").ToList();
         await Click(addButtons.FirstOrDefault(), "添加 JS 脚本");
         page.NewShellCommand = "echo m35";
         await Click(addButtons.Skip(2).FirstOrDefault(), "添加 Shell");
@@ -908,7 +923,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 1. JS 自定义设置：默认值写入，修改后保存
         var js = group.Projects.First(p => p.Type == "Javascript");
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "JS设置"), "JS设置");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "JS设置"), "JS设置");
         Check("JS 设置面板打开", page.Editor?.Kind == ScriptSettingsKind.JsSettings);
         Shot("avalonia-js-settings-default.png");
         Check("默认值：输入框", Named<TextBox>("js:teamName")?.Text == "默认队伍", Named<TextBox>("js:teamName")?.Text);
@@ -948,7 +963,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 2. 项目通用设置
         var jsRow = page.SelectedScriptGroup.Projects.First(p => p.Type == "Javascript");
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "设置" && b.CommandParameter == jsRow), "通用设置");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "设置" && b.CommandParameter == jsRow), "通用设置");
         Check("通用设置面板打开", page.Editor?.Kind == ScriptSettingsKind.Project);
         var schedule = Named<ComboBox>("p:Schedule")!;
         schedule.SelectedIndex = ScriptGroupProjectExtensions.ScheduleDescriptions.Keys.ToList().IndexOf("Monday");
@@ -1031,7 +1046,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         page.NewPlanName = planName;
-        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && TipText(b) == "新建计划")), "新建计划");
         var id = page.SelectedPlan?.Plan.Id ?? "";
         var created = page.SelectedPlan?.Name == planName && File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json"));
         Check("新建计划写入文件", created, id);
@@ -1059,12 +1074,12 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         // 排序：选中第一项点“↓”
         page.SelectedNode = page.Nodes[0];
         await Settle();
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "↓" && ToolTip.GetTip(b) as string == "下移"), "下移");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "↓" && TipText(b) == "下移"), "下移");
         kids = Children(ReadPlan(id));
         Check("存盘：下移", kids.Select(k => k.Value<string>("task_type")).SequenceEqual(["keymouse", "shell", "group"]),
             string.Join(",", kids.Select(k => k.Value<string>("task_type"))));
         Check("移动后保持选中", page.SelectedNode?.Task.TaskType == "shell", page.SelectedNode?.Name);
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "↑" && ToolTip.GetTip(b) as string == "上移"), "上移");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "↑" && TipText(b) == "上移"), "上移");
         kids = Children(ReadPlan(id));
         Check("存盘：上移", kids.Select(k => k.Value<string>("task_type")).SequenceEqual(["shell", "keymouse", "group"]),
             string.Join(",", kids.Select(k => k.Value<string>("task_type"))));
@@ -1118,7 +1133,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         // 删除：删除分组
         page.SelectedNode = page.Nodes.First(n => n.Task.TaskType == "group");
         await Settle();
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "删除" && b.Command == page.RemoveTaskCommand), "删除任务");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "删除" && b.Command == page.RemoveTaskCommand), "删除任务");
         kids = Children(ReadPlan(id));
         Check("存盘：删除分组", kids.Count == 2 && kids.All(k => k.Value<string>("task_type") != "group"));
 
@@ -1153,7 +1168,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Check("存盘：编辑触发", triggers.Count == 1 && triggers[0].Value<string>("cron") == "0 6 * * *");
         Shot("avalonia-taskplan-trigger-list.png");
         page.SelectedTrigger = page.Triggers.FirstOrDefault();
-        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && b.Content as string == "删除" && b.Command == page.DeleteTriggerCommand), "删除触发");
+        await Click(All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && UiText(b.Content) == "删除" && b.Command == page.DeleteTriggerCommand), "删除触发");
         Check("存盘：删除触发", ((JArray)ReadPlan(id)["triggers"]!).Count == 0);
 
         // 删除计划
@@ -1189,7 +1204,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         page.NewPlanName = planName;
-        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && TipText(b) == "新建计划")), "新建计划");
         var id = page.SelectedPlan?.Plan.Id ?? "";
         var created = page.SelectedPlan?.Name == planName && File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json"));
         Check("新建计划写入文件", created, id);
@@ -1311,7 +1326,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         page.NewPlanName = planName;
-        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && TipText(b) == "新建计划")), "新建计划");
         var id = page.SelectedPlan?.Plan.Id ?? "";
         var created = page.SelectedPlan?.Name == planName && File.Exists(Global.Absolute($@"User\Pulonia\plans\{id}.json"));
         Check("新建计划写入文件", created, id);
@@ -1908,7 +1923,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         // 外部脚本预置的自测记录：点“清除”后从列表与账本中消失
         if (page.Cooldowns.FirstOrDefault(r => r.Route.Contains("M42自测路线")) is { } seeded && tasks is not null)
         {
-            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
+            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => UiText(b.Content) == "清除" && b.DataContext == seeded);
             await Click(clear, "清除路线 CD");
             await Settle(600);
             var left = (await AllCompletionsAsync()).Count(c => c.Route.Contains("M42自测路线"));
@@ -2010,7 +2025,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             Check("按计划筛选的 CD 记录", page.Cooldowns.Count == 1 && page.Cooldowns[0].Route.Contains("m44-cd"), $"{page.Cooldowns.Count}");
             Shot("avalonia-plan-cd-overview-plan.png");
             var seeded = page.Cooldowns.FirstOrDefault();
-            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content as string == "清除" && b.DataContext == seeded);
+            var clear = CooldownList()?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => UiText(b.Content) == "清除" && b.DataContext == seeded);
             await Click(clear, "清除路线 CD");
             await Settle(800);
             var left = (await AllCompletionsAsync()).Count(c => c.Route.Contains("m44-cd/示例"));
@@ -2335,7 +2350,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await WaitFor(() => vm.Host?.RuntimeService.Current);
         vm.Navigate("设置");
         await Settle(800);
-        var tab = All<TabItem>().FirstOrDefault(t => t.Header as string == "通知");
+        var tab = All<TabItem>().FirstOrDefault(t => UiText(t.Header) == "通知");
         if (tab is not null) tab.IsSelected = true;
         await Settle(800);
 
@@ -2496,8 +2511,8 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         moreButton?.Flyout?.ShowAt(moreButton);
         await Settle(300);
         var menu = (moreButton?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-        Check("更多菜单", menu.Select(m => m.Header as string).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理", "导入旧配置（Linux 版尚未迁移）", "查看导入报告（随导入旧配置迁移，Linux 版暂不可用）", "重新加载"]),
-            string.Join(",", menu.Select(m => m.Header)));
+        Check("更多菜单", menu.Select(m => UiText(m.Header)).SequenceEqual(["添加任务…", "上移", "下移", "删除选中任务", "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "执行记录", "配置共享设置…", "设置方案…", "账号管理", "导入旧配置", "查看导入报告", "重新加载"]),
+            string.Join(",", menu.Select(m => UiText(m.Header))));
         menu.FirstOrDefault()?.Command?.Execute(null);
         moreButton?.Flyout?.Hide();
         await Settle();
@@ -2756,7 +2771,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             await Settle(800);
             var more = Named<DropDownButton>("AccountMoreButton");
             var items = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-            string H(MenuItem i) => i.Header as string ?? "";
+            string H(MenuItem i) => UiText(i.Header) ?? "";
             var all = items.Concat(items.SelectMany(i => i.Items.OfType<MenuItem>())).Select(H).ToList();
             Check("“更多”菜单：刷新 / 快照设置 / 字典 / 保留数量 / 图像缓存",
                 new[] { "刷新库存", "快照设置", "自动日期快照", "快照保留数量…", "查看物品字典…", "查看补充字典…", "查看来源字典…", "来源记录保留数量…", "事件保留数量…", "使用图像缓存" }.All(all.Contains),
@@ -3138,7 +3153,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             var rowMenu = All<Border>().Select(b => b.ContextMenu).FirstOrDefault(m => m is not null);
             rowMenu?.Open(All<Border>().First(b => b.ContextMenu == rowMenu));
             await Settle(400);
-            Check("项目行右键菜单：打开所在目录 / 根据文件夹移除", rowMenu?.Items.OfType<MenuItem>().Select(i => i.Header as string).SequenceEqual(["打开所在目录", "根据文件夹移除"]) == true);
+            Check("项目行右键菜单：打开所在目录 / 根据文件夹移除", rowMenu?.Items.OfType<MenuItem>().Select(i => UiText(i.Header)).SequenceEqual(["打开所在目录", "根据文件夹移除"]) == true);
             Shot("avalonia-script-more-rowmenu.png");
             rowMenu?.Close();
             await Settle();
@@ -3279,14 +3294,14 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle(600);
         if (plans.SelectedPlan is null) { Check("有一条龙配置", false); return; }
         var more = await WaitFor(() => Named<DropDownButton>("MoreButton"));
-        var headers = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+        var headers = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => UiText(i.Header) ?? "").ToList() ?? [];
         Check("“更多”菜单：复制 / 粘贴 / 撤销 / 预览 / 定时与热键 / 配置共享设置 / 设置方案",
             new[] { "复制选中任务", "粘贴到选中任务之后", "撤销最近编辑", "预览本次执行", "定时与热键", "配置共享设置…", "设置方案…" }.All(headers.Contains), string.Join(",", headers));
         // 菜单项的命令绑定在弹出后才生效
         more?.Flyout?.ShowAt(more);
         await Settle(400);
-        Check("导入旧配置可用、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (i.Header as string ?? "").StartsWith("导入旧配置")).All(i => i.IsEnabled) == true
-            && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => i.Header as string == "账号管理" && i.Command is not null && i.IsEnabled) == true);
+        Check("导入旧配置可用、账号管理可用", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Where(i => (UiText(i.Header) ?? "").StartsWith("导入旧配置")).All(i => i.IsEnabled) == true
+            && (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => UiText(i.Header) == "账号管理" && i.Command is not null && i.IsEnabled) == true);
         Shot("avalonia-newonedragon-more.png");
         more?.Flyout?.Hide();
 
@@ -3349,7 +3364,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             Check("筛选：只剩两条测试路线", page.LastPathingCandidates.Count == 2 && page.LastPathingCandidates.Any(e => e.Display == "m57测试目录/子目录/m57-b.json"),
                 string.Join(",", page.LastPathingCandidates.Select(e => e.Display)));
             var list = (panel?.Children.OfType<ScrollViewer>().FirstOrDefault()?.Content as Panel)?.Children.OfType<CheckBox>().ToList() ?? [];
-            var a = list.FirstOrDefault(c => (c.Content as string) == "m57测试目录/m57-a.json");
+            var a = list.FirstOrDefault(c => UiText(c.Content) == "m57测试目录/m57-a.json");
             if (a is not null) a.IsChecked = true;
             await Settle();
             Shot("avalonia-script-pathing.png");
@@ -3453,7 +3468,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         // M64：账号切换已迁移；只有一个账户且跟随当前账户时不显示“切换账号”步骤（与 WPF 相同）
         Check("切换账号步骤按账户目录显示", (Named<Border>("AccountStepCard") is not null) == plans.ShowRunAccountEntry && !texts.Any(t => t.Contains("账号切换依赖 Windows")));
         var more = Named<DropDownButton>("MoreButton");
-        Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (i.Header as string ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
+        Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (UiText(i.Header) ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
         Check("高级设置按钮", Named<Button>("AdvancedNodeButton") is not null);
         Check("可添加进程内 C# 任务", plans.AddOptions.Any(o => o.Definition.TaskType == "csharp"));
 
@@ -3653,7 +3668,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             page.SelectedNode = Row("M61 甲");
             await Settle(300);
             var syncMenu = await WaitFor(() => Named<DropDownButton>("ResourceSyncButton"));
-            var headers = (syncMenu?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+            var headers = (syncMenu?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Select(i => UiText(i.Header) ?? "").ToList() ?? [];
             Check("计划列表标题栏的同步菜单：一键同步并更新 / 使用本机仓库更新所有计划 / 检查任务资源更新",
                 headers.SequenceEqual(["一键同步并更新", "使用本机仓库更新所有计划", "检查任务资源更新"]), string.Join(",", headers));
             syncMenu?.Flyout?.ShowAt(syncMenu);
@@ -4172,7 +4187,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 更换背景图片（本地文件；文件选择框由 ChangeBannerImageCommand 打开，这里直接应用测试图片）与恢复默认
         var menu = Named<Grid>("HomeBanner")?.ContextMenu;
-        var headers = menu?.Items.OfType<MenuItem>().Select(m => m.Header as string).ToList() ?? [];
+        var headers = menu?.Items.OfType<MenuItem>().Select(m => UiText(m.Header)).ToList() ?? [];
         Check("横幅右键菜单含更换/网络/恢复", headers.SequenceEqual(new[] { "更换背景图片", "使用网络图片", "刷新网络图片", "恢复默认图片" }), string.Join("|", headers));
         Check("未用网络图时 IsCustomNetworkBanner 为 false", !vm.Home.IsCustomNetworkBanner);
 
@@ -4270,19 +4285,19 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
         // 右键菜单：与 WPF 相同的“新增 / 删除 / 从此执行 / 清除标记”
         var menu = rows[1].ContextMenu;
-        var headers = menu?.Items.OfType<MenuItem>().Select(i => i.Header as string ?? "").ToList() ?? [];
+        var headers = menu?.Items.OfType<MenuItem>().Select(i => UiText(i.Header) ?? "").ToList() ?? [];
         Check("行右键菜单：新增任务 / 删除 / 从此执行 / 清除标记", headers.SequenceEqual(["新增任务", "删除", "从此执行", "清除标记"]), string.Join(",", headers));
         var listMenu = Named<ScrollViewer>("OneDragonTaskScroll")?.ContextMenu;
-        Check("空白处右键菜单：新增任务 / 清除标记", listMenu?.Items.OfType<MenuItem>().Select(i => i.Header as string).SequenceEqual(["新增任务", "清除标记"]) == true);
+        Check("空白处右键菜单：新增任务 / 清除标记", listMenu?.Items.OfType<MenuItem>().Select(i => UiText(i.Header)).SequenceEqual(["新增任务", "清除标记"]) == true);
         menu?.Open(rows[1]);
         await Settle(500);
         Shot("avalonia-onedragon-contextmenu.png");
-        var next = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "从此执行");
+        var next = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => UiText(i.Header) == "从此执行");
         next?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
         menu?.Close();
         await Settle(400);
         Check("右键“从此执行”标记该行", page.TaskList[1].IsNextTask && page.NextTaskText.Contains(page.TaskList[1].Name), page.NextTaskText);
-        var clear = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "清除标记");
+        var clear = menu?.Items.OfType<MenuItem>().FirstOrDefault(i => UiText(i.Header) == "清除标记");
         clear?.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
         await Settle(300);
         Check("右键“清除标记”", page.TaskList.All(t => !t.IsNextTask), page.NextTaskText);
@@ -4421,7 +4436,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle();
         Check("勾选写回任务", item.IsEnabled == !was);
         box.IsChecked = was;
-        var next = list.GetVisualDescendants().OfType<Button>().First(b => b.DataContext == item && b.Content as string == "从此执行");
+        var next = list.GetVisualDescendants().OfType<Button>().First(b => b.DataContext == item && UiText(b.Content) == "从此执行");
         await Click(next, "从此执行");
         Check("标记下次开始", item.IsNextTask && page.SelectedConfig?.NextTaskId == item.Id && page.NextTaskText.Contains(item.Name), page.NextTaskText);
         Shot("avalonia-onedragon.png");
@@ -4470,7 +4485,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             Check("读取已安装插件", item is { Name: "M51 测试插件", VersionText: "v1.2.3" } && !page.HasNoPlugins, item?.ToString());
             Check("列表显示", Named<ItemsControl>("InstalledList")?.ItemCount == page.Plugins.Count);
             Check("权限警告", Named<Border>("PluginPermissionWarning")?.IsEffectivelyVisible == true);
-            var uninstall = All<Button>().Where(b => b.IsEffectivelyVisible && b.Content as string == "卸载").ToList();
+            var uninstall = All<Button>().Where(b => b.IsEffectivelyVisible && UiText(b.Content) == "卸载").ToList();
             Check("卸载按钮置灰并说明", uninstall.Count == page.Plugins.Count && uninstall.All(b => !b.IsEnabled && ToolTip.GetTip(b) is string), $"{uninstall.Count}");
             Check("提供的功能一行", All<TextBlock>().Count(t => t.IsEffectivelyVisible && t.Inlines?.OfType<global::Avalonia.Controls.Documents.Run>().FirstOrDefault()?.Text == "提供的功能：") == page.Plugins.Count);
             Shot("avalonia-plugins.png");
@@ -4498,7 +4513,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         lib.UpdateProgress("BV1m51hist", "M51 记录测试", "https://www.bilibili.com/video/BV1m51hist", 30, 0, 1.0);
         vm.Navigate("悬浮小窗");
         await Settle(600);
-        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
+        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => UiText(e.Header)).ToList();
         Check("卡片与 WPF 相同", headers.SequenceEqual(["小窗", "主页", "外观与窗口", "鼠标穿透与交互", "自动显示与隐藏", "播放习惯", "字幕浮窗", "快捷键", "收藏与观看记录", "网页数据与快捷打开"]),
             string.Join(",", headers));
         Check("不能打开小窗时才显示提示（WebKitGTK 可用：不显示）", (Named<Border>("UnsupportedBanner") is not null) == !page.CanOpenWindow, page.CanOpenWindow);
@@ -4593,8 +4608,8 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
             B("PreviousButton") is { Width: 44, Height: 44 } && B("NextButton") is { Width: 44, Height: 44 } && B("PlayPauseButton") is { Width: 52, Height: 52 } &&
             B("StopButton") is { Width: 44, Height: 44 } && B("PlaybackModeButton") is { Width: 48, Height: 40 } &&
             B("StopButton")!.Classes.Contains("transparent") && B("PlaybackModeButton")!.Classes.Contains("transparent") && B("PlayPauseButton")!.Classes.Contains("accent")
-            && ToolTip.GetTip(B("PlayPauseButton")!) as string == "播放/暂停");
-        Check("重新扫描按钮同 WPF（44×34，提示“重新扫描曲谱目录”）", B("RefreshButton") is { Width: 44, Height: 34 } && ToolTip.GetTip(B("RefreshButton")!) as string == "重新扫描曲谱目录");
+            && TipText(B("PlayPauseButton")!) == "播放/暂停");
+        Check("重新扫描按钮同 WPF（44×34，提示“重新扫描曲谱目录”）", B("RefreshButton") is { Width: 44, Height: 34 } && TipText(B("RefreshButton")!) == "重新扫描曲谱目录");
         page.IsRefreshing = true;
         await Settle(200);
         Check("扫描期间刷新按钮不可用并显示进度环", B("RefreshButton")?.IsEnabled == false && All<Control>().FirstOrDefault(c => c.Name == "RefreshProgress")?.IsVisible == true
@@ -4685,10 +4700,10 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await Settle(600);
         var page = vm.Macro;
         var macro = page.Config.MacroConfig;
-        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => e.Header as string).ToList();
+        var headers = All<FluentAvalonia.UI.Controls.FASettingsExpander>().Where(e => e.IsEffectivelyVisible).Select(e => UiText(e.Header)).ToList();
         Check("卡片与 WPF 相同", headers.SequenceEqual(["按键宏（不识图）", "一键宏（按角色）", "一键领取奖励", "那维莱特 - 转圈圈", "快速强化圣遗物", "一键购买", "一键进出尘歌壶", "一键确认/取消",
             "长按空格等于连续按下空格", "长按 F 等于连续按下 F"]), string.Join(",", headers));
-        Check("绑定快捷键按钮", All<Button>().Count(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键") == 6);
+        Check("绑定快捷键按钮", All<Button>().Count(b => b.IsEffectivelyVisible && UiText(b.Content) == "绑定快捷键") == 6);
 
         // 一键领取奖励：滚轮下滑仅在“按住持续”可用，幅度仅在滚轮下滑打开时可用
         macro.OneKeyClaimRewardHotkeyMode = GameTask.QuickClaimReward.OneKeyClaimRewardTask.ClickOnceMode;
@@ -4730,7 +4745,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         // 绑定快捷键：转到快捷键页
-        await Click(All<Button>().First(b => b.IsEffectivelyVisible && b.Content as string == "绑定快捷键"), "绑定快捷键");
+        await Click(All<Button>().First(b => b.IsEffectivelyVisible && UiText(b.Content) == "绑定快捷键"), "绑定快捷键");
         Check("绑定快捷键转到快捷键页", vm.SelectedNav?.TitleKey == "快捷键" && vm.Settings.SelectedTab == 1, vm.SelectedNav?.Title);
 
         // —— 假游戏上的功能 ——
@@ -4815,7 +4830,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         page.NewPlanName = planName;
-        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && ToolTip.GetTip(b) as string == "新建计划")), "新建计划");
+        await Click(await WaitFor(() => All<Button>().FirstOrDefault(b => b.IsEffectivelyVisible && TipText(b) == "新建计划")), "新建计划");
         if (page.SelectedPlan?.Name != planName)
         {
             Check("新建计划", false);
@@ -4889,11 +4904,11 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
 
         // 路线 CD 选项卡
-        var cdTab = All<TabItem>().FirstOrDefault(t => t.Header as string == "路线 CD");
+        var cdTab = All<TabItem>().FirstOrDefault(t => UiText(t.Header) == "路线 CD");
         if (cdTab is not null) cdTab.IsSelected = true;
         await Settle();
         Check("路线 CD 选项卡", cdTab is not null && ButtonByText("刷新") is not null);
-        if (cdTab is not null) All<TabItem>().First(t => t.Header as string == "运行记录").IsSelected = true;
+        if (cdTab is not null) All<TabItem>().First(t => UiText(t.Header) == "运行记录").IsSelected = true;
 
         vm.Navigate("任务计划");
         await Settle();

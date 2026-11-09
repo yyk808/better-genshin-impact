@@ -42,7 +42,7 @@ internal sealed partial class UiTests
             page.SelectedUid = uid;
             await Settle(800);
             var more = Named<DropDownButton>("AccountMoreButton");
-            var headers = ((more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>() ?? []).Select(i => i.Header as string).ToList();
+            var headers = ((more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>() ?? []).Select(i => UiText(i.Header)).ToList();
             Check("“更多”菜单：刷新库存后是“事件记录…”（同 WPF）", headers.IndexOf("事件记录…") == headers.IndexOf("刷新库存") + 1, string.Join(",", headers));
 
             var last = Services.FluentMessageBox.Current;

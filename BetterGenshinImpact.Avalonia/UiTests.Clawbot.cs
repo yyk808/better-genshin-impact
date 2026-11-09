@@ -49,7 +49,7 @@ internal sealed partial class UiTests
             await WaitFor(() => vm.Host?.RuntimeService.Current);
             vm.Navigate("设置");
             await Settle(800);
-            var tab = All<TabItem>().FirstOrDefault(t => t.Header as string == "通知");
+            var tab = All<TabItem>().FirstOrDefault(t => UiText(t.Header) == "通知");
             if (tab is not null) tab.IsSelected = true;
             await Settle(800);
             Named<Button>("WechatClawbotTestButton")?.BringIntoView();
@@ -81,7 +81,7 @@ internal sealed partial class UiTests
             await Click(bindButton, "登录并绑定");
             var codeStatus = await WaitFor(() => settings.WechatClawbotStatus.StartsWith("请给 Clawbot 发送验证码 [") ? settings.WechatClawbotStatus : null);
             Check("二维码链接交给浏览器打开（同 WPF）", opened.SequenceEqual(["https://liteapp.weixin.qq.com/q/m64qr?bot_type=3"]), string.Join(",", opened));
-            Check("绑定中按钮变为“取消”", bindButton?.Content as string == "取消");
+            Check("绑定中按钮变为“取消”", UiText(bindButton?.Content) == "取消");
             var code = codeStatus is null ? "" : codeStatus.Split('[', ']')[1];
             Check("显示 4 位验证码", code.Length == 4 && code.All(char.IsDigit), codeStatus);
             bindButton?.BringIntoView();
@@ -92,7 +92,7 @@ internal sealed partial class UiTests
             Check("绑定成功并一次性保存凭证（只接受扫码用户的验证码）", settings.WechatClawbotStatus == "绑定成功" && n.WechatClawbotBotToken == "m64-bot-token"
                 && n.WechatClawbotToUserId == "m64user@im.wechat" && n.WechatClawbotBaseUrl == "http://127.0.0.1:18046", $"{settings.WechatClawbotStatus} {n.WechatClawbotToUserId}");
             Check("会话令牌存入 User/WechatClawbot", Directory.Exists(storeDir) && Directory.EnumerateFiles(storeDir).Any());
-            Check("绑定结束按钮恢复“登录并绑定”", bindButton?.Content as string == "登录并绑定");
+            Check("绑定结束按钮恢复“登录并绑定”", UiText(bindButton?.Content) == "登录并绑定");
 
             // 测试发送：发往登录返回的地址，带 bot_token 与绑定时的 context_token
             s = await Test("测试 Clawbot");
@@ -113,7 +113,7 @@ internal sealed partial class UiTests
             await WaitFor(() => settings.WechatClawbotStatus.StartsWith("请给 Clawbot 发送验证码 [") ? "ok" : null);
             await Click(bindButton, "取消");
             await WaitFor(() => settings.WechatClawbotStatus == "已取消登录/绑定" ? "ok" : null);
-            Check("取消后提示且凭证不变", settings.WechatClawbotStatus == "已取消登录/绑定" && n.WechatClawbotBotToken == "m64-bot-token" && bindButton?.Content as string == "登录并绑定",
+            Check("取消后提示且凭证不变", settings.WechatClawbotStatus == "已取消登录/绑定" && n.WechatClawbotBotToken == "m64-bot-token" && UiText(bindButton?.Content) == "登录并绑定",
                 settings.WechatClawbotStatus);
             Check("测试期间没有访问外部地址", fakeFactory.Blocked.Count == 0, string.Join(",", fakeFactory.Blocked));
         }

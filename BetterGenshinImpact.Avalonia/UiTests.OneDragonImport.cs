@@ -46,8 +46,8 @@ internal sealed partial class UiTests
             more?.Flyout?.ShowAt(more!);
             await Settle(400);
             var items = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().ToList() ?? [];
-            var importItem = items.FirstOrDefault(i => i.Header as string == "导入旧配置");
-            var reportItem = items.FirstOrDefault(i => i.Header as string == "查看导入报告");
+            var importItem = items.FirstOrDefault(i => UiText(i.Header) == "导入旧配置");
+            var reportItem = items.FirstOrDefault(i => UiText(i.Header) == "查看导入报告");
             Check("“导入旧配置”“查看导入报告”可用（同 WPF）", importItem is { IsEnabled: true, Command: not null } && reportItem is { IsEnabled: true, Command: not null });
             more?.Flyout?.Hide();
 

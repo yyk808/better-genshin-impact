@@ -50,10 +50,10 @@ internal sealed partial class UiTests
             await Settle(600);
             await vm.Settings.RefreshStorageSummaryAsync(force: true);
             var card = Named<FluentAvalonia.UI.Controls.FASettingsExpander>("StorageCard");
-            Check("设置页“存储空间”卡片与摘要（同 WPF）", card?.Header as string == "存储空间" && vm.Settings.StorageSummaryText.StartsWith("缓存、下载、网页数据和临时文件共占用 "),
+            Check("设置页“存储空间”卡片与摘要（同 WPF）", UiText(card?.Header) == "存储空间" && vm.Settings.StorageSummaryText.StartsWith("缓存、下载、网页数据和临时文件共占用 "),
                 vm.Settings.StorageSummaryText);
             Check("“Windows 版专属设置”不再列出存储空间",
-                Named<FluentAvalonia.UI.Controls.FASettingsExpander>("WindowsOnlyCard")?.Items.OfType<FluentAvalonia.UI.Controls.FASettingsExpanderItem>().All(i => i.Content as string != "存储空间") == true);
+                Named<FluentAvalonia.UI.Controls.FASettingsExpander>("WindowsOnlyCard")?.Items.OfType<FluentAvalonia.UI.Controls.FASettingsExpanderItem>().All(i => UiText(i.Content) != "存储空间") == true);
 
             await Click(Named<Button>("OpenStorageButton"), "管理");
             var win = await WaitFor(() => StorageManagementWindow.Current);
@@ -98,7 +98,7 @@ internal sealed partial class UiTests
 
             // 截图：清除前确认；取消不删，确定删除
             var shotButton = win.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("clean") && b.DataContext == shotRow);
-            Check("截图行按钮为“清除…”", shotButton?.Content as string == "清除…" && shotButton.IsEffectivelyEnabled);
+            Check("截图行按钮为“清除…”", UiText(shotButton?.Content) == "清除…" && shotButton.IsEffectivelyEnabled);
             var clean = svm.CleanupCommand.ExecuteAsync(shotRow);
             dialog = await WaitFor(() => Services.FluentMessageBox.Current);
             Check("清除确认（同 WPF）", dialog?.Title as string == "清除确认");

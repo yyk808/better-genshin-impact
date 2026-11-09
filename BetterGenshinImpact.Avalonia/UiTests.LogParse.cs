@@ -83,7 +83,7 @@ internal sealed partial class UiTests
             var more = await WaitFor(() => Named<Button>("GroupMoreButton"));
             more?.Flyout?.ShowAt(more!);
             await Settle(400);
-            var item = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().FirstOrDefault(i => i.Header as string == "日志分析");
+            var item = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().FirstOrDefault(i => UiText(i.Header) == "日志分析");
             Check("“日志分析”菜单项可用（同 WPF）", item is { IsEnabled: true, Command: not null });
             more?.Flyout?.Hide();
 
