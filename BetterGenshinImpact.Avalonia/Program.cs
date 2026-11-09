@@ -62,6 +62,26 @@ internal static class AvaloniaHostProgram
             .With(new FontManagerOptions { FontFallbacks = FontInfo.Fallbacks })
             .LogToTrace();
 
+    /// <summary>主窗口打开后自动检查更新（与 WPF 相同；失败只记调试日志）</summary>
+    private static async Task CheckUpdateOnStartupAsync(GameHost host, Serilog.ILogger log)
+    {
+        try
+        {
+            var svc = host.Services.GetService(typeof(BetterGenshinImpact.Service.Interface.IUpdateService))
+                as BetterGenshinImpact.Service.Interface.IUpdateService;
+            if (svc is null) return;
+            await svc.CheckUpdateAsync(new BetterGenshinImpact.Model.UpdateOption
+            {
+                Trigger = BetterGenshinImpact.Model.UpdateTrigger.Auto,
+                Channel = BetterGenshinImpact.Model.UpdateChannel.Stable,
+            });
+        }
+        catch (Exception e)
+        {
+            log.Debug(e, "启动时检查更新失败");
+        }
+    }
+
     /// <summary>发现本次启动前留下、尚未恢复的脚本数据备份时提示用户，并可打开备份目录（文字与 WPF 相同）</summary>
     private static async Task PromptUnrestoredScriptBackupsAsync(GameHost host, ILogger log)
     {
@@ -127,6 +147,7 @@ internal static class AvaloniaHostProgram
                     // 悬浮小窗 / 字幕浮窗的窗口（GuideWindowService 每次打开时调用）
                     services.AddSingleton<Func<BetterGenshinImpact.Service.Guide.IGuideWindowView>>(_ => () => GuideViews.CreateWindow());
                     services.AddSingleton<Func<BetterGenshinImpact.Service.Guide.IGuideSubtitleView>>(_ => () => GuideViews.CreateSubtitle());
+                    services.AddSingleton<BetterGenshinImpact.Service.Interface.IUpdateService, LinuxUpdateService>();
                 });
         }
         catch (Exception e)
@@ -267,6 +288,12 @@ internal static class AvaloniaHostProgram
             if (host is not null)
             {
                 BetterGenshinImpact.Core.Script.ScriptRepoUpdater.Instance.StartAutoUpdate();
+            }
+
+            // 启动时检查更新（与 WPF MainWindowViewModel 相同；界面自测跳过以免弹窗打断）
+            if (host is not null && options.UiTest is null)
+            {
+                _ = CheckUpdateOnStartupAsync(host, log);
             }
 
             // 提示上次未恢复的脚本数据备份（更新中断等情况会保留备份），不阻塞后续启动流程（与 WPF 相同）

@@ -371,6 +371,49 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void OpenLogFolder() => TryOpen(Services.LogFiles.OpenFolder);
 
+    /// <summary>检查稳定版更新（对照 WPF CommonSettingsPage CheckUpdate；Linux 只提示并打开下载页）</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private async Task CheckUpdateAsync()
+    {
+        var svc = _host?.Services.GetService(typeof(BetterGenshinImpact.Service.Interface.IUpdateService))
+            as BetterGenshinImpact.Service.Interface.IUpdateService;
+        if (svc is null)
+        {
+            await UiHost.Dialogs.ShowAsync("检查更新服务不可用。", "检查更新", DialogKind.Warning);
+            return;
+        }
+
+        await svc.CheckUpdateAsync(new BetterGenshinImpact.Model.UpdateOption
+        {
+            Trigger = BetterGenshinImpact.Model.UpdateTrigger.Manual,
+            Channel = BetterGenshinImpact.Model.UpdateChannel.Stable,
+        });
+    }
+
+    /// <summary>检查测试版更新（对照 WPF CheckUpdateAlpha；先警告不稳定）</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private async Task CheckUpdateAlphaAsync()
+    {
+        var confirm = await UiHost.Dialogs.ShowAsync(
+            "测试版本非常不稳定！\n测试版本非常不稳定！\n测试版本非常不稳定！\n\n是否继续检查更新？",
+            "警告", DialogKind.Warning, DialogButtons.YesNo);
+        if (confirm != DialogResult.Yes) return;
+
+        var svc = _host?.Services.GetService(typeof(BetterGenshinImpact.Service.Interface.IUpdateService))
+            as BetterGenshinImpact.Service.Interface.IUpdateService;
+        if (svc is null)
+        {
+            await UiHost.Dialogs.ShowAsync("检查更新服务不可用。", "检查更新", DialogKind.Warning);
+            return;
+        }
+
+        await svc.CheckUpdateAsync(new BetterGenshinImpact.Model.UpdateOption
+        {
+            Trigger = BetterGenshinImpact.Model.UpdateTrigger.Manual,
+            Channel = BetterGenshinImpact.Model.UpdateChannel.Alpha,
+        });
+    }
+
     private void TryOpen(Action open)
     {
         try

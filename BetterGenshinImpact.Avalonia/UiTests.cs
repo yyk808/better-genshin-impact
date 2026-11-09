@@ -86,6 +86,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
                 case "onedragon-sort": await OneDragonSortAsync(); break;
                 case "home-banner": await HomeBannerAsync(); break;
                 case "key-bindings": await KeyBindingsAsync(); break;
+                case "check-update": await CheckUpdateAsync(); break;
                 case "settings-more": await SettingsMoreAsync(); break;
                 case "settings-general": await SettingsGeneralAsync(); break;
                 case "trigger-more": await TriggerMoreAsync(); break;

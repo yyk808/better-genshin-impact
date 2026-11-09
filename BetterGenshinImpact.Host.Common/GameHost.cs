@@ -426,6 +426,11 @@ public sealed class GameHost : IAsyncDisposable
             services.AddSingleton<KeyMouseRecordService>();
             services.AddSingleton<KeyMouseRecordController>();
             // 通知：网络通知器与 Windows 版相同（Core 的 NetworkNotifierFactory），系统通知走 freedesktop Notifications
+            services.AddHttpClient(HttpClientNames.Default, c =>
+            {
+                c.Timeout = TimeSpan.FromSeconds(30);
+                c.DefaultRequestHeaders.UserAgent.ParseAdd($"BetterGI/{BetterGenshinImpact.Core.Config.Global.Version}");
+            });
             services.AddHttpClient(HttpClientNames.Notification, c => c.Timeout = TimeSpan.FromSeconds(30));
             services.AddSingleton<NotifierManager>();
             services.AddSingleton<LinuxNotificationService>();
