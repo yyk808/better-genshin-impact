@@ -153,21 +153,18 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
 
     private static string FindNative(string file)
     {
-        // OpenCvSharp 的 DllImport 搜索 AppContext.BaseDirectory；runtimes/ 下的同名文件不会被自动加载
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, file),
-            Path.Combine(AppContext.BaseDirectory, "runtimes", "linux-x64", "native", file),
-        };
-        var path = candidates.FirstOrDefault(File.Exists);
+        // 解析器优先加载程序根目录，其次 runtimes/linux-x64/native（见 OpenCvNativeLibrary）
+        var candidates = OpenCvNativeLibrary.CandidatePaths().Where(File.Exists).ToList();
+        var path = candidates.FirstOrDefault(p => Path.GetFileName(p) == file) ?? candidates.FirstOrDefault();
         if (path is null)
         {
             return "未找到 " + file;
         }
 
-        var loaded = Path.GetDirectoryName(path) == Path.GetDirectoryName(Path.GetFullPath(AppContext.BaseDirectory))
-            || Path.GetFullPath(path) == Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, file));
-        var note = loaded ? "程序根目录，可被 DllImport 加载" : "不在程序根目录，DllImport 不会自动加载";
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, file));
+        var note = Path.GetFullPath(path) == root
+            ? "程序根目录，可由 OpenCvNativeLibrary 加载"
+            : "不在程序根目录，可由 OpenCvNativeLibrary 从 runtimes 或 OpenCvSharpExternPath 加载";
         return $"{path}（{new FileInfo(path).Length / 1024 / 1024} MB，{note}）";
     }
 }

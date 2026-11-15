@@ -26,9 +26,10 @@
 		官方 OpenCvSharp4.official.runtime.linux-x64 依赖 Ubuntu 22.04 的 tesseract / ffmpeg / gtk2 等系统库，不使用。
 		系统发行版的 opencv 包也不提供 OpenCvSharpExtern。
 
-		复制位置必须是输出/发布目录的根（AppContext.BaseDirectory）。以 None 项放到 runtimes/linux-x64/native
-		时不会写入 deps.json 的 native 记录，OpenCvSharp 的 DllImport 只搜索程序根目录，逐帧会 TypeInitializationException。
-		不要把该 .so 提交进 git。
+		复制位置必须是输出/发布目录的根（AppContext.BaseDirectory），供 linux-x64 扁平发布、apphost 与 Arch 包装使用。
+		以 None 项放到 runtimes/linux-x64/native 时不会写入 deps.json 的 native 记录。可移植布局下 `dotnet exec`
+		默认探测的是 runtimes/linux-x64/native 与共享框架目录，不会搜索程序根；因此 Host.Common 在启动时注册
+		OpenCvNativeLibrary 解析器，优先从程序根加载，其次 runtimes/linux-x64/native。不要把该 .so 提交进 git。
 	-->
 	<PropertyGroup>
 		<OpenCvSharpExternPath Condition="'$(OpenCvSharpExternPath)' == ''">$(MSBuildThisFileDirectory)..\opencv-build\out\libOpenCvSharpExtern.so</OpenCvSharpExternPath>

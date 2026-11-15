@@ -15,6 +15,7 @@ public static class OpenCvSelfCheck
 {
     public static bool Run(ILogger log)
     {
+        OpenCvNativeLibrary.InstallResolver();
         log.Information("OpenCV 版本：{Version}", Cv2.GetVersionString());
         var ok = true;
 

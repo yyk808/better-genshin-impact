@@ -30,6 +30,7 @@ internal static class AvaloniaHostProgram
     [STAThread]
     public static int Main(string[] args)
     {
+        OpenCvNativeLibrary.InstallResolver();
         var options = AvaloniaOptions.Parse(args);
         HostLogging.Configure(options.LogFile, c => c.WriteTo.Sink(UiLogSink.Instance).WriteTo.Sink(MaskLogSink.Instance));
         var log = Log.ForContext("SourceContext", "Avalonia");
@@ -37,7 +38,7 @@ internal static class AvaloniaHostProgram
         {
             if (options.CheckOpenCv)
             {
-                // 只探测当前进程 AppContext.BaseDirectory 下实际加载的 libOpenCvSharpExtern.so（SIFT / SURF / dnn），不启动界面
+                // 只探测经 OpenCvNativeLibrary 解析后实际加载的 libOpenCvSharpExtern.so（SIFT / SURF / dnn），不启动界面
                 return OpenCvSelfCheck.Run(log) ? 0 : 3;
             }
 
@@ -815,7 +816,7 @@ internal sealed record AvaloniaOptions(
                 // --child-instance 要求作为子实例连接根实例（须在另一 Unix 会话里，如 setsid 启动）
                 case "--no-instances": instances = false; break;
                 case "--child-instance": childInstance = true; break;
-                // 只检查 OpenCvSharpExtern 原生库（在 AppContext.BaseDirectory 加载），不启动界面
+                // 只检查 OpenCvSharpExtern 原生库（由 OpenCvNativeLibrary 从程序根或 runtimes 加载），不启动界面
                 case "--check-opencv": checkOpenCv = true; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }

@@ -8,6 +8,7 @@ using Serilog;
 //                    [--auto-enter | --no-auto-enter] [--capture ShmRoot|GetImageRoot|GetImageWindow|CompositeWindow]
 //                    [--save-config | --config 配置文件]   # 默认只用内存中的默认配置，不读写配置文件
 //        bgi-headless --check-opencv    # 只检查 OpenCvSharpExtern 原生库的模块（特征匹配、dnn 等）
+OpenCvNativeLibrary.InstallResolver();
 var options = HeadlessOptions.Parse(args);
 
 HostLogging.Configure(options.LogFile);
