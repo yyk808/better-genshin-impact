@@ -3446,7 +3446,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         }
     }
 
-    /// <summary>新一条龙右栏：任务名称 / 整组执行次数说明、高级设置（JSON 编辑、无效输入不写入、撤销）、账号切换步骤与导入报告置灰说明</summary>
+    /// <summary>新一条龙右栏：任务名称 / 整组执行次数说明、高级设置（JSON 编辑、无效输入不写入、撤销）、账号切换步骤与导入报告菜单（988a7847 已迁移，不再置灰）</summary>
     private async Task NewOneDragonPanelAsync()
     {
         vm.Navigate("新一条龙");
@@ -3467,8 +3467,16 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Check("右栏“任务名称”及说明", texts.Contains("任务名称") && texts.Contains("只影响当前任务的显示名称。"));
         // M64：账号切换已迁移；只有一个账户且跟随当前账户时不显示“切换账号”步骤（与 WPF 相同）
         Check("切换账号步骤按账户目录显示", (Named<Border>("AccountStepCard") is not null) == plans.ShowRunAccountEntry && !texts.Any(t => t.Contains("账号切换依赖 Windows")));
+        // 988a7847 已把“查看导入报告（…Linux 版暂不可用）”硬编码置灰项换成真实命令，与 WPF 相同：
+        // 无报告时命令直接返回，菜单项保持可用。有报告时的窗口由 newonedragon-import 覆盖。
         var more = Named<DropDownButton>("MoreButton");
-        Check("查看导入报告置灰说明", (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>().Any(i => (UiText(i.Header) ?? "").StartsWith("查看导入报告") && !i.IsEnabled) == true);
+        more?.Flyout?.ShowAt(more);
+        await Settle(400);
+        var reportItem = (more?.Flyout as MenuFlyout)?.Items.OfType<MenuItem>()
+            .FirstOrDefault(i => (UiText(i.Header) ?? "").StartsWith("查看导入报告"));
+        Check("查看导入报告菜单项（导入已迁移）", reportItem is { Command: not null, IsEnabled: true },
+            reportItem is null ? "找不到菜单项" : $"enabled={reportItem.IsEnabled}");
+        more?.Flyout?.Hide();
         Check("高级设置按钮", Named<Button>("AdvancedNodeButton") is not null);
         Check("可添加进程内 C# 任务", plans.AddOptions.Any(o => o.Definition.TaskType == "csharp"));
 
