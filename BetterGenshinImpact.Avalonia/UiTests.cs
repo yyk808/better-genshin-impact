@@ -2389,7 +2389,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         await WaitFor(() => string.IsNullOrEmpty(settings.FeishuStatus) ? null : "ok");
         Check("飞书测试发送成功", settings.FeishuStatus.Contains("成功"), settings.FeishuStatus);
         hook = File.Exists(Path.Combine(outDir, "webhook.jsonl")) ? File.ReadAllLines(Path.Combine(outDir, "webhook.jsonl")) : [];
-        Check("假 Webhook 收到飞书文本消息", hook.Any(l => l.Contains("m64-feishu") && l.Contains("\"msg_type\": \"text\"")), $"{hook.Length} 条");
+        Check("假 Webhook 收到飞书卡片 2.0", hook.Any(l => l.Contains("m64-feishu") && l.Contains("\"msg_type\": \"interactive\"") && l.Contains("\"schema\": \"2.0\"")), $"{hook.Length} 条");
         Named<ToggleSwitch>("FeishuSwitch")!.IsChecked = false;
         await Settle(300);
 
