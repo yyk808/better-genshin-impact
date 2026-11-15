@@ -14,11 +14,12 @@ sudo pacman -U better-genshin-impact-0.66.3alpha1-1-x86_64.pkg.tar.zst
 
 构建依赖是官方 extra 中的 `dotnet-sdk-10.0`；运行依赖是 `dotnet-runtime-10.0` 与 `aspnet-runtime-10.0`（runtimeconfig 需要 Microsoft.NETCore.App 与 Microsoft.AspNetCore.App 10，不能只依赖前者）。版本号 `0.66.3alpha1` 对应程序的 `0.66.3-alpha.1`（pacman 的 pkgver 不能含连字符）。以后只提高 `pkgver` / `pkgrel`，不要回退。
 
-包装**必须**带上与托管 OpenCvSharp 匹配的完整 `libOpenCvSharpExtern.so`（见上级 [README.md](../README.md)）。系统 `opencv` 包不提供该桥接库；缺少完整库时 `makepkg` 会失败，不会产出缺库或 SIFT 不可用的包。构建时按以下顺序查找：
+包装**必须**带上与托管 OpenCvSharp 匹配的完整 `libOpenCvSharpExtern.so`（见上级 [README.md](../README.md)）。系统 `opencv` 包不提供该桥接库；缺少完整库时 `makepkg` 会按仓库相对路径运行 `Build/Linux/build-opencvsharp.sh`（工作目录 `opencv-build/`）。脚本失败则拒绝出包，不会产出缺库或 SIFT 不可用的包。不要依赖仅本机存在的绝对路径，也不要把该 `.so` 提交进 git。构建时按以下顺序获取：
 
-1. 环境变量 `OpenCvSharpExternPath`
+1. 环境变量 `OpenCvSharpExternPath`（若已指向一份完整库）
 2. 仓库内 `opencv-build/out/libOpenCvSharpExtern.so`
 3. `Build/Linux/libOpenCvSharpExtern.so`
+4. 以上皆无时，调用官方脚本从源码构建到 `opencv-build/out/`（需要 `curl`、`tar`、`python3`；本机没有 gcc/cmake/ninja 时脚本会在工作目录自举工具链）
 
 该原生库复制到程序根目录（`/usr/lib/better-genshin-impact/libOpenCvSharpExtern.so`），以便 OpenCvSharp 的 DllImport 从 `AppContext.BaseDirectory` 加载；不要只放在 `runtimes/linux-x64/native`（deps.json 不会为这项 None 资源登记 native）。不要把 `.so` 提交进 git。构建会实际运行 `bgi-avalonia --check-opencv`（加载原生库并做 SIFT/SURF/dnn），不能只检查文件存在。库在包内分发，并附带本目录安装的许可证说明；第三方源码许可见 OpenCV / OpenCvSharp 上游。
 
