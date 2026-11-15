@@ -75,19 +75,30 @@ public class ClaimEncounterPointsRewardsTask : ISoloTask<NoParam, NoData>
 
         await _runtime.Delay(200, ct);
 
+        var assetScale = _runtime.SystemInfo.AssetScale;
+        var screen = _runtime.SystemInfo.GameScreenSize;
+        Logger.LogInformation(
+            "{F}发送打开冒险之证（{Action}），输入后端 {Backend}，游戏画面 {W}x{H}，AssetScale={Scale}",
+            "历练点：", nameof(GIActions.OpenAdventurerHandbook), InputHub.Backend.Kind,
+            screen.Width, screen.Height, assetScale.ToString("0.###", CultureInfo.InvariantCulture));
         InputHub.Background.SimulateAction(GIActions.OpenAdventurerHandbook); // F1 开书
 
         await _runtime.Delay(1000, ct);
 
-        var assetScale = _runtime.SystemInfo.AssetScale;
-
         var earlyClaim = false; // 无需点击委托直接领取
+        string lastOcr = "";
+        int lastW = 0, lastH = 0;
+        double lastCrop = 0;
         // 找委托按钮
         var f1Success = await NewRetry.WaitForAction(_runtime, () =>
         {
             using var ra = _runtime.CaptureToRectArea();
+            lastW = ra.Width;
+            lastH = ra.Height;
+            lastCrop = 380 * assetScale;
 
-            var ocrList = ra.FindMulti(RecognitionObject.Ocr(0, 0, 380 * assetScale, ra.Height));
+            var ocrList = ra.FindMulti(RecognitionObject.Ocr(0, 0, lastCrop, ra.Height));
+            lastOcr = string.Join(" | ", ocrList.Select(txt => (txt.Text ?? "").ReplaceLineEndings(" ").Trim()).Where(s => s.Length > 0));
 
             var wt = ocrList.FirstOrDefault(txt => Regex.IsMatch(txt.Text, this.commissionsLocalizedString));
 
@@ -110,6 +121,10 @@ public class ClaimEncounterPointsRewardsTask : ISoloTask<NoParam, NoData>
         if (!f1Success)
         {
             Logger.LogError("{F}未找到委托按钮,F1打开冒险之证失败", "历练点：");
+            Logger.LogWarning(
+                "{F}诊断：查找词={Word}，1080P 捕获 {W}x{H}，OCR 区域宽 {Crop}，识别文本=[{Texts}]。此条不能区分按键未送达、手册未打开或识别未命中，请对照当时画面。",
+                "历练点：", commissionsLocalizedString, lastW, lastH, lastCrop.ToString("0.###", CultureInfo.InvariantCulture),
+                string.IsNullOrEmpty(lastOcr) ? "（无）" : lastOcr);
             return SoloTaskResult.Failed(SoloTaskReasons.PageNotReached, "未能进入或处理历练点领取页面。");
         }
 

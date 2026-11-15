@@ -466,6 +466,8 @@ public sealed class GameHost : IAsyncDisposable
             services.AddHttpClient(HttpClientNames.Images, c => c.Timeout = TimeSpan.FromSeconds(15));
             services.AddMemoryCache();
             services.AddSingleton<LazyCache.IAppCache, LazyCache.CachingService>();
+            // 同一 FileCache 实例另以 IFileCache、IStorageAreaProvider 登记；MS.DI 会按登记次数 Dispose。
+            // FileCache.Dispose 必须幂等，不能在已释放的 CancellationTokenSource 上再 Cancel。
             services.AddSingleton(sp => new BetterGenshinImpact.Infrastructure.Cache.FileCache(BetterGenshinImpact.Infrastructure.Storage.AppPaths.FileCache,
                 sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<BetterGenshinImpact.Infrastructure.Cache.FileCache>>()));
             services.AddSingleton<BetterGenshinImpact.Infrastructure.Cache.IFileCache>(sp => sp.GetRequiredService<BetterGenshinImpact.Infrastructure.Cache.FileCache>());

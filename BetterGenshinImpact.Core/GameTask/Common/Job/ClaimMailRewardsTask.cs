@@ -91,6 +91,9 @@ public class ClaimMailRewardsTask : ISoloTask<NoParam, NoData>
             else
             {
                 Logger.LogInformation("邮件：{Text}", "没有邮件奖励");
+                Logger.LogWarning(
+                    "邮件：未找到邮件奖励图标 EscMailReward，捕获 {W}x{H}。这既可能是派蒙菜单内没有可领奖励，也可能是 ESC 未打开菜单或识别未命中，不能单独据此判断输入已成功。",
+                    ra.Width, ra.Height);
                 message = "没有邮件奖励。";
             }
         }

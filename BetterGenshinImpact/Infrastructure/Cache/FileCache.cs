@@ -65,6 +65,12 @@ public sealed class FileCache : IFileCache, IStorageAreaProvider, IDisposable
     /// </summary>
     private readonly CancellationTokenSource _lifetime = new();
 
+    /// <summary>
+    /// 是否已经释放。同一实例经 FileCache / IFileCache / IStorageAreaProvider 三次登记，
+    /// 容器释放时会调用三次 Dispose，必须幂等。
+    /// </summary>
+    private int _disposed;
+
     /// <param name="rootDirectory">缓存根目录，通常是 <see cref="AppPaths.FileCache"/></param>
     /// <param name="timeProvider">时间来源</param>
     /// <param name="logger">日志</param>
@@ -343,8 +349,18 @@ public sealed class FileCache : IFileCache, IStorageAreaProvider, IDisposable
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// 先 Cancel 再 Dispose 令牌，让进行中的 factory 观察到取消。
+    /// 不得在已释放的 CancellationTokenSource 上再 Cancel：第二次释放会抛 ObjectDisposedException
+    ///（Avalonia 关闭时 GameHost.DisposeAsync 已因此异常退出）。
+    /// </remarks>
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _lifetime.Cancel();
         _lifetime.Dispose();
         _memory.Dispose();
