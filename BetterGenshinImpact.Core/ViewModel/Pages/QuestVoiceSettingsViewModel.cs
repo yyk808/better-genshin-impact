@@ -140,7 +140,9 @@ public partial class QuestVoiceSettingsViewModel : ObservableObject
         {
             if (!string.IsNullOrWhiteSpace(currentPath))
             {
-                var full = Path.GetFullPath(currentPath, Global.StartUpPath);
+                var full = Path.IsPathFullyQualified(currentPath)
+                    ? Path.GetFullPath(currentPath)
+                    : Path.GetFullPath(Global.Absolute(currentPath));
                 var directory = Path.GetDirectoryName(full);
                 if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
                 {
@@ -159,8 +161,17 @@ public partial class QuestVoiceSettingsViewModel : ObservableObject
         {
             try
             {
-                var startup = Path.GetFullPath(Global.StartUpPath);
                 var chosen = Path.GetFullPath(fileName);
+                if (!string.IsNullOrEmpty(Global.WritableRoot))
+                {
+                    var data = Path.GetFullPath(Global.WritableRoot);
+                    if (chosen.StartsWith(data, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.GetRelativePath(data, chosen).Replace('\\', '/');
+                    }
+                }
+
+                var startup = Path.GetFullPath(Global.StartUpPath);
                 if (chosen.StartsWith(startup, StringComparison.OrdinalIgnoreCase))
                 {
                     return Path.GetRelativePath(startup, chosen).Replace('\\', '/');

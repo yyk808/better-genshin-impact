@@ -22,8 +22,13 @@
 		  第三方库与 libstdc++ 静态链接，只依赖 glibc 2.27+）。默认取仓库根目录下 opencv-build/out/libOpenCvSharpExtern.so，
 		  可用构建属性或同名环境变量 OpenCvSharpExternPath 指定其它路径。
 		- 找不到时退回 Sdcb.OpenCvSharp4.mini.runtime.linux-x64（含 dnn，但不含 features2d / calib3d / xfeatures2d 等，
-		  大地图特征匹配等功能不可用）。
+		  大地图特征匹配等功能不可用）。开发构建可以这样退回；Arch 包装必须使用完整构建，缺少则构建失败，不能产出缺库或 SIFT 不可用的包。
 		官方 OpenCvSharp4.official.runtime.linux-x64 依赖 Ubuntu 22.04 的 tesseract / ffmpeg / gtk2 等系统库，不使用。
+		系统发行版的 opencv 包也不提供 OpenCvSharpExtern。
+
+		复制位置必须是输出/发布目录的根（AppContext.BaseDirectory）。以 None 项放到 runtimes/linux-x64/native
+		时不会写入 deps.json 的 native 记录，OpenCvSharp 的 DllImport 只搜索程序根目录，逐帧会 TypeInitializationException。
+		不要把该 .so 提交进 git。
 	-->
 	<PropertyGroup>
 		<OpenCvSharpExternPath Condition="'$(OpenCvSharpExternPath)' == ''">$(MSBuildThisFileDirectory)..\opencv-build\out\libOpenCvSharpExtern.so</OpenCvSharpExternPath>
@@ -31,7 +36,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(UseLocalOpenCvSharpExtern)' == 'true'">
-		<None Include="$(OpenCvSharpExternPath)" Link="runtimes\linux-x64\native\libOpenCvSharpExtern.so"
+		<None Include="$(OpenCvSharpExternPath)" Link="libOpenCvSharpExtern.so"
 			CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 

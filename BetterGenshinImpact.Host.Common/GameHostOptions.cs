@@ -6,8 +6,14 @@ public sealed record GameHostOptions
     /// <summary>X 显示（如 :0），为空时用环境变量 DISPLAY</summary>
     public string? Display { get; init; }
 
-    /// <summary>素材、模型、User 目录的根目录（Windows 主程序的输出目录）；为空时用程序所在目录</summary>
+    /// <summary>素材、模型等只读资源的根目录（Windows 主程序的输出目录）；为空时用程序所在目录。User/Data/log/Repos 在 Linux 上可由 DataDirectory 另行指定。</summary>
     public string? AssetsDirectory { get; init; }
+
+    /// <summary>
+    /// Linux 可写数据根（User/、Data/、log/、Repos/）。也可用 <c>--data-dir</c> 或环境变量 <c>BGI_DATA_DIR</c>。
+    /// Windows 上忽略。未指定且程序目录可写时保持便携布局（数据仍在启动目录）。
+    /// </summary>
+    public string? DataDirectory { get; init; }
 
     /// <summary>游戏进程名</summary>
     public IReadOnlyList<string> ProcessNames { get; init; } = ["YuanShen", "GenshinImpact"];
@@ -46,7 +52,7 @@ public sealed record GameHostOptions
     public string? CloudGameUrl { get; init; }
 
     /// <summary>
-    /// 解析宿主共用的命令行参数（--display、--assets、--process、--interval、--pick / --no-pick、--skip / --no-skip、
+    /// 解析宿主共用的命令行参数（--display、--assets、--data-dir、--process、--interval、--pick / --no-pick、--skip / --no-skip、
     /// --auto-enter / --no-auto-enter、--config 文件、--save-config / --no-save-config、--capture 截图方式、--mask / --no-mask、--mask-recognition、--cloud 地址）。
     /// 这些开关只在本次运行有效，不写回配置文件；
     /// 不认识的参数返回 null，由宿主自己处理
@@ -55,6 +61,7 @@ public sealed record GameHostOptions
     {
         "--display" => this with { Display = nextValue() },
         "--assets" => this with { AssetsDirectory = nextValue() },
+        "--data-dir" or "--data-directory" => this with { DataDirectory = nextValue() },
         "--process" => this with { ProcessNames = nextValue().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) },
         "--interval" => this with { IntervalMs = int.Parse(nextValue()) },
         "--pick" => this with { Pick = true },

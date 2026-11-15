@@ -207,11 +207,17 @@ public sealed class GameHost : IAsyncDisposable
     {
         if (options.AssetsDirectory is { } assets)
         {
-            // 素材、模型、User 目录都按 Global.StartUpPath 解析
+            // 素材、模型按 Global.StartUpPath 解析；User/Data/log/Repos 在 Linux 上可改到 WritableRoot
             Global.StartUpPath = Path.GetFullPath(assets) + Path.DirectorySeparatorChar;
         }
 
         log.Information("素材目录：{Path}", Global.StartUpPath);
+
+        Global.ApplyWritableRoot(options.DataDirectory, message => log.Warning("{Message}", message));
+        if (!string.IsNullOrEmpty(Global.WritableRoot))
+        {
+            log.Information("用户数据目录：{Path}", Global.WritableRoot);
+        }
 
         // 任务的调试截图等直接写入 log 子目录（Windows 版由日志文件创建该目录；这里日志可能写在别处），启动时先建好
         try

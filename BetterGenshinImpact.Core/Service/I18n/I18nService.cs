@@ -85,6 +85,11 @@ public sealed class I18nService : INotifyPropertyChanged
         try
         {
             var filePath = Path.Combine(_i18nDirectory, $"{language}.json");
+            if (!File.Exists(filePath) && !string.IsNullOrEmpty(Global.WritableRoot))
+            {
+                // 安装包内的默认语言文件在只读程序目录；用户目录尚未复制时仍能加载
+                filePath = Path.Combine(Global.StartUpPath, "User", "I18n", $"{language}.json");
+            }
             if (!File.Exists(filePath))
             {
                 return new Dictionary<string, string>();

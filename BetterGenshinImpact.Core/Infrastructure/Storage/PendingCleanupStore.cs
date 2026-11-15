@@ -11,7 +11,7 @@ namespace BetterGenshinImpact.Infrastructure.Storage;
 /// <summary>
 /// 推迟到下次启动执行的清理。用于被进程长期占用的目录（推理编译缓存、网页数据）：
 /// 用户点击清理时只登记路径，主实例下次启动、使用方加载之前再删除其中的内容。
-/// 记录保存在 Data/pending-cleanup.json，路径以相对程序目录的形式保存。
+/// 记录保存在 Data/pending-cleanup.json，路径相对程序目录或 Linux 可写数据根保存。
 /// </summary>
 /// <remarks>
 /// 锁只在进程内生效。多个实例同时登记的概率很低，后写者覆盖时最多丢失一次登记，用户可以再次点击清理。
@@ -26,7 +26,7 @@ public sealed class PendingCleanupStore(ILogger<PendingCleanupStore> logger)
     /// <summary>
     /// 登记路径，下次启动时删除其中的内容
     /// </summary>
-    /// <exception cref="ArgumentException">路径不在程序目录内</exception>
+    /// <exception cref="ArgumentException">路径不在程序目录或用户数据目录内</exception>
     public void Add(IEnumerable<string> paths)
     {
         lock (_lock)
@@ -34,12 +34,12 @@ public sealed class PendingCleanupStore(ILogger<PendingCleanupStore> logger)
             var pending = Load();
             foreach (var path in paths)
             {
-                if (!SafePath.IsUnder(Global.StartUpPath, path))
+                if (!SafePath.IsUnderManagedRoot(path))
                 {
-                    throw new ArgumentException($"只能清理程序目录内的路径：{path}", nameof(paths));
+                    throw new ArgumentException($"只能清理程序目录或用户数据目录内的路径：{path}", nameof(paths));
                 }
 
-                pending.Add(Path.GetRelativePath(Global.StartUpPath, Path.GetFullPath(path)));
+                pending.Add(SafePath.GetManagedRelativePath(path));
             }
 
             Save(pending);
@@ -55,8 +55,8 @@ public sealed class PendingCleanupStore(ILogger<PendingCleanupStore> logger)
         {
             var pending = Load();
             var relativePaths = paths
-                .Where(path => SafePath.IsUnder(Global.StartUpPath, path))
-                .Select(path => Path.GetRelativePath(Global.StartUpPath, Path.GetFullPath(path)))
+                .Where(path => SafePath.IsUnderManagedRoot(path))
+                .Select(SafePath.GetManagedRelativePath)
                 .ToList();
             return relativePaths.Count > 0 && relativePaths.All(pending.Contains);
         }
@@ -79,11 +79,11 @@ public sealed class PendingCleanupStore(ILogger<PendingCleanupStore> logger)
             var remaining = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var relativePath in pending)
             {
-                var fullPath = Path.GetFullPath(Path.Combine(Global.StartUpPath, relativePath));
-                if (!SafePath.IsUnder(Global.StartUpPath, fullPath))
+                var fullPath = SafePath.ResolveManagedPath(relativePath);
+                if (!SafePath.IsUnderManagedRoot(fullPath))
                 {
                     // 记录被篡改或损坏，丢弃该条目
-                    logger.LogWarning("忽略程序目录外的待清理路径：{Path}", relativePath);
+                    logger.LogWarning("忽略程序或用户数据目录外的待清理路径：{Path}", relativePath);
                     continue;
                 }
 

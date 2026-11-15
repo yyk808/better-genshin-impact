@@ -1,0 +1,13 @@
+post_install() {
+  echo 'BetterGI 已安装。用 better-genshin-impact 或桌面入口启动；CPU 推理开箱可用，无需 CUDA。'
+  echo '用户配置、脚本、账号与 WebKit 数据位于 ~/.local/share/better-genshin-impact（可用 BGI_DATA_DIR 或 XDG_DATA_HOME 覆盖），不在 /usr 下。'
+  echo '可选功能见包的 optdepends：onnxruntime-rocm、niri、webkit2gtk-4.1、espeak-ng、libsecret、libnotify 等。'
+}
+
+post_upgrade() {
+  echo '程序文件已更新。用户配置、脚本与账号数据仍在 ~/.local/share/better-genshin-impact（或 BGI_DATA_DIR / XDG_DATA_HOME），本次升级不会覆盖。'
+}
+
+pre_remove() {
+  echo '卸载不会删除 ~/.local/share/better-genshin-impact 中的用户配置和账号数据。如需清除请自行删除该目录。'
+}

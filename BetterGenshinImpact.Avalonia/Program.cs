@@ -17,8 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 using BetterGenshinImpact.Platform;
 using Serilog;
 
-// 用法：bgi-avalonia [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact] [--interval 50]
-//                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件]
+// 用法：bgi-avalonia [--display :0] [--assets 主程序输出目录] [--data-dir 用户数据目录] [--process YuanShen,GenshinImpact] [--interval 50]
+//                    [--no-pick] [--no-skip] [--auto-enter | --no-auto-enter] [--log 日志文件] [--check-opencv]
 //                    [--page 实时触发] [--auto-start] [--screenshots 截图目录] [--exit-after 秒] [--ui-selftest]
 //                    [--select-window 标题] [--config 配置文件 | --no-save-config] [--capture 截图方式] [--mask | --no-mask] [--mask-recognition]
 //                    [--solo-task 任务标识] [--solo-stop-after 秒] [--script-group 配置组名称] [--script-stop-after 秒] [--notify-test]
@@ -35,6 +35,12 @@ internal static class AvaloniaHostProgram
         var log = Log.ForContext("SourceContext", "Avalonia");
         try
         {
+            if (options.CheckOpenCv)
+            {
+                // 只探测当前进程 AppContext.BaseDirectory 下实际加载的 libOpenCvSharpExtern.so（SIFT / SURF / dnn），不启动界面
+                return OpenCvSelfCheck.Run(log) ? 0 : 3;
+            }
+
             if (options.Instances)
             {
                 // 多实例（与 WPF 版相同的实例 IPC）：建立根实例管道，或连接已运行的根实例；
@@ -756,7 +762,8 @@ internal sealed record AvaloniaOptions(
     string? TaskPlan = null,
     string? UiTest = null,
     bool Instances = true,
-    bool ChildInstance = false)
+    bool ChildInstance = false,
+    bool CheckOpenCv = false)
 {
     public static AvaloniaOptions Parse(string[] args)
     {
@@ -776,6 +783,7 @@ internal sealed record AvaloniaOptions(
         string? uiTest = null;
         var instances = true;
         var childInstance = false;
+        var checkOpenCv = false;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} 缺少参数值");
@@ -807,11 +815,13 @@ internal sealed record AvaloniaOptions(
                 // --child-instance 要求作为子实例连接根实例（须在另一 Unix 会话里，如 setsid 启动）
                 case "--no-instances": instances = false; break;
                 case "--child-instance": childInstance = true; break;
+                // 只检查 OpenCvSharpExtern 原生库（在 AppContext.BaseDirectory 加载），不启动界面
+                case "--check-opencv": checkOpenCv = true; break;
                 default: throw new ArgumentException($"未知参数 {args[i]}");
             }
         }
 
         return new AvaloniaOptions(host, logFile, page, autoStart, screenshots, exitAfter, uiSelfTest, selectWindow, soloTask, soloStopAfter, scriptGroup,
-            scriptStopAfter, notifyTest, taskPlan, uiTest, instances, childInstance);
+            scriptStopAfter, notifyTest, taskPlan, uiTest, instances, childInstance, checkOpenCv);
     }
 }

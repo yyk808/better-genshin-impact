@@ -21,6 +21,8 @@ Build/Scripts/*
 !Build/Linux/**
 # Build/Linux/build-opencvsharp.sh 的默认工作目录（源码、中间文件与 libOpenCvSharpExtern.so，不提交）
 opencv-build/
+# 完整 OpenCvSharp 桥接库由本地构建生成，不提交（可放在 opencv-build/out 或 Build/Linux）
+libOpenCvSharpExtern.so
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

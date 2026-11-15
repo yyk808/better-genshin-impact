@@ -494,6 +494,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel, IDisposable
 
     public string AssetsDirectory => Global.StartUpPath;
 
+    public string DataDirectory => string.IsNullOrEmpty(Global.WritableRoot) ? Global.StartUpPath : Global.WritableRoot;
+
     public string ConfigFile => Global.Absolute(@"User\config.json");
 
     public string Runtime => $"{System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSDescription}";

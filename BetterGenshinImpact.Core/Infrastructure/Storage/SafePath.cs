@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using BetterGenshinImpact.Core.Config;
 
 namespace BetterGenshinImpact.Infrastructure.Storage;
 
@@ -75,4 +76,35 @@ public static class SafePath
 
         return fullPath;
     }
+
+    /// <summary>
+    /// 判断路径是否位于程序目录或（若已设置）Linux 可写数据根之内。
+    /// 安装到只读前缀后，User/Data/log/Repos 在 <see cref="Global.WritableRoot"/>，不再位于 StartUpPath。
+    /// </summary>
+    public static bool IsUnderManagedRoot(string path, bool allowRoot = false)
+    {
+        if (IsUnder(Global.StartUpPath, path, allowRoot))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrEmpty(Global.WritableRoot) && IsUnder(Global.WritableRoot, path, allowRoot);
+    }
+
+    /// <summary>
+    /// 相对程序目录或可写数据根的路径，供待清理记录等使用；解析时用 <see cref="ResolveManagedPath"/>。
+    /// </summary>
+    public static string GetManagedRelativePath(string path)
+    {
+        var full = Path.GetFullPath(path);
+        if (!string.IsNullOrEmpty(Global.WritableRoot) && IsUnder(Global.WritableRoot, full, allowRoot: true))
+        {
+            return Path.GetRelativePath(Global.WritableRoot, full);
+        }
+
+        return Path.GetRelativePath(Global.StartUpPath, full);
+    }
+
+    /// <summary>把 <see cref="GetManagedRelativePath"/> 保存的相对路径还原为完整路径。</summary>
+    public static string ResolveManagedPath(string relativePath) => Path.GetFullPath(Global.Absolute(relativePath));
 }

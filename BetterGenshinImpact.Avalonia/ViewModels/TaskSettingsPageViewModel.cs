@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using BetterGenshinImpact.Core.Config;
 using BetterGenshinImpact.GameTask;
 using BetterGenshinImpact.GameTask.AutoArtifactSalvage;
+using BetterGenshinImpact.GameTask.AutoCombo.ComboBuild;
 using BetterGenshinImpact.GameTask.AutoBoss;
 using BetterGenshinImpact.GameTask.AutoDomain;
 using BetterGenshinImpact.GameTask.AutoFight;
@@ -90,6 +91,22 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
 
         FightStrategies = LoadStrategyNames(@"User\AutoFight", [CombatStrategyResolver.AutoSelectName]);
         TcgStrategies = LoadStrategyNames(@"User\AutoGeniusInvokation", []);
+
+        SelectedComboProvider = ComboLlmProviders.FirstOrDefault(o => o.Id == AutoComboLlmProvider.Normalize(Config.AutoComboBuildConfig.Provider))
+            ?? ComboLlmProviders[0];
+        Config.AutoComboBuildConfig.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AutoComboBuildConfig.Provider))
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    SelectedComboProvider = ComboLlmProviders.FirstOrDefault(o => o.Id == AutoComboLlmProvider.Normalize(Config.AutoComboBuildConfig.Provider))
+                        ?? ComboLlmProviders[0];
+                    OnPropertyChanged(nameof(IsAutoComboFishRelief));
+                    RefreshComboCards();
+                });
+            }
+        };
     }
 
     public override string Title => "独立任务";
@@ -132,6 +149,42 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
     public List<string> FightStrategies { get; }
 
     public List<string> TcgStrategies { get; }
+
+    /// <summary>自动连招 LLM 服务商（与 WPF 独立任务页相同，含发鱼站）</summary>
+    public IReadOnlyList<ComboLlmOption> ComboLlmProviders { get; } =
+    [
+        new(AutoComboLlmProvider.OpenAiCompatible, "OpenAI 兼容"),
+        new(AutoComboLlmProvider.FishRelief, "FishRelief 发鱼站"),
+        new(AutoComboLlmProvider.Anthropic, "Anthropic"),
+    ];
+
+    private ComboLlmOption _selectedComboProvider = new(AutoComboLlmProvider.Default, "OpenAI 兼容");
+
+    public ComboLlmOption SelectedComboProvider
+    {
+        get => _selectedComboProvider;
+        set
+        {
+            if (value is null || SetProperty(ref _selectedComboProvider, value) is false)
+            {
+                return;
+            }
+
+            Config.AutoComboBuildConfig.Provider = value.Id;
+            OnPropertyChanged(nameof(IsAutoComboFishRelief));
+            RefreshComboCards();
+        }
+    }
+
+    /// <summary>发鱼站下服务地址、密钥与提示词由网关接管，设置页不再展示</summary>
+    public bool IsAutoComboFishRelief =>
+        AutoComboLlmProvider.Normalize(Config.AutoComboBuildConfig.Provider) == AutoComboLlmProvider.FishRelief;
+
+    public ObservableCollection<string> AutoComboModelNameList { get; private set; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(FetchAutoComboModelListCommand))]
+    private bool _fetchingAutoComboModelList;
 
     /// <summary>七圣召唤卡组旁的“脚本仓库”按钮（与 WPF 相同：隐藏提示红点并打开仓库窗口）</summary>
     [CommunityToolkit.Mvvm.Input.RelayCommand]
@@ -263,6 +316,48 @@ public sealed partial class TaskSettingsPageViewModel : PageViewModel, ISoloTask
         ApplyStatus(_executor?.GetStatus() ?? SoloTaskStatusSnapshot.Idle());
     }
 
+    private void RefreshComboCards()
+    {
+        foreach (var card in _cards.Values)
+        {
+            card.RefreshComboVisibility();
+        }
+    }
+
+    private bool CanFetchAutoComboModelList() => !FetchingAutoComboModelList;
+
+    /// <summary>拉取当前服务商的模型列表填充下拉。只在用户点击时请求，自测不会调用。</summary>
+    [RelayCommand(CanExecute = nameof(CanFetchAutoComboModelList))]
+    private async Task OnFetchAutoComboModelList()
+    {
+        FetchingAutoComboModelList = true;
+        var config = Config.AutoComboBuildConfig;
+        try
+        {
+            var models = await AutoComboModelListFetcher.FetchAsync(config.Provider, config.PlanningLlmEndpoint, config.ApiKey, CancellationToken.None);
+            AutoComboModelNameList = new ObservableCollection<string>(models);
+            OnPropertyChanged(nameof(AutoComboModelNameList));
+            var autoSelected = string.IsNullOrWhiteSpace(config.ModelName);
+            if (autoSelected)
+            {
+                config.ModelName = models[0];
+            }
+
+            UiHost.Dialogs.Toast(DialogKind.Success, autoSelected
+                ? $"已拉取 {models.Count} 个模型，已自动选择 {models[0]}"
+                : $"已拉取 {models.Count} 个模型，可在“LLM模型名”下拉选择");
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "拉取自动连招模型列表失败（服务商：{Provider}）", config.Provider);
+            UiHost.Dialogs.Toast(DialogKind.Error, $"拉取模型列表失败：{e.Message}");
+        }
+        finally
+        {
+            FetchingAutoComboModelList = false;
+        }
+    }
+
     internal static List<string> LoadStrategyNames(string relativeDir, List<string> fixedNames)
     {
         var dir = Global.Absolute(relativeDir);
@@ -355,6 +450,15 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
     public bool IsRedeem => TaskId == UseRedemptionCodeTask.TaskId;
     public bool IsInventory => _descriptor.ParamType == typeof(InventoryCountComparisonParam);
     public bool IsSalvage => TaskId == AutoArtifactSalvageTask.TaskId;
+    public bool IsCombo => TaskId == AutoComboBuildTask.TaskId;
+    public bool ShowComboFishRelief => IsCombo && Page.IsAutoComboFishRelief;
+    public bool ShowComboManualLlm => IsCombo && !Page.IsAutoComboFishRelief;
+
+    public void RefreshComboVisibility()
+    {
+        OnPropertyChanged(nameof(ShowComboFishRelief));
+        OnPropertyChanged(nameof(ShowComboManualLlm));
+    }
 
     /// <summary>已迁移 WPF 全部参数的任务（不再显示“其余参数使用配置文件中的值”）</summary>
     public bool HasFullSettings => IsFight || IsDomain || IsWood || IsStygian || IsTcg || IsFishing;
@@ -374,4 +478,10 @@ public sealed partial class SoloTaskCardViewModel : ObservableObject
             _ => "停止"
         };
     }
+}
+
+/// <summary>自动连招 LLM 服务商选项（Id 写入配置，Name 用于显示）</summary>
+public sealed record ComboLlmOption(string Id, string Name)
+{
+    public override string ToString() => Name;
 }

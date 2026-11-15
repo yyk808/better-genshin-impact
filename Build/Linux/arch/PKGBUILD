@@ -1,0 +1,136 @@
+# Maintainer: in-tree package (not an official Arch/AUR submission)
+# 在仓库内用 makepkg 生成可 pacman -U 安装的包。请从本目录运行：
+#   cd Build/Linux/arch && makepkg -f
+# 本文件不发布到 AUR，也不在用户机器上代为安装。
+
+pkgname=better-genshin-impact
+# pacman 的 pkgver 不能含连字符；与 Avalonia / WPF 的 0.66.3-alpha.1 对应，后续更新只增不减。
+pkgver=0.66.3alpha1
+pkgrel=1
+pkgdesc='Genshin Impact automation (Linux Avalonia build)'
+url='https://github.com/babalae/better-genshin-impact'
+arch=('x86_64')
+license=('GPL-3.0-only')
+# 包名均来自 extra 仓库（https://archlinux.org/packages/），CPU 推理开箱可用，不硬依赖 CUDA。
+depends=(
+  'dotnet-runtime-10.0'
+  'aspnet-runtime-10.0'
+  'glibc'
+  'gcc-libs'
+  'fontconfig'
+  'freetype2'
+  'libx11'
+  'libxkbcommon'
+  'libglvnd'
+)
+makedepends=('dotnet-sdk-10.0')
+optdepends=(
+  'libxrandr: X11 显示（非 niri 会话）'
+  'libxcursor: X11 光标'
+  'libxi: X11 输入'
+  'libxext: X11 扩展'
+  'libice: X11 会话'
+  'libsm: X11 会话'
+  'wayland: Wayland 客户端'
+  'niri: 官方支持的 Wayland 合成器'
+  'xdg-desktop-portal: 桌面门户'
+  'xdg-desktop-portal-gnome: niri 下 ScreenCast 录屏'
+  'xdg-desktop-portal-gtk: 基础门户实现'
+  'pipewire: 录屏流'
+  'xwayland-satellite: 在 niri 下运行 X11 游戏'
+  'onnxruntime-rocm: AMD GPU 推理（使用系统 ROCm 库；非必需）'
+  'libsecret: 账号密码保管'
+  'webkit2gtk-4.1: 图文攻略与云原神页面'
+  'espeak-ng: 剧情语音'
+  'libnotify: 桌面通知'
+  'mako: Wayland 通知守护进程（niri 可选建议）'
+)
+options=('!debug' '!strip')
+install=better-genshin-impact.install
+source=()
+sha256sums=()
+
+# 本 PKGBUILD 位于 Build/Linux/arch，仓库根目录在上三级。不要把本文件单独拷走后再用默认路径构建。
+_repo="$(cd "${startdir}/../../.." && pwd)"
+
+_publish_dir() {
+  printf '%s/publish' "${srcdir}"
+}
+
+_opencv_so() {
+  if [[ -n "${OpenCvSharpExternPath:-}" && -f "${OpenCvSharpExternPath}" ]]; then
+    printf '%s' "${OpenCvSharpExternPath}"
+    return
+  fi
+  if [[ -f "${_repo}/opencv-build/out/libOpenCvSharpExtern.so" ]]; then
+    printf '%s' "${_repo}/opencv-build/out/libOpenCvSharpExtern.so"
+    return
+  fi
+  if [[ -f "${_repo}/Build/Linux/libOpenCvSharpExtern.so" ]]; then
+    printf '%s' "${_repo}/Build/Linux/libOpenCvSharpExtern.so"
+  fi
+}
+
+build() {
+  cd "${_repo}"
+  export DOTNET_CLI_TELEMETRY_OPTOUT=1
+  export DOTNET_NOLOGO=1
+  local publish="$(_publish_dir)"
+  rm -rf "${publish}"
+  mkdir -p "${publish}"
+  local opencv_args=()
+  local opencv_so
+  opencv_so="$(_opencv_so || true)"
+  if [[ -z "${opencv_so}" ]]; then
+    echo "错误：找不到完整的 libOpenCvSharpExtern.so。系统 opencv 包不提供 OpenCvSharpExtern，也不能改用 Sdcb mini 出包。" >&2
+    echo "请先运行 Build/Linux/build-opencvsharp.sh，或把完整库放到 opencv-build/out/、Build/Linux/，或设置 OpenCvSharpExternPath。不要把该 .so 提交进 git。" >&2
+    return 1
+  fi
+  opencv_args=(-p:OpenCvSharpExternPath="${opencv_so}")
+  echo "使用完整 OpenCV 原生库：${opencv_so}"
+
+  dotnet publish BetterGenshinImpact.Avalonia/BetterGenshinImpact.Avalonia.csproj \
+    -c Release \
+    -r linux-x64 \
+    --self-contained false \
+    -p:EnableWindowsTargeting=true \
+    -p:DebugType=None \
+    -p:DebugSymbols=false \
+    "${opencv_args[@]}" \
+    -o "${publish}"
+
+  # Avalonia 发布不含 WPF 主程序的素材/识别图/地图模型。用同一套 Content 复制规则构建主项目后再拷贝。
+  dotnet build BetterGenshinImpact/BetterGenshinImpact.csproj \
+    -c Release \
+    -p:EnableWindowsTargeting=true \
+    -p:DebugType=None \
+    -p:DebugSymbols=false
+  local wpf_out="${_repo}/BetterGenshinImpact/bin/Release/net10.0-windows10.0.22621.0"
+  if [[ ! -d "${wpf_out}/Assets" || ! -d "${wpf_out}/GameTask" ]]; then
+    echo "主程序输出缺少 Assets 或 GameTask：${wpf_out}" >&2
+    return 1
+  fi
+  cp -a "${wpf_out}/Assets" "${wpf_out}/GameTask" "${publish}/"
+  # 默认 User 模板只从仓库源复制，避免把构建机上的配置和账号打进包
+  mkdir -p "${publish}/User"
+  cp -a "${_repo}/BetterGenshinImpact/User/." "${publish}/User/"
+
+  if [[ ! -f "${publish}/libOpenCvSharpExtern.so" ]]; then
+    echo "错误：发布目录根下没有 libOpenCvSharpExtern.so。OpenCvSharp 的 DllImport 只搜索 AppContext.BaseDirectory，不能只放在 runtimes/linux-x64/native。" >&2
+    return 1
+  fi
+  # 实际加载原生库并跑 SIFT / SURF / dnn，不能只检查文件存在
+  if ! (cd "${publish}" && dotnet bgi-avalonia.dll --check-opencv --no-instances); then
+    echo "错误：发布结果的 OpenCV 原生加载或特征匹配自检失败，拒绝出包。" >&2
+    return 1
+  fi
+}
+
+# 从发布目录安装到 $1（通常是 $pkgdir）。也被 verify-layout.sh 用来核对清单，不依赖 makepkg。
+source "${startdir}/install-tree.sh"
+
+package() {
+  _install_tree "${pkgdir}" "$(_publish_dir)"
+}
+
+# vim: set ts=2 sw=2 et:

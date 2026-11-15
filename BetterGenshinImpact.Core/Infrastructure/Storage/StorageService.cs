@@ -52,11 +52,11 @@ public sealed class StorageService(
             throw new InvalidOperationException(busyReason);
         }
 
-        // 登记错误时也不能删到程序目录之外
-        var outside = area.Paths.FirstOrDefault(path => !SafePath.IsUnder(Global.StartUpPath, path));
+        // 登记错误时也不能删到程序目录与用户数据目录之外
+        var outside = area.Paths.FirstOrDefault(path => !SafePath.IsUnderManagedRoot(path));
         if (outside != null)
         {
-            throw new InvalidOperationException($"存储区域 {area.Id} 包含程序目录外的路径：{outside}");
+            throw new InvalidOperationException($"存储区域 {area.Id} 包含程序或用户数据目录外的路径：{outside}");
         }
 
         StorageCleanupResult result;

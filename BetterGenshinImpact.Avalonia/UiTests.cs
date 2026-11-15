@@ -283,9 +283,9 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
         Directory.CreateDirectory(work);
         var catalog = Path.Combine(work, "routing.json");
         foreach (var f in Directory.GetFiles(work)) File.Delete(f);
-        var seed = Path.Combine(Global.StartUpPath, "User", "QuestVoice", "routing.json");
+        var seed = Global.Absolute("User/QuestVoice/routing.json");
         if (File.Exists(seed)) File.Copy(seed, catalog, true);
-        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+        var configPath = Global.Absolute("User/config.json");
 
         vm.Navigate("实时触发");
         await Settle(800);
@@ -1639,7 +1639,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
 
     private async Task SoloDomainAsync()
     {
-        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+        var configPath = Global.Absolute("User/config.json");
         vm.Navigate("独立任务");
         await Settle(1000);
         if (ButtonByText("收起") is { } collapse) await Click(collapse, "收起日志");
@@ -3816,7 +3816,7 @@ internal sealed partial class UiTests(MainWindow window, MainWindowViewModel vm,
     {
         vm.Navigate("独立任务");
         await Settle(600);
-        var configPath = Path.Combine(Global.StartUpPath, "User", "config.json");
+        var configPath = Global.Absolute("User/config.json");
         var b = vm.Tasks.Boss;
         var savedBoss = b.Config.BossName;
         foreach (var ex in All<FluentAvalonia.UI.Controls.FASettingsExpander>()) ex.IsExpanded = true;

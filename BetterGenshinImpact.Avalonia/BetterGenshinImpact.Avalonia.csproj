@@ -12,6 +12,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<RootNamespace>BetterGenshinImpact.Avalonia</RootNamespace>
 		<AssemblyName>bgi-avalonia</AssemblyName>
+		<Version>0.66.3-alpha.1</Version>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>14.0</LangVersion>

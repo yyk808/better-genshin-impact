@@ -346,6 +346,7 @@
                                 <TextBlock Classes="desc" Text="{Binding Runtime, StringFormat='运行时：{0}'}" />
                                 <TextBlock Classes="desc" Text="{Binding DisplayName, StringFormat='X 显示：{0}'}" />
                                 <TextBlock Classes="desc" Text="{Binding AssetsDirectory, StringFormat='素材目录：{0}'}" TextWrapping="Wrap" />
+                                <TextBlock Classes="desc" Text="{Binding DataDirectory, StringFormat='用户数据目录：{0}'}" TextWrapping="Wrap" />
                                 <TextBlock Classes="desc" Text="{Binding ConfigFile, StringFormat='配置文件：{0}'}" TextWrapping="Wrap" />
                                 <TextBlock Classes="desc" Text="{i18n:T '项目主页：https://github.com/babalae/better-genshin-impact　文档：https://bettergi.com'}" TextWrapping="Wrap" />
                                 <TextBlock Classes="desc" Text="{i18n:T '本软件开源、免费，仅供学习交流使用。'}" />

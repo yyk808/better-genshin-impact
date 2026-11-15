@@ -309,9 +309,9 @@ public sealed partial class DownloadService : IDownloadService, IDownloadMonitor
         }
 
         if (request.DestinationPath is { } destination
-            && (!Path.IsPathFullyQualified(destination) || !SafePath.IsUnder(Global.StartUpPath, destination)))
+            && (!Path.IsPathFullyQualified(destination) || !SafePath.IsUnderManagedRoot(destination)))
         {
-            throw new ArgumentException($"下载的目标路径必须位于程序目录内：{destination}", nameof(request));
+            throw new ArgumentException($"下载的目标路径必须位于程序目录或用户数据目录内：{destination}", nameof(request));
         }
 
         if (request.MaxBytes <= 0)

@@ -1477,5 +1477,15 @@
   "运行独立任务时临时关闭桌面通知横幅，结束后恢复。GNOME 用 gsettings；若有 swaync / mako 也会尝试。与 Windows 版共用配置项。": "Temporarily hide desktop notification banners during solo tasks, then restore. GNOME via gsettings; also tries swaync/mako. Shared config with Windows.",
   "通过游戏进程音频的人声检测判断台词结束；等待数秒仍未检测到语音时继续，无法读取游戏声音时使用上方固定延迟。Linux：经 PulseAudio / PipeWire 只录游戏的播放流（需要 pactl、parecord）": "Detect end of dialogue from game-process audio; continue after a few seconds with no voice; use the fixed delay above if game audio cannot be read. Linux: records only the game sink input via PulseAudio/PipeWire (needs pactl, parecord)",
   "首次使用先打开窗口登录（登录状态保存在 WebKit/CloudGame 目录）；进入游戏后再启动截图器。截图方式建议用 Composite 窗口图像": "On first use, open the window to log in (session saved under WebKit/CloudGame); start the capturer after entering the game. Prefer Composite window capture",
-  "与 Windows 版共用配置与翻译资源；切换后立即应用到 I18nService（繁体经 OpenCC；英文等读 User/I18n）": "Shares config and translation resources with Windows; applies to I18nService immediately (Traditional via OpenCC; English etc. from User/I18n)"
+  "与 Windows 版共用配置与翻译资源；切换后立即应用到 I18nService（繁体经 OpenCC；英文等读 User/I18n）": "Shares config and translation resources with Windows; applies to I18nService immediately (Traditional via OpenCC; English etc. from User/I18n)",
+  "LLM服务商": "LLM provider",
+  "OpenAI 兼容": "OpenAI-compatible",
+  "OpenAI 兼容可填任意兼容服务或本机模型；Anthropic 使用官方 Messages API 且服务地址可留空；发鱼站由网关接管地址与提示词": "OpenAI-compatible works with any compatible service or a local model; Anthropic uses the official Messages API and the endpoint may be left empty; FishRelief lets the gateway supply the endpoint and prompts",
+  "FishRelief 发鱼站": "FishRelief",
+  "地址与提示词由发鱼站网关接管": "The endpoint and prompts are provided by the FishRelief gateway",
+  "决策LLM服务地址": "Planning LLM endpoint",
+  "LLM模型名": "LLM model name",
+  "拉取模型列表": "Fetch model list",
+  "llm服务密钥": "LLM API key",
+  "额外提示词": "Extra prompt"
 }

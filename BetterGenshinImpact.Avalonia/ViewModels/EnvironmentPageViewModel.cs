@@ -86,6 +86,8 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
         Items.Add(new("界面", "运行时", $".NET {Environment.Version}，{System.Runtime.InteropServices.RuntimeInformation.OSDescription}"));
         Items.Add(new("素材", "目录", Global.StartUpPath));
         Items.Add(new("素材", "Assets 存在", Directory.Exists(Global.Absolute("Assets")) ? "是" : "否（请用 --assets 指向主程序输出目录）"));
+        Items.Add(new("数据", "用户数据目录", string.IsNullOrEmpty(Global.WritableRoot) ? Global.StartUpPath : Global.WritableRoot));
+        Items.Add(new("数据", "配置文件", Global.Absolute("User/config.json")));
     }
 
     [RelayCommand]
@@ -151,7 +153,21 @@ public sealed partial class EnvironmentPageViewModel : PageViewModel
 
     private static string FindNative(string file)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "runtimes", "linux-x64", "native", file);
-        return File.Exists(path) ? $"{path}（{new FileInfo(path).Length / 1024 / 1024} MB）" : "未找到 " + file;
+        // OpenCvSharp 的 DllImport 搜索 AppContext.BaseDirectory；runtimes/ 下的同名文件不会被自动加载
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, file),
+            Path.Combine(AppContext.BaseDirectory, "runtimes", "linux-x64", "native", file),
+        };
+        var path = candidates.FirstOrDefault(File.Exists);
+        if (path is null)
+        {
+            return "未找到 " + file;
+        }
+
+        var loaded = Path.GetDirectoryName(path) == Path.GetDirectoryName(Path.GetFullPath(AppContext.BaseDirectory))
+            || Path.GetFullPath(path) == Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, file));
+        var note = loaded ? "程序根目录，可被 DllImport 加载" : "不在程序根目录，DllImport 不会自动加载";
+        return $"{path}（{new FileInfo(path).Length / 1024 / 1024} MB，{note}）";
     }
 }

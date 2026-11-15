@@ -28,7 +28,7 @@ JOBS=8 Build/Linux/build-opencvsharp.sh /path/to/work
 
 ### 使用
 
-`BetterGenshinImpact.Host.Common`（无界面宿主与 Avalonia 宿主都引用它）默认取仓库根目录下的 `opencv-build/out/libOpenCvSharpExtern.so`，复制到宿主输出目录的 `runtimes/linux-x64/native/`。放在其它位置时用构建属性（或同名环境变量）指定：
+`BetterGenshinImpact.Host.Common`（无界面宿主与 Avalonia 宿主都引用它）默认取仓库根目录下的 `opencv-build/out/libOpenCvSharpExtern.so`，复制到宿主输出/发布目录的根（`AppContext.BaseDirectory`），因为 OpenCvSharp 的 DllImport 只搜索该目录，以 None 项放到 `runtimes/linux-x64/native/` 时不会写入 deps.json。放在其它位置时用构建属性（或同名环境变量）指定：
 
 ```bash
 dotnet build BetterGenshinImpact.Host.Headless -p:OpenCvSharpExternPath=/path/to/work/out/libOpenCvSharpExtern.so
@@ -42,3 +42,8 @@ bgi-headless --check-opencv
 ```
 
 它会依次检查 SIFT / SURF 特征匹配、dnn、连通域、相位相关。
+
+
+## Arch Linux 包装
+
+本机构建并可 `pacman -U` 安装的打包文件在 [arch/](arch/)。程序安装到 `/usr/lib/better-genshin-impact`，用户配置、日志与 WebKit 数据写到 `~/.local/share/better-genshin-impact`，升级不会覆盖用户数据。详见该目录 README。

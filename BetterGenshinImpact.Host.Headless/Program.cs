@@ -3,7 +3,7 @@ using BetterGenshinImpact.Host.Common;
 using OpenCvSharp;
 using Serilog;
 
-// 用法：bgi-headless [--display :0] [--assets 主程序输出目录] [--process YuanShen,GenshinImpact]
+// 用法：bgi-headless [--display :0] [--assets 主程序输出目录] [--data-dir 用户数据目录] [--process YuanShen,GenshinImpact]
 //                    [--seconds 30] [--interval 50] [--frames 截图目录] [--no-pick] [--no-skip] [--log 日志文件]
 //                    [--auto-enter | --no-auto-enter] [--capture ShmRoot|GetImageRoot|GetImageWindow|CompositeWindow]
 //                    [--save-config | --config 配置文件]   # 默认只用内存中的默认配置，不读写配置文件

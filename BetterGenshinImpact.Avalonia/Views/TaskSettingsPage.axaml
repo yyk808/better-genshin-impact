@@ -261,6 +261,35 @@
                                                     <TextBox Classes="param" Text="{Binding Page.Config.AutoArtifactSalvageConfig.MaxArtifactStar}" />
                                                 </ui:FASettingsExpanderItem.Footer>
                                             </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="{i18n:T 'LLM服务商'}" Description="{i18n:T 'OpenAI 兼容可填任意兼容服务或本机模型；Anthropic 使用官方 Messages API 且服务地址可留空；发鱼站由网关接管地址与提示词'}" IsVisible="{Binding IsCombo}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <ComboBox Classes="param" ItemsSource="{Binding Page.ComboLlmProviders}" SelectedItem="{Binding Page.SelectedComboProvider}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Description="{i18n:T '地址与提示词由发鱼站网关接管'}" IsVisible="{Binding ShowComboFishRelief}" />
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '决策LLM服务地址'}" IsVisible="{Binding ShowComboManualLlm}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" Text="{Binding Page.Config.AutoComboBuildConfig.PlanningLlmEndpoint}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="{i18n:T 'LLM模型名'}" IsVisible="{Binding ShowComboManualLlm}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <ComboBox Classes="param" ItemsSource="{Binding Page.AutoComboModelNameList}" IsEditable="True" Text="{Binding Page.Config.AutoComboBuildConfig.ModelName}" />
+                                                        <Button Content="{i18n:T '拉取模型列表'}" Command="{Binding Page.FetchAutoComboModelListCommand}" IsEnabled="{Binding !Page.FetchingAutoComboModelList}" />
+                                                    </StackPanel>
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="{i18n:T 'llm服务密钥'}" IsVisible="{Binding ShowComboManualLlm}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" PasswordChar="●" Text="{Binding Page.Config.AutoComboBuildConfig.ApiKey}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
+                                            <ui:FASettingsExpanderItem Content="{i18n:T '额外提示词'}" IsVisible="{Binding ShowComboManualLlm}">
+                                                <ui:FASettingsExpanderItem.Footer>
+                                                    <TextBox Classes="param" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Text="{Binding Page.Config.AutoComboBuildConfig.ExtraPrompt}" />
+                                                </ui:FASettingsExpanderItem.Footer>
+                                            </ui:FASettingsExpanderItem>
                                             <ui:FASettingsExpanderItem Description="{i18n:T '其余参数使用配置文件中的值（与 Windows 版共用 User/config.json）'}" IsVisible="{Binding !HasFullSettings}" />
                                         </ui:FASettingsExpander>
                                     </DataTemplate>

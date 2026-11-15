@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=BetterGI
+GenericName=Better Genshin Impact
+Comment=Genshin Impact automation (Linux Avalonia build)
+Comment[zh_CN]=原神自动化（Linux Avalonia 构建）
+Exec=better-genshin-impact
+Icon=better-genshin-impact
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=bgi-avalonia
+Keywords=Genshin;BetterGI;原神;
