@@ -23,7 +23,7 @@ depends=(
   'libxkbcommon'
   'libglvnd'
 )
-makedepends=('dotnet-sdk-10.0')
+makedepends=('dotnet-sdk-10.0' 'aspnet-targeting-pack-10.0')
 optdepends=(
   'libxrandr: X11 显示（非 niri 会话）'
   'libxcursor: X11 光标'

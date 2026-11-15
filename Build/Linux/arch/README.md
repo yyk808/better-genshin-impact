@@ -12,7 +12,7 @@ makepkg -f
 sudo pacman -U better-genshin-impact-0.66.3alpha1-1-x86_64.pkg.tar.zst
 ```
 
-构建依赖是官方 extra 中的 `dotnet-sdk-10.0`；运行依赖是 `dotnet-runtime-10.0` 与 `aspnet-runtime-10.0`（runtimeconfig 需要 Microsoft.NETCore.App 与 Microsoft.AspNetCore.App 10，不能只依赖前者）。版本号 `0.66.3alpha1` 对应程序的 `0.66.3-alpha.1`（pacman 的 pkgver 不能含连字符）。以后只提高 `pkgver` / `pkgrel`，不要回退。
+构建依赖是官方 extra 中的 `dotnet-sdk-10.0` 与 `aspnet-targeting-pack-10.0`（SDK 可选依赖，缺少则 restore/publish 会报 NETSDK1226）；运行依赖是 `dotnet-runtime-10.0` 与 `aspnet-runtime-10.0`（runtimeconfig 需要 Microsoft.NETCore.App 与 Microsoft.AspNetCore.App 10，不能只依赖前者）。版本号 `0.66.3alpha1` 对应程序的 `0.66.3-alpha.1`（pacman 的 pkgver 不能含连字符）。以后只提高 `pkgver` / `pkgrel`，不要回退。
 
 包装**必须**带上与托管 OpenCvSharp 匹配的完整 `libOpenCvSharpExtern.so`（见上级 [README.md](../README.md)）。系统 `opencv` 包不提供该桥接库；缺少完整库时 `makepkg` 会按仓库相对路径运行 `Build/Linux/build-opencvsharp.sh`（工作目录 `opencv-build/`）。脚本失败则拒绝出包，不会产出缺库或 SIFT 不可用的包。不要依赖仅本机存在的绝对路径，也不要把该 `.so` 提交进 git。构建时按以下顺序获取：
 
