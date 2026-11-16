@@ -6,6 +6,7 @@ using OpenCvSharp;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 
 namespace BetterGenshinImpact.Core.Recognition;
 
@@ -90,8 +91,13 @@ public static class RecognitionAssets
             throw new FileNotFoundException($"未找到{taskName}的素材文件夹");
         }
 
-        var filePath = Path.Combine(assetsFolder, assetName);
-        if (!File.Exists(filePath))
+        // Recognition.json 中的模板路径可能含 Windows 分隔符（如 other\确定.png）。
+        // 在 Linux 上必须先规范化分隔符再拼路径；大小写仅在精确路径不存在时，
+        // 对当前目录下该路径段做一次非递归匹配：0 个返回空，1 个采用，多个拒绝猜测。
+        // Windows 上 File.Exists 本就大小写不敏感，不会走到回退，行为保持不变。
+        // 解析结果随 RecognitionObject 缓存，不会在每帧识别时重复遍历目录。
+        var filePath = ResolveTemplateFilePath(assetsFolder, assetName);
+        if (filePath is null)
         {
             throw new FileNotFoundException($"未找到{taskName}中的{assetName}文件");
         }
@@ -107,6 +113,63 @@ public static class RecognitionAssets
         }
 
         return mat;
+    }
+
+
+    /// <summary>
+    /// 将 JSON 中的模板相对路径解析为实际文件。
+    /// 规范化 / 与 \；精确路径优先；精确失败后仅在当前层级按大小写不敏感匹配，不递归搜索。
+    /// 同一层级出现多个仅大小写不同的条目时抛出，以免缓存到错误文件。真实缺失返回 null。
+    /// </summary>
+    internal static string? ResolveTemplateFilePath(string assetsFolder, string assetName)
+    {
+        if (string.IsNullOrWhiteSpace(assetName))
+        {
+            return null;
+        }
+
+        var normalized = assetName.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        var exact = Path.Combine(assetsFolder, normalized);
+        if (File.Exists(exact))
+        {
+            return exact;
+        }
+
+        var current = assetsFolder;
+        foreach (var part in normalized.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var exactPart = Path.Combine(current, part);
+            if (Directory.Exists(exactPart) || File.Exists(exactPart))
+            {
+                current = exactPart;
+                continue;
+            }
+
+            if (!Directory.Exists(current))
+            {
+                return null;
+            }
+
+            var matches = Directory.EnumerateFileSystemEntries(current)
+                .Where(entry => string.Equals(Path.GetFileName(entry), part, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(entry => Path.GetFileName(entry), StringComparer.Ordinal)
+                .ToList();
+            if (matches.Count == 0)
+            {
+                return null;
+            }
+
+            if (matches.Count > 1)
+            {
+                var names = string.Join(", ", matches.Select(Path.GetFileName));
+                throw new InvalidOperationException(
+                    $"模板路径 '{assetName}' 在 '{current}' 下对 '{part}' 存在 {matches.Count} 个仅大小写不同的条目，拒绝猜测: {names}");
+            }
+
+            current = matches[0];
+        }
+
+        return File.Exists(current) ? current : null;
     }
 
     private readonly record struct RecognitionAssetCacheKey(string TaskName, string ObjectName, int CaptureWidth, int CaptureHeight);

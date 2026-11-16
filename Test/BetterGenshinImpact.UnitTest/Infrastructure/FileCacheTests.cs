@@ -67,7 +67,7 @@ public sealed class FileCacheTests : IDisposable
 
     /// <summary>释放后的令牌应对进行中的 factory 表现为已取消，且再次 Dispose 仍安全。</summary>
     [Fact]
-    public void Dispose_CancelsLifetimeTokenThenIgnoresFurtherDispose()
+    public async Task Dispose_CancelsLifetimeTokenThenIgnoresFurtherDispose()
     {
         var cache = new FileCache(_root);
         using var started = new ManualResetEventSlim(false);
@@ -77,7 +77,14 @@ public sealed class FileCacheTests : IDisposable
         {
             factoryToken = ct;
             started.Set();
-            await Task.Delay(Timeout.Infinite, ct).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            try
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
             allowFinish.Set();
             return null;
         });
@@ -86,8 +93,8 @@ public sealed class FileCacheTests : IDisposable
         cache.Dispose();
         Assert.True(factoryToken.IsCancellationRequested);
         Assert.True(allowFinish.Wait(TimeSpan.FromSeconds(5)));
-        var ex = Record.Exception(() => cache.Dispose());
+        var ex = Record.Exception(cache.Dispose);
         Assert.Null(ex);
-        load.GetAwaiter().GetResult();
+        await load;
     }
 }

@@ -2,7 +2,7 @@
   "objects": {
     "SpaceButton": {
       "type": "TemplateMatch",
-      "template": "space.png",
+      "template": "Space.png",
       "roi": "rect(cw / 2, ch / 2, cw / 2, ch / 2)",
       "threshold": 0.7,
       "draw": false
